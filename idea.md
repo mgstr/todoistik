@@ -93,7 +93,7 @@ The "what can I do right now" view filters by one or several contexts, combined 
 
 OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
 
-The same view filters on the other two things that decide what is doable right now: the duration bucket (how much time is available) and the needs focus flag (how much energy is available).
+This filter is the "what can I do right now" view - see "Views".
 
 ### Tags
 A tag is a label used to filter and categorise. Unlike a context it is not a precondition - it says nothing about whether an item can be done, only about what it is about.
@@ -133,17 +133,11 @@ The known case: `snoozeUntil` set past the due date. That means the item is hidd
 Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
 ## Lists
+There are exactly three lists. Everything else the app shows is a **view** derived from them - a query, not a place where anything is stored.
 
-### Waiting for
-A first class list, sitting alongside next actions. It holds every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
-This covers people (delegated to somebody) as well as things (an order placed, a form submitted, a PR awaiting CI).
-
-Rules:
-- a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
-- it is excluded from the "what can I do right now" view, since it cannot be acted upon
-- its age comes from `becameNextActionAt`, which for these items is the delegation date
-- there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
-- the list is reviewed during the weekly review
+1. **Inbox** - captured items that have not been decided about yet. Must be emptied, see "Inbox Zero".
+2. **Someday/Maybe** - raw ideas worth revisiting some time, but not now.
+3. **Projects + root actions** - everything that is an actual commitment: projects with their actions, and the standalone (root) actions that belong to no project.
 
 ### Someday/Maybe
 A first class list, holding raw ideas that are worth looking at some time, but that you are not ready to work on now.
@@ -155,7 +149,38 @@ Rules:
 - the creation date shows the age of the idea
 - `snoozeUntil` (optional) hides the item from the weekly review requirement until that date, so that a long someday list stays reviewable
 - when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
-- the list is reviewed during the weekly review, skipping items that are still snoozed
+- it is reviewed during the weekly review, skipping items that are still snoozed
+
+## Views
+Views are derived from the projects + root actions list. Nothing lives in a view.
+
+### Next actions
+Actions where `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty.
+
+Snoozed actions are hidden here until the snooze passes, even though they still count as a next action of their project for the stalled project check. Being counted and being displayed are two different things.
+
+### What can I do right now
+The main working view: next actions filtered by the three things that decide whether something is doable at this moment.
+
+- **context** - one or several of the contexts currently satisfied, combined with OR (see "Contexts")
+- **duration** - what fits in the time available
+- **needs focus** - what can be faced with the energy available
+
+### Waiting for
+Every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
+This covers people (delegated to somebody) as well as things (an order placed, a form submitted, a PR awaiting CI).
+
+Rules:
+- a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
+- it is excluded from the "what can I do right now" view, since it cannot be acted upon
+- its age comes from `becameNextActionAt`, which for these items is the delegation date
+- there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
+- the list is reviewed during the weekly review
+
+### Projects
+The active projects, with stalled ones loudly marked. Snoozed projects are hidden until their snooze passes.
+
+TBD: whether a project shows its actions inline in this view, or is only a title to open. It decides whether the view stays scannable once there are a few dozen projects.
 
 ## Processes
 
