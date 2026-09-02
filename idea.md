@@ -69,6 +69,27 @@ An item is resolved explicitly, and only in one of two ways: it is completed, or
 Both project and action could have tags, that should be used for items categorization.
 Each item could have zero, one or several tags.
 
+## Stalled projects
+An active project is stalled when it has no next action.
+
+This is the single most common way things silently die: the project stays on the list, looks alive, and nothing ever moves. Catching it is the highest value check in the app, and it costs nothing - it is derived, never stored.
+
+- a project is exempt while it is snoozed, and once it is completed
+- a project whose only next action is a waiting for action is **not** stalled
+
+### On completing a next action
+Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
+
+- there are still open actions, and at least one of them is marked as a next action - nothing is asked, the completion is accepted silently
+- there are still open actions, but none of them is marked as a next action - ask to mark one of them as the next action
+- there are no open actions left - ask whether to complete the project, showing the DOD for reference, or to create a next action
+- in that last case, doing nothing is always allowed. If there is no time or energy to decide right now, nothing is forced and the project immediately becomes stalled
+
+### Visibility
+Stalled projects stay visible in the normal lists, clearly marked as stalled (red, or similarly loud). They are not hidden away in a dedicated screen, and they are not something only the weekly review surfaces.
+
+The app never prevents a project from being stalled. Forcing a next action to be invented at a moment when there is no time or energy for it produces a bad action, and a bad action is worse than a stalled project that is shouting about itself and will be dealt with at the weekly review or sooner.
+
 ## Lists
 
 ### Waiting for
