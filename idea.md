@@ -48,13 +48,17 @@ A next action is not a property of the project. It is a property of the action -
 ### Time fields
 Both project and action could have following time related fields:
 - cration date: (required) when item was created, will be used for calculation age of the item
-- due date: (optional) when item should be completed, will be used for indicating that item complition is time sensitive
+- due date: (optional) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
 - lastReviewedAt: (optional) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date.
 - snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
 - completedAt: (optional) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
 `snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
+
+`snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date. Two consequences of that:
+- a snoozed **project** is exempt from the stalled project check
+- a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. This is the same exemption a waiting for action gets, and for the same reason
 
 The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as moving it to the someday/maybe list. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
@@ -90,6 +94,13 @@ Completing a next action is the moment with the most context about what comes ne
 Stalled projects stay visible in the normal lists, clearly marked as stalled (red, or similarly loud). They are not hidden away in a dedicated screen, and they are not something only the weekly review surfaces.
 
 The app never prevents a project from being stalled. Forcing a next action to be invented at a moment when there is no time or energy for it produces a bad action, and a bad action is worse than a stalled project that is shouting about itself and will be dealt with at the weekly review or sooner.
+
+## Error state
+An item whose fields contradict each other is in an error state. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
+
+The known case: `snoozeUntil` set past the due date. That means the item is hidden from view until after the moment it was supposed to be finished, which is never what was meant.
+
+Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
 ## Lists
 
