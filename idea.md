@@ -31,6 +31,7 @@ Action has following fields:
 - Context: (optional) defines what physical environment is needed to proceed with action. For example: online (action requires internet connection), home (I need to be home in order to clean my room) etc
 - Duration: (optional) the expected duraion of the action. It is not expected to have estimation for all actions, it rather a way to mark actions, that are known to have a long duration, for example - if I need to read long article, I don't want to break this activity, and need to reserve time enought to finish reading at one sitting.
 - Description: (optional) any extra meterials needed to be referenced (like URL, link to email, reference to PDF etc) that could be usefull during action.
+- Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears on the "Waiting for" list.
 
 ### Project
 Project is a desired result, that requires more than one step to complete.
@@ -45,10 +46,24 @@ Both project and action could have following time related fields:
 - cration date: (required) when item was created, will be used for calculation age of the item
 - due date: (optional) when item should be completed, will be used for indicating that item complition is time sensitive
 - review date: (optional) time of the last review, allows tracking of items that require attention during weekly review
+- becameANextActionDate: (optional) when the action became a next action. Used to spot actions that have been next for a long time without moving. For actions with "assigned to" set it doubles as the delegation date, so the age of a waiting for item is visible directly.
 
 ### Tags
 Both project and action could have tags, that should be used for items categorization.
 Each item could have zero, one or several tags.
+
+## Lists
+
+### Waiting for
+A first class list, sitting alongside next actions. It holds every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
+This covers people (delegated to somebody) as well as things (an order placed, a form submitted, a PR awaiting CI).
+
+Rules:
+- a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
+- it is excluded from the "what can I do right now" view, since it cannot be acted upon
+- its age comes from `becameANextActionDate`, which for these items is the delegation date
+- there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
+- the list is reviewed during the weekly review
 
 ## Processes
 
@@ -60,6 +75,7 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Trash**: the item is deleted. Recorded in the audit log.
 - **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in.
 - **Two minute rule**: if it can be completed in under two minutes, it is done right now and marked as completed in the audit log, without being turned into a "proper" action first.
+- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands on the "Waiting for" list.
 - **Project**: more than one action is needed. Requires:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
