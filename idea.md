@@ -94,7 +94,7 @@ A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This kee
 - the parameterised form is **narrower** than the bare one. Standing in Selver satisfies `@grocery(Selver)` and bare `@grocery`, but not `@grocery(Prisma)`
 - the bare form is not always meaningful. Bare `@grocery` is useful ("buy milk, any shop"), bare `@person` is not. Some context types will in practice always carry a parameter, and that is fine
 - parameter values are picked from a remembered list per context type, never typed fresh, otherwise `@person(Andres)`, `@person(andres)` and `@person(Andres P.)` become three different contexts
-- that list has to be editable, so that unused values can be removed. TBD: how this is best done
+- that list has to be editable, so that values that are no longer used can be removed
 
 #### Filtering
 The "what can I do right now" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
@@ -188,8 +188,6 @@ Rules:
 ### Projects
 The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready.
 
-TBD: whether a project shows its actions inline in this view, or is only a title to open. It decides whether the view stays scannable once there are a few dozen projects.
-
 ## Processes
 
 ### Inbox Zero
@@ -198,6 +196,7 @@ While the process runs everything else is hidden from view - only the current it
 For each item the only question asked is: what is it? The answer is one of:
 
 - **Trash**: the item is deleted. Recorded in the audit log.
+- **Send to reference materials**: the item is not actionable, but is worth keeping - a manual, an account number, an article to come back to. It is sent out of the app, to wherever reference material is kept. This is an external action: the app itself stores no reference material. The branch exists so that such captures have a correct answer, instead of being trashed or parked in someday/maybe forever.
 - **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in.
 - **Two minute rule**: if it can be completed in under two minutes, it is done right now and marked as completed in the audit log, without being turned into a "proper" action first.
 - **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands in the "Waiting for view".
@@ -267,3 +266,5 @@ A known cost of this direction: the app would keep no link between instances, so
 Things consciously left out, recorded here so that they do not come back later as fresh ideas.
 
 - **Priority.** No priority field, no P1 / P2 / P3. It is subjective and unstable - what matters on Monday does not on Thursday - and re-ranking a list feels productive while producing nothing. Real urgency is already carried by the due date, and importance comes out of the weekly review and the areas of responsibility carried by tags.
+- **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
+- **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
