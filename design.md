@@ -38,7 +38,9 @@ Action has following fields:
 - Tags: (optional) zero, one or several labels - see "Tags"
 - Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears in the "Waiting for view".
 
-An action does not have to belong to a project, and most do not. A single action that fully achieves its outcome stands on its own and is never wrapped in a project just to give it a parent - that bureaucracy is what makes a system get abandoned. A standalone action is a next action by exactly the same rule as any other action, and the stalled project check simply does not apply to it.
+An action does not have to belong to a project, and most do not. A single action that fully achieves its outcome stands on its own and is never wrapped in a project just to give it a parent - that bureaucracy is what makes a system get abandoned.
+
+A standalone action is **always** a next action: `becameNextActionAt` is stamped whenever an action is created standalone or becomes standalone (see "Reshaping items"). The parked state exists only inside a project, where an action written down in advance is part of a plan that the project keeps visible. A parked standalone action would appear in no view at all and silently die - the exact failure the stalled project check exists to catch, except with no check watching. "Not ready to act on it yet" is expressed with `snoozeUntil`, never by parking. The stalled project check itself does not apply to standalone actions.
 
 ### Project
 Project is a desired result, that requires more than one step to complete.
@@ -55,8 +57,8 @@ A next action is not a property of the project. It is a property of the action -
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
 - due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
-- lastReviewedAt: (optional, projects and actions) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
-- becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date.
+- lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
+- becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for view" on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
 - completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
@@ -134,7 +136,9 @@ The app never prevents a project from being stalled. Forcing a next action to be
 ## Error state
 An item whose fields contradict each other is in an error state. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
 
-The known case: `snoozeUntil` set past the due date. The item would stay marked as not yet ready to be worked on until after the moment it was supposed to be finished, which is never what was meant.
+The known cases:
+- `snoozeUntil` set past the due date. The item would stay marked as not yet ready to be worked on until after the moment it was supposed to be finished, which is never what was meant.
+- "assigned to" set while `becameNextActionAt` is empty. A waiting for action that is not a next action would appear in no view and silently disappear. The normal flows cannot produce this - setting "assigned to" restamps `becameNextActionAt` - so this state means data got in past the normal flows, and it is flagged rather than reinterpreted.
 
 Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
@@ -197,9 +201,9 @@ For each item the only question asked is: what is it? The answer is one of:
 
 - **Trash**: the item is deleted. Recorded in the audit log.
 - **Send to reference materials**: the item is not actionable, but is worth keeping - a manual, an account number, an article to come back to. It is sent out of the app, to wherever reference material is kept. This is an external action: the app itself stores no reference material. The branch exists so that such captures have a correct answer, instead of being trashed or parked in someday/maybe forever.
-- **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in.
+- **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in. It is created as a standalone action, so `becameNextActionAt` is stamped immediately - deciding it is worth doing is exactly what makes it a next action.
 - **Two minute rule**: if it can be completed in under two minutes, it is done right now and marked as completed in the audit log, without being turned into a "proper" action first.
-- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands in the "Waiting for view".
+- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands in the "Waiting for view". `becameNextActionAt` is stamped as usual, and here it is the delegation date.
 - **Project**: more than one action is needed. Requires:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
@@ -214,7 +218,7 @@ The ritual that keeps the lists trustworthy. Without it the lists silently go ou
 
 The review is guided, and runs in a fixed order:
 
-0. **Gather** - collect everything from the other places captures land in (calendar, messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops.
+0. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual.
 1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
 2. **Waiting for** - walk the waiting for view. Anything stale is chased, or gets a due date / `snoozeUntil`.
 3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects are fixed. Snoozed projects are skipped.
@@ -223,12 +227,12 @@ The review is guided, and runs in a fixed order:
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
-Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due.
+Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
 
 ### Reshaping items
 Nothing is ever retyped. When an item turns out to be the wrong shape it is converted, carrying over everything it already has.
 
-**Detach** - an action leaves its project and becomes a standalone action. Used when the action turns out not to belong to the scope of the project after all, and when closing a project that still has open actions. It keeps its title, context, duration, tags, description and dates.
+**Detach** - an action leaves its project and becomes a standalone action. Used when the action turns out not to belong to the scope of the project after all, and when closing a project that still has open actions. It keeps its title, context, duration, tags, description and dates - with one exception: a standalone action is always a next action, so a parked action gets `becameNextActionAt` stamped with the detach time. Nothing leaves a project into limbo.
 
 **Promote** - a standalone action becomes a project, because it turns out to need more than one step. Promotion runs the same Project branch as Inbox Zero, and is therefore subject to the same validations, with the fields prefilled from the action:
 - the project title is prefilled from the action title, and has to be edited into a reference to the outcome rather than a description of what to do
@@ -257,3 +261,4 @@ Things consciously left out, recorded here so that they do not come back later a
 - **Priority.** No priority field, no P1 / P2 / P3. It is subjective and unstable - what matters on Monday does not on Thursday - and re-ranking a list feels productive while producing nothing. Real urgency is already carried by the due date, and importance comes out of the weekly review and the areas of responsibility carried by tags.
 - **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
 - **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
+- **Calendar integration.** Appointments and time-of-day commitments live in the real calendar, and the app never talks to it. Due dates are still real and used - time sensitive actions and projects are marked with one - but a due date is visible only inside the app, and keeping the external calendar in sync with it is a manual responsibility, deliberately. The calendar feeds this app in one direction only, through the Gather step of the weekly review.

@@ -1,6 +1,6 @@
 # Recurring items - design discussion
 
-Status: **open**. Nothing here is decided. This document exists so that the thinking is not lost, and so that [idea.md](idea.md) stays a description of what the app does rather than a list of what it might do.
+Status: **open**. Nothing here is decided. This document exists so that the thinking is not lost, and so that [design.md](design.md) stays a description of what the app does rather than a list of what it might do.
 
 ## The problem
 Nothing in the system repeats. Several things it already specifies are inherently recurring - the weekly review itself, and step 0 of that review (gathering from calendar, mail and messengers) is a chore that will exist forever.
