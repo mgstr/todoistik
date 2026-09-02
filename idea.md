@@ -8,6 +8,7 @@ Describes todo application, intended for my purposes only. This app is not inten
 ## Overview
 App should allow manipulation with following entities:
 - inbox item: a raw, unprocessed capture, that has not been decided about yet
+- someday/maybe item: a raw capture that is worth revisiting some time, but not now
 - action: a single non-breakable task, that can be done and have visible output effect
 - project: when end result can't be achieved in result of single action it is called a project, it contains a list of actions, and has a "definition of done".
 
@@ -65,10 +66,22 @@ Rules:
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
 - the list is reviewed during the weekly review
 
+### Someday/Maybe
+A first class list, holding raw ideas that are worth looking at some time, but that you are not ready to work on now.
+
+A someday/maybe item is not a project and not an action - it is the same raw, unclarified capture as an inbox item. Clarifying it would mean defining an outcome and a next action for something you have deliberately decided not to commit to, which is wasted work and is exactly the friction that makes a someday list go unused. It therefore stays raw until you decide to move on it.
+
+Rules:
+- items arrive here from the inbox, as one of the outcomes of Inbox Zero
+- the creation date shows the age of the idea
+- `snoozeUntil` (optional) hides the item from the weekly review requirement until that date, so that a long someday list stays reviewable
+- when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
+- the list is reviewed during the weekly review, skipping items that are still snoozed
+
 ## Processes
 
 ### Inbox Zero
-A dedicated mode that processes inbox items one at a time, oldest first.
+A dedicated mode that processes captured items one at a time, oldest first. It is used to empty the inbox, and also to process a someday/maybe item once you decide to move on it.
 While the process runs everything else is hidden from view - only the current item is shown.
 For each item the only question asked is: what is it? The answer is one of:
 
@@ -80,11 +93,12 @@ For each item the only question asked is: what is it? The answer is one of:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action, which becomes the next action
-- **Someday/Maybe**: worth looking at some time, but not now. The title may be edited to formulate it more clearly. Optionally a `snoozeUntil` date can be set, to hide the item from the weekly review requirement until that date.
+- **Someday/Maybe**: worth looking at some time, but not now. The item moves to the someday/maybe list, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to hide it from the weekly review requirement until that date.
+- **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays where it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
 
-Open: the exact behaviour of Someday/Maybe and `snoozeUntil` is to be defined later.
+Open: whether an already clarified project or action can be shelved (temporarily made inactive without losing its DOD, actions and collected material).
 
 ## Audit log
 Every action performed in the app is audited. An audit entry contains at minimum:
