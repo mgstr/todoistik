@@ -20,6 +20,8 @@ Inbox item has following fields:
 - Text: (required) free-form, whatever was captured
 - Creation date: (required)
 
+An inbox item can not be snoozed - see "Time fields".
+
 #### External capture
 Adding items to the inbox must be possible from outside the app.
 The app exposes a simple consuming API for this - a single endpoint accepting a text payload - so that captures can arrive from scripts, CLI, a mobile share sheet, email or any other tool without opening the app.
@@ -48,6 +50,11 @@ Both project and action could have following time related fields:
 - due date: (optional) when item should be completed, will be used for indicating that item complition is time sensitive
 - review date: (optional) time of the last review, allows tracking of items that require attention during weekly review
 - becameANextActionDate: (optional) when the action became a next action. Used to spot actions that have been next for a long time without moving. For actions with "assigned to" set it doubles as the delegation date, so the age of a waiting for item is visible directly.
+- snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
+
+`snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
+
+The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as moving it to the someday/maybe list. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
 ### Tags
 Both project and action could have tags, that should be used for items categorization.
@@ -97,8 +104,6 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays where it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
-
-Open: whether an already clarified project or action can be shelved (temporarily made inactive without losing its DOD, actions and collected material).
 
 ## Audit log
 Every action performed in the app is audited. An audit entry contains at minimum:
