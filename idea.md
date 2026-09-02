@@ -48,7 +48,7 @@ Project has following fields:
 Both project and action could have following time related fields:
 - cration date: (required) when item was created, will be used for calculation age of the item
 - due date: (optional) when item should be completed, will be used for indicating that item complition is time sensitive
-- review date: (optional) time of the last review, allows tracking of items that require attention during weekly review
+- lastReviewedAt: (optional) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameANextActionDate: (optional) when the action became a next action. Used to spot actions that have been next for a long time without moving. For actions with "assigned to" set it doubles as the delegation date, so the age of a waiting for item is visible directly.
 - snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
 - completedAt: (optional) when the item was completed. Being set is what makes the item done - there is no separate status flag
@@ -113,6 +113,22 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays where it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
+
+### Weekly review
+The ritual that keeps the lists trustworthy. Without it the lists silently go out of date, and a list that is not trusted to be complete is a list that stops being used. Everything else in this document is bookkeeping in service of this process.
+
+The review is guided, and runs in a fixed order:
+
+0. **Gather** - collect everything from the other places captures land in (calendar, messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops.
+1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
+2. **Waiting for** - walk the waiting for list. Anything stale is chased, or gets a due date / `snoozeUntil`.
+3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects are fixed. Snoozed projects are skipped.
+4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy.
+5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
+
+The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
+
+Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due.
 
 ## Audit log
 Every action performed in the app is audited. An audit entry contains at minimum:
