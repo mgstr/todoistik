@@ -31,7 +31,7 @@ Actions is a single (non-breakable into smaller parts) task, that should be done
 The action should have visible effect. So "thinking about design" is not an action. Use "Write draft a MD with design" instead.
 Action has following fields:
 - Title: ideally is should start with verb and be fully self-descriptive, avoiding letting something to be in context. So when looking at the action title you don't have to think before you start doing it.
-- Context: (optional) defines what physical environment is needed to proceed with action. For example: online (action requires internet connection), home (I need to be home in order to clean my room) etc
+- Context: (optional) the physical prerequisite for doing the action, at most one - see "Contexts"
 - Duration: (optional) the expected duraion of the action. It is not expected to have estimation for all actions, it rather a way to mark actions, that are known to have a long duration, for example - if I need to read long article, I don't want to break this activity, and need to reserve time enought to finish reading at one sitting.
 - Description: (optional) any extra meterials needed to be referenced (like URL, link to email, reference to PDF etc) that could be usefull during action.
 - Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears on the "Waiting for" list.
@@ -70,9 +70,34 @@ An item is resolved explicitly, and only in one of two ways: it is completed, or
 - completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
 - there is no separate "done" list. The audit log is the record of what was finished
 
+### Contexts
+A context is a physical prerequisite for doing an action: something that has to be true before the action is possible at all. If the action could be done without it, it is not a context.
+
+Contexts apply to **actions only**. A project is not something you do, so it has no context.
+
+An action has **at most one** context. Notation is `@name`: `@home`, `@garage`, `@online` (an internet connection is needed, on any device), `@computer` (a real computer is needed, a phone will not do).
+
+#### Parameters
+A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This keeps the context namespace small and scannable, which is the only reason contexts are useful at all - putting every person and every shop chain at the top level would destroy that.
+
+- the parameterised form is **narrower** than the bare one. Standing in Selver satisfies `@grocery(Selver)` and bare `@grocery`, but not `@grocery(Prisma)`
+- the bare form is not always meaningful. Bare `@grocery` is useful ("buy milk, any shop"), bare `@person` is not. Some context types will in practice always carry a parameter, and that is fine
+- parameter values are picked from a remembered list per context type, never typed fresh, otherwise `@person(Andres)`, `@person(andres)` and `@person(Andres P.)` become three different contexts
+- that list has to be editable, so that unused values can be removed. TBD: how this is best done
+
+#### Filtering
+The "what can I do right now" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
+
+OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
+
 ### Tags
-Both project and action could have tags, that should be used for items categorization.
-Each item could have zero, one or several tags.
+A tag is a label used to filter and categorise. Unlike a context it is not a precondition - it says nothing about whether an item can be done, only about what it is about.
+
+Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
+
+- tags apply to **both projects and actions**
+- an item can have zero, one or several tags
+- in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?"
 
 ## Stalled projects
 An active project is stalled when it has no next action.
