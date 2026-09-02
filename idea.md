@@ -1,9 +1,9 @@
 # todoistik
 Describes todo application, intended for my purposes only. This app is not intended as a generic todo app.
 
-## Design principals
+## Design principles
 - add only functionality that I will use, don't add anything for future development
-- the design of the app should allow to follow principles describe in David Allan book "GTD - Getting Things Done"
+- the design of the app should allow to follow principles described in David Allen's book "GTD - Getting Things Done"
 
 ## Overview
 App should allow manipulation with following entities:
@@ -27,15 +27,16 @@ Adding items to the inbox must be possible from outside the app.
 The app exposes a simple consuming API for this - a single endpoint accepting a text payload - so that captures can arrive from scripts, CLI, a mobile share sheet, email or any other tool without opening the app.
 
 ### Actions
-Actions is a single (non-breakable into smaller parts) task, that should be done in order to move to the desired goal.
+An action is a single (non-breakable into smaller parts) task, that should be done in order to move to the desired goal.
 The action should have visible effect. So "thinking about design" is not an action. Use "Write draft a MD with design" instead.
 Action has following fields:
-- Title: ideally is should start with verb and be fully self-descriptive, avoiding letting something to be in context. So when looking at the action title you don't have to think before you start doing it.
+- Title: ideally it should start with a verb and be fully self-descriptive, avoiding letting something to be in context. So when looking at the action title you don't have to think before you start doing it.
 - Context: (optional) the physical prerequisite for doing the action, at most one - see "Contexts"
 - Duration: (optional) how much time the action needs, as a coarse bucket: `<5min`, `<15min`, `<1h`, `>1h`. Buckets and not minutes on purpose - free form estimates demand a precision that is not there, and force estimating things that are not worth estimating. The `>1h` bucket also carries the original meaning: do not start this unless there is enough time to finish it in one sitting, like reading a long article.
 - Needs focus: (optional) marks an action that can not be done while tired. Deliberately a single flag rather than a low / normal / high scale - having to grade the energy of every action puts pressure on capture, which is exactly the friction worth avoiding.
-- Description: (optional) any extra meterials needed to be referenced (like URL, link to email, reference to PDF etc) that could be usefull during action.
-- Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears on the "Waiting for" list.
+- Description: (optional) any extra materials needed to be referenced (like URL, link to email, reference to PDF etc) that could be useful during the action.
+- Tags: (optional) zero, one or several labels - see "Tags"
+- Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears in the "Waiting for view".
 
 An action does not have to belong to a project, and most do not. A single action that fully achieves its outcome stands on its own and is never wrapped in a project just to give it a parent - that bureaucracy is what makes a system get abandoned. A standalone action is a next action by exactly the same rule as any other action, and the stalled project check simply does not apply to it.
 
@@ -44,24 +45,31 @@ Project is a desired result, that requires more than one step to complete.
 Project has following fields:
 - Title: name that helps to reference the result
 - DOD (definition of done): required, since it helps to define what is the expected outcome of the project, and used during review and decision what is the next action
-- Actions: a list of actions required to complete a project. In most cases it is enought to have only one next action, to move project forward. But in some cases the listing more steps in advance during planning phase will be helpfull.
+- Description: (optional) any extra materials worth keeping with the project (URL, link to an email, reference to a PDF etc)
+- Tags: (optional) zero, one or several labels - see "Tags"
+- Actions: a list of actions required to complete a project. In most cases it is enough to have only one next action to move the project forward. But in some cases listing more steps in advance during the planning phase is helpful.
 
 A next action is not a property of the project. It is a property of the action - see `becameNextActionAt`. A project can therefore have several next actions at the same time, which is what a parallel project looks like (booking the flight, renewing the passport and asking for time off are all available at once), while a sequential project simply happens to have one.
 
 ### Time fields
-Both project and action could have following time related fields:
-- cration date: (required) when item was created, will be used for calculation age of the item
-- due date: (optional) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
-- lastReviewedAt: (optional) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
-- becameNextActionAt: (optional) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date.
-- snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
-- completedAt: (optional) when the item was completed. Being set is what makes the item done - there is no separate status flag
+Time related fields, and the items each one applies to:
+- creation date: (required, all items) when the item was created, used to calculate its age
+- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
+- lastReviewedAt: (optional, projects and actions) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
+- becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date.
+- snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
+- completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
 `snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
 
-`snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date. Two consequences of that:
+`snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date.
+
+A snoozed item is **not hidden**. It stays visible and is shown differently, to indicate that it is not yet ready to be worked on. Hiding it would be confusing: a project whose only action had become invisible would look stalled while the app insists it is not.
+
+What a snooze actually does:
+- it excludes the item from the weekly review requirement until the date passes
 - a snoozed **project** is exempt from the stalled project check
-- a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. This is the same exemption a waiting for action gets, and for the same reason
+- a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. The stalled project check knows about snoozed actions. This is the same exemption a waiting for action gets, and for the same reason
 
 The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as moving it to the someday/maybe list. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
@@ -92,8 +100,6 @@ A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This kee
 The "what can I do right now" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
 
 OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
-
-This filter is the "what can I do right now" view - see "Views".
 
 ### Tags
 A tag is a label used to filter and categorise. Unlike a context it is not a precondition - it says nothing about whether an item can be done, only about what it is about.
@@ -137,7 +143,7 @@ There are exactly three lists. Everything else the app shows is a **view** deriv
 
 1. **Inbox** - captured items that have not been decided about yet. Must be emptied, see "Inbox Zero".
 2. **Someday/Maybe** - raw ideas worth revisiting some time, but not now.
-3. **Projects + root actions** - everything that is an actual commitment: projects with their actions, and the standalone (root) actions that belong to no project.
+3. **Projects + standalone actions** - everything that is an actual commitment: projects with their actions, and the standalone actions that belong to no project.
 
 ### Someday/Maybe
 A first class list, holding raw ideas that are worth looking at some time, but that you are not ready to work on now.
@@ -147,17 +153,19 @@ A someday/maybe item is not a project and not an action - it is the same raw, un
 Rules:
 - items arrive here from the inbox, as one of the outcomes of Inbox Zero
 - the creation date shows the age of the idea
-- `snoozeUntil` (optional) hides the item from the weekly review requirement until that date, so that a long someday list stays reviewable
+- `snoozeUntil` (optional) excludes the item from the weekly review requirement until that date, so that a long someday list stays reviewable
 - when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
 - it is reviewed during the weekly review, skipping items that are still snoozed
 
 ## Views
-Views are derived from the projects + root actions list. Nothing lives in a view.
+Views are derived from the projects + standalone actions list. Nothing lives in a view.
 
-### Next actions
-Actions where `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty.
+### Next actions view
+The actions that are on you to act on: `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty.
 
-Snoozed actions are hidden here until the snooze passes, even though they still count as a next action of their project for the stalled project check. Being counted and being displayed are two different things.
+Note the distinction in naming. A waiting for action is still a next action of its project - that is what keeps a delegated project off the stalled list - but it does not appear in this view, because this view is only the actions that are yours to act on.
+
+Snoozed actions appear here as well, shown differently to mark them as not yet ready. They still count as a next action of their project for the stalled project check.
 
 ### What can I do right now
 The main working view: next actions filtered by the three things that decide whether something is doable at this moment.
@@ -166,7 +174,7 @@ The main working view: next actions filtered by the three things that decide whe
 - **duration** - what fits in the time available
 - **needs focus** - what can be faced with the energy available
 
-### Waiting for
+### Waiting for view
 Every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
 This covers people (delegated to somebody) as well as things (an order placed, a form submitted, a PR awaiting CI).
 
@@ -174,11 +182,11 @@ Rules:
 - a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
 - it is excluded from the "what can I do right now" view, since it cannot be acted upon
 - its age comes from `becameNextActionAt`, which for these items is the delegation date
-- there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
-- the list is reviewed during the weekly review
+- there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / `snoozeUntil` are used
+- it is reviewed during the weekly review
 
 ### Projects
-The active projects, with stalled ones loudly marked. Snoozed projects are hidden until their snooze passes.
+The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready.
 
 TBD: whether a project shows its actions inline in this view, or is only a title to open. It decides whether the view stays scannable once there are a few dozen projects.
 
@@ -192,12 +200,12 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Trash**: the item is deleted. Recorded in the audit log.
 - **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in.
 - **Two minute rule**: if it can be completed in under two minutes, it is done right now and marked as completed in the audit log, without being turned into a "proper" action first.
-- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands on the "Waiting for" list.
+- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands in the "Waiting for view".
 - **Project**: more than one action is needed. Requires:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action, which becomes the next action
-- **Someday/Maybe**: worth looking at some time, but not now. The item moves to the someday/maybe list, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to hide it from the weekly review requirement until that date.
+- **Someday/Maybe**: worth looking at some time, but not now. The item moves to the someday/maybe list, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to exclude it from the weekly review requirement until that date.
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays where it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
@@ -209,7 +217,7 @@ The review is guided, and runs in a fixed order:
 
 0. **Gather** - collect everything from the other places captures land in (calendar, messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops.
 1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
-2. **Waiting for** - walk the waiting for list. Anything stale is chased, or gets a due date / `snoozeUntil`.
+2. **Waiting for** - walk the waiting for view. Anything stale is chased, or gets a due date / `snoozeUntil`.
 3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects are fixed. Snoozed projects are skipped.
 4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy.
 5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
