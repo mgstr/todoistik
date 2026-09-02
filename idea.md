@@ -134,7 +134,7 @@ The app never prevents a project from being stalled. Forcing a next action to be
 ## Error state
 An item whose fields contradict each other is in an error state. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
 
-The known case: `snoozeUntil` set past the due date. That means the item is hidden from view until after the moment it was supposed to be finished, which is never what was meant.
+The known case: `snoozeUntil` set past the due date. The item would stay marked as not yet ready to be worked on until after the moment it was supposed to be finished, which is never what was meant.
 
 Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
