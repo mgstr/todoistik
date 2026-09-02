@@ -51,10 +51,19 @@ Both project and action could have following time related fields:
 - review date: (optional) time of the last review, allows tracking of items that require attention during weekly review
 - becameANextActionDate: (optional) when the action became a next action. Used to spot actions that have been next for a long time without moving. For actions with "assigned to" set it doubles as the delegation date, so the age of a waiting for item is visible directly.
 - snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
+- completedAt: (optional) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
 `snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
 
 The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as moving it to the someday/maybe list. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
+
+### Completion
+An item is resolved explicitly, and only in one of two ways: it is completed, or it is deleted. There are no shortcuts and nothing is resolved implicitly.
+
+- a completed action leaves the next actions list and stops counting as a next action for its project, which may leave the project stalled
+- a project can not be completed while it still has actions that are neither completed nor deleted. Every one of them has to be walked through the action lifetime explicitly
+- completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
+- there is no separate "done" list. The audit log is the record of what was finished
 
 ### Tags
 Both project and action could have tags, that should be used for items categorization.
