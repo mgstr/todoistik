@@ -42,14 +42,15 @@ Project has following fields:
 - Title: name that helps to reference the result
 - DOD (definition of done): required, since it helps to define what is the expected outcome of the project, and used during review and decision what is the next action
 - Actions: a list of actions required to complete a project. In most cases it is enought to have only one next action, to move project forward. But in some cases the listing more steps in advance during planning phase will be helpfull.
-- Next action: one action from actions list that will move project forward.
+
+A next action is not a property of the project. It is a property of the action - see `becameNextActionAt`. A project can therefore have several next actions at the same time, which is what a parallel project looks like (booking the flight, renewing the passport and asking for time off are all available at once), while a sequential project simply happens to have one.
 
 ### Time fields
 Both project and action could have following time related fields:
 - cration date: (required) when item was created, will be used for calculation age of the item
 - due date: (optional) when item should be completed, will be used for indicating that item complition is time sensitive
 - lastReviewedAt: (optional) when the item was last reviewed. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
-- becameANextActionDate: (optional) when the action became a next action. Used to spot actions that have been next for a long time without moving. For actions with "assigned to" set it doubles as the delegation date, so the age of a waiting for item is visible directly.
+- becameNextActionAt: (optional) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date.
 - snoozeUntil: (optional) hides the item from the active views, from the weekly review and from the stalled project check, until that date passes
 - completedAt: (optional) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
@@ -99,7 +100,7 @@ This covers people (delegated to somebody) as well as things (an order placed, a
 Rules:
 - a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
 - it is excluded from the "what can I do right now" view, since it cannot be acted upon
-- its age comes from `becameANextActionDate`, which for these items is the delegation date
+- its age comes from `becameNextActionAt`, which for these items is the delegation date
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / snooze date are used
 - the list is reviewed during the weekly review
 
