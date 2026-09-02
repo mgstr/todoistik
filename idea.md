@@ -37,6 +37,8 @@ Action has following fields:
 - Description: (optional) any extra meterials needed to be referenced (like URL, link to email, reference to PDF etc) that could be usefull during action.
 - Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears on the "Waiting for" list.
 
+An action does not have to belong to a project, and most do not. A single action that fully achieves its outcome stands on its own and is never wrapped in a project just to give it a parent - that bureaucracy is what makes a system get abandoned. A standalone action is a next action by exactly the same rule as any other action, and the stalled project check simply does not apply to it.
+
 ### Project
 Project is a desired result, that requires more than one step to complete.
 Project has following fields:
@@ -67,7 +69,7 @@ The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing 
 An item is resolved explicitly, and only in one of two ways: it is completed, or it is deleted. There are no shortcuts and nothing is resolved implicitly.
 
 - a completed action leaves the next actions list and stops counting as a next action for its project, which may leave the project stalled
-- a project can not be completed while it still has actions that are neither completed nor deleted. Every one of them has to be walked through the action lifetime explicitly
+- a project can not be completed **or deleted** while it still has open actions. Every one of them is resolved explicitly first: completed, deleted, or detached into a standalone action (see "Reshaping items")
 - completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
 - there is no separate "done" list. The audit log is the record of what was finished
 
@@ -190,6 +192,19 @@ The review is guided, and runs in a fixed order:
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
 Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due.
+
+### Reshaping items
+Nothing is ever retyped. When an item turns out to be the wrong shape it is converted, carrying over everything it already has.
+
+**Detach** - an action leaves its project and becomes a standalone action. Used when the action turns out not to belong to the scope of the project after all, and when closing a project that still has open actions. It keeps its title, context, duration, tags, description and dates.
+
+**Promote** - a standalone action becomes a project, because it turns out to need more than one step. Promotion runs the same Project branch as Inbox Zero, and is therefore subject to the same validations, with the fields prefilled from the action:
+- the project title is prefilled from the action title, and has to be edited into a reference to the outcome rather than a description of what to do
+- tags and description carry over
+- a DOD is required
+- at least one action is required, which becomes the next action
+
+An action that belongs to a project and should become a project of its own is first detached, then promoted.
 
 ## Audit log
 Every action performed in the app is audited. An audit entry contains at minimum:
