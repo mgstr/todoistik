@@ -247,20 +247,9 @@ Every action performed in the app is audited. An audit entry contains at minimum
 This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items in the active lists.
 
 ## Recurring items
-Recurring actions and projects are **out of scope for now** and need a separate design pass. The problem is acknowledged rather than solved: nothing in the system currently repeats, including the weekly review itself.
+Recurring actions and projects are **out of scope for this document** and need a separate design pass. The problem is acknowledged rather than solved: nothing in the system currently repeats, including the weekly review itself.
 
-The direction that looks most promising, recorded so that the thinking is not lost:
-- scheduling is handled outside the app, by a separate system that submits items through the external capture API. Scheduling and doing stay separate concerns
-- recurring items already have a known structure - if it has been done before, the actions and the metadata are known - so such submissions would be structured (a ready standalone action, or a project with its actions), not raw text. They are effectively templates, and those templates live in the scheduler, not here
-- this keeps recurrence rules, catch-up and calendar arithmetic entirely out of the app
-
-Open questions that block the design:
-- whether structured submissions from trusted sources are auto-accepted, or still have to be accepted through Inbox Zero. Auto-accepting removes exactly the forcing function that makes putting them in the inbox worthwhile
-- how repeated submissions of the same recurring item behave while an earlier one is still unaccepted, so that three weeks away does not produce twenty one identical inbox items
-- how structured submissions are validated on arrival, so that the external path can not bypass the project rules Inbox Zero enforces
-- calendar driven obligations (rent on the 1st) may need nothing at all, since step 0 of the weekly review already gathers from the calendar
-
-A known cost of this direction: the app would keep no link between instances, so it can not answer "when did I last do this" beyond what is in the audit log.
+The discussion, the candidate direction and the questions blocking it live in [recurring.md](recurring.md).
 
 ## Deliberate omissions
 Things consciously left out, recorded here so that they do not come back later as fresh ideas.
