@@ -32,7 +32,8 @@ The action should have visible effect. So "thinking about design" is not an acti
 Action has following fields:
 - Title: ideally is should start with verb and be fully self-descriptive, avoiding letting something to be in context. So when looking at the action title you don't have to think before you start doing it.
 - Context: (optional) the physical prerequisite for doing the action, at most one - see "Contexts"
-- Duration: (optional) the expected duraion of the action. It is not expected to have estimation for all actions, it rather a way to mark actions, that are known to have a long duration, for example - if I need to read long article, I don't want to break this activity, and need to reserve time enought to finish reading at one sitting.
+- Duration: (optional) how much time the action needs, as a coarse bucket: `<5min`, `<15min`, `<1h`, `>1h`. Buckets and not minutes on purpose - free form estimates demand a precision that is not there, and force estimating things that are not worth estimating. The `>1h` bucket also carries the original meaning: do not start this unless there is enough time to finish it in one sitting, like reading a long article.
+- Needs focus: (optional) marks an action that can not be done while tired. Deliberately a single flag rather than a low / normal / high scale - having to grade the energy of every action puts pressure on capture, which is exactly the friction worth avoiding.
 - Description: (optional) any extra meterials needed to be referenced (like URL, link to email, reference to PDF etc) that could be usefull during action.
 - Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears on the "Waiting for" list.
 
@@ -89,6 +90,8 @@ A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This kee
 The "what can I do right now" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
 
 OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
+
+The same view filters on the other two things that decide what is doable right now: the duration bucket (how much time is available) and the needs focus flag (how much energy is available).
 
 ### Tags
 A tag is a label used to filter and categorise. Unlike a context it is not a precondition - it says nothing about whether an item can be done, only about what it is about.
@@ -195,3 +198,8 @@ Every action performed in the app is audited. An audit entry contains at minimum
 - the item it refers to
 
 This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items in the active lists.
+
+## Deliberate omissions
+Things consciously left out, recorded here so that they do not come back later as fresh ideas.
+
+- **Priority.** No priority field, no P1 / P2 / P3. It is subjective and unstable - what matters on Monday does not on Thursday - and re-ranking a list feels productive while producing nothing. Real urgency is already carried by the due date, and importance comes out of the weekly review and the areas of responsibility carried by tags.
