@@ -185,7 +185,16 @@ This keeps destructive operations (trashing an inbox item) and instant ones (com
 ## Views
 Every screen in the app is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
 
-The Next actions filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back.
+Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
+
+### Filtering by name
+Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for** and the **Archive**.
+
+Matching is case insensitive. Several words may be given and **all** of them have to be present, in any order and anywhere in the name - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why something matched. Clearing the box is how it resets.
+
+What counts as the name is whatever names the item on that screen: the title of an action or a project, and for a someday/maybe item its text, since that is all it has. For a **project**, the titles of the actions under it count as part of its name as well - a project is remembered by a step in it at least as often as by its outcome, and hiding a project whose action matched would be hiding the answer.
+
+The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something.
 
 The views:
 
@@ -199,9 +208,12 @@ The someday/maybe items - raw ideas worth revisiting some time, but not now.
 
 - it is reviewed during the weekly review, skipping items that are still snoozed
 - the age shown is the age of the idea, from its creation date
+- it carries the name filter, matching the text of the item - see "Filtering by name"
 
 ### Projects
 The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. Actions inside a project are shown with their project. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
+
+It carries the name filter, which matches a project by its title or by the title of any action under it - see "Filtering by name".
 
 ### Tasks
 The standalone actions: `completedAt` is empty and no project is set. Together with "Projects" this covers every commitment in the app.
@@ -213,6 +225,8 @@ Tasks is deliberately unremarkable, and each of its properties falls out of it b
 - **it can not be deleted, and it does not have to be created.** It is a query, so it is simply always there - the same way the Inbox is.
 
 Snoozed standalone actions appear here, shown differently to mark them as not yet ready. Standalone waiting for actions appear here too: Tasks answers "where does this action live", not "is it mine to act on".
+
+It carries the name filter, matching the action title - see "Filtering by name".
 
 Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 4 of the weekly review. Tasks needs no review step of its own.
 
@@ -230,7 +244,7 @@ The filters are what make one view enough. All of them are optional and combine 
 
 - **contexts** - the context cloud: every context in use, each one toggled in or out of the filter. Selected contexts combine with **OR** (see "Contexts"). An action with **no** context is always shown, whatever is selected: it has no prerequisite, so there is no moment at which it is not doable, and a filter about prerequisites has nothing to exclude it by.
 - **tags** - the tag cloud, toggled the same way, selected tags combining with **OR**. Here an action with **no** tags is excluded as soon as any tag is selected. The asymmetry with contexts is deliberate: the context filter asks "can I do this here", which "nothing required" always answers yes to, while the tag filter asks "is this about #car", which "about nothing in particular" answers no to.
-- **title** - case insensitive substring of the action title. Several words may be given and **all** of them have to be present, in any order and anywhere in the title - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why an action matched. This is the one text matching rule in the app - the archive searches the same way.
+- **name** - the shared name filter, matching the action title - see "Filtering by name"
 - **duration** - one or several buckets, combined with OR: what fits in the time available.
 - **needs focus** - three states: **all**, **exclude** (drop the actions that can not be done while tired) and **only** (keep nothing else). Default is all. Exclude is the tired question, and only is its opposite - an hour of real attention is worth spending on the actions that need one, and nothing is more wasteful than spending it on things that could have been done half asleep.
 
@@ -238,7 +252,7 @@ Resetting is a first class operation, because a filter that is awkward to remove
 - each filter resets on its own - clearing the context selection means all contexts again, never none
 - one control resets every filter at once, back to the complete list
 
-The filter set persists: it is remembered when you leave the view and is still applied when you come back, which is what makes working in one context for a whole afternoon cheap. Because a filtered view is an incomplete view, and this document rests on the views being trustworthy, a filtered Next actions says so loudly - which filters are on, and how many actions they are hiding - with the reset next to it. The filter set is momentary state: it lives on no item, and it is never named or saved (see "Deliberate omissions").
+The filter set persists: it is remembered when you leave the view and is still applied when you come back, which is what makes working in one context for a whole afternoon cheap. That is also why the view has to be loud about being filtered (see "Views"). The filter set is momentary state: it lives on no item, and it is never named or saved (see "Deliberate omissions").
 
 #### Order
 The results are sorted by one of:
@@ -258,6 +272,7 @@ Rules:
 - its age comes from `becameNextActionAt`, which for these items is the delegation date
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / `snoozeUntil` are used
 - it is reviewed during the weekly review
+- it carries the name filter, matching the action title - see "Filtering by name". The filter is on the title and not on "assigned to": the field is free text, so filtering by it would be filtering by however the name happened to be typed that day
 
 ### Archive
 The completed commitments: projects and standalone actions whose `completedAt` is set, newest first. It is the finished mirror of "Projects" and "Tasks" - the same two halves that between them cover every commitment in the app, seen after the fact.
@@ -270,7 +285,7 @@ The completed commitments: projects and standalone actions whose `completedAt` i
 #### Filters
 The archive exists to answer "what did I do about X", and unfiltered it is only a pile that grows forever. The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
 
-- **name** - the same multi-word substring rule as the title filter in "Next actions": case insensitive, every word present, in any order, each matched as a substring. What it matches against is the name of the archived item - the project title, or the standalone action title. For a project the titles of the actions it was completed with count as part of its name here, since what you actually did about something is usually written in a step and not in the outcome.
+- **name** - the shared name filter, matching a standalone action by its title and a project by its title or by the title of any action it was completed with - see "Filtering by name"
 - **completed** - when it was finished, picked from a fixed list: **anytime** (the default), **today**, **yesterday**, **this week**, **last week**. These are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "last week" the one before it, neither of them the last seven days. Anytime is how this filter resets. The list is short on purpose and there is no custom range: the archive is searched by what a thing was called far more often than by when it happened, and the near buckets are there mostly to answer "what did I actually get done today".
 - **tags** - the tag cloud from "Next actions", toggled and combined the same way
 
