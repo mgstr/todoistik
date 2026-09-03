@@ -19,7 +19,7 @@ The document is organised in four parts:
 - add only functionality that I will use, don't add anything for future development
 - app should be fast, it usage should not be obstacle
 - the keyboard only support should be provided
-- the app should be AI friendly, so AI could get info from it for analysis and control the info send to it (using inbox)
+- the app should be AI friendly, so AI could get info from it for analysis and control the info send to it (using inbox) - see "The read API" and "External capture"
 - the design of the app should allow to follow principles described in David Allen's book "GTD - Getting Things Done"
 
 ## Items
@@ -109,7 +109,7 @@ The app never prevents a project from being stalled. Forcing a next action to be
 ### Time fields
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
-- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and the only view it is visible in
+- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and it is shown wherever the item appears
 - lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
@@ -188,6 +188,8 @@ This keeps destructive operations (trashing an inbox item) and instant ones (com
 Every list the app shows is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
 
 Opening a single item to work on it is not a view, and not an exception to this either: an item shown in full is the item, holding exactly what it held in the list, and nothing is kept there - see "Editing items". The guided processes are the same, showing one item at a time - see "Processes".
+
+A due date is shown in every view the item carrying it appears in, and an overdue one is marked loudly, the same way a stalled project is. A deadline is the one thing that can not wait for the right screen to be opened, which is why it is not left to the "Calendar" alone - that view is where deadlines are ordered and asked about, not where they are learned of.
 
 Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
 
@@ -334,6 +336,14 @@ The archive carries neither context, nor duration, nor needs focus: those three 
 It is a view like any other, so nothing is moved into it - an item is in it for exactly as long as `completedAt` is set. Clearing that field is therefore how something completed by mistake comes back to the active views, and like every other change it is audited.
 
 The archive has no review step. Nothing in it is an open loop, so there is nothing in it that can silently die.
+
+### The read API
+The views are readable from outside the app, so that an AI can analyse what is going on without anything being copied out by hand. It is the counterpart of the capture API (see "External capture"), which stays the only way in.
+
+- what it returns is a **view**, with its filters applied: exactly what the corresponding screen would show, item for item
+- there is no query language, and nothing can be asked for that a view does not already offer. A caller composing arbitrary queries would be looking at a screen that does not exist in the app - it could disagree with every view, and there would be no way to tell which one was the complete list. That is the same reason saved filters are out of scope (see "Deliberate omissions")
+- it is read only. Nothing is created, edited or completed through it. Whatever an outside tool wants to put into the app arrives in the inbox as a capture, and is decided about by hand in Inbox Zero
+- reads are not audited. The audit log records what happened to an item, and reading one changes nothing
 
 ## Processes
 
