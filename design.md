@@ -89,6 +89,8 @@ Project has following fields:
 - Tags: (optional) zero, one or several labels - see "Tags"
 - Actions: a list of actions required to complete a project. In most cases it is enough to have only one next action to move the project forward. But in some cases listing more steps in advance during the planning phase is helpful.
 
+A project has no due date. A deadline belongs to an action - see "Deliberate omissions".
+
 A next action is not a property of the project. It is a property of the action - see `becameNextActionAt`. A project can therefore have several next actions at the same time, which is what a parallel project looks like (booking the flight, renewing the passport and asking for time off are all available at once), while a sequential project simply happens to have one.
 
 Projects and standalone actions together are every commitment in the app. An action either sits under a project or is standalone; there is no third place, and nothing is loose.
@@ -109,7 +111,7 @@ The app never prevents a project from being stalled. Forcing a next action to be
 ### Time fields
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
-- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and it is shown wherever the item appears
+- due date: (optional, **actions only**) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and it is shown wherever the item appears
 - lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
@@ -294,14 +296,14 @@ Default is age, oldest first. An action that has been next for weeks without mov
 ### Today
 The narrowing used to get through a day: everything that has run out of time, and the actions picked out this morning. It holds two groups, shown separately.
 
-- **out of time** - every project and action due today or already overdue, ordered by due date with the overdue first. This is the "Calendar" today-and-earlier slice unchanged, down to the projects, the parked actions and the waiting for ones. Anything narrower would let something be out of time in one view and not in the other
+- **out of time** - every action due today or already overdue, ordered by due date with the overdue first. This is the "Calendar" today-and-earlier slice unchanged, down to the parked actions and the waiting for ones. Anything narrower would let something be out of time in one view and not in the other
 - **picked** - the actions carrying `#today` (see "#today"), ordered by age the way "Next actions" is
 
 A pick is **not a promise.** It is a hint that narrows the field of view for a few hours, made once in the morning by looking at "Next actions" - the whole system - and deciding what to aim at. Nothing is recorded when a picked action is not done, nothing is late, and nothing shouts. The commitment never lived in the mark: the action is still in "Next actions", still under its project, still reviewed, still stamped with how long it has been waiting. That is what makes it safe for the mark to expire silently, which nothing else in this app does.
 
 The view carries no filters, for the reason the "Inbox" carries none. It is short by construction, and everything in it is either out of time or something you chose this morning; narrowing a narrowing would only be a way to look away from a deadline. When the picks turn out to be the wrong ones, the answer is not a filter here, it is "Next actions", one keystroke away.
 
-Today has no review step. Everything in it is walked already, as a project, a next action or a waiting for item.
+Today has no review step. Everything in it is walked already, as part of a project, as a next action or as a waiting for item.
 
 ### Waiting for
 Every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
@@ -317,29 +319,28 @@ Rules:
 - it carries the tag cloud as well - see "Filtering by tag"
 
 ### Calendar
-Everything with a real deadline, soonest first: the projects and actions whose due date is set and whose `completedAt` is empty. It answers "what is coming at me", which is a question no other view asks - "Next actions" is ordered by how long something has been available, not by when it runs out of time.
+Everything with a real deadline, soonest first: the actions whose due date is set and whose `completedAt` is empty. It answers "what is coming at me", which is a question no other view asks - "Next actions" is ordered by how long something has been available, not by when it runs out of time.
 
-Projects and actions stand side by side here, the same way standalone and project actions do in "Next actions": what matters is the date, not which kind of commitment carries it. Waiting for actions appear as well - chasing a delegation at a specific moment is exactly what the due date is for (see "Waiting for"), and the date is no less real for the ball being in somebody else's court.
+Every kind of action stands side by side here - standalone, inside a project, and parked - because what matters is the date, not where the action lives. Waiting for actions appear as well: chasing a delegation at a specific moment is exactly what the due date is for (see "Waiting for"), and the date is no less real for the ball being in somebody else's court.
 
 Overdue items are loudly marked, the same way stalled projects are. A due date is by definition a date with consequences outside your control, so one that has passed is the loudest thing the app has to say.
 
 Snoozed items appear here too, shown differently to mark them as not yet ready. A `snoozeUntil` reaching past the due date is an error state and is marked as one - see "Error state".
 
-Inbox and someday/maybe items are never here, because neither carries a due date. Nothing has been committed to yet, so there is nothing that can be late.
+Projects are never here, and neither are inbox or someday/maybe items, because none of them carries a due date - see "Deliberate omissions".
 
 #### Filters
 The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
 
-- **name** - the shared name filter, matching an action by its title and a project by its title or by the title of any action under it - see "Filtering by name"
+- **name** - the shared name filter, matching the action title - see "Filtering by name"
 - **due** - when it falls due, picked from a fixed list: **anytime** (the default), **today**, **tomorrow**, **this week**, **next week**. As in the "Archive" these are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "next week" the one after it, not the next seven days. Anytime is how this filter resets.
-
 - **tags** - the shared tag cloud - see "Filtering by tag"
 
-The Calendar carries neither context, nor duration, nor needs focus. Those three ask whether something can be done right now, which is not what this view asks, and none of them is a field a project has at all.
+The Calendar carries neither context, nor duration, nor needs focus. Those three ask whether something can be done right now, which is not the question this view asks.
 
 **Overdue items are shown whatever the due filter says.** They are not what the filter is about: it asks what is coming, and something already late is not coming, it has arrived. Letting "today" hide an item that was due yesterday would be the app helping you look away from the one thing it exists to shout about - the same reason an action with no context survives the context filter in "Next actions".
 
-The Calendar has no review step. Everything in it is walked through already, as a project, a next action or a waiting for item; having a deadline does not make it a second open loop.
+The Calendar has no review step. Everything in it is walked through already, as part of a project, as a next action or as a waiting for item; having a deadline does not make it a second open loop.
 
 ### Archive
 The completed commitments: projects and standalone actions whose `completedAt` is set, newest first. It is the finished mirror of "Projects" and "Tasks" - the same two halves that between them cover every commitment in the app, seen after the fact.
@@ -455,6 +456,11 @@ Recurring actions and projects are **out of scope for this document** and need a
 
 The discussion, the candidate direction and the questions blocking it live in [recurring.md](recurring.md).
 
+### Starting in time
+Nothing converts "due in six weeks, and it takes four steps" into a signal at the right moment. Both date-driven views answer "what has run out of time" - the "Calendar" ahead of the fact and "Today" on the day - and nothing answers "what should I be starting". This is the same gap [recurring.md](recurring.md) runs into with the annual car inspection, which has to appear weeks ahead because it takes several steps.
+
+Left open deliberately. Solving it means a lead time of some kind, and that is a tunable per item, which every date field in this document has so far avoided being.
+
 ### Deliberate omissions
 Things consciously left out, recorded here so that they do not come back later as fresh ideas.
 
@@ -462,4 +468,5 @@ Things consciously left out, recorded here so that they do not come back later a
 - **A "Tasks" project.** Standalone actions get a home as the Tasks **view**, never as a special project record. Such a project would need no DOD, no stalled check, no completion and no deletion - every defining property of a project removed, leaving only the name. Worse, a project exempt from the stalled check is a project nothing watches, which would make it a second inbox for things that were decided to be worth doing and then never shouted about again.
 - **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
 - **Saved filters.** The Next actions filters are momentary state - never named, never saved as presets. A saved filter is a view under another name, and views can not be created: the moment there are five saved filters there are five screens that each show a part of the truth, and no way to tell which one is the complete list.
+- **A due date on a project.** Deadlines belong to actions. A project can not be acted on, so a deadline on one is an alarm with no lever: when it fires you go and look at its actions anyway. It also fires at the wrong moment - learning on 30 March that the return is due on 31 March is worth nothing, because the value of that deadline was in the six weeks before it. And it is the field most exposed to the invented deadline the due date exists to keep out: a project is an outcome, and outcomes invite targets, while "call the plumber by June" is obviously silly. An outcome deadline is carried by a real action instead - "File the tax return", due 31 March, parked until it can be started. Being made to write that action is the point: it names what done looks like operationally, the same discipline the DOD imposes.
 - **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
