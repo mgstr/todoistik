@@ -66,7 +66,7 @@ A schedule is not a commitment and never becomes one by itself. What it produces
 
 Fields:
 - Text: (required) free-form, what will land in the inbox. It is a capture, so it stays raw - not a title, not an action, not a project
-- When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and no times. Nothing in this app has an hour, so neither does this
+- When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and no times. Nothing in this app has an hour, so neither does this. The three fields are the calendar fields of standard cron, with standard syntax and semantics - `*`, lists, ranges, steps, and the standard rule that when both day-of-month and day-of-week are restricted, either one matching fires. Standard and not invented, so that the behaviour of any expression can be looked up rather than guessed. The expression is validated when the schedule is saved, and the "Scheduler" shows it in readable form
 - Suffix: (optional, empty by default) appended to the text when the capture is made. `YYYY`, `MM` and `DD` are replaced with the date of the occurrence being fired; everything else is literal, including any leading space. An empty suffix makes every occurrence produce the same string, which is what collapses a repeated chore to a single inbox item; ` YYYY-MM` on the rent makes each month produce its own
 - Creation date: (required)
 - lastFiredAt: (optional) when it last put something in the inbox, empty until it first does. It is what shows at review time that a schedule is actually working
@@ -77,6 +77,7 @@ Rules:
 - **a single date fires once, and the schedule then deletes itself.** A one-shot left in the list forever would turn the "Scheduler" into a graveyard of things that already happened. The deletion is audited like any other
 - **a cron schedule persists** and keeps firing
 - **every missed occurrence fires**, oldest first. After an absence a schedule does not have to be careful about how many went by: without a suffix the captures are identical and collapse in the inbox to one item, and with one they stay distinct, because a suffix is how you said the instances count - see "Duplicate captures"
+- **an occurrence only counts if the rule was in force when it fell.** Occurrences are counted from the creation date, so a schedule created today does not back-fire for dates before it existed, and editing "When" restarts the count from the edit: past occurrences of a rule that was not yet in place were never missed
 - it is edited and deleted like anything else - see "Editing items"
 
 The three parts compose deliberately, and each stays dumb on its own. The schedule fires per occurrence and knows nothing else. The inbox drops a capture identical to one already waiting. The suffix is the one place where you declare that instances are distinct, and it is visible in the text that arrives, so two rent items say which month each is for. Nothing anywhere tracks instances.
@@ -158,6 +159,8 @@ Time related fields, and the items each one applies to:
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
 - completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
+Every one of these is a date and never a time of day, and they are all read against a single clock: the timezone the app is configured with. "Today" therefore means the same day everywhere it is asked - the `#today` clearing, lazy schedule firing, "due today" and overdue all share the one boundary, and a capture sent from a phone in another timezone lands on the app's day, not the phone's. Two clocks would mean two opinions about whether something is overdue, which is the kind of disagreement that makes a view stop being trusted.
+
 `snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
 
 `snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date.
@@ -177,6 +180,8 @@ A context is a physical prerequisite for doing an action: something that has to 
 Contexts apply to **actions only**. A project is not something you do, so it has no context.
 
 An action has **at most one** context. Notation is `@name`: `@home`, `@garage`, `@online` (an internet connection is needed, on any device), `@computer` (a real computer is needed, a phone will not do).
+
+Context names are picked from a remembered list, the same way parameter values are - never typed fresh, otherwise `@home` and `@Home` drift into two contexts. Adding a new one is a deliberate act, but not a trip to another screen: when nothing on the list matches, the picker offers to create the new entry right there, behind an explicit confirm - deliberate enough to stop drift, cheap enough not to fight capture. The list is editable, so that a context no longer used can be removed; one still carried by actions can not be, since removing it would be editing those actions behind their back.
 
 #### Parameters
 A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This keeps the context namespace small and scannable, which is the only reason contexts are useful at all - putting every person and every shop chain at the top level would destroy that.
@@ -199,6 +204,7 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 - tags apply to **both projects and actions**
 - an item can have zero, one or several tags
 - in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?". The single exception is `#today`
+- tags follow the same rule context names do: picked from a remembered list, never typed fresh, added deliberately, and removable from the list only while no item carries them - see "Contexts". Areas of responsibility are few and stable, so a list that is deliberate to grow costs nothing here. `#today` is built in: it is always available and is not on the editable list
 
 #### #today
 `#today` marks an action as picked for the day - see "Today". It is an ordinary tag in every respect but one: it expires.
@@ -417,8 +423,9 @@ It is the only view holding something you have not committed to, and the only on
 ### The read API
 The views are readable from outside the app, so that an AI can analyse what is going on without anything being copied out by hand. It is the counterpart of the capture API (see "External capture"), which stays the only way in.
 
-- what it returns is a **view**, with its filters applied: exactly what the corresponding screen would show, item for item
-- there is no query language, and nothing can be asked for that a view does not already offer. A caller composing arbitrary queries would be looking at a screen that does not exist in the app - it could disagree with every view, and there would be no way to tell which one was the complete list. That is the same reason saved filters are out of scope (see "Deliberate omissions")
+- what it returns is a **view**. The caller states its own filters as request parameters - the same filters the view itself offers, with the same semantics, and nothing beyond them - and no parameters means the complete, unfiltered view
+- the caller's filters are its own: the screen's filter state is the screen's, and a read neither sees it nor touches it. An AI reading "Next actions" is asking its own question, not looking over your shoulder, and its answer must not depend on what you left toggled on last night
+- there is no query language, and nothing can be asked for that a view does not already offer. Every possible response is a state the corresponding screen could be put in by setting its filters, so the API can never show a list the app itself could not - which is the property that matters. A caller composing arbitrary queries would be looking at a screen that cannot exist in the app, and that is the same reason saved filters are out of scope (see "Deliberate omissions")
 - it is read only. Nothing is created, edited or completed through it. Whatever an outside tool wants to put into the app arrives in the inbox as a capture, and is decided about by hand in Inbox Zero
 - reads are not audited. The audit log records what happened to an item, and a read makes no change worth recording. The one thing it can trigger is the daily clearing of `#today`, since an API read counts as first use of a new day, and that is never audited either - see "#today"
 
