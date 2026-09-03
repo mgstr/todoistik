@@ -161,7 +161,7 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 `#today` marks an action as picked for the day - see "Today". It is an ordinary tag in every respect but one: it expires.
 
 - it is applied and removed by hand, like any other tag, from anywhere a tag can be edited
-- it is cleared from every item on the first use of the app on a new day, by the **local** day - the same boundary "due today" uses. The clearing is deliberately not a scheduled sweep: a sweep only runs if something is up to run it, and a "Today" still showing yesterday's picks because a machine was asleep is the view being quietly wrong in the direction that matters most. Clearing on arrival cannot be observed stale, because nothing looks at the view before you do
+- it is cleared from every item on the first use of the app on a new day, by the **local** day. A read through the read API counts as use, whichever comes first: the API returns what the screen would show, so a caller that saw yesterday's picks would be seeing a view the app itself would never render - the same boundary "due today" uses. The clearing is deliberately not a scheduled sweep: a sweep only runs if something is up to run it, and a "Today" still showing yesterday's picks because a machine was asleep is the view being quietly wrong in the direction that matters most. Clearing on arrival cannot be observed stale, because nothing looks at the view before you do
 - it is never audited, neither when applied nor when it expires. The audit log is what makes commitments recoverable, and a pick is not a commitment: there is nothing in it to recover, and a few picks every morning would bury the entries that are worth finding
 - on a **project** it is inert. It is not special cased on assignment - a tag that behaves differently depending on what it is attached to is worse than one that does nothing - and a project is not something you do, so there is nothing for it to narrow
 - it is the one tag that is not an area of responsibility, and the only one that says *when* rather than *what about*
@@ -368,7 +368,7 @@ The views are readable from outside the app, so that an AI can analyse what is g
 - what it returns is a **view**, with its filters applied: exactly what the corresponding screen would show, item for item
 - there is no query language, and nothing can be asked for that a view does not already offer. A caller composing arbitrary queries would be looking at a screen that does not exist in the app - it could disagree with every view, and there would be no way to tell which one was the complete list. That is the same reason saved filters are out of scope (see "Deliberate omissions")
 - it is read only. Nothing is created, edited or completed through it. Whatever an outside tool wants to put into the app arrives in the inbox as a capture, and is decided about by hand in Inbox Zero
-- reads are not audited. The audit log records what happened to an item, and reading one changes nothing
+- reads are not audited. The audit log records what happened to an item, and a read makes no change worth recording. The one thing it can trigger is the daily clearing of `#today`, since an API read counts as first use of a new day, and that is never audited either - see "#today"
 
 ## Processes
 
