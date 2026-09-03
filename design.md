@@ -155,7 +155,16 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 
 - tags apply to **both projects and actions**
 - an item can have zero, one or several tags
-- in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?"
+- in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?". The single exception is `#today`
+
+#### #today
+`#today` marks an action as picked for the day - see "Today". It is an ordinary tag in every respect but one: it expires.
+
+- it is applied and removed by hand, like any other tag, from anywhere a tag can be edited
+- it is cleared from every item on the first use of the app on a new day, by the **local** day - the same boundary "due today" uses. The clearing is deliberately not a scheduled sweep: a sweep only runs if something is up to run it, and a "Today" still showing yesterday's picks because a machine was asleep is the view being quietly wrong in the direction that matters most. Clearing on arrival cannot be observed stale, because nothing looks at the view before you do
+- it is never audited, neither when applied nor when it expires. The audit log is what makes commitments recoverable, and a pick is not a commitment: there is nothing in it to recover, and a few picks every morning would bury the entries that are worth finding
+- on a **project** it is inert. It is not special cased on assignment - a tag that behaves differently depending on what it is attached to is worse than one that does nothing - and a project is not something you do, so there is nothing for it to narrow
+- it is the one tag that is not an area of responsibility, and the only one that says *when* rather than *what about*
 
 ### Completion
 An item is resolved explicitly, and only in one of two ways: it is completed, or it is deleted. There are no shortcuts and nothing is resolved implicitly.
@@ -184,6 +193,8 @@ Every action performed in the app is audited. An audit entry contains at minimum
 
 This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items among the active ones.
 
+The one exception is `#today`, which is never audited - see "#today".
+
 ## Views
 Every list the app shows is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
 
@@ -200,7 +211,7 @@ Matching is case insensitive. Several words may be given and **all** of them hav
 
 What counts as the name is whatever names the item on that screen: the title of an action or a project, and for a someday/maybe item its text, since that is all it has. For a **project**, the titles of the actions under it count as part of its name as well - a project is remembered by a step in it at least as often as by its outcome, and hiding a project whose action matched would be hiding the answer.
 
-The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something.
+The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something. Neither does **Today**, for a related reason - see "Today".
 
 ### Filtering by tag
 The **tag cloud** is the other shared filter: every tag in use, each one toggled in or out of the filter. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
@@ -210,7 +221,7 @@ The **tag cloud** is the other shared filter: every tag in use, each one toggled
 - clearing the selection is how it resets, and means all tags again, never none
 - it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
 
-The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by.
+The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by. **Today** carries no filters at all - see "Today".
 
 The views:
 
@@ -255,6 +266,8 @@ Snoozed actions appear here as well, shown differently to mark them as not yet r
 
 There is no separate "what can I do right now" screen. It was this same query with a few filters applied, and a second view that can quietly disagree with the first about what is next is exactly the kind of thing that stops being trusted. Asking "what can I do right now" is narrowing this view, not going somewhere else.
 
+"Today" is not that second screen. It does not re-ask this view's question with the filters set differently: it shows what has run out of time, and what you decided this morning to aim at. That decision is recorded on the item and is derivable from nothing, so "Today" is a view over a field, the way every other view is. What was rejected here is a view over filter state.
+
 #### Filters
 The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
@@ -277,6 +290,18 @@ The results are sorted by one of:
 - **age** - `becameNextActionAt`, how long the action has been next. Not the creation date: what is worth seeing is how long something has been available to be done and has not been done. Reversible as well
 
 Default is age, oldest first. An action that has been next for weeks without moving is the thing this view should push under your nose, and it is the same signal step 4 of the weekly review goes looking for.
+
+### Today
+The narrowing used to get through a day: everything that has run out of time, and the actions picked out this morning. It holds two groups, shown separately.
+
+- **out of time** - every project and action due today or already overdue, ordered by due date with the overdue first. This is the "Calendar" today-and-earlier slice unchanged, down to the projects, the parked actions and the waiting for ones. Anything narrower would let something be out of time in one view and not in the other
+- **picked** - the actions carrying `#today` (see "#today"), ordered by age the way "Next actions" is
+
+A pick is **not a promise.** It is a hint that narrows the field of view for a few hours, made once in the morning by looking at "Next actions" - the whole system - and deciding what to aim at. Nothing is recorded when a picked action is not done, nothing is late, and nothing shouts. The commitment never lived in the mark: the action is still in "Next actions", still under its project, still reviewed, still stamped with how long it has been waiting. That is what makes it safe for the mark to expire silently, which nothing else in this app does.
+
+The view carries no filters, for the reason the "Inbox" carries none. It is short by construction, and everything in it is either out of time or something you chose this morning; narrowing a narrowing would only be a way to look away from a deadline. When the picks turn out to be the wrong ones, the answer is not a filter here, it is "Next actions", one keystroke away.
+
+Today has no review step. Everything in it is walked already, as a project, a next action or a waiting for item.
 
 ### Waiting for
 Every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
