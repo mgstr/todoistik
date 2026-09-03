@@ -1,16 +1,36 @@
 # todoistik
 Describes todo application, intended for my purposes only. This app is not intended as a generic todo app.
 
-## Design principles
+The document is organised in four parts:
+- **Principles** - what I want out of this, and the rules that decide what gets built
+- **Items** - the objects I work with, and their fields
+- **Views** - the ways items are shown to me. Every screen in the app is one of these
+- **Processes** - the rituals that guide me through items
+
+## Principles
+
+### Goals
+- **Nothing is held in my head.** Every open loop lives in the app, so that remembering is not a job I have to do.
+- **Nothing dies silently.** The failure mode worth designing against is not a forgotten task, it is a commitment that stays on screen looking alive while nothing about it moves.
+- **The views are trustworthy.** A view that is not trusted to be complete is a view that stops being used. The weekly review is what keeps them trustworthy, and everything else in this document is bookkeeping in service of it.
+- **Capture costs nothing.** Deciding what something means is a separate deliberate act, performed later. Friction at capture time is what makes a system get abandoned.
+
+### Design principles
 - add only functionality that I will use, don't add anything for future development
+- app should be fast, it usage should not be obstacle
+- the keyboard only support should be provided
+- the app should be AI friendly, so AI could get info from it for analysis and control the info send to it (using inbox)
 - the design of the app should allow to follow principles described in David Allen's book "GTD - Getting Things Done"
 
-## Overview
-App should allow manipulation with following entities:
-- inbox item: a raw, unprocessed capture, that has not been decided about yet
-- someday/maybe item: a raw capture that is worth revisiting some time, but not now
-- action: a single non-breakable task, that can be done and have visible output effect
-- project: when end result can't be achieved in result of single action it is called a project, it contains a list of actions, and has a "definition of done".
+## Items
+The objects the app works with:
+- **inbox item**: a raw, unprocessed capture, that has not been decided about yet
+- **someday/maybe item**: a raw capture that is worth revisiting some time, but not now
+- **action**: a single non-breakable task, that can be done and have visible output effect
+- **project**: when end result can't be achieved in result of single action it is called a project, it contains a list of actions, and has a "definition of done"
+- **audit entry**: the record that something happened
+
+An item is stored as itself. Nothing is stored "inside" a screen - every screen is a query over these items, see "Views".
 
 ### Inbox item
 Raw, unprocessed capture. Deliberately near-schemaless - the point is zero friction at capture time.
@@ -26,7 +46,22 @@ An inbox item can not be snoozed - see "Time fields".
 Adding items to the inbox must be possible from outside the app.
 The app exposes a simple consuming API for this - a single endpoint accepting a text payload - so that captures can arrive from scripts, CLI, a mobile share sheet, email or any other tool without opening the app.
 
-### Actions
+### Someday/maybe item
+A raw idea that is worth looking at some time, but that you are not ready to work on now.
+
+A someday/maybe item is not a project and not an action - it is the same raw, unclarified capture as an inbox item. Clarifying it would mean defining an outcome and a next action for something you have deliberately decided not to commit to, which is wasted work and is exactly the friction that makes a someday/maybe go unused. It therefore stays raw until you decide to move on it.
+
+Fields:
+- Text: (required) free-form, the idea as captured, editable
+- Creation date: (required) it shows the age of the idea
+- lastReviewedAt, snoozeUntil - see "Time fields"
+
+Rules:
+- items become someday/maybe items from the inbox, as one of the outcomes of Inbox Zero
+- when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
+- `snoozeUntil` excludes the item from the weekly review requirement until that date, so that a long someday/maybe view stays reviewable
+
+### Action
 An action is a single (non-breakable into smaller parts) task, that should be done in order to move to the desired goal.
 The action should have visible effect. So "thinking about design" is not an action. Use "Write draft a MD with design" instead.
 Action has following fields:
@@ -36,11 +71,14 @@ Action has following fields:
 - Needs focus: (optional) marks an action that can not be done while tired. Deliberately a single flag rather than a low / normal / high scale - having to grade the energy of every action puts pressure on capture, which is exactly the friction worth avoiding.
 - Description: (optional) any extra materials needed to be referenced (like URL, link to email, reference to PDF etc) that could be useful during the action.
 - Tags: (optional) zero, one or several labels - see "Tags"
-- Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears in the "Waiting for view".
+- Assigned to: (optional) free text. If not set, it is assumed that you are the one who should do it. If set, the action is waiting on somebody or something else, and appears in the "Waiting for" view.
 
+#### Standalone actions
 An action does not have to belong to a project, and most do not. A single action that fully achieves its outcome stands on its own and is never wrapped in a project just to give it a parent - that bureaucracy is what makes a system get abandoned.
 
-A standalone action is **always** a next action: `becameNextActionAt` is stamped whenever an action is created standalone or becomes standalone (see "Reshaping items"). The parked state exists only inside a project, where an action written down in advance is part of a plan that the project keeps visible. A parked standalone action would appear in no view at all and silently die - the exact failure the stalled project check exists to catch, except with no check watching. "Not ready to act on it yet" is expressed with `snoozeUntil`, never by parking. The stalled project check itself does not apply to standalone actions.
+An action that belongs to no project is a **standalone action**. Standalone actions are shown together in the "Tasks" view, which is simply where every parentless action is found. Tasks is a view and not a container: nothing is moved into it, an action is in it exactly as long as it has no project.
+
+A standalone action is **always** a next action: `becameNextActionAt` is stamped whenever an action is created without a project, or loses the one it had (see "Reshaping items"). The parked state exists only inside a project, where an action written down in advance is part of a plan that the project keeps visible and the stalled project check watches over. Outside a project there is neither plan nor check, so "parked" would mean nothing beyond "I am not going to look at this" - and that is what `snoozeUntil` is for, or someday/maybe if it is not a commitment yet. There is no third state. The stalled project check does not apply to standalone actions.
 
 ### Project
 Project is a desired result, that requires more than one step to complete.
@@ -53,12 +91,27 @@ Project has following fields:
 
 A next action is not a property of the project. It is a property of the action - see `becameNextActionAt`. A project can therefore have several next actions at the same time, which is what a parallel project looks like (booking the flight, renewing the passport and asking for time off are all available at once), while a sequential project simply happens to have one.
 
+Projects and standalone actions together are every commitment in the app. An action either sits under a project or is standalone; there is no third place, and nothing is loose.
+
+#### Stalled projects
+An active project is stalled when it has no next action.
+
+This is the single most common way things silently die: the project stays visible, looks alive, and nothing ever moves. Catching it is the highest value check in the app, and it costs nothing - it is derived, never stored.
+
+- a project is exempt while it is snoozed, and once it is completed
+- a project whose only next action is a waiting for action is **not** stalled
+- the check applies to projects only. Standalone actions are not covered by it, and neither is the Tasks view - see "Tasks"
+
+Stalled projects stay visible in the normal views, clearly marked as stalled (red, or similarly loud). They are not hidden away in a dedicated screen, and they are not something only the weekly review surfaces.
+
+The app never prevents a project from being stalled. Forcing a next action to be invented at a moment when there is no time or energy for it produces a bad action, and a bad action is worse than a stalled project that is shouting about itself and will be dealt with at the weekly review or sooner.
+
 ### Time fields
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
 - due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
 - lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
-- becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for view" on day one.
+- becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
 - completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
@@ -73,15 +126,7 @@ What a snooze actually does:
 - a snoozed **project** is exempt from the stalled project check
 - a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. The stalled project check knows about snoozed actions. This is the same exemption a waiting for action gets, and for the same reason
 
-The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as moving it to the someday/maybe list. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
-
-### Completion
-An item is resolved explicitly, and only in one of two ways: it is completed, or it is deleted. There are no shortcuts and nothing is resolved implicitly.
-
-- a completed action leaves the next actions list and stops counting as a next action for its project, which may leave the project stalled
-- a project can not be completed **or deleted** while it still has open actions. Every one of them is resolved explicitly first: completed, deleted, or detached into a standalone action (see "Reshaping items")
-- completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
-- there is no separate "done" list. The audit log is the record of what was finished
+The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as making it a someday/maybe item. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
 ### Contexts
 A context is a physical prerequisite for doing an action: something that has to be true before the action is possible at all. If the action could be done without it, it is not a context.
@@ -96,10 +141,10 @@ A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This kee
 - the parameterised form is **narrower** than the bare one. Standing in Selver satisfies `@grocery(Selver)` and bare `@grocery`, but not `@grocery(Prisma)`
 - the bare form is not always meaningful. Bare `@grocery` is useful ("buy milk, any shop"), bare `@person` is not. Some context types will in practice always carry a parameter, and that is fine
 - parameter values are picked from a remembered list per context type, never typed fresh, otherwise `@person(Andres)`, `@person(andres)` and `@person(Andres P.)` become three different contexts
-- that list has to be editable, so that values that are no longer used can be removed
+- that set of values has to be editable, so that values that are no longer used can be removed
 
 #### Filtering
-The "what can I do right now" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
+The "Next actions" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
 
 OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
 
@@ -112,28 +157,15 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 - an item can have zero, one or several tags
 - in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?"
 
-## Stalled projects
-An active project is stalled when it has no next action.
+### Completion
+An item is resolved explicitly, and only in one of two ways: it is completed, or it is deleted. There are no shortcuts and nothing is resolved implicitly.
 
-This is the single most common way things silently die: the project stays on the list, looks alive, and nothing ever moves. Catching it is the highest value check in the app, and it costs nothing - it is derived, never stored.
+- a completed action leaves the "Next actions" view and stops counting as a next action for its project, which may leave the project stalled
+- a project can not be completed **or deleted** while it still has open actions. Every one of them is resolved explicitly first: completed, deleted, or detached into a standalone action (see "Reshaping items")
+- completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
+- a completed item leaves the active views and is found in the "Archive". That view and the audit log are not the same record: the Archive holds finished **commitments**, the audit log holds **events** - every creation, edit, completion and deletion, including the ones that never became items at all
 
-- a project is exempt while it is snoozed, and once it is completed
-- a project whose only next action is a waiting for action is **not** stalled
-
-### On completing a next action
-Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
-
-- there are still open actions, and at least one of them is marked as a next action - nothing is asked, the completion is accepted silently
-- there are still open actions, but none of them is marked as a next action - ask to mark one of them as the next action
-- there are no open actions left - ask whether to complete the project, showing the DOD for reference, or to create a next action
-- in that last case, doing nothing is always allowed. If there is no time or energy to decide right now, nothing is forced and the project immediately becomes stalled
-
-### Visibility
-Stalled projects stay visible in the normal lists, clearly marked as stalled (red, or similarly loud). They are not hidden away in a dedicated screen, and they are not something only the weekly review surfaces.
-
-The app never prevents a project from being stalled. Forcing a next action to be invented at a moment when there is no time or energy for it produces a bad action, and a bad action is worse than a stalled project that is shouting about itself and will be dealt with at the weekly review or sooner.
-
-## Error state
+### Error state
 An item whose fields contradict each other is in an error state. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
 
 The known cases:
@@ -142,55 +174,111 @@ The known cases:
 
 Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
-## Lists
-There are exactly three lists. Everything else the app shows is a **view** derived from them - a query, not a place where anything is stored.
+### Audit entry
+Every action performed in the app is audited. An audit entry contains at minimum:
+- timestamp
+- what happened (item created, edited, completed, trashed, reshaped, ...)
+- the item it refers to
 
-1. **Inbox** - captured items that have not been decided about yet. Must be emptied, see "Inbox Zero".
-2. **Someday/Maybe** - raw ideas worth revisiting some time, but not now.
-3. **Projects + standalone actions** - everything that is an actual commitment: projects with their actions, and the standalone actions that belong to no project.
-
-### Someday/Maybe
-A first class list, holding raw ideas that are worth looking at some time, but that you are not ready to work on now.
-
-A someday/maybe item is not a project and not an action - it is the same raw, unclarified capture as an inbox item. Clarifying it would mean defining an outcome and a next action for something you have deliberately decided not to commit to, which is wasted work and is exactly the friction that makes a someday list go unused. It therefore stays raw until you decide to move on it.
-
-Rules:
-- items arrive here from the inbox, as one of the outcomes of Inbox Zero
-- the creation date shows the age of the idea
-- `snoozeUntil` (optional) excludes the item from the weekly review requirement until that date, so that a long someday list stays reviewable
-- when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
-- it is reviewed during the weekly review, skipping items that are still snoozed
+This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items among the active ones.
 
 ## Views
-Views are derived from the projects + standalone actions list. Nothing lives in a view.
+Every screen in the app is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
 
-### Next actions view
-The actions that are on you to act on: `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty.
+The Next actions filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back.
 
-Note the distinction in naming. A waiting for action is still a next action of its project - that is what keeps a delegated project off the stalled list - but it does not appear in this view, because this view is only the actions that are yours to act on.
+The views:
+
+### Inbox
+The inbox items that have not been decided about yet, oldest first.
+
+This is the only view with a rule attached to being non-empty: it must be emptied, see "Inbox Zero".
+
+### Someday/Maybe
+The someday/maybe items - raw ideas worth revisiting some time, but not now.
+
+- it is reviewed during the weekly review, skipping items that are still snoozed
+- the age shown is the age of the idea, from its creation date
+
+### Projects
+The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. Actions inside a project are shown with their project. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
+
+### Tasks
+The standalone actions: `completedAt` is empty and no project is set. Together with "Projects" this covers every commitment in the app.
+
+Tasks is deliberately unremarkable, and each of its properties falls out of it being a view rather than a container:
+
+- **it has no DOD.** It is not an outcome. It is not one commitment, it is the pile of small ones, and there is nothing to define done for.
+- **it never shouts.** The stalled project check does not apply here. An empty Tasks view means there is nothing outstanding outside the projects, which is a good state and not a problem to fix.
+- **it can not be deleted, and it does not have to be created.** It is a query, so it is simply always there - the same way the Inbox is.
+
+Snoozed standalone actions appear here, shown differently to mark them as not yet ready. Standalone waiting for actions appear here too: Tasks answers "where does this action live", not "is it mine to act on".
+
+Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 4 of the weekly review. Tasks needs no review step of its own.
+
+### Next actions
+The main working view, and the one the app is used from day to day: the actions that are on you to act on. `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty. Actions inside a project and standalone ones appear side by side - what matters here is that they are next, not where they live.
+
+Note the distinction in naming. A waiting for action is still a next action of its project - that is what keeps a delegated project from counting as stalled - but it does not appear in this view, because this view is only the actions that are yours to act on.
 
 Snoozed actions appear here as well, shown differently to mark them as not yet ready. They still count as a next action of their project for the stalled project check.
 
-### What can I do right now
-The main working view: next actions filtered by the three things that decide whether something is doable at this moment.
+There is no separate "what can I do right now" screen. It was this same query with a few filters applied, and a second view that can quietly disagree with the first about what is next is exactly the kind of thing that stops being trusted. Asking "what can I do right now" is narrowing this view, not going somewhere else.
 
-- **context** - one or several of the contexts currently satisfied, combined with OR (see "Contexts")
-- **duration** - what fits in the time available
-- **needs focus** - what can be faced with the energy available
+#### Filters
+The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
-### Waiting for view
+- **contexts** - the context cloud: every context in use, each one toggled in or out of the filter. Selected contexts combine with **OR** (see "Contexts"). An action with **no** context is always shown, whatever is selected: it has no prerequisite, so there is no moment at which it is not doable, and a filter about prerequisites has nothing to exclude it by.
+- **tags** - the tag cloud, toggled the same way, selected tags combining with **OR**. Here an action with **no** tags is excluded as soon as any tag is selected. The asymmetry with contexts is deliberate: the context filter asks "can I do this here", which "nothing required" always answers yes to, while the tag filter asks "is this about #car", which "about nothing in particular" answers no to.
+- **title** - case insensitive substring of the action title. Several words may be given and **all** of them have to be present, in any order and anywhere in the title - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why an action matched. This is the one text matching rule in the app - the archive searches the same way.
+- **duration** - one or several buckets, combined with OR: what fits in the time available.
+- **needs focus** - three states: **all**, **exclude** (drop the actions that can not be done while tired) and **only** (keep nothing else). Default is all. Exclude is the tired question, and only is its opposite - an hour of real attention is worth spending on the actions that need one, and nothing is more wasteful than spending it on things that could have been done half asleep.
+
+Resetting is a first class operation, because a filter that is awkward to remove is a filter that quietly stays on:
+- each filter resets on its own - clearing the context selection means all contexts again, never none
+- one control resets every filter at once, back to the complete list
+
+The filter set persists: it is remembered when you leave the view and is still applied when you come back, which is what makes working in one context for a whole afternoon cheap. Because a filtered view is an incomplete view, and this document rests on the views being trustworthy, a filtered Next actions says so loudly - which filters are on, and how many actions they are hiding - with the reset next to it. The filter set is momentary state: it lives on no item, and it is never named or saved (see "Deliberate omissions").
+
+#### Order
+The results are sorted by one of:
+
+- **title** - alphabetical, ascending or descending
+- **age** - `becameNextActionAt`, how long the action has been next. Not the creation date: what is worth seeing is how long something has been available to be done and has not been done. Reversible as well
+
+Default is age, oldest first. An action that has been next for weeks without moving is the thing this view should push under your nose, and it is the same signal step 4 of the weekly review goes looking for.
+
+### Waiting for
 Every next action with a non-empty "assigned to" field: commitments that are still tracked, but where the ball is not in your court.
 This covers people (delegated to somebody) as well as things (an order placed, a form submitted, a PR awaiting CI).
 
 Rules:
 - a waiting for action is still a next action, so a project whose only next action is a waiting for one is **not** stalled
-- it is excluded from the "what can I do right now" view, since it cannot be acted upon
+- it is excluded from the "Next actions" view, since it cannot be acted upon
 - its age comes from `becameNextActionAt`, which for these items is the delegation date
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / `snoozeUntil` are used
 - it is reviewed during the weekly review
 
-### Projects
-The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready.
+### Archive
+The completed commitments: projects and standalone actions whose `completedAt` is set, newest first. It is the finished mirror of "Projects" and "Tasks" - the same two halves that between them cover every commitment in the app, seen after the fact.
+
+- a completed project is shown with the actions it was completed with, so what is kept is the whole thing and not a bare title
+- a completed action that belonged to a project is **not** listed on its own. It is not a finished commitment, it is a finished step of one, and it is found with its project - here if the project is done, in the project itself while it is still running
+- deleted items are not here. Deletion is not completion, and the audit log is where a trashed item is found and recovered from
+- neither are the things done under the two minute rule. They never became items, so the audit log is their only record
+
+#### Filters
+The archive exists to answer "what did I do about X", and unfiltered it is only a pile that grows forever. The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
+
+- **name** - the same multi-word substring rule as the title filter in "Next actions": case insensitive, every word present, in any order, each matched as a substring. What it matches against is the name of the archived item - the project title, or the standalone action title. For a project the titles of the actions it was completed with count as part of its name here, since what you actually did about something is usually written in a step and not in the outcome.
+- **completed** - when it was finished, picked from a fixed list: **anytime** (the default), **today**, **yesterday**, **this week**, **last week**. These are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "last week" the one before it, neither of them the last seven days. Anytime is how this filter resets. The list is short on purpose and there is no custom range: the archive is searched by what a thing was called far more often than by when it happened, and the near buckets are there mostly to answer "what did I actually get done today".
+- **tags** - the tag cloud from "Next actions", toggled and combined the same way
+
+The archive carries neither context, nor duration, nor needs focus: those three ask whether something can be done right now, which is not a question the finished have.
+
+It is a view like any other, so nothing is moved into it - an item is in it for exactly as long as `completedAt` is set. Clearing that field is therefore how something completed by mistake comes back to the active views, and like every other change it is audited.
+
+The archive has no review step. Nothing in it is an open loop, so there is nothing in it that can silently die.
 
 ## Processes
 
@@ -201,28 +289,38 @@ For each item the only question asked is: what is it? The answer is one of:
 
 - **Trash**: the item is deleted. Recorded in the audit log.
 - **Send to reference materials**: the item is not actionable, but is worth keeping - a manual, an account number, an article to come back to. It is sent out of the app, to wherever reference material is kept. This is an external action: the app itself stores no reference material. The branch exists so that such captures have a correct answer, instead of being trashed or parked in someday/maybe forever.
-- **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in. It is created as a standalone action, so `becameNextActionAt` is stamped immediately - deciding it is worth doing is exactly what makes it a next action.
+- **Action**: it is done in a single step and needs no project. The item is converted into an action and must be created in valid form - the title starts with a verb and is self-descriptive; context and other optional fields may be filled in. It is created standalone, so `becameNextActionAt` is stamped immediately - deciding it is worth doing is exactly what makes it a next action - and it appears in Tasks.
 - **Two minute rule**: if it can be completed in under two minutes, it is done right now and marked as completed in the audit log, without being turned into a "proper" action first.
-- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and lands in the "Waiting for view". `becameNextActionAt` is stamped as usual, and here it is the delegation date.
+- **Someone else does it**: the item is not yours to act on. It becomes an action with "assigned to" set, and appears in the "Waiting for" view. `becameNextActionAt` is stamped as usual, and here it is the delegation date.
 - **Project**: more than one action is needed. Requires:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action, which becomes the next action
-- **Someday/Maybe**: worth looking at some time, but not now. The item moves to the someday/maybe list, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to exclude it from the weekly review requirement until that date.
-- **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays where it is, with a new `snoozeUntil`.
+- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to exclude it from the weekly review requirement until that date.
+- **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
 
+### Completing a next action
+Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
+
+- there are still open actions, and at least one of them is marked as a next action - nothing is asked, the completion is accepted silently
+- there are still open actions, but none of them is marked as a next action - ask to mark one of them as the next action
+- there are no open actions left - ask whether to complete the project, showing the DOD for reference, or to create a next action
+- in that last case, doing nothing is always allowed. If there is no time or energy to decide right now, nothing is forced and the project immediately becomes stalled
+
+Completing a standalone action asks nothing. There is no project to check and nothing to leave stalled - it is simply done.
+
 ### Weekly review
-The ritual that keeps the lists trustworthy. Without it the lists silently go out of date, and a list that is not trusted to be complete is a list that stops being used. Everything else in this document is bookkeeping in service of this process.
+The ritual that keeps the views trustworthy. Without it they silently go out of date, and a view that is not trusted to be complete is a view that stops being used. Everything else in this document is bookkeeping in service of this process.
 
 The review is guided, and runs in a fixed order:
 
 0. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual.
 1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
-2. **Waiting for** - walk the waiting for view. Anything stale is chased, or gets a due date / `snoozeUntil`.
+2. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
 3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects are fixed. Snoozed projects are skipped.
-4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy.
+4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
 5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
@@ -232,7 +330,7 @@ Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is wa
 ### Reshaping items
 Nothing is ever retyped. When an item turns out to be the wrong shape it is converted, carrying over everything it already has.
 
-**Detach** - an action leaves its project and becomes a standalone action. Used when the action turns out not to belong to the scope of the project after all, and when closing a project that still has open actions. It keeps its title, context, duration, tags, description and dates - with one exception: a standalone action is always a next action, so a parked action gets `becameNextActionAt` stamped with the detach time. Nothing leaves a project into limbo.
+**Detach** - an action leaves its project and becomes standalone, so it appears in Tasks from then on. Used when the action turns out not to belong to the scope of the project after all, and when closing a project that still has open actions. It keeps its title, context, duration, tags, description and dates - with one exception: a standalone action is always a next action, so a parked action gets `becameNextActionAt` stamped with the detach time. Nothing leaves a project into limbo.
 
 **Promote** - a standalone action becomes a project, because it turns out to need more than one step. Promotion runs the same Project branch as Inbox Zero, and is therefore subject to the same validations, with the fields prefilled from the action:
 - the project title is prefilled from the action title, and has to be edited into a reference to the outcome rather than a description of what to do
@@ -242,23 +340,19 @@ Nothing is ever retyped. When an item turns out to be the wrong shape it is conv
 
 An action that belongs to a project and should become a project of its own is first detached, then promoted.
 
-## Audit log
-Every action performed in the app is audited. An audit entry contains at minimum:
-- timestamp
-- what happened (item created, edited, completed, trashed, moved between lists, ...)
-- the item it refers to
+## Out of scope
 
-This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items in the active lists.
-
-## Recurring items
+### Recurring items
 Recurring actions and projects are **out of scope for this document** and need a separate design pass. The problem is acknowledged rather than solved: nothing in the system currently repeats, including the weekly review itself.
 
 The discussion, the candidate direction and the questions blocking it live in [recurring.md](recurring.md).
 
-## Deliberate omissions
+### Deliberate omissions
 Things consciously left out, recorded here so that they do not come back later as fresh ideas.
 
-- **Priority.** No priority field, no P1 / P2 / P3. It is subjective and unstable - what matters on Monday does not on Thursday - and re-ranking a list feels productive while producing nothing. Real urgency is already carried by the due date, and importance comes out of the weekly review and the areas of responsibility carried by tags.
+- **Priority.** No priority field, no P1 / P2 / P3. It is subjective and unstable - what matters on Monday does not on Thursday - and re-ranking things feels productive while producing nothing. Real urgency is already carried by the due date, and importance comes out of the weekly review and the areas of responsibility carried by tags.
+- **A "Tasks" project.** Standalone actions get a home as the Tasks **view**, never as a special project record. Such a project would need no DOD, no stalled check, no completion and no deletion - every defining property of a project removed, leaving only the name. Worse, a project exempt from the stalled check is a project nothing watches, which would make it a second inbox for things that were decided to be worth doing and then never shouted about again.
 - **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
+- **Saved filters.** The Next actions filters are momentary state - never named, never saved as presets. A saved filter is a view under another name, and views can not be created: the moment there are five saved filters there are five screens that each show a part of the truth, and no way to tell which one is the complete list.
 - **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
 - **Calendar integration.** Appointments and time-of-day commitments live in the real calendar, and the app never talks to it. Due dates are still real and used - time sensitive actions and projects are marked with one - but a due date is visible only inside the app, and keeping the external calendar in sync with it is a manual responsibility, deliberately. The calendar feeds this app in one direction only, through the Gather step of the weekly review.
