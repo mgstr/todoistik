@@ -109,7 +109,7 @@ The app never prevents a project from being stalled. Forcing a next action to be
 ### Time fields
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
-- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for
+- due date: (optional, projects and actions) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and the only view it is visible in
 - lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
@@ -188,13 +188,23 @@ Every screen in the app is a view: a query over the items. No **item** is ever s
 Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
 
 ### Filtering by name
-Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for** and the **Archive**.
+Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive**.
 
 Matching is case insensitive. Several words may be given and **all** of them have to be present, in any order and anywhere in the name - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why something matched. Clearing the box is how it resets.
 
 What counts as the name is whatever names the item on that screen: the title of an action or a project, and for a someday/maybe item its text, since that is all it has. For a **project**, the titles of the actions under it count as part of its name as well - a project is remembered by a step in it at least as often as by its outcome, and hiding a project whose action matched would be hiding the answer.
 
 The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something.
+
+### Filtering by tag
+The **tag cloud** is the other shared filter: every tag in use, each one toggled in or out of the filter. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
+
+- selected tags combine with **OR**: `#car` and `#finance` selected means everything about either
+- an item with **no** tags is excluded as soon as any tag is selected. The asymmetry with the context filter is deliberate: the context filter asks "can I do this here", which "nothing required" always answers yes to, while the tag filter asks "is this about #car", which "about nothing in particular" answers no to
+- clearing the selection is how it resets, and means all tags again, never none
+- it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
+
+The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by.
 
 The views:
 
@@ -213,7 +223,7 @@ The someday/maybe items - raw ideas worth revisiting some time, but not now.
 ### Projects
 The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. Actions inside a project are shown with their project. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
 
-It carries the name filter, which matches a project by its title or by the title of any action under it - see "Filtering by name".
+It carries the name filter, which matches a project by its title or by the title of any action under it - see "Filtering by name" - and the tag cloud, which matches the project's own tags - see "Filtering by tag".
 
 ### Tasks
 The standalone actions: `completedAt` is empty and no project is set. Together with "Projects" this covers every commitment in the app.
@@ -226,7 +236,7 @@ Tasks is deliberately unremarkable, and each of its properties falls out of it b
 
 Snoozed standalone actions appear here, shown differently to mark them as not yet ready. Standalone waiting for actions appear here too: Tasks answers "where does this action live", not "is it mine to act on".
 
-It carries the name filter, matching the action title - see "Filtering by name".
+It carries the name filter, matching the action title - see "Filtering by name" - and the tag cloud - see "Filtering by tag".
 
 Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 4 of the weekly review. Tasks needs no review step of its own.
 
@@ -243,7 +253,7 @@ There is no separate "what can I do right now" screen. It was this same query wi
 The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
 - **contexts** - the context cloud: every context in use, each one toggled in or out of the filter. Selected contexts combine with **OR** (see "Contexts"). An action with **no** context is always shown, whatever is selected: it has no prerequisite, so there is no moment at which it is not doable, and a filter about prerequisites has nothing to exclude it by.
-- **tags** - the tag cloud, toggled the same way, selected tags combining with **OR**. Here an action with **no** tags is excluded as soon as any tag is selected. The asymmetry with contexts is deliberate: the context filter asks "can I do this here", which "nothing required" always answers yes to, while the tag filter asks "is this about #car", which "about nothing in particular" answers no to.
+- **tags** - the shared tag cloud, selected tags combining with **OR** - see "Filtering by tag"
 - **name** - the shared name filter, matching the action title - see "Filtering by name"
 - **duration** - one or several buckets, combined with OR: what fits in the time available.
 - **needs focus** - three states: **all**, **exclude** (drop the actions that can not be done while tired) and **only** (keep nothing else). Default is all. Exclude is the tired question, and only is its opposite - an hour of real attention is worth spending on the actions that need one, and nothing is more wasteful than spending it on things that could have been done half asleep.
@@ -273,6 +283,32 @@ Rules:
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / `snoozeUntil` are used
 - it is reviewed during the weekly review
 - it carries the name filter, matching the action title - see "Filtering by name". The filter is on the title and not on "assigned to": the field is free text, so filtering by it would be filtering by however the name happened to be typed that day
+- it carries the tag cloud as well - see "Filtering by tag"
+
+### Calendar
+Everything with a real deadline, soonest first: the projects and actions whose due date is set and whose `completedAt` is empty. It answers "what is coming at me", which is a question no other view asks - "Next actions" is ordered by how long something has been available, not by when it runs out of time.
+
+Projects and actions stand side by side here, the same way standalone and project actions do in "Next actions": what matters is the date, not which kind of commitment carries it. Waiting for actions appear as well - chasing a delegation at a specific moment is exactly what the due date is for (see "Waiting for"), and the date is no less real for the ball being in somebody else's court.
+
+Overdue items are loudly marked, the same way stalled projects are. A due date is by definition a date with consequences outside your control, so one that has passed is the loudest thing the app has to say.
+
+Snoozed items appear here too, shown differently to mark them as not yet ready. A `snoozeUntil` reaching past the due date is an error state and is marked as one - see "Error state".
+
+Inbox and someday/maybe items are never here, because neither carries a due date. Nothing has been committed to yet, so there is nothing that can be late.
+
+#### Filters
+The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
+
+- **name** - the shared name filter, matching an action by its title and a project by its title or by the title of any action under it - see "Filtering by name"
+- **due** - when it falls due, picked from a fixed list: **anytime** (the default), **today**, **tomorrow**, **this week**, **next week**. As in the "Archive" these are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "next week" the one after it, not the next seven days. Anytime is how this filter resets.
+
+- **tags** - the shared tag cloud - see "Filtering by tag"
+
+The Calendar carries neither context, nor duration, nor needs focus. Those three ask whether something can be done right now, which is not what this view asks, and none of them is a field a project has at all.
+
+**Overdue items are shown whatever the due filter says.** They are not what the filter is about: it asks what is coming, and something already late is not coming, it has arrived. Letting "today" hide an item that was due yesterday would be the app helping you look away from the one thing it exists to shout about - the same reason an action with no context survives the context filter in "Next actions".
+
+The Calendar has no review step. Everything in it is walked through already, as a project, a next action or a waiting for item; having a deadline does not make it a second open loop.
 
 ### Archive
 The completed commitments: projects and standalone actions whose `completedAt` is set, newest first. It is the finished mirror of "Projects" and "Tasks" - the same two halves that between them cover every commitment in the app, seen after the fact.
@@ -287,7 +323,7 @@ The archive exists to answer "what did I do about X", and unfiltered it is only 
 
 - **name** - the shared name filter, matching a standalone action by its title and a project by its title or by the title of any action it was completed with - see "Filtering by name"
 - **completed** - when it was finished, picked from a fixed list: **anytime** (the default), **today**, **yesterday**, **this week**, **last week**. These are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "last week" the one before it, neither of them the last seven days. Anytime is how this filter resets. The list is short on purpose and there is no custom range: the archive is searched by what a thing was called far more often than by when it happened, and the near buckets are there mostly to answer "what did I actually get done today".
-- **tags** - the tag cloud from "Next actions", toggled and combined the same way
+- **tags** - the shared tag cloud - see "Filtering by tag"
 
 The archive carries neither context, nor duration, nor needs focus: those three ask whether something can be done right now, which is not a question the finished have.
 
@@ -370,4 +406,3 @@ Things consciously left out, recorded here so that they do not come back later a
 - **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
 - **Saved filters.** The Next actions filters are momentary state - never named, never saved as presets. A saved filter is a view under another name, and views can not be created: the moment there are five saved filters there are five screens that each show a part of the truth, and no way to tell which one is the complete list.
 - **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
-- **Calendar integration.** Appointments and time-of-day commitments live in the real calendar, and the app never talks to it. Due dates are still real and used - time sensitive actions and projects are marked with one - but a due date is visible only inside the app, and keeping the external calendar in sync with it is a manual responsibility, deliberately. The calendar feeds this app in one direction only, through the Gather step of the weekly review.
