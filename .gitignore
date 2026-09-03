@@ -1,0 +1,4 @@
+todoistik
+*.db
+*.db-shm
+*.db-wal

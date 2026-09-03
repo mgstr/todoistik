@@ -1,0 +1,73 @@
+{{template "top" .}}
+{{$d := .Data}}
+<div class="process">
+  <p class="crumb">{{if eq $d.Src "inbox"}}Inbox Zero · {{$d.Remaining}} left{{else}}Processing a someday/maybe item{{end}}</p>
+  <h1 class="capture-text">{{$d.Text}}</h1>
+  <p class="muted">captured {{age $d.CreatedAt}}</p>
+  <h2>What is it?</h2>
+
+  <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
+
+  <div class="branches">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash" class="inline">
+      <button>Trash</button>
+    </form>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference" class="inline">
+      <button title="not actionable, kept outside the app">Reference material</button>
+    </form>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute" class="inline">
+      <button title="under two minutes: do it now, record it done">Two-minute rule — done</button>
+    </form>
+    {{if eq $d.Src "someday"}}
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/keep" class="inline">
+      <input type="date" name="snooze" title="snooze until">
+      <button>Keep incubating</button>
+    </form>
+    {{end}}
+  </div>
+
+  <details>
+    <summary>Action — one step, standalone</summary>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action" class="stack">
+      {{template "actionformfields" (dict "Title" $d.Text "Duration" "" "Description" "" "Tags" "" "AssignedTo" "" "DueDate" "" "SnoozeUntil" "" "NeedsFocus" false "ContextLabel" "")}}
+      <button class="primary">Create action</button>
+    </form>
+  </details>
+
+  <details>
+    <summary>Someone else does it — waiting for</summary>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/delegate" class="stack">
+      <label>Title <input name="title" value="{{$d.Text}}" required></label>
+      <label>Assigned to <input name="assigned" required placeholder="who or what"></label>
+      <label>Due date <input type="date" name="due"></label>
+      <label>Tags <input name="tags" placeholder="#car"></label>
+      <button class="primary">Create waiting-for action</button>
+    </form>
+  </details>
+
+  <details>
+    <summary>Project — more than one step</summary>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project" class="stack">
+      <label>Title <input name="ptitle" value="{{$d.Text}}" required placeholder="A reference to the outcome, not what to do"></label>
+      <label>Definition of done <textarea name="dod" rows="2" required placeholder="How you will know it is done"></textarea></label>
+      <label>Description <textarea name="pdescription" rows="2"></textarea></label>
+      <label>Tags <input name="ptags" placeholder="#house"></label>
+      <label>First action <input name="paction" required placeholder="Becomes the next action"></label>
+      <label>More actions <input name="paction"></label>
+      <label>&nbsp;<input name="paction"></label>
+      <button class="primary">Create project</button>
+    </form>
+  </details>
+
+  {{if eq $d.Src "inbox"}}
+  <details>
+    <summary>Someday/Maybe — not now</summary>
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday" class="stack">
+      <label>Text <textarea name="text" rows="2">{{$d.Text}}</textarea></label>
+      <label>Snooze until <input type="date" name="snooze"></label>
+      <button class="primary">To Someday/Maybe</button>
+    </form>
+  </details>
+  {{end}}
+</div>
+{{template "bottom" .}}

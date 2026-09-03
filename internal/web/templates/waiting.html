@@ -1,0 +1,21 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Waiting for <span class="count">{{len .Data}}</span></h1>
+  <span class="muted">the ball is not in your court; age is the delegation date</span>
+</header>
+{{$f := .Filters}}
+<form method="get" action="/waiting" class="filters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  <input name="name" value="{{$f.Name}}" placeholder="filter by name (/)" class="namebox">
+  <fieldset><legend>Tags</legend>
+    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
+  </fieldset>
+  <button>Apply</button>
+  <a href="/waiting?f=1" class="reset">Reset all</a>
+</form>
+{{template "filterloud" .}}
+{{if not .Data}}<p class="empty">Waiting on nobody.</p>{{end}}
+<ul class="list">
+{{range .Data}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" true)}}{{end}}
+</ul>
+{{template "bottom" .}}

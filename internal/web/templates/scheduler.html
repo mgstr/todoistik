@@ -1,0 +1,26 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Scheduler <span class="count">{{len .Data}}</span></h1>
+  <span class="muted">what is going to arrive — nothing here is a commitment yet</span>
+  <a class="button primary" href="/schedule/new">New schedule</a>
+</header>
+{{$f := .Filters}}
+<form method="get" action="/scheduler" class="filters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  <input name="name" value="{{$f.Name}}" placeholder="filter by text (/)" class="namebox">
+  <button>Apply</button>
+  <a href="/scheduler?f=1" class="reset">Reset</a>
+</form>
+{{template "filterloud" .}}
+{{if not .Data}}<p class="empty">Nothing scheduled.</p>{{end}}
+<ul class="list">
+{{range .Data}}
+  <li class="row" data-kb-row data-href="/schedule/{{.ID}}">
+    <a href="/schedule/{{.ID}}" class="title">{{.Text}}{{if .Suffix}}<span class="muted">{{.Suffix}}</span>{{end}}</a>
+    <span class="badge">{{.RuleReadable}}</span>
+    {{if .NextFire}}<span class="badge due">next {{.NextFire}}</span>{{end}}
+    {{if .LastFiredAt}}<span class="badge">last fired {{age .LastFiredAt}}</span>{{else}}<span class="badge">never fired</span>{{end}}
+  </li>
+{{end}}
+</ul>
+{{template "bottom" .}}

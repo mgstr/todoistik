@@ -1,0 +1,15 @@
+{{template "top" .}}
+{{$it := .Data}}
+<div class="item">
+  <p class="crumb"><a href="/someday">Someday/Maybe</a> · captured {{age $it.CreatedAt}}</p>
+  <form method="post" action="/somedayitem/{{$it.ID}}" class="stack">
+    <label>Text <textarea name="text" rows="3">{{$it.Text}}</textarea></label>
+    <label>Snooze until <input type="date" name="snooze" value="{{$it.SnoozeUntil}}"></label>
+    <button class="primary">Save</button>
+  </form>
+  <div class="actionsbar">
+    <a class="button" href="/process?src=someday&item={{$it.ID}}">Move on it — process</a>
+    <form method="post" action="/somedayitem/{{$it.ID}}/trash" class="inline"><button class="danger">Trash</button></form>
+  </div>
+</div>
+{{template "bottom" .}}

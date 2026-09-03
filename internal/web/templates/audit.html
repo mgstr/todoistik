@@ -1,0 +1,22 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Audit log</h1>
+  <span class="muted">every event; trashed things are recovered from here by recapturing</span>
+</header>
+<ul class="list audit">
+{{range .Data}}
+  <li class="row">
+    <span class="badge">{{.Event}}</span>
+    <span class="badge">{{.ItemType}}{{if .ItemID}} #{{.ItemID}}{{end}}</span>
+    <span class="title">{{.Text}}</span>
+    <span class="age">{{age .At}}</span>
+    {{if and .Text (or (eq .Event "trashed") (eq .Event "deleted") (eq .Event "sent-to-reference"))}}
+    <form method="post" action="/capture" class="inline">
+      <input type="hidden" name="text" value="{{.Text}}">
+      <button class="small" title="capture this text back into the inbox">recapture</button>
+    </form>
+    {{end}}
+  </li>
+{{end}}
+</ul>
+{{template "bottom" .}}

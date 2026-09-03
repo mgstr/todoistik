@@ -1,0 +1,36 @@
+{{template "top" .}}
+<header class="pagehead"><h1>Settings</h1></header>
+<div class="item">
+  <h2>Tags</h2>
+  <p class="muted">The remembered list. A tag still carried by items can not be removed.</p>
+  <ul class="list">
+  {{range .Data.Tags}}
+    <li class="row"><span class="title">#{{.}}</span>
+      <form method="post" action="/settings/tags/remove" class="inline">
+        <input type="hidden" name="name" value="{{.}}"><button class="danger small">remove</button>
+      </form>
+    </li>
+  {{else}}<li class="row"><span class="muted">none yet</span></li>{{end}}
+  </ul>
+
+  <h2>Contexts</h2>
+  <p class="muted">Context names and their remembered parameter values.</p>
+  <ul class="list">
+  {{range .Data.Contexts}}
+    <li class="row"><span class="title">@{{.Name}}</span>
+      <form method="post" action="/settings/contexts/remove" class="inline">
+        <input type="hidden" name="name" value="{{.Name}}"><button class="danger small">remove</button>
+      </form>
+      {{$ctx := .Name}}
+      {{range .Params}}
+        <span class="badge">{{.}}
+        <form method="post" action="/settings/params/remove" class="inline">
+          <input type="hidden" name="context" value="{{$ctx}}"><input type="hidden" name="value" value="{{.}}">
+          <button class="small" title="remove value">×</button>
+        </form></span>
+      {{end}}
+    </li>
+  {{else}}<li class="row"><span class="muted">none yet</span></li>{{end}}
+  </ul>
+</div>
+{{template "bottom" .}}

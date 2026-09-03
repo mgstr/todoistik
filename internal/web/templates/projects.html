@@ -1,0 +1,31 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Projects <span class="count">{{len .Data}}</span></h1>
+</header>
+{{$f := .Filters}}
+<form method="get" action="/projects" class="filters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  <input name="name" value="{{$f.Name}}" placeholder="filter by project or action name (/)" class="namebox">
+  <fieldset><legend>Tags</legend>
+    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
+  </fieldset>
+  <button>Apply</button>
+  <a href="/projects?f=1" class="reset">Reset all</a>
+</form>
+{{template "filterloud" .}}
+{{if not .Data}}<p class="empty">No active projects.</p>{{end}}
+{{range .Data}}
+<section class="project {{if .Stalled}}stalled{{end}} {{if .IsSnoozed $.Today}}snoozed{{end}}">
+  <h2 data-kb-row data-href="/project/{{.ID}}">
+    <a href="/project/{{.ID}}">{{.Title}}</a>
+    {{if .Stalled}}<span class="badge error">STALLED — no next action</span>{{end}}
+    {{range .Errors}}<span class="badge error">{{.}}</span>{{end}}
+    {{if .IsSnoozed $.Today}}<span class="badge">zzz until {{.SnoozeUntil}}</span>{{end}}
+    {{range .Tags}}<span class="badge tag">#{{.}}</span>{{end}}
+  </h2>
+  <ul class="list">
+  {{range .Actions}}{{if not .CompletedAt}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}{{end}}{{end}}
+  </ul>
+</section>
+{{end}}
+{{template "bottom" .}}

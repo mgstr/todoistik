@@ -1,0 +1,24 @@
+{{template "top" .}}
+{{$step := .Data.Step}}{{$items := .Data.Items}}
+<header class="pagehead">
+  <h1>Review · {{$step}} <span class="count">{{len $items}}</span></h1>
+  <a href="/review">← all steps</a>
+</header>
+{{if not $items}}
+<p class="empty">Nothing outstanding in this step. <a href="/review">Back to the review ✓</a></p>
+{{else}}
+<p class="muted">Oldest-reviewed first. Open to edit; “Reviewed” stamps it as walked-through.</p>
+<ul class="list">
+{{range $items}}
+  <li class="row" data-kb-row data-href="{{.Link}}">
+    <a class="title" href="{{.Link}}">{{.Name}}</a>
+    {{if .Detail}}<span class="badge">{{.Detail}}</span>{{end}}
+    <span class="age" title="last reviewed">{{age .LastReviewedAt}}</span>
+    <form method="post" action="/review/{{.Type}}/{{.ID}}/done?step={{$step}}" class="inline kb-complete">
+      <button class="primary small">Reviewed ✓</button>
+    </form>
+  </li>
+{{end}}
+</ul>
+{{end}}
+{{template "bottom" .}}

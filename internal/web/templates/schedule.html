@@ -1,0 +1,20 @@
+{{template "top" .}}
+{{$s := .Data}}
+<div class="item">
+  <p class="crumb"><a href="/scheduler">Scheduler</a> · created {{age $s.CreatedAt}}
+    {{if $s.LastFiredAt}} · last fired {{age $s.LastFiredAt}}{{else}} · never fired{{end}}
+    {{if $s.NextFire}} · next {{$s.NextFire}}{{end}}
+  </p>
+  <h1>{{$s.RuleReadable}}</h1>
+  <form method="post" action="/schedule/{{$s.ID}}" class="stack">
+    <label>Text <input name="text" value="{{$s.Text}}" required></label>
+    <label>When <input name="rule" value="{{$s.Rule}}" required></label>
+    <label>Suffix <input name="suffix" value="{{$s.Suffix}}"></label>
+    <button class="primary">Save</button>
+  </form>
+  <p class="muted">Changing “When” restarts the occurrence count from today.</p>
+  <div class="actionsbar">
+    <form method="post" action="/schedule/{{$s.ID}}/delete" class="inline"><button class="danger">Delete</button></form>
+  </div>
+</div>
+{{template "bottom" .}}

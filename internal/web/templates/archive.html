@@ -1,0 +1,47 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Archive <span class="count">{{len .Data}}</span></h1>
+  <span class="muted">finished commitments, newest first</span>
+</header>
+{{$f := .Filters}}
+<form method="get" action="/archive" class="filters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  <input name="name" value="{{$f.Name}}" placeholder="what did I do about… (/)" class="namebox">
+  <select name="completed">
+    <option value="">completed: anytime</option>
+    <option value="today" {{if eq $f.Completed "today"}}selected{{end}}>completed: today</option>
+    <option value="yesterday" {{if eq $f.Completed "yesterday"}}selected{{end}}>completed: yesterday</option>
+    <option value="thisweek" {{if eq $f.Completed "thisweek"}}selected{{end}}>completed: this week</option>
+    <option value="lastweek" {{if eq $f.Completed "lastweek"}}selected{{end}}>completed: last week</option>
+  </select>
+  <fieldset><legend>Tags</legend>
+    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
+  </fieldset>
+  <button>Apply</button>
+  <a href="/archive?f=1" class="reset">Reset all</a>
+</form>
+{{template "filterloud" .}}
+{{if not .Data}}<p class="empty">Nothing finished yet — or the filters are hiding it.</p>{{end}}
+{{range .Data}}
+  {{if .Project}}
+  <section class="project done">
+    <h2 data-kb-row data-href="/project/{{.Project.ID}}">
+      <a href="/project/{{.Project.ID}}">{{.Project.Title}}</a>
+      <span class="badge">project</span>
+      {{range .Project.Tags}}<span class="badge tag">#{{.}}</span>{{end}}
+      <span class="age">{{age .CompletedAt}}</span>
+    </h2>
+    <ul class="list">
+      {{range .Project.Actions}}<li class="row done"><span class="check">☑</span> <a class="title" href="/action/{{.ID}}">{{.Title}}</a></li>{{end}}
+    </ul>
+  </section>
+  {{else}}
+  <ul class="list"><li class="row done" data-kb-row data-href="/action/{{.Action.ID}}">
+    <span class="check">☑</span>
+    <a class="title" href="/action/{{.Action.ID}}">{{.Action.Title}}</a>
+    {{range .Action.Tags}}<span class="badge tag">#{{.}}</span>{{end}}
+    <span class="age">{{age .CompletedAt}}</span>
+  </li></ul>
+  {{end}}
+{{end}}
+{{template "bottom" .}}

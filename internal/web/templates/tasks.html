@@ -1,0 +1,21 @@
+{{template "top" .}}
+<header class="pagehead">
+  <h1>Tasks <span class="count">{{len .Data}}</span></h1>
+  <span class="muted">standalone actions — every one already a next action</span>
+</header>
+{{$f := .Filters}}
+<form method="get" action="/tasks" class="filters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  <input name="name" value="{{$f.Name}}" placeholder="filter by name (/)" class="namebox">
+  <fieldset><legend>Tags</legend>
+    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
+  </fieldset>
+  <button>Apply</button>
+  <a href="/tasks?f=1" class="reset">Reset all</a>
+</form>
+{{template "filterloud" .}}
+{{if not .Data}}<p class="empty">Nothing outstanding outside the projects — a good state, not a problem.</p>{{end}}
+<ul class="list">
+{{range .Data}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}{{end}}
+</ul>
+{{template "bottom" .}}

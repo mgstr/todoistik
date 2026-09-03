@@ -1,0 +1,56 @@
+{{template "top" .}}
+{{$d := .Data}}{{$p := $d.Project}}
+<div class="item">
+  <p class="crumb"><a href="/projects">Projects</a></p>
+  {{if $p.Stalled}}<p class="error-banner">STALLED — this project has no next action.</p>{{end}}
+  {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
+
+  {{if $d.Ask}}
+  <div class="ask">
+    <h2>No next action left.</h2>
+    <p>DOD: <em>{{$p.DOD}}</em></p>
+    <div class="actionsbar">
+      {{if not $p.OpenActions}}
+      <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button class="primary">Complete the project</button></form>
+      {{end}}
+      <span class="muted">…or mark an action as next / add one below. Doing nothing is allowed — the project will shout as stalled.</span>
+    </div>
+  </div>
+  {{end}}
+
+  <form method="post" action="/project/{{$p.ID}}" class="stack">
+    <label>Title <input name="title" value="{{$p.Title}}" required></label>
+    <label>Definition of done <textarea name="dod" rows="3" placeholder="Empty DOD = error state">{{$p.DOD}}</textarea></label>
+    <label>Description <textarea name="description" rows="2">{{$p.Description}}</textarea></label>
+    <label>Tags <input name="tags" value="{{joinTags $p.Tags}}"></label>
+    <label>Snooze until <input type="date" name="snooze" value="{{$p.SnoozeUntil}}"></label>
+    <button class="primary">Save</button>
+  </form>
+
+  <h2>Actions</h2>
+  <ul class="list">
+  {{range $p.Actions}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{end}}
+  </ul>
+
+  <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
+  <details {{if $d.Ask}}open{{end}}>
+    <summary>Add an action</summary>
+    <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
+      {{template "actionformfields" (dict "Title" "" "Duration" "" "Description" "" "Tags" "" "AssignedTo" "" "DueDate" "" "SnoozeUntil" "" "NeedsFocus" false "ContextLabel" "")}}
+      <label class="inline-label"><input type="checkbox" name="parked"> parked (written down in advance, not next)</label>
+      <button class="primary">Add action</button>
+    </form>
+  </details>
+
+  <div class="actionsbar">
+    {{if $p.CompletedAt}}
+    <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline"><button>Bring back (un-complete)</button></form>
+    {{else}}
+    <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button>Complete project</button></form>
+    {{end}}
+    <form method="post" action="/project/{{$p.ID}}/delete" class="inline"><button class="danger">Delete project</button></form>
+  </div>
+</div>
+{{template "bottom" .}}

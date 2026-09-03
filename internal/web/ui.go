@@ -1,0 +1,802 @@
+package web
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/url"
+	"sort"
+	"strings"
+	"time"
+
+	"todoistik/internal/app"
+)
+
+// page is the data every template gets.
+type page struct {
+	Title        string
+	View         string // active nav entry
+	Filters      app.Filters
+	FilterQuery  string // current filter query string (for sort/order links)
+	Hidden       int    // how many items the filters hide
+	TagCloud     []string
+	ContextCloud []string
+	Durations    []app.Duration
+	ReviewDue    int
+	Today        string
+	Error        string
+	Data         any
+}
+
+func (s *Server) newPage(title, view string, r *http.Request) *page {
+	p := &page{Title: title, View: view, Today: s.app.Today(), Error: r.URL.Query().Get("err")}
+	if counts, err := s.app.ReviewCounts(); err == nil {
+		p.ReviewDue = counts.Total()
+	}
+	p.TagCloud, _ = s.app.TagsInUse()
+	p.ContextCloud, _ = s.app.ContextsInUse()
+	p.Durations = app.Durations
+	return p
+}
+
+// viewFilters implements the persistent per-view filter set: a request
+// carrying the "f" marker saves its filters for the view; a bare request
+// gets the remembered set back, still applied.
+func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
+	q := r.URL.Query()
+	if q.Get("f") == "1" {
+		s.app.SetState("filters:"+view, r.URL.RawQuery)
+	} else if r.URL.RawQuery == "" {
+		if saved, _ := s.app.GetState("filters:" + view); saved != "" {
+			if sq, err := url.ParseQuery(saved); err == nil {
+				q = sq
+			}
+		}
+	}
+	return parseFilters(q)
+}
+
+func filterQuery(f app.Filters) string {
+	q := url.Values{}
+	if f.Name != "" {
+		q.Set("name", f.Name)
+	}
+	for _, t := range f.Tags {
+		q.Add("tag", t)
+	}
+	for _, c := range f.Contexts {
+		q.Add("context", c)
+	}
+	for _, d := range f.Durations {
+		q.Add("duration", string(d))
+	}
+	if f.Focus != "" {
+		q.Set("focus", f.Focus)
+	}
+	if f.Due != "" {
+		q.Set("due", f.Due)
+	}
+	if f.Completed != "" {
+		q.Set("completed", f.Completed)
+	}
+	if f.Sort != "" {
+		q.Set("sort", f.Sort)
+	}
+	if f.Desc {
+		q.Set("desc", "1")
+	}
+	q.Set("f", "1")
+	return q.Encode()
+}
+
+// --- login ---------------------------------------------------------------
+
+func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, "login.html", &page{Title: "unlock"})
+}
+
+func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name: "token", Value: r.FormValue("token"), Path: "/",
+		HttpOnly: true, SameSite: http.SameSiteLaxMode,
+		MaxAge: 3600 * 24 * 365,
+	})
+	http.Redirect(w, r, "/next", http.StatusSeeOther)
+}
+
+// --- simple view pages ---------------------------------------------------
+
+func (s *Server) inboxPage(w http.ResponseWriter, r *http.Request) {
+	items, err := s.app.Inbox()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Inbox", "inbox", r)
+	p.Data = items
+	s.render(w, "inbox.html", p)
+}
+
+func (s *Server) capturePost(w http.ResponseWriter, r *http.Request) {
+	if _, _, err := s.app.Capture(r.FormValue("text")); err != nil {
+		httpError(w, err)
+		return
+	}
+	back(w, r)
+}
+
+func (s *Server) somedayPage(w http.ResponseWriter, r *http.Request) {
+	f := s.viewFilters("someday", r)
+	items, err := s.app.SomedayItems(f.Name)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Someday/Maybe", "someday", r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Name != "" {
+		if all, err := s.app.SomedayItems(""); err == nil {
+			p.Hidden = len(all) - len(items)
+		}
+	}
+	p.Data = items
+	s.render(w, "someday.html", p)
+}
+
+func (s *Server) projectsPage(w http.ResponseWriter, r *http.Request) {
+	f := s.viewFilters("projects", r)
+	projects, err := s.app.ProjectList(f)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Projects", "projects", r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Active() {
+		if all, err := s.app.ProjectList(app.Filters{}); err == nil {
+			p.Hidden = len(all) - len(projects)
+		}
+	}
+	p.Data = projects
+	s.render(w, "projects.html", p)
+}
+
+type actionListPage func(app.Filters) ([]*app.Action, error)
+
+func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, view, tmpl string, load actionListPage) {
+	f := s.viewFilters(view, r)
+	acts, err := load(f)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage(title, view, r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Active() {
+		if all, err := load(app.Filters{Sort: f.Sort, Desc: f.Desc}); err == nil {
+			p.Hidden = len(all) - len(acts)
+		}
+	}
+	p.Data = acts
+	s.render(w, tmpl, p)
+}
+
+func (s *Server) tasksPage(w http.ResponseWriter, r *http.Request) {
+	s.actionListView(w, r, "Tasks", "tasks", "tasks.html", s.app.Tasks)
+}
+
+func (s *Server) nextPage(w http.ResponseWriter, r *http.Request) {
+	s.actionListView(w, r, "Next actions", "next", "next.html", s.app.NextActions)
+}
+
+func (s *Server) waitingPage(w http.ResponseWriter, r *http.Request) {
+	s.actionListView(w, r, "Waiting for", "waiting", "waiting.html", s.app.WaitingFor)
+}
+
+func (s *Server) calendarPage(w http.ResponseWriter, r *http.Request) {
+	s.actionListView(w, r, "Calendar", "calendar", "calendar.html", s.app.Calendar)
+}
+
+func (s *Server) todayPage(w http.ResponseWriter, r *http.Request) {
+	tv, err := s.app.TodayItems()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Today", "today", r)
+	p.Data = tv
+	s.render(w, "today.html", p)
+}
+
+func (s *Server) archivePage(w http.ResponseWriter, r *http.Request) {
+	f := s.viewFilters("archive", r)
+	entries, err := s.app.Archive(f)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Archive", "archive", r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Active() {
+		if all, err := s.app.Archive(app.Filters{}); err == nil {
+			p.Hidden = len(all) - len(entries)
+		}
+	}
+	p.Data = entries
+	s.render(w, "archive.html", p)
+}
+
+func (s *Server) schedulerPage(w http.ResponseWriter, r *http.Request) {
+	f := s.viewFilters("scheduler", r)
+	ss, err := s.app.Schedules(f.Name)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Scheduler", "scheduler", r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Name != "" {
+		if all, err := s.app.Schedules(""); err == nil {
+			p.Hidden = len(all) - len(ss)
+		}
+	}
+	p.Data = ss
+	s.render(w, "scheduler.html", p)
+}
+
+type auditRow struct {
+	*app.AuditEntry
+	Text string // best-effort name pulled from the snapshot, for recapture
+}
+
+func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
+	entries, err := s.app.AuditLog(300)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	rows := make([]auditRow, 0, len(entries))
+	for _, e := range entries {
+		row := auditRow{AuditEntry: e}
+		var snap struct {
+			Text  string `json:"text"`
+			Title string `json:"title"`
+		}
+		if json.Unmarshal([]byte(e.Snapshot), &snap) == nil {
+			row.Text = snap.Text
+			if row.Text == "" {
+				row.Text = snap.Title
+			}
+		}
+		rows = append(rows, row)
+	}
+	p := s.newPage("Audit log", "audit", r)
+	p.Data = rows
+	s.render(w, "audit.html", p)
+}
+
+// --- Inbox Zero ----------------------------------------------------------
+
+type processData struct {
+	Src       string
+	Item      any // *app.InboxItem or *app.SomedayItem
+	ID        int64
+	Text      string
+	CreatedAt time.Time
+	Remaining int
+	Contexts  []string
+	Tags      []string
+}
+
+func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
+	src := r.URL.Query().Get("src")
+	if src == "" {
+		src = "inbox"
+	}
+	d := &processData{Src: src}
+	d.Contexts, _ = s.app.Contexts()
+	d.Tags, _ = s.app.Tags()
+	switch src {
+	case "inbox":
+		items, err := s.app.Inbox()
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		if len(items) == 0 {
+			p := s.newPage("Inbox Zero", "inbox", r)
+			s.render(w, "process_done.html", p)
+			return
+		}
+		it := items[0]
+		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, len(items)
+	case "someday":
+		id := int64Query(r, "item")
+		it, err := s.app.SomedayItem(id)
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, 1
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	p := s.newPage("What is it?", "inbox", r)
+	p.Data = d
+	s.render(w, "process.html", p)
+}
+
+func int64Query(r *http.Request, key string) int64 {
+	var id int64
+	for _, c := range r.URL.Query().Get(key) {
+		if c < '0' || c > '9' {
+			return 0
+		}
+		id = id*10 + int64(c-'0')
+	}
+	return id
+}
+
+func actionFieldsFromForm(r *http.Request, prefix string) app.ActionFields {
+	get := func(k string) string { return strings.TrimSpace(r.FormValue(prefix + k)) }
+	ctx, param := splitContextInput(get("context"))
+	return app.ActionFields{
+		Title:        get("title"),
+		Context:      ctx,
+		ContextParam: param,
+		Duration:     app.Duration(get("duration")),
+		NeedsFocus:   get("focus") != "",
+		Description:  get("description"),
+		AssignedTo:   get("assigned"),
+		DueDate:      get("due"),
+		SnoozeUntil:  get("snooze"),
+		Tags:         strings.Fields(get("tags")),
+	}
+}
+
+func splitContextInput(s string) (name, param string) {
+	s = strings.TrimPrefix(strings.TrimSpace(s), "@")
+	if i := strings.IndexByte(s, '('); i >= 0 && strings.HasSuffix(s, ")") {
+		return s[:i], strings.TrimSpace(s[i+1 : len(s)-1])
+	}
+	return s, ""
+}
+
+func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields) {
+	pf := app.ProjectFields{
+		Title:       strings.TrimSpace(r.FormValue("ptitle")),
+		DOD:         strings.TrimSpace(r.FormValue("dod")),
+		Description: strings.TrimSpace(r.FormValue("pdescription")),
+		Tags:        strings.Fields(r.FormValue("ptags")),
+	}
+	var actions []app.ActionFields
+	for _, t := range r.Form["paction"] {
+		if t = strings.TrimSpace(t); t != "" {
+			actions = append(actions, app.ActionFields{Title: t})
+		}
+	}
+	return pf, actions
+}
+
+func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
+	src, id, branch := r.PathValue("src"), idParam(r), r.PathValue("branch")
+	var err error
+	switch branch {
+	case "trash":
+		err = s.app.ProcessTrash(src, id)
+	case "reference":
+		err = s.app.ProcessReference(src, id)
+	case "twominute":
+		err = s.app.ProcessTwoMinute(src, id)
+	case "action", "delegate":
+		_, err = s.app.ProcessAction(src, id, actionFieldsFromForm(r, ""))
+	case "project":
+		pf, actions := projectFieldsFromForm(r)
+		_, err = s.app.ProcessProject(src, id, pf, actions)
+	case "someday":
+		text := strings.TrimSpace(r.FormValue("text"))
+		_, err = s.app.ProcessSomeday(id, text, strings.TrimSpace(r.FormValue("snooze")))
+	case "keep":
+		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	if src == "someday" {
+		http.Redirect(w, r, "/someday", http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/process", http.StatusSeeOther)
+}
+
+// --- actions -------------------------------------------------------------
+
+type actionPageData struct {
+	Action   *app.Action
+	Contexts []string
+	Tags     []string
+}
+
+func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
+	act, err := s.app.Action(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	d := &actionPageData{Action: act}
+	d.Contexts, _ = s.app.Contexts()
+	d.Tags, _ = s.app.Tags()
+	p := s.newPage(act.Title, "", r)
+	p.Data = d
+	s.render(w, "action.html", p)
+}
+
+func (s *Server) actionUpdate(w http.ResponseWriter, r *http.Request) {
+	id := idParam(r)
+	if err := s.app.UpdateAction(id, actionFieldsFromForm(r, "")); err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/action/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
+	id, verb := idParam(r), r.PathValue("verb")
+	var err error
+	switch verb {
+	case "complete":
+		act, aerr := s.app.Action(id)
+		if aerr != nil {
+			httpError(w, aerr)
+			return
+		}
+		if err = s.app.CompleteAction(id); err == nil && act.ProjectID != 0 {
+			// completing is the moment with the most context: check the project
+			st, serr := s.app.ProjectState(act.ProjectID)
+			if serr == nil && !st.HasNext {
+				http.Redirect(w, r, "/project/"+itoa(act.ProjectID)+"?ask=1", http.StatusSeeOther)
+				return
+			}
+		}
+	case "uncomplete":
+		err = s.app.UncompleteAction(id)
+	case "delete":
+		err = s.app.DeleteAction(id)
+	case "detach":
+		err = s.app.Detach(id)
+	case "next":
+		err = s.app.SetNext(id, true)
+	case "park":
+		err = s.app.SetNext(id, false)
+	case "snooze":
+		err = s.app.SnoozeAction(id, strings.TrimSpace(r.FormValue("until")))
+	case "tag":
+		err = s.app.ToggleTag("action", id, r.FormValue("tag"))
+	case "pick":
+		err = s.app.ToggleTag("action", id, app.TodayTag)
+	case "promote":
+		pf, actions := projectFieldsFromForm(r)
+		var p *app.Project
+		if p, err = s.app.Promote(id, pf, actions); err == nil {
+			http.Redirect(w, r, "/project/"+itoa(p.ID), http.StatusSeeOther)
+			return
+		}
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	back(w, r)
+}
+
+func itoa(id int64) string {
+	if id == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for id > 0 {
+		i--
+		buf[i] = byte('0' + id%10)
+		id /= 10
+	}
+	return string(buf[i:])
+}
+
+// --- projects ------------------------------------------------------------
+
+type projectPageData struct {
+	Project  *app.Project
+	Ask      bool // show the after-completion prompt
+	Contexts []string
+	Tags     []string
+}
+
+func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
+	proj, err := s.app.Project(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	d := &projectPageData{Project: proj, Ask: r.URL.Query().Get("ask") == "1"}
+	d.Contexts, _ = s.app.Contexts()
+	d.Tags, _ = s.app.Tags()
+	p := s.newPage(proj.Title, "projects", r)
+	p.Data = d
+	s.render(w, "project.html", p)
+}
+
+func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
+	f := app.ProjectFields{
+		Title:       strings.TrimSpace(r.FormValue("title")),
+		DOD:         strings.TrimSpace(r.FormValue("dod")),
+		Description: strings.TrimSpace(r.FormValue("description")),
+		SnoozeUntil: strings.TrimSpace(r.FormValue("snooze")),
+		Tags:        strings.Fields(r.FormValue("tags")),
+	}
+	if err := s.app.UpdateProject(idParam(r), f); err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/project/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
+	id, verb := idParam(r), r.PathValue("verb")
+	var err error
+	switch verb {
+	case "complete":
+		if err = s.app.CompleteProject(id); err == nil {
+			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			return
+		}
+	case "uncomplete":
+		err = s.app.UncompleteProject(id)
+	case "delete":
+		if err = s.app.DeleteProject(id); err == nil {
+			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			return
+		}
+	case "tag":
+		err = s.app.ToggleTag("project", id, r.FormValue("tag"))
+	case "addaction":
+		f := actionFieldsFromForm(r, "")
+		_, err = s.app.CreateAction(id, f, r.FormValue("parked") != "")
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/project/"+r.PathValue("id"), http.StatusSeeOther)
+}
+
+// --- schedules -----------------------------------------------------------
+
+func (s *Server) scheduleNewPage(w http.ResponseWriter, r *http.Request) {
+	p := s.newPage("New schedule", "scheduler", r)
+	s.render(w, "schedule_new.html", p)
+}
+
+func (s *Server) scheduleCreate(w http.ResponseWriter, r *http.Request) {
+	_, err := s.app.CreateSchedule(r.FormValue("text"), strings.TrimSpace(r.FormValue("rule")), r.FormValue("suffix"))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/scheduler", http.StatusSeeOther)
+}
+
+func (s *Server) schedulePage(w http.ResponseWriter, r *http.Request) {
+	sched, err := s.app.Schedule(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Schedule", "scheduler", r)
+	p.Data = sched
+	s.render(w, "schedule.html", p)
+}
+
+func (s *Server) scheduleUpdate(w http.ResponseWriter, r *http.Request) {
+	err := s.app.EditSchedule(idParam(r), r.FormValue("text"), strings.TrimSpace(r.FormValue("rule")), r.FormValue("suffix"))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/scheduler", http.StatusSeeOther)
+}
+
+func (s *Server) scheduleDelete(w http.ResponseWriter, r *http.Request) {
+	if err := s.app.DeleteSchedule(idParam(r)); err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/scheduler", http.StatusSeeOther)
+}
+
+// --- someday items -------------------------------------------------------
+
+func (s *Server) somedayItemPage(w http.ResponseWriter, r *http.Request) {
+	it, err := s.app.SomedayItem(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Someday/Maybe", "someday", r)
+	p.Data = it
+	s.render(w, "somedayitem.html", p)
+}
+
+func (s *Server) somedayItemUpdate(w http.ResponseWriter, r *http.Request) {
+	err := s.app.EditSomeday(idParam(r), r.FormValue("text"), strings.TrimSpace(r.FormValue("snooze")))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/someday", http.StatusSeeOther)
+}
+
+func (s *Server) somedayItemVerb(w http.ResponseWriter, r *http.Request) {
+	id, verb := idParam(r), r.PathValue("verb")
+	var err error
+	switch verb {
+	case "trash":
+		err = s.app.TrashSomeday(id)
+	case "keep":
+		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/someday", http.StatusSeeOther)
+}
+
+// --- weekly review -------------------------------------------------------
+
+type reviewStep struct {
+	Key, Title, Desc string
+	Count            int
+}
+
+func (s *Server) reviewPage(w http.ResponseWriter, r *http.Request) {
+	counts, err := s.app.ReviewCounts()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	steps := []reviewStep{
+		{"gather", "0 · Gather", "Collect open loops from calendar, mail, messengers into the inbox. Check due dates against the external calendar.", 0},
+		{"inbox", "1 · Get clear", "Run Inbox Zero until the inbox is empty. Non-negotiable.", counts.Inbox},
+		{"waiting", "2 · Waiting for", "Anything stale is chased, or gets a due date / snooze.", counts.WaitingFor},
+		{"projects", "3 · Projects", "Is the DOD still right, and is there a next action?", counts.Projects},
+		{"next", "4 · Next actions", "Still valid, still a real physical next action?", counts.Next},
+		{"someday", "5 · Someday/Maybe", "Promote, re-snooze or trash.", counts.Someday},
+		{"scheduler", "6 · Scheduler", "Still wanted, rule still right?", counts.Schedules},
+	}
+	p := s.newPage("Weekly review", "review", r)
+	p.Data = steps
+	s.render(w, "review.html", p)
+}
+
+// reviewItem is one outstanding item in a review step.
+type reviewItem struct {
+	Type, Name, Link string
+	ID               int64
+	LastReviewedAt   time.Time
+	Detail           string
+}
+
+func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
+	step := r.PathValue("step")
+	var items []reviewItem
+	add := func(typ, name, link string, id int64, reviewed time.Time, snooze, detail string) {
+		if s.app.Outstanding(reviewed, snooze) {
+			items = append(items, reviewItem{Type: typ, Name: name, Link: link, ID: id, LastReviewedAt: reviewed, Detail: detail})
+		}
+	}
+	switch step {
+	case "waiting":
+		acts, _ := s.app.WaitingFor(app.Filters{})
+		for _, a := range acts {
+			add("action", a.Title, "/action/"+itoa(a.ID), a.ID, a.LastReviewedAt, a.SnoozeUntil, "waiting on "+a.AssignedTo)
+		}
+	case "projects":
+		projects, _ := s.app.ProjectList(app.Filters{})
+		for _, pr := range projects {
+			detail := "DOD: " + pr.DOD
+			if pr.Stalled {
+				detail = "STALLED · " + detail
+			}
+			add("project", pr.Title, "/project/"+itoa(pr.ID), pr.ID, pr.LastReviewedAt, pr.SnoozeUntil, detail)
+		}
+	case "next":
+		acts, _ := s.app.NextActions(app.Filters{})
+		for _, a := range acts {
+			add("action", a.Title, "/action/"+itoa(a.ID), a.ID, a.LastReviewedAt, a.SnoozeUntil, a.ProjectTitle)
+		}
+	case "someday":
+		its, _ := s.app.SomedayItems("")
+		for _, it := range its {
+			add("someday", it.Text, "/somedayitem/"+itoa(it.ID), it.ID, it.LastReviewedAt, it.SnoozeUntil, "")
+		}
+	case "scheduler":
+		ss, _ := s.app.Schedules("")
+		for _, sc := range ss {
+			add("schedule", sc.Text, "/schedule/"+itoa(sc.ID), sc.ID, sc.LastReviewedAt, "", sc.RuleReadable)
+		}
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].LastReviewedAt.Before(items[j].LastReviewedAt) })
+	p := s.newPage("Review · "+step, "review", r)
+	p.Data = map[string]any{"Step": step, "Items": items}
+	s.render(w, "review_step.html", p)
+}
+
+func (s *Server) reviewDone(w http.ResponseWriter, r *http.Request) {
+	if err := s.app.MarkReviewed(r.PathValue("type"), idParam(r)); err != nil {
+		httpError(w, err)
+		return
+	}
+	step := r.URL.Query().Get("step")
+	if step == "" {
+		back(w, r)
+		return
+	}
+	http.Redirect(w, r, "/review/"+step, http.StatusSeeOther)
+}
+
+// --- settings ------------------------------------------------------------
+
+type settingsData struct {
+	Tags     []string
+	Contexts []map[string]any
+}
+
+func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
+	d := &settingsData{}
+	d.Tags, _ = s.app.Tags()
+	names, _ := s.app.Contexts()
+	for _, n := range names {
+		params, _ := s.app.ContextParams(n)
+		d.Contexts = append(d.Contexts, map[string]any{"Name": n, "Params": params})
+	}
+	p := s.newPage("Settings", "settings", r)
+	p.Data = d
+	s.render(w, "settings.html", p)
+}
+
+func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {
+	var err error
+	switch r.PathValue("kind") {
+	case "tags":
+		err = s.app.RemoveTag(r.FormValue("name"))
+	case "contexts":
+		err = s.app.RemoveContext(r.FormValue("name"))
+	case "params":
+		err = s.app.RemoveContextParam(r.FormValue("context"), r.FormValue("value"))
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	if err != nil {
+		http.Redirect(w, r, "/settings?err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}

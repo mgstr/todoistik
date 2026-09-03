@@ -1,0 +1,51 @@
+{{template "top" .}}
+{{$d := .Data}}{{$a := $d.Action}}
+<div class="item">
+  <p class="crumb">
+    {{if $a.ProjectID}}<a href="/project/{{$a.ProjectID}}">{{$a.ProjectTitle}}</a>{{else}}<a href="/tasks">Tasks</a> · standalone{{end}}
+    · created {{age $a.CreatedAt}}
+    {{if $a.BecameNextAt}} · next for {{age $a.BecameNextAt}}{{end}}
+    {{if $a.CompletedAt}} · <b>completed</b>{{end}}
+  </p>
+  {{range $a.Errors}}<p class="error-banner">{{.}}</p>{{end}}
+
+  <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
+  <form method="post" action="/action/{{$a.ID}}" class="stack">
+    {{template "actionformfields" $a}}
+    <button class="primary">Save</button>
+  </form>
+
+  <div class="actionsbar">
+    {{if $a.CompletedAt}}
+    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline"><button>Bring back (un-complete)</button></form>
+    {{else}}
+    <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button class="primary">Complete</button></form>
+    {{end}}
+    {{if $a.ProjectID}}
+      {{if $a.BecameNextAt}}
+      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button>Park</button></form>
+      {{else}}
+      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button>Mark as next</button></form>
+      {{end}}
+      <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button>Detach — make standalone</button></form>
+    {{end}}
+    <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
+    <form method="post" action="/action/{{$a.ID}}/delete" class="inline"><button class="danger">Delete</button></form>
+  </div>
+
+  {{if not $a.ProjectID}}
+  <details>
+    <summary>Promote to a project (it needs more than one step)</summary>
+    <form method="post" action="/action/{{$a.ID}}/promote" class="stack">
+      <label>Project title <input name="ptitle" value="{{$a.Title}}" required placeholder="Edit into a reference to the outcome"></label>
+      <label>Definition of done <textarea name="dod" rows="2" required></textarea></label>
+      <label>Description <textarea name="pdescription" rows="2">{{$a.Description}}</textarea></label>
+      <label>Tags <input name="ptags" value="{{joinTags $a.Tags}}"></label>
+      <label>First action <input name="paction" value="{{$a.Title}}" required></label>
+      <label>More actions <input name="paction"></label>
+      <button class="primary">Promote</button>
+    </form>
+  </details>
+  {{end}}
+</div>
+{{template "bottom" .}}
