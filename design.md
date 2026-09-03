@@ -57,7 +57,7 @@ A capture whose text is exactly identical to an item **already sitting in the in
 
 This is what makes capture **idempotent**, which is worth having on its own: a script retrying after a timeout, a share sheet tapped twice, and a schedule replaying the occurrences missed during three weeks away all stop being able to flood the inbox. Emptying the inbox is the one rule with no exceptions, so anything able to pile up in it without limit is a threat to that rule.
 
-The known cost is that collapsing is lossy where instances genuinely count: two months away means "Pay the rent" fires twice and is seen once. This is accepted. The moment such an item is processed it becomes an action with a real due date, which is where that deadline was always going to live.
+Collapsing is lossy wherever instances genuinely count - two months away would otherwise mean "Pay the rent" firing twice and being seen once. That is what a schedule's suffix is for: it makes each occurrence produce a different string, so nothing collapses that should not. The default is to collapse, and saying otherwise is one field - see "Schedule".
 
 ### Schedule
 A piece of text and a rule for when to put it in the inbox. It exists so that the things which have to come back - a chore that repeats, or an obligation that has to be looked at weeks before it falls due - are not held in your head in the meantime.
@@ -67,6 +67,7 @@ A schedule is not a commitment and never becomes one by itself. What it produces
 Fields:
 - Text: (required) free-form, what will land in the inbox. It is a capture, so it stays raw - not a title, not an action, not a project
 - When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and no times. Nothing in this app has an hour, so neither does this
+- Suffix: (optional, empty by default) appended to the text when the capture is made. `YYYY`, `MM` and `DD` are replaced with the date of the occurrence being fired; everything else is literal, including any leading space. An empty suffix makes every occurrence produce the same string, which is what collapses a repeated chore to a single inbox item; ` YYYY-MM` on the rent makes each month produce its own
 - Creation date: (required)
 - lastFiredAt: (optional) when it last put something in the inbox, empty until it first does. It is what shows at review time that a schedule is actually working
 - lastReviewedAt: (required) see "Time fields"
@@ -75,8 +76,12 @@ Rules:
 - **it fires lazily**, on the first use of the app on a day whose occurrence has passed. This is the rule `#today` clearing already uses, for the same reason: a scheduler that works only while a process happens to be running is one that cannot be trusted, and a firing that did not happen is invisible
 - **a single date fires once, and the schedule then deletes itself.** A one-shot left in the list forever would turn the "Scheduler" into a graveyard of things that already happened. The deletion is audited like any other
 - **a cron schedule persists** and keeps firing
-- **missed occurrences are not counted.** After an absence a schedule simply fires, however many of its occurrences went by. It does not have to be careful about this, because identical captures collapse in the inbox - see "Duplicate captures"
+- **every missed occurrence fires**, oldest first. After an absence a schedule does not have to be careful about how many went by: without a suffix the captures are identical and collapse in the inbox to one item, and with one they stay distinct, because a suffix is how you said the instances count - see "Duplicate captures"
 - it is edited and deleted like anything else - see "Editing items"
+
+The three parts compose deliberately, and each stays dumb on its own. The schedule fires per occurrence and knows nothing else. The inbox drops a capture identical to one already waiting. The suffix is the one place where you declare that instances are distinct, and it is visible in the text that arrives, so two rent items say which month each is for. Nothing anywhere tracks instances.
+
+The cost lands where you put it: a suffix on a daily schedule is how you ask to be told about every single day you were away. Use one only where the instances genuinely count.
 
 Instances are not linked to each other. A schedule knows when it last fired and nothing about what became of what it produced, so "when did I last change the tyres" is answered by searching the "Archive" for the action, not by asking the schedule. That is the right place for it: what you did is a completed commitment, and the schedule only ever made the reminder.
 
