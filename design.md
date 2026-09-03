@@ -4,7 +4,7 @@ Describes todo application, intended for my purposes only. This app is not inten
 The document is organised in four parts:
 - **Principles** - what I want out of this, and the rules that decide what gets built
 - **Items** - the objects I work with, and their fields
-- **Views** - the ways items are shown to me. Every screen in the app is one of these
+- **Views** - the ways items are shown to me. Every list the app shows is one of these
 - **Processes** - the rituals that guide me through items
 
 ## Principles
@@ -84,7 +84,7 @@ A standalone action is **always** a next action: `becameNextActionAt` is stamped
 Project is a desired result, that requires more than one step to complete.
 Project has following fields:
 - Title: name that helps to reference the result
-- DOD (definition of done): required, since it helps to define what is the expected outcome of the project, and used during review and decision what is the next action
+- DOD (definition of done): required when the project is created, since it helps to define what is the expected outcome of the project, and used during review and decision what is the next action. An existing project can be left without one, which puts it in an error state - see "Editing items"
 - Description: (optional) any extra materials worth keeping with the project (URL, link to an email, reference to a PDF etc)
 - Tags: (optional) zero, one or several labels - see "Tags"
 - Actions: a list of actions required to complete a project. In most cases it is enough to have only one next action to move the project forward. But in some cases listing more steps in advance during the planning phase is helpful.
@@ -162,17 +162,19 @@ An item is resolved explicitly, and only in one of two ways: it is completed, or
 
 - a completed action leaves the "Next actions" view and stops counting as a next action for its project, which may leave the project stalled
 - a project can not be completed **or deleted** while it still has open actions. Every one of them is resolved explicitly first: completed, deleted, or detached into a standalone action (see "Reshaping items")
+- a project with no DOD can not be completed until it has one. Completing is the moment the DOD is confirmed to be met, and there is nothing to confirm - see "Error state"
 - completing a project is therefore always a deliberate act, and the moment the DOD is confirmed to be met. A project is never completed automatically just because it ran out of actions
 - a completed item leaves the active views and is found in the "Archive". That view and the audit log are not the same record: the Archive holds finished **commitments**, the audit log holds **events** - every creation, edit, completion and deletion, including the ones that never became items at all
 
 ### Error state
-An item whose fields contradict each other is in an error state. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
+An item that is not in a state you would have accepted is in an error state: its fields contradict each other, or something it can not do without is missing. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
 
 The known cases:
 - `snoozeUntil` set past the due date. The item would stay marked as not yet ready to be worked on until after the moment it was supposed to be finished, which is never what was meant.
+- a project with no DOD. Reached by clearing the DOD of an existing project - the save is never blocked, for the same reason a project is never prevented from being stalled: being unable to say what done means is information worth showing, not a reason to refuse the edit. Such a project can not be completed until it has one again - see "Completion".
 - "assigned to" set while `becameNextActionAt` is empty. A waiting for action that is not a next action would appear in no view and silently disappear. The normal flows cannot produce this - setting "assigned to" restamps `becameNextActionAt` - so this state means data got in past the normal flows, and it is flagged rather than reinterpreted.
 
-Such a combination is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
+Such a state is not silently resolved by letting one field win over the other - that would hide the mistake instead of the item. The app makes an effort to avoid the situation when the dates are entered, and if it still occurs, the item is marked as being in error rather than quietly reinterpreted.
 
 ### Audit entry
 Every action performed in the app is audited. An audit entry contains at minimum:
@@ -183,7 +185,9 @@ Every action performed in the app is audited. An audit entry contains at minimum
 This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items among the active ones.
 
 ## Views
-Every screen in the app is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
+Every list the app shows is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
+
+Opening a single item to work on it is not a view, and not an exception to this either: an item shown in full is the item, holding exactly what it held in the list, and nothing is kept there - see "Editing items". The guided processes are the same, showing one item at a time - see "Processes".
 
 Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
 
@@ -370,13 +374,31 @@ The review is guided, and runs in a fixed order:
 0. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual.
 1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
 2. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
-3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects are fixed. Snoozed projects are skipped.
+3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are skipped.
 4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
 5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
 Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
+
+### Editing items
+Every item stays editable after it is created, and every edit is recorded in the audit log (see "Audit entry"). Nothing in the app is written once.
+
+Editing happens in two places:
+
+**Inline, in the views.** The cheap changes are made where the item is already shown: renaming an action, toggling a tag, setting a `snoozeUntil` or a due date, marking an action as next or parking it. These are the changes noticed while scanning a list, and making them cost a screen transition is the friction that ends with them not being made at all.
+
+**In the item itself.** Opening a project or an action shows every field it has, editable, and for a project the full list of actions under it: add one, delete one, rename one, detach one (see "Reshaping items"). This is where a project is actually worked on. The DOD is prose and it is the field step 3 of the weekly review asks about, so it needs the room a list does not have.
+
+A project is reachable this way from everywhere it appears - "Projects", the "Calendar", the "Archive" - and from any of its actions, wherever that action is seen.
+
+Rules:
+
+- **an action added to a project is a next action**, with parking one keystroke away. The default is deliberate, because the costs are asymmetric: a wrongly parked action is invisible to "Next actions", to the stalled project check and to the weekly review - it silently dies, which is the failure mode this whole document is built against - while a wrongly next action merely turns up in the working view, where it is seen and parked. Parking is the deliberate act, so it is the one that has to be performed
+- **removing an obsolete action is deleting it**, which is how any action that is not completed gets resolved (see "Completion"). It is audited and recoverable. Deleting the last open action of a project is allowed, and leaves the project stalled and shouting about it
+- **editing does not stamp `lastReviewedAt`.** A review is the deliberate act of walking an item and asking whether it is still what you want, and fixing a typo is not that - neither is editing the DOD. If an edit counted as a review, the outstanding list, which is how the app knows a review is due, could be silenced by cosmetic changes. It is the one thing that has to stay trustworthy
+- **the validations are the ones from the Project branch of Inbox Zero** (see "Inbox Zero"), with one asymmetry: the title is still required and still has to be a reference to the outcome, but an existing project may be left without a DOD and without any action. Neither is prevented, both are marked loudly instead - no DOD is an error state, no next action is stalled. Requiring them at creation is not the same demand: Inbox Zero is the deliberate act of deciding what a thing is, and that is the moment those answers are cheapest and most honest
 
 ### Reshaping items
 Nothing is ever retyped. When an item turns out to be the wrong shape it is converted, carrying over everything it already has.
