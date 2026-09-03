@@ -28,6 +28,7 @@ The objects the app works with:
 - **someday/maybe item**: a raw capture that is worth revisiting some time, but not now
 - **action**: a single non-breakable task, that can be done and have visible output effect
 - **project**: when end result can't be achieved in result of single action it is called a project, it contains a list of actions, and has a "definition of done"
+- **schedule**: a piece of text and a rule for when to put it in the inbox
 - **audit entry**: the record that something happened
 
 An item is stored as itself. Nothing is stored "inside" a screen - every screen is a query over these items, see "Views".
@@ -45,6 +46,41 @@ An inbox item can not be snoozed - see "Time fields".
 #### External capture
 Adding items to the inbox must be possible from outside the app.
 The app exposes a simple consuming API for this - a single endpoint accepting a text payload - so that captures can arrive from scripts, CLI, a mobile share sheet, email or any other tool without opening the app.
+
+#### Duplicate captures
+A capture whose text is exactly identical to an item **already sitting in the inbox** is dropped. This holds for every way in: typed by hand, the capture API, a schedule.
+
+- the comparison is against the open inbox only, never against history. Checking everything ever captured would mean a repeating chore arrived once and never again, because the first one was processed weeks ago
+- matching is exact and not fuzzy, for the reason the name filter is exact: it should always be obvious why something matched
+- nothing is lost when a duplicate is dropped, since the loop it describes is already in the inbox waiting to be decided about. It is not audited, for the same reason
+- the capture API says so in its response rather than simply succeeding, so that a script cannot mistake "silently vanished" for "accepted" - see "External capture"
+
+This is what makes capture **idempotent**, which is worth having on its own: a script retrying after a timeout, a share sheet tapped twice, and a schedule replaying the occurrences missed during three weeks away all stop being able to flood the inbox. Emptying the inbox is the one rule with no exceptions, so anything able to pile up in it without limit is a threat to that rule.
+
+The known cost is that collapsing is lossy where instances genuinely count: two months away means "Pay the rent" fires twice and is seen once. This is accepted. The moment such an item is processed it becomes an action with a real due date, which is where that deadline was always going to live.
+
+### Schedule
+A piece of text and a rule for when to put it in the inbox. It exists so that the things which have to come back - a chore that repeats, or an obligation that has to be looked at weeks before it falls due - are not held in your head in the meantime.
+
+A schedule is not a commitment and never becomes one by itself. What it produces is a **capture**: raw text arriving in the inbox, decided about by hand in Inbox Zero like anything else. Nothing reaches "Projects", "Tasks" or "Next actions" without having been accepted there. This is also what covers recurring actions and projects.
+
+Fields:
+- Text: (required) free-form, what will land in the inbox. It is a capture, so it stays raw - not a title, not an action, not a project
+- When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and no times. Nothing in this app has an hour, so neither does this
+- Creation date: (required)
+- lastFiredAt: (optional) when it last put something in the inbox, empty until it first does. It is what shows at review time that a schedule is actually working
+- lastReviewedAt: (required) see "Time fields"
+
+Rules:
+- **it fires lazily**, on the first use of the app on a day whose occurrence has passed. This is the rule `#today` clearing already uses, for the same reason: a scheduler that works only while a process happens to be running is one that cannot be trusted, and a firing that did not happen is invisible
+- **a single date fires once, and the schedule then deletes itself.** A one-shot left in the list forever would turn the "Scheduler" into a graveyard of things that already happened. The deletion is audited like any other
+- **a cron schedule persists** and keeps firing
+- **missed occurrences are not counted.** After an absence a schedule simply fires, however many of its occurrences went by. It does not have to be careful about this, because identical captures collapse in the inbox - see "Duplicate captures"
+- it is edited and deleted like anything else - see "Editing items"
+
+Instances are not linked to each other. A schedule knows when it last fired and nothing about what became of what it produced, so "when did I last change the tyres" is answered by searching the "Archive" for the action, not by asking the schedule. That is the right place for it: what you did is a completed commitment, and the schedule only ever made the reminder.
+
+A schedule can not express "again three days after I last did it". Cron describes the calendar and not your last completion, and that case is already covered without it: complete the action, and put a `snoozeUntil` on the next one.
 
 ### Someday/maybe item
 A raw idea that is worth looking at some time, but that you are not ready to work on now.
@@ -112,7 +148,7 @@ The app never prevents a project from being stalled. Forcing a next action to be
 Time related fields, and the items each one applies to:
 - creation date: (required, all items) when the item was created, used to calculate its age
 - due date: (optional, **actions only**) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and it is shown wherever the item appears
-- lastReviewedAt: (required, projects, actions and someday/maybe items) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
+- lastReviewedAt: (required, projects, actions, someday/maybe items and schedules) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
 - completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
@@ -363,6 +399,16 @@ It is a view like any other, so nothing is moved into it - an item is in it for 
 
 The archive has no review step. Nothing in it is an open loop, so there is nothing in it that can silently die.
 
+### Scheduler
+The schedules, ordered by when they next fire.
+
+It is the only view holding something you have not committed to, and the only one showing what is going to arrive rather than what already has. A one-shot leaves it the moment it fires; a cron schedule stays.
+
+- it shows the text, the rule in readable form, when it next fires and when it last did
+- it carries the name filter, matching the text of the schedule - see "Filtering by name"
+- it carries no tag cloud. A schedule has no tags: it is not a commitment and belongs to no area of responsibility. What it produces does, once accepted
+- it is reviewed during the weekly review, at step 6
+
 ### The read API
 The views are readable from outside the app, so that an AI can analyse what is going on without anything being copied out by hand. It is the counterpart of the capture API (see "External capture"), which stays the only way in.
 
@@ -413,6 +459,7 @@ The review is guided, and runs in a fixed order:
 3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are skipped.
 4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
 5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
+6. **Scheduler** - walk the schedules: is this still wanted, and is the rule still right? A schedule set eight months ago goes on firing whether or not the reason for it still exists, and this is the only place that can be noticed before it lands in the inbox again.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
@@ -451,16 +498,6 @@ An action that belongs to a project and should become a project of its own is fi
 
 ## Out of scope
 
-### Recurring items
-Recurring actions and projects are **out of scope for this document** and need a separate design pass. The problem is acknowledged rather than solved: nothing in the system currently repeats, including the weekly review itself.
-
-The discussion, the candidate direction and the questions blocking it live in [recurring.md](recurring.md).
-
-### Starting in time
-Nothing converts "due in six weeks, and it takes four steps" into a signal at the right moment. Both date-driven views answer "what has run out of time" - the "Calendar" ahead of the fact and "Today" on the day - and nothing answers "what should I be starting". This is the same gap [recurring.md](recurring.md) runs into with the annual car inspection, which has to appear weeks ahead because it takes several steps.
-
-Left open deliberately. Solving it means a lead time of some kind, and that is a tunable per item, which every date field in this document has so far avoided being.
-
 ### Deliberate omissions
 Things consciously left out, recorded here so that they do not come back later as fresh ideas.
 
@@ -469,4 +506,6 @@ Things consciously left out, recorded here so that they do not come back later a
 - **Horizons 3 to 5.** No goals, no vision, no purpose level. Areas of responsibility (horizon 2) are carried by tags, and that is where it stops. The levels above are journal territory, not something this app models.
 - **Saved filters.** The Next actions filters are momentary state - never named, never saved as presets. A saved filter is a view under another name, and views can not be created: the moment there are five saved filters there are five screens that each show a part of the truth, and no way to tell which one is the complete list.
 - **A due date on a project.** Deadlines belong to actions. A project can not be acted on, so a deadline on one is an alarm with no lever: when it fires you go and look at its actions anyway. It also fires at the wrong moment - learning on 30 March that the return is due on 31 March is worth nothing, because the value of that deadline was in the six weeks before it. And it is the field most exposed to the invented deadline the due date exists to keep out: a project is an outcome, and outcomes invite targets, while "call the plumber by June" is obviously silly. An outcome deadline is carried by a real action instead - "File the tax return", due 31 March, parked until it can be started. Being made to write that action is the point: it names what done looks like operationally, the same discipline the DOD imposes.
+- **Structured scheduled submissions.** A schedule produces raw text and never a ready made action or project with its fields filled in. Anything able to inject a formed project would have to enforce the title, DOD and at-least-one-action rules at that boundary too, or it becomes a hole that lets malformed projects past the discipline Inbox Zero exists to impose. It would also usually be wrong: a recurring outcome differs every time it comes round - this year the tyres may be worn and need replacing first - so re-instantiating last time's action list would be re-instantiating the wrong plan.
+- **Interval based recurrence.** No "every 3 days after I last did it" in a schedule. Cron describes the calendar and knows nothing about your last completion, and adding a second kind of rule to schedules would double the concept to cover a case that is already covered: complete the action, and put a `snoozeUntil` on the next one. Watering the plants late simply shifts the next watering, which is exactly what a snooze does.
 - **Reference material storage.** The app keeps no reference material of its own. Material that belongs to a specific commitment lives in the description of that action or project; everything else leaves through the "send to reference materials" branch of Inbox Zero and is kept outside the app.
