@@ -48,6 +48,39 @@ Nothing else. The read API is read only, and capture is the only way in.
 
 - `j` / `k` move through the current list, `Enter` opens the selected item
 - single-key commands act on the selection: complete, snooze, edit, tag, park/unpark — the exact map to be settled while building, not here
-- `g`-prefixed jumps switch views (`g i` inbox, `g n` next actions, …), which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
+- `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `?` shows the full key map as an overlay, which is the entire discoverability story — no command palette, one way to do each thing
-- filters on "Next actions" are reachable and resettable from the keyboard, as design.md requires
+- `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
+
+## Interface density
+
+The first working version rendered every view's filter controls open, all the time, on every page — which meant scanning past a wall of checkboxes and selects to find the list itself. The fix is progressive disclosure on the filter controls, not on the item rows.
+
+- **filter panels are collapsed by default**, one per view, expanding only on demand. Toggled by the `/` key, or a small visible control for the mouse. A collapsed panel is not the same as no panel: the controls and the persisted filter state (design.md, "Filters") are unchanged, only their visibility is
+- **an item row keeps its full information** — title, context, duration, tags, due date, project, focus, parked/waiting state — shown inline, all at once. This was considered and deliberately kept as-is: density on a row is not the clutter problem, a permanently-open control panel above the list is
+- **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
+- **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
+
+## Navigation
+
+The nav bar lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order:
+
+Inbox, Today, Next actions, Projects, Tasks, Waiting for, Calendar, Someday/Maybe, Scheduler, Review, Archive, Audit, Settings.
+
+- **item-count badges** sit next to a view's label, for every view except **Archive**, **Audit** and **Settings** — those three are not open loops to work through, so a running count adds nothing actionable
+- **a badge is omitted entirely when its count is 0**, never shown as a bare "0". A wall of empty badges is exactly the noise a badge exists to cut through
+- **Inbox is the one exception to how the signal is carried**: when its count is non-zero, the nav *label itself* changes color, not just its badge. Design.md treats a non-empty inbox as the one state with a non-negotiable response ("Inbox Zero" run "regularly, and always as part of the weekly review"), so it gets a stronger signal than a small badge can give it
+
+#### Keyboard view-jump overlay
+
+Vimium-style. Pressing `g` overlays a one-letter tag near the top-left corner of every nav view's label; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 13 views, the view's own first letter where it is free, otherwise a distinct fallback:
+
+| View | Key | View | Key |
+|---|---|---|---|
+| Inbox | `I` | Someday/Maybe | `S` |
+| Today | `T` | Scheduler | `H` |
+| Next actions | `N` | Review | `R` |
+| Projects | `P` | Archive | `A` |
+| Tasks | `K` | Audit | `U` |
+| Waiting for | `W` | Settings | `E` |
+| Calendar | `C` | | |
