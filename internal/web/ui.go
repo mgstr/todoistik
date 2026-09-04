@@ -21,7 +21,7 @@ type page struct {
 	TagCloud     []string
 	ContextCloud []string
 	Durations    []app.Duration
-	ReviewDue    int
+	Nav          *app.NavCounts
 	Today        string
 	Error        string
 	Data         any
@@ -29,8 +29,9 @@ type page struct {
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p := &page{Title: title, View: view, Today: s.app.Today(), Error: r.URL.Query().Get("err")}
-	if counts, err := s.app.ReviewCounts(); err == nil {
-		p.ReviewDue = counts.Total()
+	p.Nav, _ = s.app.NavCounts()
+	if p.Nav == nil {
+		p.Nav = &app.NavCounts{}
 	}
 	p.TagCloud, _ = s.app.TagsInUse()
 	p.ContextCloud, _ = s.app.ContextsInUse()
@@ -96,7 +97,7 @@ func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) loginSubmit(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
-		Name: "token", Value: r.FormValue("token"), Path: "/",
+		Name: "token", Value: strings.TrimSpace(r.FormValue("token")), Path: "/",
 		HttpOnly: true, SameSite: http.SameSiteLaxMode,
 		MaxAge: 3600 * 24 * 365,
 	})

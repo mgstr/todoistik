@@ -29,6 +29,15 @@ func (c ReviewCounts) Total() int {
 	return c.Inbox + c.WaitingFor + c.Projects + c.Next + c.Someday + c.Schedules
 }
 
+// OutstandingTotal excludes the inbox: an inbox item has no lastReviewedAt
+// and is governed by a different rule entirely (Inbox Zero must run until
+// it is empty, not until a week has passed) - see design.md, "Inbox" and
+// "Weekly review". This is what the nav's Review badge counts; the raw
+// inbox size is its own signal, carried by the Inbox nav entry instead.
+func (c ReviewCounts) OutstandingTotal() int {
+	return c.WaitingFor + c.Projects + c.Next + c.Someday + c.Schedules
+}
+
 func (a *App) ReviewCounts() (*ReviewCounts, error) {
 	c := &ReviewCounts{}
 	cutoff := ts(a.reviewCutoff())

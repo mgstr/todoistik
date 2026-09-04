@@ -26,7 +26,9 @@ nav {
 }
 nav a { padding: .25rem .5rem; border-radius: 6px; color: var(--fg); font-size: .92rem; }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
-nav a.due b { color: var(--danger); }
+nav a.alert { color: var(--danger); font-weight: 700; }
+nav a.on.alert { background: var(--select); }
+nav .badge.navcount { font-size: .72rem; padding: 0 .35rem; vertical-align: middle; }
 nav .capture { margin-left: auto; }
 nav .capture input { width: 16rem; max-width: 40vw; }
 
