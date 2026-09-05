@@ -14,21 +14,52 @@
   // Vimium-style hints: holding "g" pins the jump key onto each nav link, so
   // the letter is visible on the destination itself. Built fresh from the
   // nav's own title="g i" attributes, so it can never drift from the links.
+  function hintKey(el) {
+    if (el.dataset.ghint) return el.dataset.ghint;
+    const m = /^g (\S)$/.exec(el.getAttribute("title") || "");
+    return m && jumps[m[1]] ? m[1] : null;
+  }
+
   function showHints() {
     clearHints();
-    document.querySelectorAll("nav a[title]").forEach(function (a) {
-      const m = /^g (\S)$/.exec(a.getAttribute("title"));
-      if (!m || !jumps[m[1]]) return;
+    document.querySelectorAll("nav a[title], [data-ghint]").forEach(function (el) {
+      const key = hintKey(el);
+      if (!key) return;
       const hint = document.createElement("span");
       hint.className = "ghint";
-      hint.textContent = m[1];
+      hint.textContent = key;
       hint.setAttribute("aria-hidden", "true");
-      a.appendChild(hint);
+      el.appendChild(hint);
     });
   }
 
   function clearHints() {
-    document.querySelectorAll("nav .ghint").forEach(function (h) { h.remove(); });
+    document.querySelectorAll(".ghint").forEach(function (h) { h.remove(); });
+  }
+
+  // The capture dialog. A native <dialog> so the centring, the backdrop, the
+  // focus trap and Escape-to-cancel all come from the browser. Enter submits
+  // to /capture, which drops a text already sitting in the inbox without
+  // complaint — the item is there, which is what matters.
+  function captureDialog() {
+    return document.getElementById("capture-dialog");
+  }
+
+  function openCapture() {
+    const d = captureDialog();
+    if (!d || d.open) return;
+    const box = d.querySelector("input[name=text]");
+    if (box) box.value = "";
+    d.showModal();
+    if (box) box.focus();
+  }
+
+  // Enter adds. Nothing typed means nothing to add, so just close: the empty
+  // box is not a mistake worth a complaint, same as a duplicate is not.
+  function submitCapture(d) {
+    const box = d.querySelector("input[name=text]");
+    if (!box || box.value.trim() === "") { d.close(); return; }
+    d.querySelector("form").requestSubmit();
   }
 
   function setPending(on) {
@@ -73,6 +104,17 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    const dlg = captureDialog();
+    if (dlg && dlg.open) {
+      // The dialog owns the keyboard while it is up, and both of its keys are
+      // handled here rather than left to the browser: a modal <dialog> closes
+      // itself on Escape and a lone text field submits itself on Enter, but
+      // both are UA behaviours with edge cases, and these two keys are the
+      // whole interaction.
+      if (e.key === "Escape") { e.preventDefault(); dlg.close(); }
+      if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
+      return;
+    }
     if (typing(e)) {
       if (e.key === "Escape") e.target.blur();
       return;
@@ -81,6 +123,7 @@
 
     if (gPending) {
       setPending(false);
+      if (e.key === "g") { e.preventDefault(); openCapture(); return; }
       const dest = jumps[e.key];
       if (dest) {
         e.preventDefault();
@@ -100,12 +143,7 @@
         break;
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
-      case "q": {
-        e.preventDefault();
-        const cap = document.getElementById("quick-capture");
-        if (cap) cap.focus();
-        break;
-      }
+      case "q": e.preventDefault(); openCapture(); break;
       case "/": {
         e.preventDefault();
         const box = document.querySelector(".namebox");
@@ -128,7 +166,10 @@
   });
 
   // a click or a lost window abandons a half-typed "g" sequence
-  document.addEventListener("click", function () { setPending(false); });
+  document.addEventListener("click", function (e) {
+    setPending(false);
+    if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); }
+  });
   window.addEventListener("blur", function () { setPending(false); });
 
   // filter forms apply themselves on any change

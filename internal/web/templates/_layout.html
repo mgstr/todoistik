@@ -23,9 +23,6 @@
   <a href="/archive" class="{{if eq .View "archive"}}on{{end}}" title="g a">Archive</a>
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/settings" class="{{if eq .View "settings"}}on{{end}}" title="g e">Settings</a>
-  <form method="post" action="/capture" class="capture">
-    <input name="text" id="quick-capture" placeholder="capture… (q)" autocomplete="off">
-  </form>
 </nav>
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 <main>
@@ -33,17 +30,24 @@
 
 {{define "bottom"}}
 </main>
+<dialog id="capture-dialog" aria-labelledby="capture-title">
+  <form method="post" action="/capture">
+    <h2 id="capture-title">Add to Inbox</h2>
+    <input name="text" autocomplete="off">
+  </form>
+</dialog>
 <div id="help" hidden>
 <h2>Keys</h2>
 <pre>
 j / k     move          Enter/o  open item
 c         complete      t        pick for today (#today)
 n         mark next     p        park
-x         delete        q        capture
+x         delete        q        add to inbox
 /         name filter   ?        this help
-g then:   i inbox · t today · n next · p projects · k tasks ·
-          w waiting · c calendar · s someday · h scheduler ·
-          r review · a archive · u audit · e settings
+g then:   g add to inbox · i inbox · t today · n next ·
+          p projects · k tasks · w waiting · c calendar ·
+          s someday · h scheduler · r review · a archive ·
+          u audit · e settings
 </pre>
 </div>
 </body>
