@@ -2,12 +2,15 @@
   --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
   --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
   --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff;
+  --bar-bg: #eceef3;
+  --main-pad-top: 1rem;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
     --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
     --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d;
+    --bar-bg: #1f232b;
   }
 }
 * { box-sizing: border-box; }
@@ -15,7 +18,14 @@ body {
   margin: 0; background: var(--bg); color: var(--fg);
   font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
 }
-main { max-width: 62rem; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
+/* login.html is a standalone page and centres itself, so it stays out of this */
+body:not(.login) { display: flex; flex-direction: column; height: 100dvh; }
+nav, #keybar, .error-banner { flex: 0 0 auto; }
+/* min-height:0 is what lets a flex child actually scroll instead of stretching */
+main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* the scrollbar belongs to the window edge, so centre by padding rather than
+   by max-width, which would float the scrollbar in the middle of a wide page */
+main { padding: var(--main-pad-top) max(1.25rem, calc(50% - 31rem)) 2rem; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -23,7 +33,7 @@ nav {
   display: flex; flex-wrap: wrap; gap: .55rem .15rem; align-items: center;
   /* the top padding and the row gap leave room for the "g" hint badges */
   padding: .75rem .75rem .4rem; border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; background: var(--bg); z-index: 5;
+  position: relative; background: var(--bg); z-index: 5;
 }
 nav a { position: relative; padding: .25rem .5rem; border-radius: 6px; color: var(--fg); font-size: .92rem; }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
@@ -33,7 +43,18 @@ nav .badge.navcount { font-size: .72rem; padding: 0 .35rem; vertical-align: midd
 
 h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
 h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
-.pagehead { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+/* the view's own title line stays put as well, so scrolling never hides which
+   view you are in or its primary action. A sticky child offsets from the
+   scrollport's content edge, so top has to cancel main's own top padding for
+   the header to sit flush — otherwise rows scroll through the gap above it. */
+.pagehead {
+  display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap;
+  position: sticky; top: calc(-1 * var(--main-pad-top)); z-index: 4;
+  background: var(--bg);
+  margin: calc(-1 * var(--main-pad-top)) 0 0;
+  padding: var(--main-pad-top) 0 .4rem;
+}
+.pagehead h1 { margin-top: 0; }
 .count { color: var(--muted); font-size: .9rem; font-weight: normal; }
 .muted { color: var(--muted); }
 .crumb { color: var(--muted); font-size: .9rem; }
@@ -158,8 +179,24 @@ summary { cursor: pointer; font-weight: 600; }
   pointer-events: none;
 }
 
+/* the context key bar: chrome, so it is tinted away from the page colour */
+#keybar {
+  display: flex; flex-wrap: nowrap; gap: 1rem; align-items: center;
+  padding: .35rem max(.75rem, calc(50% - 31rem));
+  border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted);
+  font-size: .8rem; overflow-x: auto; scrollbar-width: none;
+}
+#keybar::-webkit-scrollbar { display: none; }
+#keybar span { white-space: nowrap; }
+#keybar b {
+  display: inline-block; margin-right: .3rem;
+  color: var(--accent); font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 #help {
-  position: fixed; right: 1rem; bottom: 1rem; background: var(--bg);
+  position: fixed; right: 1rem; bottom: 2.75rem; background: var(--bg);
   border: 1px solid var(--line); border-radius: 10px; padding: .75rem 1rem;
   box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 50; font-size: .85rem;
 }

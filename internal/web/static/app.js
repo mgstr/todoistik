@@ -52,19 +52,58 @@
     if (box) box.value = "";
     d.showModal();
     if (box) box.focus();
+    renderKeybar();
+  }
+
+  function closeCapture(d) {
+    d.close();
+    renderKeybar();
   }
 
   // Enter adds. Nothing typed means nothing to add, so just close: the empty
   // box is not a mistake worth a complaint, same as a duplicate is not.
   function submitCapture(d) {
     const box = d.querySelector("input[name=text]");
-    if (!box || box.value.trim() === "") { d.close(); return; }
+    if (!box || box.value.trim() === "") { closeCapture(d); return; }
     d.querySelector("form").requestSubmit();
   }
 
   function setPending(on) {
     gPending = on;
     if (on) showHints(); else clearHints();
+    renderKeybar();
+  }
+
+  // The key bar. Every entry is derived from what is actually on the page and
+  // what is actually selected, so the bar can only ever offer a key that will
+  // do something — the ? panel is the full map, this is the reachable subset.
+  function keybarItems() {
+    const dlg = captureDialog();
+    if (dlg && dlg.open) return [["\u21b5", "add"], ["esc", "cancel"]];
+    const help = document.getElementById("help");
+    if (help && !help.hidden) return [["esc", "close help"]];
+    if (gPending) return [["\u2026", "press a marked key"], ["esc", "cancel"]];
+
+    const items = [];
+    if (selected()) items.push(["\u21b5", "open"], ["c", "done"], ["t", "today"]);
+    if (rows().length) items.push(["j k", "move"]);
+    if (document.querySelector(".namebox")) items.push(["/", "filter"]);
+    items.push(["q", "add to inbox"], ["g", "go to"], ["?", "keys"]);
+    return items;
+  }
+
+  function renderKeybar() {
+    const bar = document.getElementById("keybar");
+    if (!bar) return;
+    bar.textContent = "";
+    keybarItems().forEach(function (pair) {
+      const item = document.createElement("span");
+      const key = document.createElement("b");
+      key.textContent = pair[0];
+      item.appendChild(key);
+      item.append(pair[1]);
+      bar.appendChild(item);
+    });
   }
 
   function rows() {
@@ -82,6 +121,7 @@
       row.classList.add("kb-selected");
       row.scrollIntoView({ block: "nearest" });
     }
+    renderKeybar();
   }
 
   function move(delta) {
@@ -111,7 +151,7 @@
       // itself on Escape and a lone text field submits itself on Enter, but
       // both are UA behaviours with edge cases, and these two keys are the
       // whole interaction.
-      if (e.key === "Escape") { e.preventDefault(); dlg.close(); }
+      if (e.key === "Escape") { e.preventDefault(); closeCapture(dlg); }
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
       return;
     }
@@ -154,11 +194,12 @@
         e.preventDefault();
         const help = document.getElementById("help");
         if (help) help.hidden = !help.hidden;
+        renderKeybar();
         break;
       }
       case "Escape": {
         const help = document.getElementById("help");
-        if (help && !help.hidden) help.hidden = true;
+        if (help && !help.hidden) { help.hidden = true; renderKeybar(); }
         else select(null);
         break;
       }
@@ -171,6 +212,11 @@
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); }
   });
   window.addEventListener("blur", function () { setPending(false); });
+
+  // hx-boost swaps the body, taking the rendered bar with it
+  document.addEventListener("htmx:afterSwap", renderKeybar);
+
+  renderKeybar();
 
   // filter forms apply themselves on any change
   document.addEventListener("change", function (e) {
