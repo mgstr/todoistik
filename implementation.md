@@ -49,8 +49,39 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `j` / `k` move through the current list, `Enter` opens the selected item
 - single-key commands act on the selection: complete, snooze, edit, tag, park/unpark — the exact map to be settled while building, not here
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
+- `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
 - `?` shows the full key map as an overlay, which is the entire discoverability story — no command palette, one way to do each thing
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
+
+## Capture
+
+Capture is a dialog summoned on demand, not a control that is always present.
+The first working version kept a text box in the nav bar of every page: it held
+a corner of the chrome on all 13 views for something used a handful of times a
+day, which is the same permanently-open-control problem as the filter panels
+(see "Interface density").
+
+- **three ways in, one dialog**: `q` and `g g` from the keyboard, and a `+`
+  before the Inbox view's title for the mouse. The `+` is on Inbox alone —
+  that is where the item lands, so that is where a mouse reaches for it —
+  while both keys work from every view
+- **the field is empty and unlabelled**: one large text box, no placeholder.
+  Design.md's "Capture costs nothing" is about not demanding a decision; there
+  is nothing to decide here, so there is nothing to read before typing
+- **`Enter` adds, `Esc` discards**, and the dialog closes either way. Adding
+  returns to the view you were on rather than to the inbox: a capture
+  interrupts something, and should hand it straight back
+- **neither an empty box nor a duplicate is an error.** `Enter` on an empty box
+  closes without adding, and a text already sitting in the inbox is dropped
+  silently (design.md, "Duplicate captures"). Neither is worth telling the user
+  about, because in both cases what they wanted is already true. This is
+  deliberately unlike `POST /api/capture`, which does report the two apart —
+  a script cannot look at the inbox to see for itself (see "API authentication")
+- **both keys are handled in the page's own key layer**, not left to the
+  browser. A modal `<dialog>` closes itself on `Esc` and a lone text field
+  submits itself on `Enter`, but those are user-agent behaviours with edge
+  cases, and these two keys are the entire interaction. Centring, the backdrop
+  and the focus trap are still the browser's
 
 ## Interface density
 
@@ -84,3 +115,8 @@ Vimium-style. Pressing `g` overlays a one-letter tag near the top-left corner of
 | Tasks | `K` | Audit | `U` |
 | Waiting for | `W` | Settings | `E` |
 | Calendar | `C` | | |
+
+`g g` is the one `g` sequence that does not jump to a view: it opens the
+capture dialog (see "Capture"). On the Inbox view the `+` control carries a
+`G` tag of its own while the overlay is up, so the sequence is discoverable
+the same way the jumps are.
