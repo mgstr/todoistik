@@ -103,6 +103,11 @@ they apply.
   it the run carries on to `/process`; with it the answer goes back to `/inbox`.
   The screen itself is the same either way, which is what keeps `z` from being a
   second implementation of processing
+- **`esc` leaves the screen**, back to the inbox, identically whether you got
+  there by `p` or by `z`. Nothing is written on the way out and the item stays
+  exactly where it was, so abandoning a run costs only the run. Processing a
+  someday/maybe item leaves to `/someday` instead — the screen says where it
+  came from with `data-cancel`, rather than the key layer knowing
 - **an `item` that is no longer in the inbox redirects to the list** rather than
   erroring. It means the item was processed already — in another tab, or by a
   back button — and the list is the honest answer to "then what?"
@@ -232,6 +237,12 @@ redundant — and unlike the map, it says something the bar cannot.
   (internal/web/ui.go), so a detail page shows the help of the view it sits
   under. A page under no view — a single action — has no entry, gets no panel,
   and the key bar drops `?` rather than offering a key that opens nothing
+- **a screen with no nav slug of its own asks for its entry by name.** The
+  process screen sits under the Inbox in the nav — that is where it is reached
+  from and where the highlight belongs — but it is not the Inbox, and showing
+  the Inbox's help there answered a question nobody had asked. `page.help()`
+  overrides what the slug picked, so the nav highlight and the help panel can
+  disagree where they should
 - **centred, not tucked in a corner.** It is asked for by name, so it should
   land where the eye already is. The earlier corner placement was right for a
   reference card being consulted while working, and wrong for an answer to a
