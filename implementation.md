@@ -145,6 +145,16 @@ per-view one.
   `research/item-line-study.html` for the four treatments this beat
 - **the today-pick keeps the right edge.** It used to be carried there by the
   age's `margin-left: auto`; now it has its own
+- **a click selects a row, a double click opens it.** Selection used to be
+  reachable only from `j`/`k`, which left the row keys the bar was offering
+  unreachable without the keyboard — and on the Inbox, whose rows carry no link
+  of their own, a mouse could not touch a row at all. Double click is the
+  mouse's `Enter`: it follows the row's `data-href`, which on the Inbox means
+  processing that item and elsewhere means opening it
+- **controls inside a row keep their own jobs.** A click that lands on the title
+  link, the complete checkbox or the today-pick does what that control does and
+  does not also move the selection. Anything else in the row — a badge, the age,
+  the gaps between them — selects
 
 ### Ages are written out, not coded
 
