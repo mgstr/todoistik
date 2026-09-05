@@ -307,3 +307,27 @@ on purpose.
 - **snooze, edit, tag and park/unpark have no keys yet** (see "Keyboard").
   Complete and pick-for-today are built; the rest are settled a view at a time
   as each is worked on
+
+## Deferred, by decision
+
+Rough edges that were looked at, understood, and left as they are for now. Kept
+so the next pass starts from the reasoning rather than rediscovering it — and
+so none of them reads as something nobody noticed.
+
+- **the Scheduler's "New schedule" button.** The Inbox's equivalent was
+  replaced by keys (`p` and `z`, see "Processing from the Inbox"); the
+  Scheduler's is the same shape of control and has not been through that yet
+- **the list views' header is now a bare number.** Dropping the duplicated view
+  name (see "Screen layout") left just the item count above the list, which
+  reads oddly on its own. It was left untouched on purpose: the header count is
+  the **filtered** count while the nav badge is the unfiltered one, so what to
+  do with it is part of the filtering pass, not a cosmetic fix. `nav.go` says
+  why the badge deliberately ignores filters
+- **the Audit view.** Its rows carry the item's identity as `inbox #7`, which
+  reads as a count until you know it is an id, and the view has had none of the
+  attention the others have. Its help line and its row layout are both first
+  drafts
+- **the process screen is a first draft.** It works and it is reachable two
+  ways, but its branches are still eight forms stacked on a page, with no keys
+  of their own. A rework is expected; `esc` and `?` were added ahead of it
+  because they are true of whatever it becomes
