@@ -35,7 +35,8 @@ nav {
   padding: .75rem .75rem .4rem; border-bottom: 1px solid var(--line);
   position: relative; background: var(--bg); z-index: 5;
 }
-nav a { position: relative; padding: .25rem .5rem; border-radius: 6px; color: var(--fg); font-size: .92rem; }
+nav a, nav .addnew { position: relative; padding: .25rem .5rem; border-radius: 6px; font-size: .92rem; line-height: 1.45; }
+nav a { color: var(--fg); }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
 nav a.alert { color: var(--danger); font-weight: 700; }
 nav a.on.alert { background: var(--select); }
@@ -143,14 +144,16 @@ summary { cursor: pointer; font-weight: 600; }
 /* the + that opens the capture dialog, and the dialog itself. It leads the
    nav rather than sitting on Inbox, because capture is reachable from every
    view — the same reason q and g g are global. */
-.addnew {
-  position: relative;
-  padding: .1rem .5rem; margin-right: .35rem;
-  border: 1px solid var(--line); border-radius: 6px;
-  background: var(--badge-bg); color: var(--muted);
-  font-size: 1rem; font-weight: 700; line-height: 1.25;
+/* metrics come from the shared nav a/.addnew rule above; the padding here is
+   short by the 1px border a nav link does not have, so both boxes end up the
+   same height */
+nav .addnew {
+  margin-right: .35rem;
+  padding: calc(.25rem - 1px) calc(.5rem - 1px);
+  border: 1px solid var(--line);
+  background: var(--badge-bg); color: var(--muted); font-weight: 700;
 }
-.addnew:hover { border-color: var(--accent); color: var(--accent); }
+nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
 
 #capture-dialog {
   width: min(34rem, 90vw); padding: 1.1rem 1.35rem;
@@ -169,6 +172,10 @@ summary { cursor: pointer; font-weight: 600; }
 #capture-dialog input:focus {
   border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px;
 }
+
+/* the + has a border, which insets the padding box its hint anchors to, so
+   the hint needs that pixel back to line up with the borderless nav links */
+nav .addnew .ghint { top: calc(-.62rem - 1px); }
 
 /* Vimium-style jump hints: "g" pins the key onto each nav destination */
 .ghint {
