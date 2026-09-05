@@ -105,7 +105,10 @@ they apply.
   second implementation of processing
 - **`esc` leaves the screen**, back to the inbox, identically whether you got
   there by `p` or by `z`. Nothing is written on the way out and the item stays
-  exactly where it was, so abandoning a run costs only the run. Processing a
+  exactly where it was, so abandoning a run costs only the run. It is the same
+  principle as processing out of order — an answer forced out of someone who
+  does not have one yet is a wrong answer, not a decided item (design.md, "The
+  protocol is followed, not enforced"). Processing a
   someday/maybe item leaves to `/someday` instead — the screen says where it
   came from with `data-cancel`, rather than the key layer knowing
 - **an `item` that is no longer in the inbox redirects to the list** rather than

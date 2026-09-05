@@ -14,6 +14,9 @@ The document is organised in four parts:
 - **Nothing dies silently.** The failure mode worth designing against is not a forgotten task, it is a commitment that stays on screen looking alive while nothing about it moves.
 - **The views are trustworthy.** A view that is not trusted to be complete is a view that stops being used. The weekly review is what keeps them trustworthy, and everything else in this document is bookkeeping in service of it.
 - **Capture costs nothing.** Deciding what something means is a separate deliberate act, performed later. Friction at capture time is what makes a system get abandoned.
+- **The protocol is followed, not enforced.** GTD is a discipline kept by the person. The app's job is to make the state of things impossible to misread and the right move cheap - never to be the thing that compels it. It says loudly that the inbox is full and never blocks the way past it; it asks for the weekly review and withholds nothing until one has been done; it lets an item be processed out of turn, and lets the processing screen be left without an answer given. A rule the software enforces is a rule you learn to work around, and working around your own system is how you stop trusting it, which costs more than the rule was worth.
+
+  This is about **when and whether you practise**, and not about what gets recorded. The app does refuse things, and the line is that it declines to record what would make a view lie: a project with no definition of done, completing a project whose actions are still open, removing a tag that items still carry. Those refusals serve "The views are trustworthy" and are a different question from this one. Where the two could be confused, the rule that decides is whether the thing being refused is a step of the practice or a false statement about the world.
 
 ### Design principles
 - add only functionality that I will use, don't add anything for future development
@@ -455,6 +458,10 @@ Oldest first is the default way through, and the reason is that it removes a dec
 That escape hatch is deliberate, and it is not the name filter the "Inbox" view rejects (see "Filtering by name"). A filter hides items, and what it hides is what you did not want to look at; picking one item hides nothing - the rest of the inbox is still in front of you, still oldest first, and still has to be emptied. What it exists for is the case where holding the queue would do harm: something has arrived that has to be decided now, and working down to it means making every decision before it in a hurry. A rushed decision about the wrong thing is worse than one item taken out of order, and the whole point of the mode is that each decision gets made properly, once.
 
 Both are reachable directly and neither is hidden behind the other, but the app says which is which - the interface offers the run first and processing one picked item second, so the default reads as the default (see implementation.md, "Processing from the Inbox").
+
+The screen can also be left at any point, on any item, without answering the question. Nothing is written when it is and the item stays exactly as it was, because leaving is not an answer - it is declining to give one yet. This is the same reasoning as processing out of order, and it is worth stating in its own right: the mode exists to get each decision made **properly**, and an answer forced out of someone who does not have one yet is a wrong answer, not a decided item. An item sat with and left alone is in a better state than one filed hastily into the wrong branch, because the hasty one is now out of the inbox and out of sight, and nothing will bring it back for a second look.
+
+Neither escape hatch weakens the rule that the inbox must be emptied. That rule is kept by the person and not by the software - see "The protocol is followed, not enforced" - and what the app owes it is a state that cannot be misread and a cheap way to act, which is the loud inbox, the count on the nav, and the review step that asks.
 
 ### Completing a next action
 Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
