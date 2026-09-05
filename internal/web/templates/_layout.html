@@ -38,19 +38,10 @@
     <input name="text" autocomplete="off">
   </form>
 </dialog>
-<div id="help" hidden>
-<h2>Keys</h2>
-<pre>
-j / k     move          Enter/o  open item
-c         complete      t        pick for today (#today)
-q         add to inbox  /        name filter
-?         this help     esc      clear selection
-g then:   g add to inbox · i inbox · t today · n next ·
-          p projects · k tasks · w waiting · c calendar ·
-          s someday · h scheduler · r review · a archive ·
-          u audit · e settings
-</pre>
-</div>
+{{if .HelpText}}<div id="help" hidden>
+<h2>{{.HelpName}}</h2>
+<p>{{.HelpText}}</p>
+</div>{{end}}
 </body>
 </html>
 {{end}}

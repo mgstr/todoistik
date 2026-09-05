@@ -78,7 +78,13 @@
   // there. They are held apart — view keys left, global keys right — so the
   // right half becomes fixed furniture and only the left half has to be
   // re-read when the view or the selection changes.
-  const GLOBAL_KEYS = [["q", "add to inbox"], ["g", "go to"], ["?", "help"]];
+  // ? is offered only where there is a panel to open: a detail page sits under
+  // no view, so it has no view help and the key would do nothing.
+  function globalKeys() {
+    const keys = [["q", "add to inbox"], ["g", "go to"]];
+    if (document.getElementById("help")) keys.push(["?", "help"]);
+    return keys;
+  }
 
   // Every entry is derived from what is actually on the page and what is
   // actually selected, so the bar can only ever offer a key that will do
@@ -95,7 +101,7 @@
     if (selected()) view.push(["\u21b5", "open"], ["c", "done"], ["t", "today"]);
     if (rows().length) view.push(["j k", "move"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
-    return { view: view, global: GLOBAL_KEYS };
+    return { view: view, global: globalKeys() };
   }
 
   function keygroup(cls, items) {

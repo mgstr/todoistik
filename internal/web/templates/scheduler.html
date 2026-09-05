@@ -1,7 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Scheduler <span class="count">{{len .Data}}</span></h1>
-  <span class="muted">what is going to arrive — nothing here is a commitment yet</span>
+  <span class="count">{{len .Data}}</span>
   <a class="button primary" href="/schedule/new">New schedule</a>
 </header>
 {{$f := .Filters}}

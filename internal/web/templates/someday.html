@@ -1,7 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Someday/Maybe <span class="count">{{len .Data}}</span></h1>
-  <span class="muted">raw ideas, worth revisiting some time — not now</span>
+  <span class="count">{{len .Data}}</span>
 </header>
 {{$f := .Filters}}
 <form method="get" action="/someday" class="filters" data-autosubmit>

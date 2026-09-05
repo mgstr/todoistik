@@ -1,8 +1,4 @@
 {{template "top" .}}
-<header class="pagehead">
-  <h1>Weekly review</h1>
-  <span class="muted">resumable — progress lives on each item's lastReviewedAt</span>
-</header>
 <ol class="review-steps">
 {{range .Data}}
   <li class="{{if .Count}}outstanding{{end}}">

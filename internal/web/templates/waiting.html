@@ -1,7 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Waiting for <span class="count">{{len .Data}}</span></h1>
-  <span class="muted">the ball is not in your court; age is the delegation date</span>
+  <span class="count">{{len .Data}}</span>
 </header>
 {{$f := .Filters}}
 <form method="get" action="/waiting" class="filters" data-autosubmit>

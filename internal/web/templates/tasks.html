@@ -1,7 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Tasks <span class="count">{{len .Data}}</span></h1>
-  <span class="muted">standalone actions — every one already a next action</span>
+  <span class="count">{{len .Data}}</span>
 </header>
 {{$f := .Filters}}
 <form method="get" action="/tasks" class="filters" data-autosubmit>

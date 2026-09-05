@@ -1,7 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Calendar <span class="count">{{len .Data}}</span></h1>
-  <span class="muted">real deadlines, soonest first; overdue is shown whatever the filter says</span>
+  <span class="count">{{len .Data}}</span>
 </header>
 {{$f := .Filters}}
 <form method="get" action="/calendar" class="filters" data-autosubmit>

@@ -11,10 +11,32 @@ import (
 	"todoistik/internal/app"
 )
 
+// viewHelp is what the ? panel shows: the view's full name and one line on
+// what it is for. Keyed by the nav slug, so a detail page shows the help of
+// the view it sits under. A page with no entry gets no panel, and the key bar
+// drops ? accordingly — see implementation.md, "Screen layout".
+var viewHelp = map[string]struct{ Name, Text string }{
+	"inbox":     {"Inbox", "raw captures, oldest first — the one view that has to be emptied"},
+	"today":     {"Today", "what has run out of time, and what you picked this morning"},
+	"next":      {"Next actions", `everything that is yours to act on — "what can I do now?" is this view, narrowed`},
+	"projects":  {"Projects", "active outcomes; a project with no next action is marked stalled"},
+	"tasks":     {"Tasks", "standalone actions — every one already a next action"},
+	"waiting":   {"Waiting for", "the ball is not in your court; age is the delegation date"},
+	"calendar":  {"Calendar", "real deadlines, soonest first; overdue is shown whatever the filter says"},
+	"someday":   {"Someday/Maybe", "raw ideas, worth revisiting some time — not now"},
+	"scheduler": {"Scheduler", "what is going to arrive — nothing here is a commitment yet"},
+	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
+	"archive":   {"Archive", "finished commitments, newest first"},
+	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
+	"settings":  {"Settings", "the remembered tags and contexts — a name still in use cannot be removed"},
+}
+
 // page is the data every template gets.
 type page struct {
 	Title        string
 	View         string // active nav entry
+	HelpName     string // the view's full name, for the ? panel
+	HelpText     string // what this view is for, for the ? panel
 	Filters      app.Filters
 	FilterQuery  string // current filter query string (for sort/order links)
 	Hidden       int    // how many items the filters hide
@@ -29,6 +51,9 @@ type page struct {
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p := &page{Title: title, View: view, Today: s.app.Today(), Error: r.URL.Query().Get("err")}
+	if h, ok := viewHelp[view]; ok {
+		p.HelpName, p.HelpText = h.Name, h.Text
+	}
 	p.Nav, _ = s.app.NavCounts()
 	if p.Nav == nil {
 		p.Nav = &app.NavCounts{}

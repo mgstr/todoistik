@@ -1,6 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Next actions <span class="count">{{len .Data}}</span></h1>
+  <span class="count">{{len .Data}}</span>
 </header>
 <form method="get" action="/next" class="filters" data-autosubmit>
   <input type="hidden" name="f" value="1">

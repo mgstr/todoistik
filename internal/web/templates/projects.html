@@ -1,6 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1>Projects <span class="count">{{len .Data}}</span></h1>
+  <span class="count">{{len .Data}}</span>
 </header>
 {{$f := .Filters}}
 <form method="get" action="/projects" class="filters" data-autosubmit>
