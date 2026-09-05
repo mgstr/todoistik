@@ -1,0 +1,454 @@
+<title>Nav Badge Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ---- page chrome tokens (light is the bare :root) ---------------------- */
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-warn:    #a2571b;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:     #101319;
+    --page-card:   #171b22;
+    --page-fg:     #e8eaf0;
+    --page-muted:  #949cad;
+    --page-line:   #262b35;
+    --page-accent: #8aa9ff;
+    --page-warn:   #e0a760;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:     #101319;
+  --page-card:   #171b22;
+  --page-fg:     #e8eaf0;
+  --page-muted:  #949cad;
+  --page-line:   #262b35;
+  --page-accent: #8aa9ff;
+  --page-warn:   #e0a760;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+h1 {
+  margin: .55rem 0 0;
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.dek {
+  margin: .6rem 0 0;
+  max-width: 34rem;
+  color: var(--page-muted);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  margin-top: 1.35rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg);
+  background: var(--page-card);
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  padding: .55rem .8rem;
+  cursor: pointer;
+}
+.toggle:hover { border-color: var(--page-accent); color: var(--page-accent); }
+.toggle:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.toggle[aria-pressed="true"] {
+  background: var(--page-accent);
+  border-color: var(--page-accent);
+  color: #fff;
+}
+.controls .note { font-size: .85rem; color: var(--page-muted); }
+
+/* ---- specimen cards ---------------------------------------------------- */
+.card {
+  background: var(--page-card);
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem .85rem;
+  padding: 1.1rem 1.35rem .85rem;
+}
+.tag {
+  font: 600 .78rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-accent);
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  padding: .28rem .45rem;
+}
+.card h2 { margin: 0; font-size: 1.12rem; font-weight: 600; letter-spacing: -.01em; }
+.card .why {
+  margin: 0 0 0 auto;
+  font-size: .88rem;
+  color: var(--page-muted);
+}
+.card .body { padding: 0 1.35rem 1.25rem; display: flex; flex-direction: column; gap: .7rem; }
+.card p.take { margin: 0; font-size: .92rem; color: var(--page-muted); }
+.card p.take b { color: var(--page-fg); font-weight: 600; }
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.rail .lbl {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+.frame {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* ---- the specimen: todoistik's own nav, reproduced ---------------------- */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  min-width: max-content;
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --badge-bg: #f0f0f0; --select: #eef2ff;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --badge-bg: #23262d; --select: #22304d;
+}
+.app nav {
+  display: flex; flex-wrap: nowrap; gap: .55rem .15rem; align-items: center;
+  padding: .75rem .75rem .4rem;
+  background: var(--bg);
+}
+.app nav a, .app nav .addnew {
+  position: relative;
+  padding: .25rem .5rem; border-radius: 6px;
+  font-size: .92rem; line-height: 1.45;
+  white-space: nowrap;
+}
+.app nav a { color: var(--fg); text-decoration: none; }
+.app nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app nav a.alert { color: var(--danger); font-weight: 700; }
+.app nav .addnew {
+  margin-right: .35rem;
+  padding: calc(.25rem - 1px) calc(.5rem - 1px);
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--badge-bg); color: var(--muted);
+  font: inherit; font-size: .92rem; font-weight: 700; line-height: 1.45;
+}
+.app .navcount {
+  font-size: .72rem; padding: 0 .35rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted);
+  white-space: nowrap; vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.app .ghint {
+  position: absolute; top: -.62rem; left: 0; z-index: 20;
+  padding: 0 .3rem; border-radius: 4px;
+  font: 700 .68rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase; letter-spacing: .02em;
+  color: #2b2200; background: linear-gradient(#fff785, #ffc542);
+  border: 1px solid #c38a22; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  pointer-events: none;
+}
+.app .addnew .ghint { top: calc(-.62rem - 1px); }
+.app .ghint { display: none; }
+body.hints .app .ghint { display: inline-block; }
+
+/* ---- the four variants ------------------------------------------------- */
+/* A — as built today: inline pill, on the same baseline as the label */
+
+/* B — filled corner badge */
+.v-filled .navcount {
+  position: absolute; top: -.35rem; right: -.4rem;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 .28rem;
+  border-radius: 999px; background: var(--accent); color: #fff;
+  font-size: .68rem; font-weight: 700; line-height: 1.05rem; text-align: center;
+  border: 1px solid var(--bg);
+}
+.v-filled a.alert .navcount { background: var(--danger); border-color: var(--bg); }
+
+/* C — bare superscript number */
+.v-bare nav a { padding-right: .85rem; }
+.v-bare .navcount {
+  position: absolute; top: -.1rem; right: -.15rem;
+  background: none; padding: 0; border-radius: 0;
+  color: var(--muted); font-size: .66rem; font-weight: 700; line-height: 1;
+}
+.v-bare a.alert .navcount { color: var(--danger); }
+.v-bare a.on .navcount { color: var(--accent); }
+
+/* D — outlined corner pill */
+.v-outlined .navcount {
+  position: absolute; top: -.35rem; right: -.4rem;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 .28rem;
+  border-radius: 999px; background: var(--badge-bg); color: var(--muted);
+  border: 1px solid var(--line);
+  font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
+}
+.v-outlined a.alert .navcount { background: var(--danger); border-color: var(--danger); color: #fff; }
+.v-outlined a.on .navcount { border-color: var(--accent); color: var(--accent); }
+
+/* ---- trade-off table --------------------------------------------------- */
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 34rem; }
+th, td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th {
+  font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted);
+}
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.yes { color: var(--page-accent); font-weight: 600; }
+.no  { color: var(--page-warn); font-weight: 600; }
+
+h3 { margin: 0 0 .5rem; font-size: 1.02rem; font-weight: 600; }
+.section { display: flex; flex-direction: column; gap: .75rem; }
+.section > p { margin: 0; color: var(--page-muted); font-size: .95rem; max-width: 42rem; }
+.rec {
+  border-left: 3px solid var(--page-accent);
+  padding: .1rem 0 .1rem 1rem;
+}
+.rec p { margin: 0; }
+.rec p + p { margin-top: .5rem; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">todoistik · nav bar</div>
+    <h1>Nav Badge Study</h1>
+    <p class="dek">
+      Four placements for the per-view item counts, rendered with the app's own
+      stylesheet in both of its themes. Counts on Today through Review are stand-ins —
+      only the Inbox has real data yet.
+    </p>
+    <div class="controls">
+      <button class="toggle" id="hintToggle" type="button" aria-pressed="false">
+        Show the g hints
+      </button>
+      <span class="note">The jump letters occupy the same strip of space. Turn them on to see the conflict.</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <header>
+      <span class="tag">A</span>
+      <h2>Inline pill — as built today</h2>
+      <span class="why">The one you don't like</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-inline" data-nav></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-inline" data-nav></div></div></div>
+      <p class="take">
+        The count sits on the label's baseline, so it reads as a second word in the
+        view's name rather than as a marker attached to it. It also pushes every
+        following label sideways: <b>the bar is at its widest here</b>, and each label's
+        position shifts as counts change.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">B</span>
+      <h2>Filled corner badge</h2>
+      <span class="why">The literal iPhone badge</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-filled" data-nav></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-filled" data-nav></div></div></div>
+      <p class="take">
+        Solid accent circle, white number, Inbox in red. Unmistakable, and the badge
+        leaves the text flow so labels sit at even intervals. The cost is volume:
+        <b>ten filled dots is a lot of colour</b> in a bar that is on screen constantly,
+        and it spends the accent on counts rather than on the active view.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">C</span>
+      <h2>Bare superscript</h2>
+      <span class="why">Typography, not chrome</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-bare" data-nav></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-bare" data-nav></div></div></div>
+      <p class="take">
+        No pill at all — a small raised number, muted grey, red for the Inbox. The
+        lightest of the three and the most typographic. But without an enclosing shape
+        <b>the number reads as part of the label</b> at a glance, which is close to the
+        problem in A, and it needs extra right padding to avoid touching the next word.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">D</span>
+      <h2>Outlined corner pill</h2>
+      <span class="why">Recommended</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-outlined" data-nav></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-outlined" data-nav></div></div></div>
+      <p class="take">
+        The same corner position as B, in the badge palette the rest of the app already
+        uses. It keeps the enclosing shape that makes a count read as a count, without
+        turning the bar into a field of dots — and it <b>leaves red and the accent free
+        to mean what they already mean here</b>: the Inbox needs emptying, and this is
+        the view you are on.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>Side by side</h3>
+    <div class="matrix">
+      <table>
+        <thead>
+          <tr><th>Variant</th><th>Reads as a marker</th><th>Bar width</th><th>Colour spent</th><th>Labels hold still</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A — inline</td><td class="no">No</td><td class="no">Widest</td><td>None</td><td class="no">No</td></tr>
+          <tr><td>B — filled</td><td class="yes">Yes</td><td class="yes">Narrow</td><td class="no">Accent on all ten</td><td class="yes">Yes</td></tr>
+          <tr><td>C — bare</td><td class="no">Weakly</td><td>Middle</td><td>None</td><td class="yes">Yes</td></tr>
+          <tr><td>D — outlined</td><td class="yes">Yes</td><td class="yes">Narrow</td><td class="yes">Red for Inbox only</td><td class="yes">Yes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>One thing to settle with it</h3>
+    <p>
+      Turn on the g hints above. The jump letters sit at each item's top-left, and a
+      corner count sits at the previous item's top-right — so in B, C and D they land in
+      the same strip and overlap. Three ways out:
+    </p>
+    <div class="rec">
+      <p><b>Blank the counts while g is held.</b> During the overlay you are choosing a
+        destination, not reading counts. Costs nothing and no layout moves.</p>
+      <p><b>Widen the gap between items.</b> Fixes it permanently, but pays horizontal
+        space always to solve something visible only while a key is held.</p>
+      <p><b>Leave it.</b> Both stay legible; it just looks accidental rather than decided.</p>
+    </div>
+  </section>
+
+</div>
+
+<template id="navTpl">
+  <nav>
+    <button class="addnew" type="button">+<span class="ghint">g</span></button>
+  </nav>
+</template>
+
+<script>
+  const VIEWS = [
+    { label: "Inbox",     key: "i", count: 7,  alert: true },
+    { label: "Today",     key: "t", count: 3 },
+    { label: "Next",      key: "n", count: 12, on: true },
+    { label: "Projects",  key: "p", count: 4 },
+    { label: "Tasks",     key: "k", count: 9 },
+    { label: "Waiting",   key: "w", count: 2 },
+    { label: "Calendar",  key: "c", count: 1 },
+    { label: "Someday",   key: "s", count: 15 },
+    { label: "Scheduler", key: "h", count: 6 },
+    { label: "Review",    key: "r", count: 2 },
+    { label: "Archive",   key: "a" },
+    { label: "Audit",     key: "u" },
+    { label: "Settings",  key: "e" }
+  ];
+
+  document.querySelectorAll("[data-nav]").forEach(function (host) {
+    const nav = document.getElementById("navTpl").content.cloneNode(true);
+    const bar = nav.querySelector("nav");
+    VIEWS.forEach(function (v) {
+      const a = document.createElement("a");
+      a.href = "#";
+      a.tabIndex = -1;
+      if (v.on) a.classList.add("on");
+      if (v.alert) a.classList.add("alert");
+      a.append(v.label);
+      if (v.count) {
+        a.append(" ");
+        const c = document.createElement("span");
+        c.className = "navcount";
+        c.textContent = v.count;
+        a.appendChild(c);
+      }
+      const hint = document.createElement("span");
+      hint.className = "ghint";
+      hint.textContent = v.key;
+      a.appendChild(hint);
+      bar.appendChild(a);
+    });
+    host.appendChild(nav);
+  });
+
+  const toggle = document.getElementById("hintToggle");
+  toggle.addEventListener("click", function () {
+    const on = document.body.classList.toggle("hints");
+    toggle.setAttribute("aria-pressed", String(on));
+    toggle.textContent = on ? "Hide the g hints" : "Show the g hints";
+  });
+</script>
