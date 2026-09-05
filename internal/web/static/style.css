@@ -140,13 +140,15 @@ summary { cursor: pointer; font-weight: 600; }
 .review-steps li.outstanding { font-weight: 500; }
 .ask { border: 2px solid var(--accent); border-radius: 10px; padding: .5rem .9rem; margin: .75rem 0; }
 
-/* the + before a view title, and the dialog it opens */
+/* the + that opens the capture dialog, and the dialog itself. It leads the
+   nav rather than sitting on Inbox, because capture is reachable from every
+   view — the same reason q and g g are global. */
 .addnew {
-  position: relative; display: inline-block;
-  width: 1.5rem; height: 1.5rem; padding: 0; margin-right: .1rem;
+  position: relative;
+  padding: .1rem .5rem; margin-right: .35rem;
   border: 1px solid var(--line); border-radius: 6px;
   background: var(--badge-bg); color: var(--muted);
-  font-size: 1.1rem; font-weight: 700; line-height: 1;
+  font-size: 1rem; font-weight: 700; line-height: 1.25;
 }
 .addnew:hover { border-color: var(--accent); color: var(--accent); }
 

@@ -1,6 +1,6 @@
 {{template "top" .}}
 <header class="pagehead">
-  <h1><button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (q)">+</button> Inbox <span class="count">{{len .Data}}</span></h1>
+  <h1>Inbox <span class="count">{{len .Data}}</span></h1>
   {{if .Data}}<a class="button primary" href="/process">Process — Inbox Zero</a>{{end}}
 </header>
 {{if not .Data}}<p class="empty">Inbox zero. Nothing to decide about.</p>{{end}}
