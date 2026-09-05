@@ -1,7 +1,7 @@
 {{template "top" .}}
-{{$d := .Data}}
+{{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
 <div class="process">
-  <p class="crumb">{{if eq $d.Src "inbox"}}Inbox Zero · {{$d.Remaining}} left{{else}}Processing a someday/maybe item{{end}}</p>
+  <p class="crumb">{{if eq $d.Src "someday"}}Processing a someday/maybe item{{else if $d.One}}Processing one inbox item{{else}}Inbox Zero · {{$d.Remaining}} left{{end}}</p>
   <h1 class="capture-text">{{$d.Text}}</h1>
   <p class="muted">captured {{age $d.CreatedAt}}</p>
   <h2>What is it?</h2>
@@ -9,17 +9,17 @@
   <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
 
   <div class="branches">
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash{{$q}}" class="inline">
       <button>Trash</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference{{$q}}" class="inline">
       <button title="not actionable, kept outside the app">Reference material</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute{{$q}}" class="inline">
       <button title="under two minutes: do it now, record it done">Two-minute rule — done</button>
     </form>
     {{if eq $d.Src "someday"}}
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/keep" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/keep{{$q}}" class="inline">
       <input type="date" name="snooze" title="snooze until">
       <button>Keep incubating</button>
     </form>
@@ -28,7 +28,7 @@
 
   <details>
     <summary>Action — one step, standalone</summary>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action" class="stack">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action{{$q}}" class="stack">
       {{template "actionformfields" (dict "Title" $d.Text "Duration" "" "Description" "" "Tags" "" "AssignedTo" "" "DueDate" "" "SnoozeUntil" "" "NeedsFocus" false "ContextLabel" "")}}
       <button class="primary">Create action</button>
     </form>
@@ -36,7 +36,7 @@
 
   <details>
     <summary>Someone else does it — waiting for</summary>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/delegate" class="stack">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/delegate{{$q}}" class="stack">
       <label>Title <input name="title" value="{{$d.Text}}" required></label>
       <label>Assigned to <input name="assigned" required placeholder="who or what"></label>
       <label>Due date <input type="date" name="due"></label>
@@ -47,7 +47,7 @@
 
   <details>
     <summary>Project — more than one step</summary>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project" class="stack">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$q}}" class="stack">
       <label>Title <input name="ptitle" value="{{$d.Text}}" required placeholder="A reference to the outcome, not what to do"></label>
       <label>Definition of done <textarea name="dod" rows="2" required placeholder="How you will know it is done"></textarea></label>
       <label>Description <textarea name="pdescription" rows="2"></textarea></label>
@@ -62,7 +62,7 @@
   {{if eq $d.Src "inbox"}}
   <details>
     <summary>Someday/Maybe — not now</summary>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday" class="stack">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$q}}" class="stack">
       <label>Text <textarea name="text" rows="2">{{$d.Text}}</textarea></label>
       <label>Snooze until <input type="date" name="snooze"></label>
       <button class="primary">To Someday/Maybe</button>

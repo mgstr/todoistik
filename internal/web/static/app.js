@@ -100,8 +100,16 @@
     if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
 
     const view = [];
-    if (selected()) view.push(["\u21b5", "open"], ["c", "done"], ["t", "today"]);
+    const row = selected();
+    if (row) {
+      // opening an inbox item is processing it, so the two keys share a label
+      if (row.hasAttribute("data-process")) view.push(["\u21b5 p", "process"]);
+      else if (row.dataset.href) view.push(["\u21b5", "open"]);
+      if (row.querySelector("form.kb-complete")) view.push(["c", "done"]);
+      if (row.querySelector("form.kb-pick")) view.push(["t", "today"]);
+    }
     if (rows().length) view.push(["j k", "move"]);
+    if (document.querySelector("[data-inbox-zero]")) view.push(["z", "inbox zero"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     return { view: view, global: globalKeys() };
   }
@@ -204,6 +212,19 @@
       case "o":
         if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
         break;
+      case "p":
+        if (row && row.hasAttribute("data-process") && row.dataset.href) {
+          e.preventDefault();
+          window.location.href = row.dataset.href;
+        }
+        break;
+      case "z": {
+        // Inbox Zero is only p over and over: the same screen, fed the oldest
+        // item each time instead of the selected one.
+        const list = document.querySelector("[data-inbox-zero]");
+        if (list) { e.preventDefault(); window.location.href = list.dataset.inboxZero; }
+        break;
+      }
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
       case "q": e.preventDefault(); openCapture(); break;

@@ -309,6 +309,7 @@ type processData struct {
 	Text      string
 	CreatedAt time.Time
 	Remaining int
+	One       bool // processing one named item, not working down the inbox
 	Contexts  []string
 	Tags      []string
 }
@@ -327,6 +328,25 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			httpError(w, err)
 			return
+		}
+		// ?item= names one item: p on a selected row, rather than the Inbox
+		// Zero run, which always takes the oldest and comes back for the next.
+		if want := int64Query(r, "item"); want != 0 {
+			var it *app.InboxItem
+			for _, cand := range items {
+				if cand.ID == want {
+					it = cand
+					break
+				}
+			}
+			if it == nil {
+				// already processed, in this tab or another one
+				http.Redirect(w, r, "/inbox", http.StatusSeeOther)
+				return
+			}
+			d.One = true
+			d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, len(items)
+			break
 		}
 		if len(items) == 0 {
 			p := s.newPage("Inbox Zero", "inbox", r)
@@ -434,6 +454,12 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	if src == "someday" {
 		http.Redirect(w, r, "/someday", http.StatusSeeOther)
+		return
+	}
+	// one named item goes back to the list; the Inbox Zero run carries on to
+	// the next item, and to the done screen when there is none
+	if r.URL.Query().Get("one") != "" {
+		http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/process", http.StatusSeeOther)
