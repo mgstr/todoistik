@@ -109,13 +109,14 @@ they apply.
 - the button this replaced ("Process — Inbox Zero") was the view's only control
   and sat on every visit whether or not there was anything to process. A key
   costs nothing when unused, and the bar already says when it is available
-- **open question, not yet settled with design.md:** `p` lets an item be
-  processed out of order. Design.md says Inbox Zero runs "one at a time, oldest
-  first", and rejects a name filter on the Inbox because it "would only be a way
-  to look away from something" — picking which item to face is arguably the same
-  escape hatch. The precedent pointing the other way is already in design.md:
-  the same screen processes a *named* someday/maybe item on demand. `z` keeps
-  the oldest-first run intact and untouched either way
+- **the bar lists them `z`, `j k`, then `p`**, and that order is the point.
+  Design.md settles the run as the default way through the inbox and processing
+  one picked item as a deliberate escape hatch for the case where holding the
+  queue would do harm (see design.md, "Inbox Zero"). Both are one keystroke and
+  neither is hidden, so the ordering is the only place the app can say which is
+  which — the run first, the movement keys next, and acting on the item you
+  moved to last. Views with no run to work down keep the ordinary order, acting
+  on the selection first
 
 ## Interface density
 

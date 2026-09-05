@@ -260,7 +260,7 @@ Matching is case insensitive. Several words may be given and **all** of them hav
 
 What counts as the name is whatever names the item on that screen: the title of an action or a project, and for a someday/maybe item its text, since that is all it has. For a **project**, the titles of the actions under it count as part of its name as well - a project is remembered by a step in it at least as often as by its outcome, and hiding a project whose action matched would be hiding the answer.
 
-The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something. Neither does **Today**, for a related reason - see "Today".
+The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something. Processing a single item ahead of the queue is a different thing and is allowed - it takes nothing out of sight - see "Inbox Zero". Neither does **Today**, for a related reason - see "Today".
 
 ### Filtering by tag
 The **tag cloud** is the other shared filter: every tag in use, each one toggled in or out of the filter. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
@@ -449,6 +449,12 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
+
+Oldest first is the default way through, and the reason is that it removes a decision: the mode exists to make deciding cheap, and choosing what to decide about next is a decision like any other. It is not a lock. A single item may be picked out of the inbox and processed on its own, ahead of the queue.
+
+That escape hatch is deliberate, and it is not the name filter the "Inbox" view rejects (see "Filtering by name"). A filter hides items, and what it hides is what you did not want to look at; picking one item hides nothing - the rest of the inbox is still in front of you, still oldest first, and still has to be emptied. What it exists for is the case where holding the queue would do harm: something has arrived that has to be decided now, and working down to it means making every decision before it in a hurry. A rushed decision about the wrong thing is worse than one item taken out of order, and the whole point of the mode is that each decision gets made properly, once.
+
+Both are reachable directly and neither is hidden behind the other, but the app says which is which - the interface offers the run first and processing one picked item second, so the default reads as the default (see implementation.md, "Processing from the Inbox").
 
 ### Completing a next action
 Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
