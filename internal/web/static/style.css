@@ -20,11 +20,12 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 nav {
-  display: flex; flex-wrap: wrap; gap: .15rem; align-items: center;
-  padding: .4rem .75rem; border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: .55rem .15rem; align-items: center;
+  /* the top padding and the row gap leave room for the "g" hint badges */
+  padding: .75rem .75rem .4rem; border-bottom: 1px solid var(--line);
   position: sticky; top: 0; background: var(--bg); z-index: 5;
 }
-nav a { padding: .25rem .5rem; border-radius: 6px; color: var(--fg); font-size: .92rem; }
+nav a { position: relative; padding: .25rem .5rem; border-radius: 6px; color: var(--fg); font-size: .92rem; }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
 nav a.alert { color: var(--danger); font-weight: 700; }
 nav a.on.alert { background: var(--select); }
@@ -119,6 +120,17 @@ summary { cursor: pointer; font-weight: 600; }
 .review-steps li { margin: .6rem 0; }
 .review-steps li.outstanding { font-weight: 500; }
 .ask { border: 2px solid var(--accent); border-radius: 10px; padding: .5rem .9rem; margin: .75rem 0; }
+
+/* Vimium-style jump hints: "g" pins the key onto each nav destination */
+.ghint {
+  position: absolute; top: -.62rem; left: 0; z-index: 20;
+  padding: 0 .3rem; border-radius: 4px;
+  font: 700 .68rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase; letter-spacing: .02em;
+  color: #2b2200; background: linear-gradient(#fff785, #ffc542);
+  border: 1px solid #c38a22; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  pointer-events: none;
+}
 
 #help {
   position: fixed; right: 1rem; bottom: 1rem; background: var(--bg);

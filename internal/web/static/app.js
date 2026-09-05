@@ -11,6 +11,31 @@
     r: "/review", a: "/archive", u: "/audit", e: "/settings",
   };
 
+  // Vimium-style hints: holding "g" pins the jump key onto each nav link, so
+  // the letter is visible on the destination itself. Built fresh from the
+  // nav's own title="g i" attributes, so it can never drift from the links.
+  function showHints() {
+    clearHints();
+    document.querySelectorAll("nav a[title]").forEach(function (a) {
+      const m = /^g (\S)$/.exec(a.getAttribute("title"));
+      if (!m || !jumps[m[1]]) return;
+      const hint = document.createElement("span");
+      hint.className = "ghint";
+      hint.textContent = m[1];
+      hint.setAttribute("aria-hidden", "true");
+      a.appendChild(hint);
+    });
+  }
+
+  function clearHints() {
+    document.querySelectorAll("nav .ghint").forEach(function (h) { h.remove(); });
+  }
+
+  function setPending(on) {
+    gPending = on;
+    if (on) showHints(); else clearHints();
+  }
+
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
   }
@@ -55,7 +80,7 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (gPending) {
-      gPending = false;
+      setPending(false);
       const dest = jumps[e.key];
       if (dest) {
         e.preventDefault();
@@ -66,7 +91,7 @@
 
     const row = selected();
     switch (e.key) {
-      case "g": gPending = true; break;
+      case "g": e.preventDefault(); setPending(true); break;
       case "j": e.preventDefault(); move(1); break;
       case "k": e.preventDefault(); move(-1); break;
       case "Enter":
@@ -101,6 +126,10 @@
       }
     }
   });
+
+  // a click or a lost window abandons a half-typed "g" sequence
+  document.addEventListener("click", function () { setPending(false); });
+  window.addEventListener("blur", function () { setPending(false); });
 
   // filter forms apply themselves on any change
   document.addEventListener("change", function (e) {
