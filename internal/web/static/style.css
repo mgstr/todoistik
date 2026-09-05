@@ -79,16 +79,27 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
 .empty { color: var(--muted); font-style: italic; }
 
 .list { list-style: none; margin: .25rem 0; padding: 0; }
+/* no rule under a row: the age used to be pinned to the right edge, which
+   needed a line under every item to carry the eye across the gap. It sits
+   beside its title now, so the line has nothing left to do — and nine items
+   meant nine horizontal rules on a page that should read as a short list. */
 .row {
   display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
-  padding: .3rem .5rem; border-bottom: 1px solid var(--line); border-radius: 6px;
+  padding: .2rem .5rem; border-radius: 6px;
 }
 .row:hover { background: var(--row-hover); }
 .row.kb-selected { background: var(--select); outline: 1px solid var(--accent); }
 .row .title { color: var(--fg); flex-shrink: 1; }
 .row.done .title { text-decoration: line-through; color: var(--muted); }
 .row.snoozed { opacity: .55; }
-.age { margin-left: auto; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+/* the age reads as its own field rather than as more of the title, which is
+   what a chip buys that small grey text does not */
+.age {
+  font-size: .7rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted); white-space: nowrap;
+}
+/* the age no longer pushes it there, so the today-pick keeps its own edge */
+.row .kb-pick { margin-left: auto; }
 
 .badge {
   font-size: .76rem; padding: .05rem .4rem; border-radius: 8px;

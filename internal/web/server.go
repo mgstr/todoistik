@@ -108,21 +108,38 @@ func New(a *app.App, token string) (*Server, error) {
 	return s, nil
 }
 
+// humanAge writes an age the way it would be said out loud, rather than as a
+// code to decode: "3 weeks ago", not "3w". Deliberately rounded — a month is
+// 30 days and a year 365, because calendar-accurate arithmetic would make "2
+// months ago" cover different spans in different seasons for no gain on a
+// label that is approximate by design.
 func humanAge(t time.Time) string {
-	d := time.Since(t)
+	days := int(time.Since(t).Hours() / 24)
 	switch {
-	case d < time.Hour:
+	case days <= 0: // includes a future date, which no caller should pass
 		return "today"
-	case d < 24*time.Hour:
-		return "today"
-	case d < 48*time.Hour:
-		return "1d"
-	case d < 14*24*time.Hour:
-		return strconv.Itoa(int(d.Hours()/24)) + "d"
-	case d < 60*24*time.Hour:
-		return strconv.Itoa(int(d.Hours()/24/7)) + "w"
+	case days == 1:
+		return "yesterday"
+	case days < 7:
+		return strconv.Itoa(days) + " days ago"
+	case days < 14:
+		return "a week ago"
+	case days < 28:
+		return strconv.Itoa(days/7) + " weeks ago"
+	case days < 60: // runs to just under two months, so nothing falls between
+		return "a month ago"
+	case days < 365:
+		// 360 days is 12 thirty-day months but not yet a year, so the count
+		// stops at 11 rather than saying "12 months ago" for four days
+		months := days / 30
+		if months > 11 {
+			months = 11
+		}
+		return strconv.Itoa(months) + " months ago"
+	case days < 730:
+		return "a year ago"
 	default:
-		return strconv.Itoa(int(d.Hours()/24/30)) + "mo"
+		return strconv.Itoa(days/365) + " years ago"
 	}
 }
 
