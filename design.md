@@ -18,6 +18,10 @@ The document is organised in four parts:
 
   This is about **when and whether you practise**, and not about what gets recorded. The app does refuse things, and the line is that it declines to record what would make a view lie: a project with no definition of done, completing a project whose actions are still open, removing a tag that items still carry. Those refusals serve "The views are trustworthy" and are a different question from this one. Where the two could be confused, the rule that decides is whether the thing being refused is a step of the practice or a false statement about the world.
 
+  There is one deliberate exception, named here as an exception rather than smuggled in as an integrity rule: **an action's title has to start with a verb** (see "Inbox Zero"). That is the app pushing rather than helping, and it is allowed because of *where* the push lands. Nothing compels you to make the item an action, or to decide about it now, or to decide about it in any particular order - only to say what doing it looks like, once you have already chosen to make it one. The push is on the writing, never on the deciding.
+
+  It is also the shape of push worth having, which is the general test for adding another. Complying is cheaper than avoiding it, so there is nothing to work around. It teaches something that transfers: after a few weeks the verb arrives without being asked and the check stops firing, which is a rule that removes itself. And getting it wrong is expensive later in a way that is invisible now - a "Next actions" view full of "milk" and "the bank" is a list you cannot act from, which is "The views are trustworthy" again. A push that stays costly after the habit has formed, or that teaches nothing, does not qualify.
+
 ### Design principles
 - add only functionality that I will use, don't add anything for future development
 - app should be fast, it usage should not be obstacle

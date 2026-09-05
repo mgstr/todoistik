@@ -300,7 +300,10 @@ on purpose.
   implementation is complete and improvement work begins; the wording will also
   grow into fuller help by then. The rule stays stated in design.md in the
   meantime, because it is the rule, and a spec that only describes what is
-  already built is a changelog
+  already built is a changelog. Note that enforcing it is a deliberate,
+  named exception to "The protocol is followed, not enforced" and not an
+  oversight in that goal — design.md says why the exception holds and what
+  would have to be true of a second one
 - **snooze, edit, tag and park/unpark have no keys yet** (see "Keyboard").
   Complete and pick-for-today are built; the rest are settled a view at a time
   as each is worked on
