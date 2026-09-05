@@ -284,3 +284,23 @@ Vimium-style. Pressing `g` overlays a one-letter tag near the top-left corner of
 capture dialog (see "Capture"). The `+` at the head of the nav carries a `G`
 tag of its own while the overlay is up, so the sequence is discoverable in the
 same glance as the jumps, on every view.
+
+## Specified, not yet built
+
+Places where design.md states a rule the code does not yet apply. Kept as a
+register so a gap reads as scheduled rather than as an oversight — a reader who
+finds one of these and takes it for a bug will "fix" a decision that was made
+on purpose.
+
+- **an action's title must start with a verb and be self-descriptive**
+  (design.md, "Inbox Zero", the Action branch). Today it is guidance rather
+  than validation: the title field carries it as its placeholder — *"Starts
+  with a verb, fully self-descriptive"* — and the only check is that a title is
+  not empty. Validation is planned for the first release, once the end-to-end
+  implementation is complete and improvement work begins; the wording will also
+  grow into fuller help by then. The rule stays stated in design.md in the
+  meantime, because it is the rule, and a spec that only describes what is
+  already built is a changelog
+- **snooze, edit, tag and park/unpark have no keys yet** (see "Keyboard").
+  Complete and pick-for-today are built; the rest are settled a view at a time
+  as each is worked on
