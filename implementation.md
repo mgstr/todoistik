@@ -63,9 +63,12 @@ day, which is the same permanently-open-control problem as the filter panels
 (see "Interface density").
 
 - **three ways in, one dialog**: `q` and `g g` from the keyboard, and a `+`
-  before the Inbox view's title for the mouse. The `+` is on Inbox alone —
-  that is where the item lands, so that is where a mouse reaches for it —
-  while both keys work from every view
+  leading the nav bar for the mouse. All three are global. The `+` first sat
+  on the Inbox title, on the reasoning that a mouse reaches for the control
+  where the item lands — but that made the one capture route a mouse can use
+  the only one that was not global, and put a control inside a view's content
+  that had nothing to do with that view. It belongs in the chrome, beside the
+  other things reachable from anywhere
 - **the field is empty and unlabelled**: one large text box, no placeholder.
   Design.md's "Capture costs nothing" is about not demanding a decision; there
   is nothing to decide here, so there is nothing to read before typing
@@ -132,7 +135,7 @@ screen, however long the list is.
 
 ## Navigation
 
-The nav bar lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order:
+The nav bar opens with the `+` capture control (see "Capture"), then lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order:
 
 Inbox, Today, Next actions, Projects, Tasks, Waiting for, Calendar, Someday/Maybe, Scheduler, Review, Archive, Audit, Settings.
 
@@ -155,6 +158,6 @@ Vimium-style. Pressing `g` overlays a one-letter tag near the top-left corner of
 | Calendar | `C` | | |
 
 `g g` is the one `g` sequence that does not jump to a view: it opens the
-capture dialog (see "Capture"). On the Inbox view the `+` control carries a
-`G` tag of its own while the overlay is up, so the sequence is discoverable
-the same way the jumps are.
+capture dialog (see "Capture"). The `+` at the head of the nav carries a `G`
+tag of its own while the overlay is up, so the sequence is discoverable in the
+same glance as the jumps, on every view.
