@@ -50,6 +50,7 @@ Nothing else. The read API is read only, and capture is the only way in.
 - single-key commands act on the selection. Complete and pick-for-today are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
+- `p` processes the selected inbox item and `z` runs Inbox Zero over the whole inbox — see "Processing from the Inbox"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
@@ -86,6 +87,35 @@ day, which is the same permanently-open-control problem as the filter panels
   submits itself on `Enter`, but those are user-agent behaviours with edge
   cases, and these two keys are the entire interaction. Centring, the backdrop
   and the focus trap are still the browser's
+
+## Processing from the Inbox
+
+The Inbox view holds a list and nothing else — no heading, no count of its own,
+no button. The two things it can do are keys, and the key bar names both when
+they apply.
+
+- **`p` processes the selected item**, at `/process?item=<id>`, and returns to
+  the list afterwards. **`z` runs Inbox Zero**, at `/process`, which takes the
+  oldest item, comes back for the next one after each answer, and ends on the
+  done screen. `z` is exactly `p` repeated: the same screen, fed the oldest item
+  instead of the selected one
+- **one flag distinguishes them**, `?one=1` on the branch form's action. Without
+  it the run carries on to `/process`; with it the answer goes back to `/inbox`.
+  The screen itself is the same either way, which is what keeps `z` from being a
+  second implementation of processing
+- **an `item` that is no longer in the inbox redirects to the list** rather than
+  erroring. It means the item was processed already — in another tab, or by a
+  back button — and the list is the honest answer to "then what?"
+- the button this replaced ("Process — Inbox Zero") was the view's only control
+  and sat on every visit whether or not there was anything to process. A key
+  costs nothing when unused, and the bar already says when it is available
+- **open question, not yet settled with design.md:** `p` lets an item be
+  processed out of order. Design.md says Inbox Zero runs "one at a time, oldest
+  first", and rejects a name filter on the Inbox because it "would only be a way
+  to look away from something" — picking which item to face is arguably the same
+  escape hatch. The precedent pointing the other way is already in design.md:
+  the same screen processes a *named* someday/maybe item on demand. `z` keeps
+  the oldest-first run intact and untouched either way
 
 ## Interface density
 
