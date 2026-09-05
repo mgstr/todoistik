@@ -261,12 +261,32 @@
     }
   });
 
+  // A row responds to the mouse the way a list row is expected to: one click
+  // selects it, two open it. Selection was reachable only from j/k before, so
+  // the row keys the bar was offering were unreachable without the keyboard.
+  // Controls inside the row keep their own jobs — the title link navigates,
+  // the complete and pick buttons submit — so none of them select instead.
+  function rowFromEvent(e) {
+    const row = e.target.closest("[data-kb-row]");
+    if (!row || e.target.closest("a, button, input, select, textarea, label")) return null;
+    return row;
+  }
+
   // a click or a lost window abandons a half-typed "g" sequence
   document.addEventListener("click", function (e) {
     setPending(false);
-    if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); }
+    if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
+    const row = rowFromEvent(e);
+    if (row) select(row);
   });
   window.addEventListener("blur", function () { setPending(false); });
+
+  // double click is the mouse's Enter: on the Inbox that is processing the
+  // item, everywhere else it is opening it — the same data-href either way
+  document.addEventListener("dblclick", function (e) {
+    const row = rowFromEvent(e);
+    if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
+  });
 
   // hx-boost swaps the body, taking the rendered bar with it
   document.addEventListener("htmx:afterSwap", renderKeybar);
