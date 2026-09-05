@@ -50,8 +50,8 @@ Nothing else. The read API is read only, and capture is the only way in.
 - single-key commands act on the selection. Complete and pick-for-today are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
-- `?` shows the full key map as an overlay. Together with the key bar (see "Screen layout") that is the whole discoverability story — no command palette, one way to do each thing
-- **the panel lists implemented keys only.** It once carried three that did not exist (mark next, park, delete), left behind from a plan for them. That is worse than listing nothing: a key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. A key earns its line when it works
+- `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
+- **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
 
 ## Capture
@@ -103,9 +103,13 @@ at the bottom, and the view's content scrolling between them. The chrome never
 scrolls away, so which view you are in and what you can press are always on
 screen, however long the list is.
 
-- **the view's own title line is fixed too**, not just the nav — it carries the
+- **the view's header line is fixed too**, not just the nav — it carries the
   item count and the view's primary action (Inbox's "Process — Inbox Zero"),
-  which are worth no less at item 200 than at item 1
+  which are worth no less at item 200 than at item 1. It no longer carries the
+  view's *name*: the nav already says which view you are in, and saying it
+  twice on every screen buys nothing. The name lives in the `?` panel now,
+  which is also the only place the full name appears where the nav abbreviates
+  it — "Next actions" for "Next", "Someday/Maybe" for "Someday"
 - **the key bar is tinted away from the page colour** and separated by a rule.
   It is chrome, and must not read as the last row of the list
 - **the bar offers only keys that will currently do something.** It is built
@@ -126,12 +130,29 @@ screen, however long the list is.
 - this is the same progressive-disclosure argument as the filter panels (see
   "Interface density"), pointed the other way: the keys are always shown
   because they are always small, and always *true*
-- **open question, not yet decided:** `?` is labelled "help" in the bar rather
-  than "keys", because the bar has taken over listing the reachable keys and a
-  second global key map is redundant beside it. What `?` should show instead is
-  view-specific help — what this view is *for* — which is not written yet. The
-  label moved first so the panel can change under it without the bar changing
-  again
+
+## View help
+
+`?` opens one centred panel: the view's full name and a single line on what
+that view is for. It replaced the global key map, which the key bar had made
+redundant — and unlike the map, it says something the bar cannot.
+
+- **it holds what the header used to say.** Nine views carried a muted line of
+  explanation under their title ("the ball is not in your court; age is the
+  delegation date"). That is worth having and worth reading once, not on every
+  visit forever, which is what a permanent line under the title amounts to
+- **the text is one line per view, keyed by nav slug** in `viewHelp`
+  (internal/web/ui.go), so a detail page shows the help of the view it sits
+  under. A page under no view — a single action — has no entry, gets no panel,
+  and the key bar drops `?` rather than offering a key that opens nothing
+- **centred, not tucked in a corner.** It is asked for by name, so it should
+  land where the eye already is. The earlier corner placement was right for a
+  reference card being consulted while working, and wrong for an answer to a
+  question just asked
+- the four views that had no such line got one written for them (Inbox, Next
+  actions, Projects, Settings), each drawn from what design.md already says
+  about that view rather than invented separately — the panel must not become
+  a second, quietly diverging description of the app
 
 ## Navigation
 
