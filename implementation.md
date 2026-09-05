@@ -47,10 +47,11 @@ Nothing else. The read API is read only, and capture is the only way in.
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
 - `j` / `k` move through the current list, `Enter` opens the selected item
-- single-key commands act on the selection: complete, snooze, edit, tag, park/unpark — the exact map to be settled while building, not here
+- single-key commands act on the selection. Complete and pick-for-today are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
 - `?` shows the full key map as an overlay. Together with the key bar (see "Screen layout") that is the whole discoverability story — no command palette, one way to do each thing
+- **the panel lists implemented keys only.** It once carried three that did not exist (mark next, park, delete), left behind from a plan for them. That is worse than listing nothing: a key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. A key earns its line when it works
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
 
 ## Capture
