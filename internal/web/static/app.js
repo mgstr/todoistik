@@ -112,6 +112,7 @@
     if (!zero) pushRowKeys(view, row);
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
+    if (document.querySelector("[data-cancel]")) view.push(["esc", "cancel"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     return { view: view, global: globalKeys() };
   }
@@ -254,8 +255,12 @@
       }
       case "Escape": {
         const help = document.getElementById("help");
-        if (help && !help.hidden) { help.hidden = true; renderKeybar(); }
-        else select(null);
+        if (help && !help.hidden) { help.hidden = true; renderKeybar(); break; }
+        // a screen that can be abandoned says so with data-cancel, and says
+        // where leaving it goes. Nothing is written on the way out.
+        const cancel = document.querySelector("[data-cancel]");
+        if (cancel) { e.preventDefault(); window.location.href = cancel.dataset.cancel; break; }
+        select(null);
         break;
       }
     }

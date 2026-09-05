@@ -29,6 +29,19 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"archive":   {"Archive", "finished commitments, newest first"},
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
 	"settings":  {"Settings", "the remembered tags and contexts — a name still in use cannot be removed"},
+
+	// Reached only from the Inbox, so it has no nav entry and no slug of its
+	// own to be keyed by — the process page asks for this one explicitly.
+	"process": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. Esc leaves it exactly as it was."},
+}
+
+// help overrides the entry newPage picked from the view slug, for a screen
+// that sits under a view in the nav but is not that view.
+func (p *page) help(key string) *page {
+	if h, ok := viewHelp[key]; ok {
+		p.HelpName, p.HelpText = h.Name, h.Text
+	}
+	return p
 }
 
 // page is the data every template gets.
@@ -367,7 +380,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	p := s.newPage("What is it?", "inbox", r)
+	p := s.newPage("What is it?", "inbox", r).help("process")
 	p.Data = d
 	s.render(w, "process.html", p)
 }

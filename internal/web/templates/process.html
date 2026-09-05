@@ -1,6 +1,6 @@
 {{template "top" .}}
 {{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
-<div class="process">
+<div class="process" data-cancel="{{if eq $d.Src "someday"}}/someday{{else}}/inbox{{end}}">
   <p class="crumb">{{if eq $d.Src "someday"}}Processing a someday/maybe item{{else if $d.One}}Processing one inbox item{{else}}Inbox Zero · {{$d.Remaining}} left{{end}}</p>
   <h1 class="capture-text">{{$d.Text}}</h1>
   <p class="muted">captured {{age $d.CreatedAt}}</p>
