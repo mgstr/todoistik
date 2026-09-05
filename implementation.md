@@ -110,6 +110,12 @@ screen, however long the list is.
   does this view have a name filter — rather than from a per-view table that
   would drift from what the key layer actually does. Selecting a row adds
   open/done/today; a view with no rows never offers `j`/`k`
+- **two groups, held apart by alignment**: the keys this view offers sit left,
+  the three that work everywhere — `q`, `g`, `?` — sit right, both aligned to
+  the content column rather than the window edge. The right half is then fixed
+  furniture: only the left half has to be re-read when the view or the
+  selection changes. A thin rule divides them, and disappears when the view
+  has no keys of its own
 - **modes replace the bar rather than extending it.** While the capture dialog
   is up it reads `↵ add · esc cancel` and nothing else, because nothing else is
   reachable; the `g` overlay and the `?` panel do the same. A bar that listed
@@ -117,6 +123,12 @@ screen, however long the list is.
 - this is the same progressive-disclosure argument as the filter panels (see
   "Interface density"), pointed the other way: the keys are always shown
   because they are always small, and always *true*
+- **open question, not yet decided:** `?` is labelled "help" in the bar rather
+  than "keys", because the bar has taken over listing the reachable keys and a
+  second global key map is redundant beside it. What `?` should show instead is
+  view-specific help — what this view is *for* — which is not written yet. The
+  label moved first so the panel can change under it without the bar changing
+  again
 
 ## Navigation
 
