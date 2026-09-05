@@ -74,36 +74,51 @@
     renderKeybar();
   }
 
-  // The key bar. Every entry is derived from what is actually on the page and
-  // what is actually selected, so the bar can only ever offer a key that will
-  // do something — the ? panel is the full map, this is the reachable subset.
-  function keybarItems() {
-    const dlg = captureDialog();
-    if (dlg && dlg.open) return [["\u21b5", "add"], ["esc", "cancel"]];
-    const help = document.getElementById("help");
-    if (help && !help.hidden) return [["esc", "close help"]];
-    if (gPending) return [["\u2026", "press a marked key"], ["esc", "cancel"]];
+  // The key bar, in two groups: what this view offers and what is always
+  // there. They are held apart — view keys left, global keys right — so the
+  // right half becomes fixed furniture and only the left half has to be
+  // re-read when the view or the selection changes.
+  const GLOBAL_KEYS = [["q", "add to inbox"], ["g", "go to"], ["?", "help"]];
 
-    const items = [];
-    if (selected()) items.push(["\u21b5", "open"], ["c", "done"], ["t", "today"]);
-    if (rows().length) items.push(["j k", "move"]);
-    if (document.querySelector(".namebox")) items.push(["/", "filter"]);
-    items.push(["q", "add to inbox"], ["g", "go to"], ["?", "keys"]);
-    return items;
+  // Every entry is derived from what is actually on the page and what is
+  // actually selected, so the bar can only ever offer a key that will do
+  // something. A mode fills the view group and empties the global one:
+  // while a dialog or an overlay is up, none of the global keys are live.
+  function keybarGroups() {
+    const dlg = captureDialog();
+    if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
+    const help = document.getElementById("help");
+    if (help && !help.hidden) return { view: [["esc", "close help"]], global: [] };
+    if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
+
+    const view = [];
+    if (selected()) view.push(["\u21b5", "open"], ["c", "done"], ["t", "today"]);
+    if (rows().length) view.push(["j k", "move"]);
+    if (document.querySelector(".namebox")) view.push(["/", "filter"]);
+    return { view: view, global: GLOBAL_KEYS };
   }
 
-  function renderKeybar() {
-    const bar = document.getElementById("keybar");
-    if (!bar) return;
-    bar.textContent = "";
-    keybarItems().forEach(function (pair) {
+  function keygroup(cls, items) {
+    const box = document.createElement("div");
+    box.className = cls;
+    items.forEach(function (pair) {
       const item = document.createElement("span");
       const key = document.createElement("b");
       key.textContent = pair[0];
       item.appendChild(key);
       item.append(pair[1]);
-      bar.appendChild(item);
+      box.appendChild(item);
     });
+    return box;
+  }
+
+  function renderKeybar() {
+    const bar = document.getElementById("keybar");
+    if (!bar) return;
+    const groups = keybarGroups();
+    bar.textContent = "";
+    bar.appendChild(keygroup("kb-view", groups.view));
+    if (groups.global.length) bar.appendChild(keygroup("kb-global", groups.global));
   }
 
   function rows() {

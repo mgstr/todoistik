@@ -188,6 +188,13 @@ summary { cursor: pointer; font-weight: 600; }
   font-size: .8rem; overflow-x: auto; scrollbar-width: none;
 }
 #keybar::-webkit-scrollbar { display: none; }
+#keybar > div { display: flex; gap: 1rem; align-items: center; }
+/* global keys sit right, view keys left: the gap between them is the whole
+   distinction, and the rule only shows up when there is something to divide */
+#keybar > .kb-global {
+  margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line);
+}
+#keybar > .kb-view:empty + .kb-global { padding-left: 0; border-left: none; }
 #keybar span { white-space: nowrap; }
 #keybar b {
   display: inline-block; margin-right: .3rem;
