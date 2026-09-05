@@ -40,7 +40,24 @@ nav a { color: var(--fg); }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
 nav a.alert { color: var(--danger); font-weight: 700; }
 nav a.on.alert { background: var(--select); }
-nav .badge.navcount { font-size: .72rem; padding: 0 .35rem; vertical-align: middle; }
+/* the count is a marker on the view, not a second word in its name: an
+   outlined pill in the corner, iPhone-style. Sitting outside the flow also
+   stops a changing count from shifting every label after it. Red still means
+   only "the inbox needs emptying" and the accent still means only "this is
+   the view you are on" — a filled badge on all ten would have spent both. */
+nav .badge.navcount {
+  position: absolute; top: -.35rem; right: -.4rem;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 .28rem;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--badge-bg); color: var(--muted);
+  font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+nav a.alert .badge.navcount { background: var(--danger); border-color: var(--danger); color: #fff; }
+nav a.on .badge.navcount { border-color: var(--accent); color: var(--accent); }
+/* the jump letters land in this same strip, so they get it to themselves:
+   while g is held you are choosing a destination, not reading counts */
+nav.gpending .badge.navcount { visibility: hidden; }
 
 h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
 h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }

@@ -11,16 +11,16 @@
 <body hx-boost="true">
 <nav>
   <button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (q)">+</button>
-  <a href="/inbox" class="{{if eq .View "inbox"}}on{{end}} {{if .Nav.Inbox}}alert{{end}}" title="g i">Inbox{{if .Nav.Inbox}} <span class="badge navcount">{{.Nav.Inbox}}</span>{{end}}</a>
-  <a href="/today" class="{{if eq .View "today"}}on{{end}}" title="g t">Today{{if .Nav.Today}} <span class="badge navcount">{{.Nav.Today}}</span>{{end}}</a>
-  <a href="/next" class="{{if eq .View "next"}}on{{end}}" title="g n">Next{{if .Nav.Next}} <span class="badge navcount">{{.Nav.Next}}</span>{{end}}</a>
-  <a href="/projects" class="{{if eq .View "projects"}}on{{end}}" title="g p">Projects{{if .Nav.Projects}} <span class="badge navcount">{{.Nav.Projects}}</span>{{end}}</a>
-  <a href="/tasks" class="{{if eq .View "tasks"}}on{{end}}" title="g k">Tasks{{if .Nav.Tasks}} <span class="badge navcount">{{.Nav.Tasks}}</span>{{end}}</a>
-  <a href="/waiting" class="{{if eq .View "waiting"}}on{{end}}" title="g w">Waiting{{if .Nav.Waiting}} <span class="badge navcount">{{.Nav.Waiting}}</span>{{end}}</a>
-  <a href="/calendar" class="{{if eq .View "calendar"}}on{{end}}" title="g c">Calendar{{if .Nav.Calendar}} <span class="badge navcount">{{.Nav.Calendar}}</span>{{end}}</a>
-  <a href="/someday" class="{{if eq .View "someday"}}on{{end}}" title="g s">Someday{{if .Nav.Someday}} <span class="badge navcount">{{.Nav.Someday}}</span>{{end}}</a>
-  <a href="/scheduler" class="{{if eq .View "scheduler"}}on{{end}}" title="g h">Scheduler{{if .Nav.Scheduler}} <span class="badge navcount">{{.Nav.Scheduler}}</span>{{end}}</a>
-  <a href="/review" class="{{if eq .View "review"}}on{{end}}" title="g r">Review{{if .Nav.Review}} <span class="badge navcount">{{.Nav.Review}}</span>{{end}}</a>
+  <a href="/inbox" class="{{if eq .View "inbox"}}on{{end}} {{if .Nav.Inbox}}alert{{end}}" title="g i">Inbox{{if .Nav.Inbox}}<span class="badge navcount">{{.Nav.Inbox}}</span>{{end}}</a>
+  <a href="/today" class="{{if eq .View "today"}}on{{end}}" title="g t">Today{{if .Nav.Today}}<span class="badge navcount">{{.Nav.Today}}</span>{{end}}</a>
+  <a href="/next" class="{{if eq .View "next"}}on{{end}}" title="g n">Next{{if .Nav.Next}}<span class="badge navcount">{{.Nav.Next}}</span>{{end}}</a>
+  <a href="/projects" class="{{if eq .View "projects"}}on{{end}}" title="g p">Projects{{if .Nav.Projects}}<span class="badge navcount">{{.Nav.Projects}}</span>{{end}}</a>
+  <a href="/tasks" class="{{if eq .View "tasks"}}on{{end}}" title="g k">Tasks{{if .Nav.Tasks}}<span class="badge navcount">{{.Nav.Tasks}}</span>{{end}}</a>
+  <a href="/waiting" class="{{if eq .View "waiting"}}on{{end}}" title="g w">Waiting{{if .Nav.Waiting}}<span class="badge navcount">{{.Nav.Waiting}}</span>{{end}}</a>
+  <a href="/calendar" class="{{if eq .View "calendar"}}on{{end}}" title="g c">Calendar{{if .Nav.Calendar}}<span class="badge navcount">{{.Nav.Calendar}}</span>{{end}}</a>
+  <a href="/someday" class="{{if eq .View "someday"}}on{{end}}" title="g s">Someday{{if .Nav.Someday}}<span class="badge navcount">{{.Nav.Someday}}</span>{{end}}</a>
+  <a href="/scheduler" class="{{if eq .View "scheduler"}}on{{end}}" title="g h">Scheduler{{if .Nav.Scheduler}}<span class="badge navcount">{{.Nav.Scheduler}}</span>{{end}}</a>
+  <a href="/review" class="{{if eq .View "review"}}on{{end}}" title="g r">Review{{if .Nav.Review}}<span class="badge navcount">{{.Nav.Review}}</span>{{end}}</a>
   <a href="/archive" class="{{if eq .View "archive"}}on{{end}}" title="g a">Archive</a>
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/settings" class="{{if eq .View "settings"}}on{{end}}" title="g e">Settings</a>
