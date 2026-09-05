@@ -101,17 +101,28 @@
 
     const view = [];
     const row = selected();
-    if (row) {
-      // opening an inbox item is processing it, so the two keys share a label
-      if (row.hasAttribute("data-process")) view.push(["\u21b5 p", "process"]);
-      else if (row.dataset.href) view.push(["\u21b5", "open"]);
-      if (row.querySelector("form.kb-complete")) view.push(["c", "done"]);
-      if (row.querySelector("form.kb-pick")) view.push(["t", "today"]);
-    }
+    const zero = document.querySelector("[data-inbox-zero]");
+
+    // Where the view has a run to work down, the run leads and acting on one
+    // picked item trails it, with the movement keys in between. The order is
+    // the bar saying which is the default way through and which is the
+    // exception — see design.md, "Inbox Zero". Everywhere else there is no
+    // run, so acting on the selection leads.
+    if (zero) view.push(["z", "inbox zero"]);
+    if (!zero) pushRowKeys(view, row);
     if (rows().length) view.push(["j k", "move"]);
-    if (document.querySelector("[data-inbox-zero]")) view.push(["z", "inbox zero"]);
+    if (zero) pushRowKeys(view, row);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     return { view: view, global: globalKeys() };
+  }
+
+  function pushRowKeys(into, row) {
+    if (!row) return;
+    // opening an inbox item is processing it, so the two keys share a label
+    if (row.hasAttribute("data-process")) into.push(["\u21b5 p", "process"]);
+    else if (row.dataset.href) into.push(["\u21b5", "open"]);
+    if (row.querySelector("form.kb-complete")) into.push(["c", "done"]);
+    if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
   }
 
   function keygroup(cls, items) {
