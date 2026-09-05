@@ -13,6 +13,37 @@ study is for is the part the docs do not carry: the options that lost, and why.
 
 ---
 
+## item-line-study.html — the item line, and how an age is worded
+
+**2026-09-05 · decided: D, the age as a chip beside the title.** Implemented in
+`internal/web/static/style.css` (`.row`, `.age`) and `internal/web/server.go`
+(`humanAge`).
+
+The age was pinned to the right edge of the row, which needed a rule under
+every item to carry the eye across the gap — nine items, nine horizontal lines,
+on a page that should read as a short list. Five treatments were rendered, each
+in both themes:
+
+| | Variant | Outcome |
+|---|---|---|
+| A | Right-bound, ruled | The starting point |
+| B | Inline, muted grey | Rejected: grey text beside black text still parses as a continuation of the title — "call the dentist yesterday" reads as a phrase before it reads as two fields |
+| C | Inline, small-caps mono | Runner-up; the typeface alone did the separating |
+| **D** | **Inline chip** | **Chosen.** Unambiguously its own field, in the badge shape the app already uses elsewhere |
+| E | Right column, rules removed | Rejected: a column answers "what has sat here longest?" at a glance, but strands badly once titles are long enough to wrap |
+
+The page's second half settled the **age vocabulary**, replacing the old codes
+(`1d`, `3w`, `4mo`) with words. Two gaps in the first draft of the scale were
+found and closed there: an age of **two days** had no rule, and days **57–60**
+fell between "a month ago" (ending at 8 weeks) and "2 months ago" (starting at
+about 61). The boundaries as shipped are pinned by `internal/web/age_test.go`.
+
+Known trade-off, accepted: on a Next actions row the age is a fifth chip beside
+context, duration, tags and due date — the least important of them and the most
+constant. Revisit here if the row starts to feel crowded.
+
+---
+
 ## nav-badge-study.html — where the per-view item counts sit
 
 **2026-09-05 · decided: D, outlined corner pill.** Implemented in

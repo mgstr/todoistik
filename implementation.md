@@ -127,6 +127,52 @@ The first working version rendered every view's filter controls open, all the ti
 - **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
 - **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
 
+## Item lines
+
+Every list in the app shares one row template, so this is one decision, not a
+per-view one.
+
+- **no rule under a row.** The age used to be pinned to the right edge, which
+  needed a line under every item to carry the eye across the gap. The age sits
+  beside its title now, so the line has nothing left to do, and an inbox of nine
+  items stopped looking like a table with nothing in it
+- **the age is a chip, not small grey text.** Grey text beside black text still
+  parses as a continuation of the title — "call the dentist yesterday" reads as
+  a phrase before it reads as two fields. The enclosing shape is what makes it a
+  separate field, and it is the shape the app already uses for context, duration
+  and tags. The cost, accepted: on a Next actions row the age is a fifth chip,
+  the least important of them and the most constant — see
+  `research/item-line-study.html` for the four treatments this beat
+- **the today-pick keeps the right edge.** It used to be carried there by the
+  age's `margin-left: auto`; now it has its own
+
+### Ages are written out, not coded
+
+`3 weeks ago`, not `3w`. The scale, in days:
+
+| Age | Reads |
+|---|---|
+| 0 | today |
+| 1 | yesterday |
+| 2–6 | `n` days ago |
+| 7–13 | a week ago |
+| 14–27 | `n` weeks ago |
+| 28–59 | a month ago |
+| 60–364 | `n` months ago |
+| 365–729 | a year ago |
+| 730+ | `n` years ago |
+
+- **a month is 30 days and a year is 365.** Calendar-accurate arithmetic would
+  make "2 months ago" cover different spans in different seasons, for no gain on
+  a label that is approximate by design
+- **two boundaries exist only to close gaps**, and both are easy to reintroduce
+  by accident. The `n` days range starts at **2**, because "yesterday" covers
+  only day 1. "A month ago" runs to **59** rather than to eight weeks, so it
+  ends exactly where "2 months ago" begins. The month count also stops at 11:
+  360 days is twelve thirty-day months but not yet a year
+- every boundary is pinned in `internal/web/age_test.go`, which is the whole
+  reason that file exists
+
 ## Screen layout
 
 Three bands, borrowed from a TUI: a fixed nav line at the top, a fixed key bar

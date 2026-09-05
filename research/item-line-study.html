@@ -1,0 +1,383 @@
+<title>Item Line Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-warn:    #a2571b;
+  --page-warn-bg: #fdf4e7;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --page-warn:    #e0a760;
+    --page-warn-bg: #241d12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --page-warn:    #e0a760;
+  --page-warn-bg: #241d12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 60rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+.dek { margin: .6rem 0 0; max-width: 36rem; color: var(--page-muted); }
+
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  margin-top: 1.35rem; padding-top: 1.35rem; border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg); background: var(--page-card);
+  border: 1px solid var(--page-line); border-radius: 8px;
+  padding: .55rem .8rem; cursor: pointer;
+}
+.toggle:hover { border-color: var(--page-accent); color: var(--page-accent); }
+.toggle:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.toggle[aria-pressed="true"] { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+.controls .note { font-size: .85rem; color: var(--page-muted); }
+
+h2.part {
+  margin: 1rem 0 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -.015em;
+  padding-bottom: .5rem; border-bottom: 2px solid var(--page-fg);
+}
+
+.card { background: var(--page-card); border: 1px solid var(--page-line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.card > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .85rem; padding: 1.1rem 1.35rem .85rem; }
+.tag {
+  font: 600 .78rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-accent); border: 1px solid currentColor; border-radius: 5px; padding: .28rem .45rem;
+}
+.card h3 { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: -.01em; }
+.card .why { margin: 0 0 0 auto; font-size: .88rem; color: var(--page-muted); }
+.card .body { padding: 0 1.35rem 1.25rem; display: flex; flex-direction: column; gap: .7rem; }
+.card p.take { margin: 0; font-size: .92rem; color: var(--page-muted); }
+.card p.take b { color: var(--page-fg); font-weight: 600; }
+
+.rail { display: flex; align-items: flex-start; gap: .6rem; }
+.rail .lbl {
+  flex: 0 0 auto; width: 2.6rem; padding-top: .55rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted);
+}
+.frame { flex: 1 1 auto; min-width: 0; border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden; }
+
+/* ---- specimen: todoistik's own list, reproduced --------------------------- */
+.app { font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--bg); padding: .5rem .75rem; }
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --badge-bg: #f0f0f0; --select: #eef2ff; --row-hover: #f6f8ff;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --badge-bg: #23262d; --select: #22304d; --row-hover: #1d2129;
+}
+.app ul { list-style: none; margin: 0; padding: 0; }
+.app li { display: flex; align-items: baseline; gap: .45rem; padding: .3rem .5rem; border-radius: 6px; }
+.app li.sel { background: var(--select); outline: 1px solid var(--accent); }
+.app .title { color: var(--fg); }
+.app .age { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+
+/* A — as built today */
+.v-current li { border-bottom: 1px solid var(--line); border-radius: 6px; align-items: center; }
+.v-current .age { margin-left: auto; }
+
+/* B — inline, muted */
+.v-muted li { padding: .18rem .5rem; }
+
+/* C — inline, mono caps */
+.v-mono li { padding: .18rem .5rem; }
+.v-mono .age {
+  font: 400 .68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+
+/* D — inline chip */
+.v-chip li { padding: .18rem .5rem; }
+.v-chip .age {
+  font-size: .7rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted);
+}
+
+/* E — right column, rules removed */
+.v-column li { padding: .18rem .5rem; }
+.v-column .age { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* long-title mode, for judging how each holds up when the text wraps */
+body.long .app .title { display: inline; }
+
+/* ---- tables -------------------------------------------------------------- */
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 32rem; }
+th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); }
+tbody tr:last-child td { border-bottom: none; }
+td.range { font-family: "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; color: var(--page-muted); }
+td.out { font-weight: 600; }
+.yes { color: var(--page-accent); font-weight: 600; }
+.no  { color: var(--page-warn); font-weight: 600; }
+
+.flag {
+  border: 1px solid var(--page-warn); background: var(--page-warn-bg);
+  border-radius: 12px; padding: 1rem 1.2rem;
+}
+.flag h4 { margin: 0 0 .4rem; font-size: .95rem; font-weight: 600; color: var(--page-warn); }
+.flag p { margin: 0; font-size: .92rem; }
+.flag p + p { margin-top: .6rem; }
+.flag code, .matrix code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+
+.section { display: flex; flex-direction: column; gap: .75rem; }
+.section > p { margin: 0; color: var(--page-muted); font-size: .95rem; max-width: 42rem; }
+.rec { border-left: 3px solid var(--page-accent); padding: .1rem 0 .1rem 1rem; }
+.rec p { margin: 0; }
+.rec p + p { margin-top: .5rem; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">todoistik · item rows</div>
+    <h1>Item Line Study</h1>
+    <p class="dek">
+      Two decisions in one page: how an item and its age sit on a line, and what
+      words the age is written in. Both apply to every list in the app, not just
+      the Inbox — the row template is shared.
+    </p>
+    <div class="controls">
+      <button class="toggle" id="longToggle" type="button" aria-pressed="false">Use long titles</button>
+      <span class="note">Short items flatter every layout. The long ones are where the right-hand column earns or loses its place.</span>
+    </div>
+  </header>
+
+  <h2 class="part">Part one — where the age sits</h2>
+
+  <section class="card">
+    <header>
+      <span class="tag">A</span>
+      <h3>Right-bound, ruled — as built today</h3>
+      <span class="why">The one you don't like</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-current" data-list></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-current" data-list></div></div></div>
+      <p class="take">
+        The age is pinned to the right edge, so a rule is needed under every row to
+        carry the eye across the gap. That rule is what makes the page heavy:
+        <b>nine items means nine horizontal lines</b>, and the emptier the inbox
+        the more the list looks like a table with nothing in it.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">B</span>
+      <h3>Inline, muted</h3>
+      <span class="why">Simplest reading of your sketch</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-muted" data-list></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-muted" data-list></div></div></div>
+      <p class="take">
+        The age follows the title directly, smaller and grey. No rules needed, because
+        nothing has to be carried across a gap. The risk is that <b>grey small text
+        next to black text still reads as a continuation of the sentence</b> —
+        "call the dentist yesterday" parses as a phrase before it parses as two fields.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">C</span>
+      <h3>Inline, small caps mono</h3>
+      <span class="why">Recommended</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-mono" data-list></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-mono" data-list></div></div></div>
+      <p class="take">
+        Same position as B, but the age is set in monospace, uppercase, letterspaced.
+        <b>The change of typeface is what does the separating</b> — it stops being
+        words in the sentence and becomes a stamp on it, without needing a box, a
+        colour or a rule to say so. It also matches the `g` hints and the key bar,
+        which already use mono for "this is the machine talking, not your text".
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">D</span>
+      <h3>Inline chip</h3>
+      <span class="why">Same idea, louder</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-chip" data-list></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-chip" data-list></div></div></div>
+      <p class="take">
+        The age in the app's existing badge shape. Unambiguously a separate field, but
+        <b>every row now carries a filled box</b>, and the app already spends that
+        shape on context, duration, tags and due dates. On a Next actions row with
+        four real badges, a fifth for the age would be the least important of them
+        and the most constant.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">E</span>
+      <h3>Right column, no rules</h3>
+      <span class="why">Keeps the scannable column</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-column" data-list></div></div></div>
+      <div class="rail"><span class="lbl">Light</span><div class="frame"><div class="app light v-column" data-list></div></div></div>
+      <p class="take">
+        Ages stay aligned in a column you can read down, but the rules are gone and the
+        rows are tighter. Worth a look before dropping the idea: <b>a column answers
+        "what has been sitting here longest?" at a glance</b>, which an inline age
+        cannot. Turn on long titles — that is where it starts to strand.
+      </p>
+    </div>
+  </section>
+
+  <h2 class="part">Part two — what the age says</h2>
+
+  <section class="section">
+    <p>
+      Today it says <code>1d</code>, <code>5d</code>, <code>3w</code>, <code>4mo</code>.
+      Your scale below, written out in days. Two boundaries in it need a decision —
+      flagged under the table.
+    </p>
+    <div class="matrix">
+      <table>
+        <thead><tr><th>Age in days</th><th>Reads</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td class="range">0</td><td class="out">today</td><td></td></tr>
+          <tr><td class="range">1</td><td class="out">yesterday</td><td></td></tr>
+          <tr><td class="range">2 – 6</td><td class="out">2–6 days ago</td><td class="no">you wrote 3–6; see flag 1</td></tr>
+          <tr><td class="range">7 – 13</td><td class="out">a week ago</td><td></td></tr>
+          <tr><td class="range">14 – 27</td><td class="out">2–3 weeks ago</td><td></td></tr>
+          <tr><td class="range">28 – 59</td><td class="out">a month ago</td><td class="no">you wrote 4–8 weeks; see flag 2</td></tr>
+          <tr><td class="range">60 – 364</td><td class="out">2–11 months ago</td><td>months counted as 30 days</td></tr>
+          <tr><td class="range">365 – 729</td><td class="out">a year ago</td><td></td></tr>
+          <tr><td class="range">730 +</td><td class="out">2+ years ago</td><td>someday/maybe, hopefully</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flag">
+      <h4>Flag 1 — two days has no rule</h4>
+      <p>
+        Your scale goes <b>yesterday</b> at one day, then <b>k days ago</b> starting at
+        three. Nothing covers an age of two days. The fix is to start the range at two,
+        which is what the table above assumes — unless you meant "2 days ago" to read as
+        something else.
+      </p>
+    </div>
+
+    <div class="flag">
+      <h4>Flag 2 — "a month ago" and "2 months ago" leave a gap</h4>
+      <p>
+        <b>a month ago</b> was to end at 8 weeks (56 days) and <b>k months ago</b> to
+        begin at 2 months (about 61). Days 57 to 60 fall between them.
+      </p>
+      <p>
+        Cleanest fix is to let "a month ago" run to 59 days, so it ends exactly where
+        "2 months ago" begins — which also matches how it reads: anything not yet two
+        months old is still "a month ago".
+      </p>
+    </div>
+
+    <div class="rec">
+      <p><b>One more wording call.</b> You wrote "week ago", "month ago", "year ago". The
+        table uses <b>a</b> week / <b>a</b> month / <b>a</b> year, which reads better beside
+        "3 weeks ago" and costs nothing. Say if you want the bare form.</p>
+      <p><b>Months are counted as 30 days</b>, and years as 365. Calendar-accurate
+        arithmetic would make "2 months ago" mean different spans in different seasons
+        for no gain — this is a rounded label, not a date.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  const ITEMS = [
+    { short: "book flights to Porto",       long: "book flights to Porto for the week after Easter, before the fares climb", age: "today" },
+    { short: "call the dentist",            long: "call the dentist about the cracked filling on the lower left", age: "yesterday", sel: true },
+    { short: "fix the garden gate",         long: "fix the garden gate — the lower hinge has rusted through", age: "4 days ago" },
+    { short: "renew passport",              long: "renew passport, the current one expires in the spring", age: "a week ago" },
+    { short: "reply to Maarja about the lease", long: "reply to Maarja about the lease renewal and the parking space", age: "3 weeks ago" },
+    { short: "look into the boiler noise",  long: "look into the boiler noise that starts whenever the heating kicks in", age: "a month ago" },
+    { short: "read the Kaupmees contract",  long: "read the Kaupmees contract properly before the renewal date", age: "5 months ago" },
+    { short: "learn to sail",               long: "learn to sail, properly, with lessons rather than a borrowed dinghy", age: "a year ago" },
+    { short: "restore grandfather's clock", long: "restore grandfather's clock — find someone who still does the movements", age: "3 years ago" }
+  ];
+
+  document.querySelectorAll("[data-list]").forEach(function (host) {
+    const ul = document.createElement("ul");
+    ITEMS.forEach(function (it) {
+      const li = document.createElement("li");
+      if (it.sel) li.className = "sel";
+      const t = document.createElement("span");
+      t.className = "title";
+      t.textContent = it.short;
+      t.dataset.short = it.short;
+      t.dataset.long = it.long;
+      const a = document.createElement("span");
+      a.className = "age";
+      a.textContent = it.age;
+      li.append(t, a);
+      ul.appendChild(li);
+    });
+    host.appendChild(ul);
+  });
+
+  const toggle = document.getElementById("longToggle");
+  toggle.addEventListener("click", function () {
+    const on = document.body.classList.toggle("long");
+    toggle.setAttribute("aria-pressed", String(on));
+    toggle.textContent = on ? "Use short titles" : "Use long titles";
+    document.querySelectorAll(".app .title").forEach(function (t) {
+      t.textContent = on ? t.dataset.long : t.dataset.short;
+    });
+  });
+</script>
