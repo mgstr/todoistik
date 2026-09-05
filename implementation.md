@@ -50,7 +50,7 @@ Nothing else. The read API is read only, and capture is the only way in.
 - single-key commands act on the selection: complete, snooze, edit, tag, park/unpark — the exact map to be settled while building, not here
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
-- `?` shows the full key map as an overlay, which is the entire discoverability story — no command palette, one way to do each thing
+- `?` shows the full key map as an overlay. Together with the key bar (see "Screen layout") that is the whole discoverability story — no command palette, one way to do each thing
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
 
 ## Capture
@@ -91,6 +91,31 @@ The first working version rendered every view's filter controls open, all the ti
 - **an item row keeps its full information** — title, context, duration, tags, due date, project, focus, parked/waiting state — shown inline, all at once. This was considered and deliberately kept as-is: density on a row is not the clutter problem, a permanently-open control panel above the list is
 - **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
 - **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
+
+## Screen layout
+
+Three bands, borrowed from a TUI: a fixed nav line at the top, a fixed key bar
+at the bottom, and the view's content scrolling between them. The chrome never
+scrolls away, so which view you are in and what you can press are always on
+screen, however long the list is.
+
+- **the view's own title line is fixed too**, not just the nav — it carries the
+  item count and the view's primary action (Inbox's "Process — Inbox Zero"),
+  which are worth no less at item 200 than at item 1
+- **the key bar is tinted away from the page colour** and separated by a rule.
+  It is chrome, and must not read as the last row of the list
+- **the bar offers only keys that will currently do something.** It is built
+  from the page itself — is anything selected, are there rows to move through,
+  does this view have a name filter — rather than from a per-view table that
+  would drift from what the key layer actually does. Selecting a row adds
+  open/done/today; a view with no rows never offers `j`/`k`
+- **modes replace the bar rather than extending it.** While the capture dialog
+  is up it reads `↵ add · esc cancel` and nothing else, because nothing else is
+  reachable; the `g` overlay and the `?` panel do the same. A bar that listed
+  unreachable keys would be worse than no bar
+- this is the same progressive-disclosure argument as the filter panels (see
+  "Interface density"), pointed the other way: the keys are always shown
+  because they are always small, and always *true*
 
 ## Navigation
 
