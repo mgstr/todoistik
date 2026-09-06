@@ -96,6 +96,7 @@ func TestDescribeRoundTrips(t *testing.T) {
 		Description: "Ring the fitter first\nthen measure",
 		Context:     "home", ContextParam: "garage", Duration: DurMedium,
 		NeedsFocus: true, AssignedTo: "Marju", Tags: []string{"car", TodayTag},
+		DueDate: "2026-09-20", SnoozeUntil: "2026-09-10",
 	}
 	text := Describe(act)
 	f, err := ParseDescription(text, v, true)
@@ -106,7 +107,8 @@ func TestDescribeRoundTrips(t *testing.T) {
 		t.Fatalf("prose: got %q want %q", f.Prose, act.Description)
 	}
 	if f.Context != "home" || f.ContextParam != "garage" || f.Duration != DurMedium ||
-		!f.NeedsFocus || f.AssignedTo != "Marju" || !f.Today || f.Parked {
+		!f.NeedsFocus || f.AssignedTo != "Marju" || !f.Today || f.Parked ||
+		f.DueDate != "2026-09-20" || f.SnoozeUntil != "2026-09-10" {
 		t.Fatalf("fields did not survive: %+v", f)
 	}
 	if !reflect.DeepEqual(f.Tags, []string{"car"}) {
@@ -118,6 +120,7 @@ func TestDescribeRoundTrips(t *testing.T) {
 		ProjectID: 7, BecameNextAt: ptrNow(),
 		Description: f.Prose, Context: f.Context, ContextParam: f.ContextParam,
 		Duration: f.Duration, NeedsFocus: f.NeedsFocus, AssignedTo: f.AssignedTo,
+		DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil,
 		Tags: append(f.Tags, TodayTag),
 	}
 	if again := Describe(act2); again != text {
@@ -140,6 +143,31 @@ func TestDescribeParked(t *testing.T) {
 	standalone := &Action{BecameNextAt: &now}
 	if got := Describe(standalone); got != "" {
 		t.Fatalf("a standalone action carries no token: %q", got)
+	}
+}
+
+func TestParseDescriptionDates(t *testing.T) {
+	v := vocab(nil, nil)
+	f, err := ParseDescription("chase it up due:2026-09-20 snooze:2026-09-10", v, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.DueDate != "2026-09-20" || f.SnoozeUntil != "2026-09-10" {
+		t.Fatalf("dates: %+v", f)
+	}
+	if f.Prose != "chase it up" {
+		t.Fatalf("prose: %q", f.Prose)
+	}
+	if _, err := ParseDescription("due:soon", v, false); err == nil {
+		t.Fatal("a due date that is not a date must be refused, not dropped")
+	}
+	if _, err := ParseDescription("due:2026-09-20 due:2026-09-21", v, false); err == nil {
+		t.Fatal("two due dates must be refused")
+	}
+	// a bare word with a colon is not a date token
+	f, _ = ParseDescription("note: ring first", v, false)
+	if f.Prose != "note: ring first" {
+		t.Fatalf("ordinary prose with a colon: %q", f.Prose)
 	}
 }
 

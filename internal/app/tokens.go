@@ -84,6 +84,12 @@ func (a *App) Vocabulary() (*Vocabulary, error) {
 // excludes the rest.
 var tokenRe = regexp.MustCompile(`(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?`)
 
+// The two dates are written `due:2026-09-20` and `snooze:2026-09-20`. A third
+// notation rather than a context or a tag, because they are neither: a date is
+// not a name off a remembered list, and spelling it out keeps it readable
+// without a fourth sigil to learn.
+var dateRe = regexp.MustCompile(`(^|\s)(due|snooze):(\S+)`)
+
 // DescFields is a description read as the fields it spells.
 type DescFields struct {
 	Prose        string
@@ -94,6 +100,8 @@ type DescFields struct {
 	NeedsFocus   bool
 	Parked       bool
 	Today        bool
+	DueDate      string
+	SnoozeUntil  string
 	Tags         []string
 }
 
@@ -104,6 +112,30 @@ func ParseDescription(text string, v *Vocabulary, inProject bool) (DescFields, e
 	var f DescFields
 	var seenDuration, seenContext, seenWaiting bool
 	var err error
+
+	text = dateRe.ReplaceAllStringFunc(text, func(m string) string {
+		sub := dateRe.FindStringSubmatch(m)
+		lead, key, val := sub[1], sub[2], sub[3]
+		if !ValidDate(val) {
+			err = orFirst(err, fmt.Errorf("%s:%s is not a date — write it as %s:2026-09-20", key, val, key))
+			return m
+		}
+		switch key {
+		case "due":
+			if f.DueDate != "" {
+				err = orFirst(err, fmt.Errorf("two due dates: %s and %s", f.DueDate, val))
+				return m
+			}
+			f.DueDate = val
+		case "snooze":
+			if f.SnoozeUntil != "" {
+				err = orFirst(err, fmt.Errorf("two snooze dates: %s and %s", f.SnoozeUntil, val))
+				return m
+			}
+			f.SnoozeUntil = val
+		}
+		return lead
+	})
 
 	prose := tokenRe.ReplaceAllStringFunc(text, func(m string) string {
 		sub := tokenRe.FindStringSubmatch(m)
@@ -208,6 +240,7 @@ func Describe(act *Action) string {
 	f.Duration = act.Duration
 	f.NeedsFocus = act.NeedsFocus
 	f.Parked = act.ProjectID != 0 && act.BecameNextAt == nil
+	f.DueDate, f.SnoozeUntil = act.DueDate, act.SnoozeUntil
 	for _, t := range act.Tags {
 		if t == TodayTag {
 			f.Today = true
@@ -243,6 +276,14 @@ func (f DescFields) String() string {
 	for _, t := range tags {
 		tokens = append(tokens, "#"+t)
 	}
+	// dates last: they are the only tokens that are not a name, and they read
+	// as a tail rather than as one more label
+	if f.DueDate != "" {
+		tokens = append(tokens, "due:"+f.DueDate)
+	}
+	if f.SnoozeUntil != "" {
+		tokens = append(tokens, "snooze:"+f.SnoozeUntil)
+	}
 	line := strings.Join(tokens, " ")
 	switch {
 	case f.Prose == "":
@@ -259,3 +300,7 @@ func atToken(name, param string) string {
 	}
 	return "@" + name + "(" + param + ")"
 }
+
+// Written is Describe as a method, so a template can ask an action for the
+// text it is written in without the web layer assembling it.
+func (a *Action) Written() string { return Describe(a) }

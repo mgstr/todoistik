@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -106,6 +107,56 @@ func (a *App) stringList(query string) ([]string, error) {
 		out = append(out, s)
 	}
 	return out, rows.Err()
+}
+
+// AddTag puts a name on the remembered tag list. Adding is deliberate and
+// separate from using: design.md keeps names off the free-text path so that
+// `#car` and `#Car` cannot drift into two tags (see "Tags"). Idempotent.
+func (a *App) AddTag(tag string) error {
+	tag = normTag(tag)
+	if tag == "" {
+		return errors.New("a tag needs a name")
+	}
+	if !plainName(tag) {
+		return fmt.Errorf("#%s: a tag is letters, digits, - and _", tag)
+	}
+	for _, s := range StructuralTags {
+		if tag == s {
+			return fmt.Errorf("#%s is built in", tag)
+		}
+	}
+	return a.tx(func(tx *sql.Tx) error { return ensureTagTx(tx, tag) })
+}
+
+// AddContext puts a name on the remembered context list, and optionally one
+// parameter value with it.
+func (a *App) AddContext(name, param string) error {
+	name = strings.TrimPrefix(strings.TrimSpace(name), "@")
+	if name == "" {
+		return errors.New("a context needs a name")
+	}
+	if !plainName(name) {
+		return fmt.Errorf("@%s: a context is letters, digits, - and _", name)
+	}
+	if name == WaitingForContext {
+		return fmt.Errorf("@%s is built in", WaitingForContext)
+	}
+	return a.tx(func(tx *sql.Tx) error {
+		return a.rememberContextTx(tx, name, strings.TrimSpace(param))
+	})
+}
+
+// plainName keeps a name to what the notation can carry back out of a written
+// description: a space or a bracket in it would not survive the round trip.
+func plainName(s string) bool {
+	for _, r := range s {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+		default:
+			return false
+		}
+	}
+	return s != ""
 }
 
 // RemoveTag removes a tag from the remembered list. Refused while any item
