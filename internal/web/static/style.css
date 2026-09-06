@@ -305,8 +305,8 @@ body.login form { display: flex; flex-direction: column; gap: .75rem; width: 18r
    name that is not on those lists stays prose — the list is the difference
    between metadata and text, so it belongs beside the syntax, not on another
    screen. */
-.notation { font-size: .85rem; max-width: 34rem; }
-.notation summary { font-weight: 600; color: var(--muted); }
+.notation { font-size: .85rem; }
+.notation h3 { font-size: .95rem; margin: 1rem 0 .25rem; }
 .notation dl { display: grid; grid-template-columns: auto 1fr; gap: .1rem .7rem; margin: .5rem 0; }
 .notation dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); white-space: nowrap; }
 .notation dd { margin: 0; color: var(--muted); }

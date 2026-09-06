@@ -121,6 +121,14 @@
     if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
 
     const view = [];
+    const typed = document.activeElement;
+    if (typed && typed.closest) {
+      const form = typed.closest("form");
+      const btn = form && submitButton(form);
+      if (btn && typing({ target: typed })) {
+        view.push(["^\u21b5", btn.textContent.trim().toLowerCase()]);
+      }
+    }
     const row = selected();
     const zero = document.querySelector("[data-inbox-zero]");
 
@@ -200,6 +208,11 @@
     if (groups.global.length) bar.appendChild(keygroup("kb-global", groups.global));
   }
 
+  // the button a form would submit with, if it has one
+  function submitButton(form) {
+    return form.querySelector("button[type=submit], button:not([type]):not([type=button])");
+  }
+
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
   }
@@ -261,6 +274,19 @@
       return;
     }
     if (typing(e)) {
+      // ctrl-enter (cmd on a mac) submits the form being typed in. Plain Enter
+      // cannot: in a textarea it makes a newline, and the description box is a
+      // textarea — so the one key that finishes a form has to be reachable
+      // from inside it. Derived from the page like everything else: it does
+      // what the form's own submit button does, or nothing.
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        const form = e.target.closest("form");
+        if (form && submitButton(form)) {
+          e.preventDefault();
+          if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        }
+        return;
+      }
       if (e.key === "Escape") { e.target.blur(); return; }
       // j/k cannot live in a text box — the box has to be typeable — so a box
       // with a list under it says so with data-kb-into, and the arrow drops
@@ -358,6 +384,7 @@
   // same thing however you got there
   document.addEventListener("focusin", function (e) {
     if (e.target.classList && e.target.classList.contains("pickerbox")) renderKeybar();
+    else if (e.target.closest && e.target.closest("form")) renderKeybar();
     if (e.target.closest && !e.target.closest("[data-picker]")) {
       const openList = document.querySelector("[data-picker] .pickerlist:not([hidden])");
       if (openList) { openList.hidden = true; renderKeybar(); }

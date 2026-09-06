@@ -37,7 +37,6 @@
     <summary>Add an action</summary>
     <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
       {{template "actionformfields" (dict "Title" "" "Written" "")}}
-      {{template "notation" $d}}
       <button class="primary">Add action</button>
     </form>
   </details>

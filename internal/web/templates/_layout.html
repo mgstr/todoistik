@@ -41,6 +41,7 @@
 {{if .HelpText}}<div id="help" hidden>
 <h2>{{.HelpName}}</h2>
 <p>{{.HelpText}}</p>
+{{if .Notation}}{{template "notation" .Vocab}}{{end}}
 </div>{{end}}
 </body>
 </html>
@@ -88,8 +89,8 @@
      remembered names as well as the notation, because a name that is not on
      that list stays prose, so the list IS the difference between metadata and
      text. */}}
-<details class="notation">
-  <summary>notation</summary>
+<div class="notation">
+  <h3>Writing an action</h3>
   <dl>
     <dt>@name</dt><dd>context — what has to be true before this is possible</dd>
     <dt>@name(parameter)</dt><dd>a context that needs naming, like @person(Marju)</dd>
@@ -107,5 +108,5 @@
   <p class="known"><b>tags</b>
     {{range .Tags}}<span class="badge tag">#{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
   <p class="muted">Anything else keeps its @ or # and stays part of the text.</p>
-</details>
+</div>
 {{end}}

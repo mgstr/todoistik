@@ -34,6 +34,23 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	// Reached only from the Inbox, so it has no nav entry and no slug of its
 	// own to be keyed by — the process page asks for this one explicitly.
 	"process": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. Esc leaves it exactly as it was."},
+
+	// An action's own page sits under no view, so it would have had no panel
+	// at all — but it holds the box an action is written in, and that is what
+	// the panel now explains.
+	"action": {"An action", "one step, and the box below its title is where everything it carries is written."},
+}
+
+// notation asks the ? panel to carry the description notation as well as the
+// view's own line. Set on every screen where an action is written, because
+// that is where the question is asked — and answered in the panel rather than
+// beside the box, so that the one place extra explanation lives is the same
+// place on every screen (implementation.md, "View help").
+func (p *page) notation(s *Server) *page {
+	p.Notation = true
+	p.Vocab.Contexts, _ = s.app.Contexts()
+	p.Vocab.Tags, _ = s.app.Tags()
+	return p
 }
 
 // help overrides the entry newPage picked from the view slug, for a screen
@@ -52,6 +69,8 @@ type page struct {
 	HelpName     string // the view's full name, for the ? panel
 	HelpText     string // what this view is for, for the ? panel
 	Processing   bool   // the nav slot named by View reads "Processing…" instead
+	Notation     bool   // the ? panel also explains how an action is written
+	Vocab        struct{ Contexts, Tags []string }
 	Filters      app.Filters
 	FilterQuery  string // current filter query string (for sort/order links)
 	Hidden       int    // how many items the filters hide
@@ -464,6 +483,9 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		tmpl = "process_project.html"
 	}
 	p := s.newPage("Processing", d.Src, r).help("process")
+	if d.As == "action" {
+		p.notation(s)
+	}
 	p.Processing = true
 	p.Data = d
 	s.render(w, tmpl, p)
@@ -728,7 +750,7 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 	d := &actionPageData{Action: act}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
-	p := s.newPage(act.Title, "", r)
+	p := s.newPage(act.Title, "", r).help("action").notation(s)
 	p.Data = d
 	s.render(w, "action.html", p)
 }
