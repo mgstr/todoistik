@@ -369,7 +369,9 @@ button:disabled:hover { border-color: var(--line); }
   display: inline-flex; align-items: center; gap: .3rem;
   padding: .2rem .3rem .2rem .5rem; border: 1px solid var(--line); border-radius: 999px;
 }
-.cloud .name.builtin { border-style: dashed; }
+/* a built-in has no remove control at all, so it needs the padding back that
+   the control would have occupied, or it sits narrower than its neighbours */
+.cloud .name.builtin { border-style: dashed; padding-right: .5rem; }
 .cloud .name .title { font-size: .9rem; }
 .cloud .name.builtin .title { color: var(--muted); }
 .cloud .badge.count { font-variant-numeric: tabular-nums; }
