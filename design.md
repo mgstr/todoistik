@@ -212,6 +212,7 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 - in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?". The single exception is `#today`
 - tags follow the same rule context names do: from a remembered list, never typed fresh, added deliberately, and removable from the list only while no item carries them - see "Contexts". Writing `#car` in a description makes it a tag only if `car` is on the list. Areas of responsibility are few and stable, so a list that is deliberate to grow costs nothing here
 - `#today` is built in, and so are the tags that are not tags at all but fields wearing a tag's notation: `#short`, `#medium`, `#long`, `#focus` and `#parked`, along with the `@waitingFor` context. None of them can be removed, because removing one would not take away a label - it would take away a field
+- the lists are shown with **how many items carry each name**, built-in ones included. For a built-in that count is not bookkeeping: it is the only place the app says how much of the work is short, how much needs focus, how much is parked - which is a review question, asked where the vocabulary is kept
 
 #### #today
 `#today` marks an action as picked for the day - see "Today". It is an ordinary tag in every respect but one: it expires.
