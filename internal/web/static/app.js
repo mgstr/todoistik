@@ -70,8 +70,6 @@
 
   function setPending(on) {
     gPending = on;
-    const nav = document.querySelector("nav");
-    if (nav) nav.classList.toggle("gpending", on);
     if (on) showHints(); else clearHints();
     renderKeybar();
   }

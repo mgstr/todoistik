@@ -19,7 +19,11 @@ body {
   font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
 }
 /* login.html is a standalone page and centres itself, so it stays out of this */
-body:not(.login) { display: flex; flex-direction: column; height: 100dvh; }
+body:not(.login) { display: flex; height: 100dvh; }
+/* everything that is not the rail. The key bar lives in here rather than
+   under the rail, so its left edge lines up with the content whose keys it is
+   listing rather than with the navigation */
+.pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
 nav, #keybar, .error-banner { flex: 0 0 auto; }
 /* min-height:0 is what lets a flex child actually scroll instead of stretching */
 main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
@@ -29,25 +33,52 @@ main { padding: var(--main-pad-top) max(1.25rem, calc(50% - 31rem)) 2rem; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* A rail down the left rather than a bar across the top. Main caps its column
+   at 62rem and the rail is 11.5rem, so above about 76rem of window the rail is
+   free — it spends margin that was already empty — and it hands back the 3rem
+   of height the bar took off every list, which is the axis every view here is
+   short of. Below that width it is a straight trade of width for height, and
+   below about 48rem it does not work at all: see design.md, "Design
+   principles", for why there is no second layout, and
+   research/left-nav-study.html for the variants this was chosen from. */
 nav {
-  display: flex; flex-wrap: wrap; gap: .55rem .15rem; align-items: center;
-  /* the top padding and the row gap leave room for the "g" hint badges */
-  padding: .75rem .75rem .4rem; border-bottom: 1px solid var(--line);
-  position: relative; background: var(--bg); z-index: 5;
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: .05rem; flex: 0 0 11.5rem;
+  padding: .6rem .5rem; border-right: 1px solid var(--line);
+  background: var(--bg); overflow-y: auto; z-index: 5;
 }
-nav a, nav .addnew { position: relative; padding: .25rem .5rem; border-radius: 6px; font-size: .92rem; line-height: 1.45; }
+/* the left gutter is permanently empty because it belongs to the "g" hints */
+nav a, nav .addnew {
+  position: relative; display: flex; align-items: center; gap: .4rem;
+  padding: .28rem .5rem .28rem 1.55rem; border-radius: 6px;
+  font-size: .92rem; line-height: 1.45; white-space: nowrap;
+}
 nav a { color: var(--fg); }
 nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
 nav a.alert { color: var(--danger); font-weight: 700; }
 nav a.on.alert { background: var(--select); }
-/* the count is a marker on the view, not a second word in its name: an
-   outlined pill in the corner, iPhone-style. Sitting outside the flow also
-   stops a changing count from shifting every label after it. Red still means
-   only "the inbox needs emptying" and the accent still means only "this is
-   the view you are on" — a filled badge on all ten would have spent both. */
+/* The five kinds of place the thirteen views are. A row could only imply this
+   by adjacency; a column has the room to say it. The rule above a caption is
+   what keeps it read as the start of a group rather than as a heading over
+   everything below it. */
+nav .grp {
+  padding: .55rem .5rem .15rem 1.55rem;
+  font: 600 .62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+nav .grp:not(:first-of-type) {
+  border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .5rem;
+}
+/* the count is a marker on the view, not a second word in its name — and a
+   rail row has a right edge of its own to put it on, so it sits inline and
+   pushed right. The corner was what a horizontal bar forced: there an inline
+   count read as more of the label, and shifted every label after it whenever
+   the number changed. Rows one fixed width wide have neither problem. Red
+   still means only "the inbox needs emptying" and the accent still means only
+   "this is the view you are on" — a filled badge on all ten would spend both. */
 nav .badge.navcount {
-  position: absolute; top: -.35rem; right: -.4rem;
-  min-width: 1.1rem; height: 1.1rem; padding: 0 .28rem;
+  margin-left: auto;
+  min-width: 1.15rem; height: 1.1rem; padding: 0 .3rem;
   border: 1px solid var(--line); border-radius: 999px;
   background: var(--badge-bg); color: var(--muted);
   font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
@@ -55,9 +86,11 @@ nav .badge.navcount {
 }
 nav a.alert .badge.navcount { background: var(--danger); border-color: var(--danger); color: #fff; }
 nav a.on .badge.navcount { border-color: var(--accent); color: var(--accent); }
-/* the jump letters land in this same strip, so they get it to themselves:
-   while g is held you are choosing a destination, not reading counts */
-nav.gpending .badge.navcount { visibility: hidden; }
+/* on the Inbox's own row both marks are live at once, and the alert wins the
+   badge as it already wins the label: standing on the view is not the same as
+   having emptied it. Without this the accent rule below wins on order alone
+   and paints the number accent-on-red, which is a count you cannot read. */
+nav a.on.alert .badge.navcount { border-color: var(--danger); color: #fff; }
 
 h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
 h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
@@ -226,8 +259,8 @@ summary { cursor: pointer; font-weight: 600; }
    short by the 1px border a nav link does not have, so both boxes end up the
    same height */
 nav .addnew {
-  margin-right: .35rem;
-  padding: calc(.25rem - 1px) calc(.5rem - 1px);
+  justify-content: center; margin: 0 0 .35rem;
+  padding: calc(.28rem - 1px) calc(.5rem - 1px);
   border: 1px solid var(--line);
   background: var(--badge-bg); color: var(--muted); font-weight: 700;
 }
@@ -251,13 +284,12 @@ nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
   border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px;
 }
 
-/* the + has a border, which insets the padding box its hint anchors to, so
-   the hint needs that pixel back to line up with the borderless nav links */
-nav .addnew .ghint { top: calc(-.62rem - 1px); }
-
-/* Vimium-style jump hints: "g" pins the key onto each nav destination */
+/* Vimium-style jump hints: "g" pins the key onto each nav destination. They
+   sit in the row's own left gutter, vertically centred: stacked rows leave no
+   gap above a label to hang a hint in, and the gutter is space nothing else
+   wants — so unlike the top bar, nothing has to move or blank to make room. */
 .ghint {
-  position: absolute; top: -.62rem; left: 0; z-index: 20;
+  position: absolute; top: 50%; left: .18rem; transform: translateY(-50%); z-index: 20;
   padding: 0 .3rem; border-radius: 4px;
   font: 700 .68rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-transform: uppercase; letter-spacing: .02em;
