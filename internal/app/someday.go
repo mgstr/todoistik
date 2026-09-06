@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -130,11 +131,32 @@ func (a *App) ProcessTwoMinute(src string, id int64) error {
 	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, src, id, EvTwoMinute) })
 }
 
-// ProcessAction: the item becomes a standalone action (or a waiting-for one
-// when assignedTo is set). Deciding it is worth doing is what makes it next.
-func (a *App) ProcessAction(src string, id int64, f ActionFields) (*Action, error) {
+// ProcessAction: the item becomes an action, standalone when projectID is 0
+// and filed under that project otherwise (design.md, "Inbox Zero", the Action
+// branch). Deciding it is worth doing is what makes it next, so it is stamped
+// as a next action either way unless it is deliberately parked — which only
+// an action inside a project can be.
+//
+// A stalled or a snoozed project is a valid target: filing a next action into
+// a stalled project is exactly what resolves the stall, and a project's snooze
+// is about not being bugged, not about being closed to new work. A completed
+// one is not — it is finished, and reopening it is not a decision to make
+// while emptying the inbox.
+func (a *App) ProcessAction(src string, id int64, f ActionFields, projectID int64, parked bool) (*Action, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
+	}
+	if parked && projectID == 0 {
+		return nil, errors.New("only an action inside a project can be parked")
+	}
+	if projectID != 0 {
+		p, err := a.Project(projectID)
+		if err != nil {
+			return nil, err
+		}
+		if p.CompletedAt != nil {
+			return nil, errors.New("that project is completed; it can not take a new action")
+		}
 	}
 	var act *Action
 	err := a.tx(func(tx *sql.Tx) error {
@@ -143,11 +165,15 @@ func (a *App) ProcessAction(src string, id int64, f ActionFields) (*Action, erro
 		}
 		now := a.now().UTC()
 		act = &Action{
-			Title: f.Title, Context: f.Context, ContextParam: f.ContextParam,
+			ProjectID: projectID,
+			Title:     f.Title, Context: f.Context, ContextParam: f.ContextParam,
 			Duration: f.Duration, NeedsFocus: f.NeedsFocus,
 			Description: f.Description, AssignedTo: strings.TrimSpace(f.AssignedTo),
 			DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil, Tags: normTags(f.Tags),
-			CreatedAt: now, LastReviewedAt: now, BecameNextAt: &now,
+			CreatedAt: now, LastReviewedAt: now,
+		}
+		if !parked {
+			act.BecameNextAt = &now
 		}
 		return a.insertActionTx(tx, act)
 	})

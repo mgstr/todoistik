@@ -382,3 +382,101 @@ func TestTagListManagement(t *testing.T) {
 		t.Fatalf("removing an unused tag should work: %v", err)
 	}
 }
+
+// The Action branch of Inbox Zero can file into an existing project, and the
+// name that picks one out is matched the way the name filter matches.
+func TestProcessActionIntoProject(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, err := a.CreateProject(ProjectFields{Title: "Winter-proof the car", DOD: "car survives winter"},
+		[]ActionFields{{Title: "Check the battery"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, _ := a.CreateProject(ProjectFields{Title: "Sail licence", DOD: "licence in hand"},
+		[]ActionFields{{Title: "Book the exam"}})
+	if err := a.CompleteAction(done.Actions[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.CompleteProject(done.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	// matched on the title, and every word must appear — "winter car" hits
+	// the one project, "sail" hits none because a completed one is not active
+	if hits, _ := a.MatchProjects("winter car"); len(hits) != 1 || hits[0].ID != p.ID {
+		t.Fatalf("matching a project by name: got %d hits", len(hits))
+	}
+	if hits, _ := a.MatchProjects("sail"); len(hits) != 0 {
+		t.Fatalf("a completed project is not a target: got %d hits", len(hits))
+	}
+	if hits, _ := a.MatchProjects("   "); len(hits) != 0 {
+		t.Fatal("an empty name means standalone, not every project")
+	}
+
+	it, _, _ := a.Capture("Book the winter tyre change")
+	act, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if act.ProjectID != p.ID {
+		t.Fatalf("action landed on project %d, want %d", act.ProjectID, p.ID)
+	}
+	if act.BecameNextAt == nil {
+		t.Fatal("an action filed into a project is its next action unless parked")
+	}
+	if items, _ := a.Inbox(); len(items) != 0 {
+		t.Fatal("the branch must consume the inbox item")
+	}
+}
+
+// Parking is the deliberate act, and it is only meaningful inside a project.
+func TestProcessActionParkedAndStandalone(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Kitchen renovation", DOD: "kitchen usable"},
+		[]ActionFields{{Title: "Measure the wall"}})
+
+	it, _, _ := a.Capture("Price the worktop")
+	act, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Price the worktop"}, p.ID, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if act.BecameNextAt != nil {
+		t.Fatal("a parked action is not a next action")
+	}
+
+	it2, _, _ := a.Capture("Pay the rent")
+	if _, err := a.ProcessAction("inbox", it2.ID, ActionFields{Title: "Pay the rent"}, 0, true); err == nil {
+		t.Fatal("parking a standalone action must be refused")
+	}
+	if items, _ := a.Inbox(); len(items) != 1 {
+		t.Fatal("a refused branch must leave the item in the inbox")
+	}
+	act2, err := a.ProcessAction("inbox", it2.ID, ActionFields{Title: "Pay the rent"}, 0, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if act2.ProjectID != 0 || act2.BecameNextAt == nil {
+		t.Fatal("a standalone action is a next action from the moment it exists")
+	}
+}
+
+// A completed project can not take a new action; a snoozed one can, because a
+// snooze is about not being bugged, not about being closed to new work.
+func TestProcessActionRejectsCompletedProject(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Q3 accounts", DOD: "filed"},
+		[]ActionFields{{Title: "Collect receipts"}})
+	if err := a.CompleteAction(p.Actions[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.CompleteProject(p.ID); err != nil {
+		t.Fatal(err)
+	}
+	it, _, _ := a.Capture("File the VAT return")
+	if _, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "File the VAT return"}, p.ID, false); err == nil {
+		t.Fatal("a completed project must not take a new action")
+	}
+	if items, _ := a.Inbox(); len(items) != 1 {
+		t.Fatal("a refused branch must leave the item in the inbox")
+	}
+}

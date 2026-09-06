@@ -356,6 +356,32 @@ func (a *App) ProjectList(f Filters) ([]*Project, error) {
 	return a.projectsWhere(`completed_at IS NULL`, f, false)
 }
 
+// MatchProjects: the active projects a typed name picks out, by the rule the
+// name filter uses — every whitespace-separated word a case-insensitive
+// substring (design.md, "Filtering by name"). Matched on the title alone,
+// unlike ProjectList's filter, which also looks inside a project's actions:
+// that is right when you are searching for a project and wrong when you are
+// naming the one an action should join, where a stray match on some action's
+// wording would file it somewhere you never named. Empty picks out nothing —
+// a standalone action is what an empty box means, not "every project".
+func (a *App) MatchProjects(q string) ([]*Project, error) {
+	if strings.TrimSpace(q) == "" {
+		return nil, nil
+	}
+	all, err := a.ProjectList(Filters{})
+	if err != nil {
+		return nil, err
+	}
+	var hits []*Project
+	for _, p := range all {
+		if matchName(q, p.Title) {
+			hits = append(hits, p)
+		}
+	}
+	sort.Slice(hits, func(i, j int) bool { return hits[i].Title < hits[j].Title })
+	return hits, nil
+}
+
 func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project, error) {
 	rows, err := a.db.Query(`SELECT id, title, dod, description, created_at, last_reviewed_at, snooze_until, completed_at
 		FROM projects WHERE ` + where)

@@ -453,7 +453,7 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 	case "twominute":
 		err = s.app.ProcessTwoMinute(src, id)
 	case "action", "delegate":
-		_, err = s.app.ProcessAction(src, id, actionFieldsFromForm(r, ""))
+		_, err = s.app.ProcessAction(src, id, actionFieldsFromForm(r, ""), 0, false)
 	case "project":
 		pf, actions := projectFieldsFromForm(r)
 		_, err = s.app.ProcessProject(src, id, pf, actions)
