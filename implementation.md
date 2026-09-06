@@ -344,6 +344,28 @@ One rule, applied wherever something is made:
   so the bar and the button never disagree and neither has to be re-checked
   against the other
 
+## The remembered lists
+
+The Settings page is where a name is learned and unlearned. Both lists are
+shown as clouds rather than rows: a vocabulary is read as a set, and a set of
+short names in a column wastes a screen saying nothing.
+
+- **every name carries its count**, built-in ones included. The count comes
+  from wherever the name actually lives, which for a built-in is a column
+  rather than the tag table — `#short` counts actions whose duration is short,
+  `#parked` counts open actions in a project with no `becameNextActionAt`.
+  design.md says why that is worth showing rather than merely possible
+- **built-in names are drawn differently and never removable**: dashed outline,
+  muted, with the reason on the control. They are fields wearing a name
+- **removal is disabled, not hidden**, the same rule create buttons follow (see
+  "Create buttons"). A control that is there and dim can say *why* — still
+  carried by 3 items, or built in — where a missing one says nothing, and the
+  question "why can I not delete this?" is exactly the one being asked
+- **the server refuses independently.** A disabled button is a hint; the domain
+  checks both conditions itself. This mattered: a structural name is carried by
+  no row in `item_tags`, so the in-use check alone would have passed it and the
+  delete would have quietly done nothing at all
+
 ## Interface density
 
 The first working version rendered every view's filter controls open, all the time, on every page — which meant scanning past a wall of checkboxes and selects to find the list itself. The fix is progressive disclosure on the filter controls, not on the item rows.
