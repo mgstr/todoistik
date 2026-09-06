@@ -572,6 +572,11 @@ box and the columns behind it.
 - **the written line has a fixed order** — context, waiting-for, size, focus,
   parked, today, tags, then the dates. It is pinned by a test, because a codec
   that reorders on every save would churn the field forever
+- **the box carries no placeholder.** This app has one user, who wrote the
+  spec: there is no first pass to onboard and no stranger to reassure, so a
+  line of instruction under a control is read for the hundredth time by the
+  person who decided the behaviour. Explanation goes in the `?` panel, which
+  is opt-in, or nowhere
 - **the notation is documented in the `?` panel**, not beside the box. Extra
   explanation has one home in this app, and a fold under the field was a second
   one — a screen that answers "how does this work?" in two places has neither
