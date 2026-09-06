@@ -1,8 +1,10 @@
 {{template "top" .}}
 {{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
 <div class="process" data-cancel="{{if eq $d.Src "someday"}}/someday{{else}}/inbox{{end}}">
-  <h1 class="capture-text">{{$d.Text}}</h1>
-  <p class="muted">captured {{age $d.CreatedAt}}</p>
+  <div class="subject">
+    <h1 class="capture-text">{{$d.Text}}</h1>
+    <p class="cap">captured {{age $d.CreatedAt}}</p>
+  </div>
 
   <div class="branches">
     <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash{{$q}}" class="inline">

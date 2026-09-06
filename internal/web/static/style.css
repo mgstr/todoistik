@@ -160,7 +160,14 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .actionsbar { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; align-items: center; }
 
 .process { max-width: 40rem; margin: 2rem auto; }
-.capture-text { font-size: 1.5rem; }
+/* the captured line is what the screen is about, and every control around it
+   is a bordered, filled button — so unboxed text loses to its own menu. The
+   mark is a quotation rule rather than a card: another box would be a fifth
+   boxed thing on a screen made of boxes, and it would read as a control. The
+   accent is free to spend here, being the only one on the screen. */
+.process .subject { border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .8rem; margin: .8rem 0 .2rem; }
+.capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; }
+.process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
 .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
 details { margin: .6rem 0; border: 1px solid var(--line); border-radius: 8px; padding: .4rem .75rem; }
 summary { cursor: pointer; font-weight: 600; }
