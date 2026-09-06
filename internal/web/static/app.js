@@ -151,6 +151,7 @@
     // opening an inbox item is processing it, so the two keys share a label
     if (row.hasAttribute("data-process")) into.push(["\u21b5 p", "process"]);
     else if (row.dataset.href) into.push(["\u21b5", "open"]);
+    else if (row.querySelector("input[type=radio]")) into.push(["\u21b5", "pick"]);
     if (row.querySelector("form.kb-complete")) into.push(["c", "done"]);
     if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
   }
@@ -192,6 +193,10 @@
     if (row) {
       row.classList.add("kb-selected");
       row.scrollIntoView({ block: "nearest" });
+      // a row that is a choice keeps focus with the selection, so tabbing and
+      // j/k end up in the same place rather than disagreeing about where you are
+      const radio = row.querySelector("input[type=radio]");
+      if (radio && radio !== document.activeElement) radio.focus();
     }
     renderKeybar();
   }
@@ -210,9 +215,16 @@
     if (form) form.submit();
   }
 
+  // Only a field you can put text into counts as typing. A radio or a
+  // checkbox is an <input> too, and treating those as typing meant that
+  // tabbing onto one silently killed j/k/c/t — a bug everywhere, and fatal to
+  // a list whose rows carry radios.
+  const TEXTISH = /^(text|search|url|tel|email|password|number|date|month|week|time|datetime-local)$/;
   function typing(e) {
     const t = e.target;
-    return t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable);
+    if (!t) return false;
+    if (t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable) return true;
+    return t.tagName === "INPUT" && TEXTISH.test(t.type || "text");
   }
 
   document.addEventListener("keydown", function (e) {
@@ -228,7 +240,14 @@
       return;
     }
     if (typing(e)) {
-      if (e.key === "Escape") e.target.blur();
+      if (e.key === "Escape") { e.target.blur(); return; }
+      // j/k cannot live in a text box — the box has to be typeable — so a box
+      // with a list under it says so with data-kb-into, and the arrow drops
+      // into the list, where j/k do live
+      if (e.key === "ArrowDown" && e.target.hasAttribute("data-kb-into")) {
+        const first = rows()[0];
+        if (first) { e.preventDefault(); select(first); }
+      }
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -255,9 +274,12 @@
       case "j": e.preventDefault(); move(1); break;
       case "k": e.preventDefault(); move(-1); break;
       case "Enter":
-      case "o":
+      case "o": {
+        const radio = row && row.querySelector("input[type=radio]");
+        if (radio) { e.preventDefault(); radio.checked = true; renderKeybar(); break; }
         if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
         break;
+      }
       case "p":
         if (row && row.hasAttribute("data-process") && row.dataset.href) {
           e.preventDefault();
@@ -310,6 +332,13 @@
     if (!row || e.target.closest("a, button, input, select, textarea, label")) return null;
     return row;
   }
+
+  // reaching a choice with Tab selects its row, so focus and selection say the
+  // same thing however you got there
+  document.addEventListener("focusin", function (e) {
+    const row = e.target.closest && e.target.closest("[data-kb-row]");
+    if (row && e.target.type === "radio" && !row.classList.contains("kb-selected")) select(row);
+  });
 
   // a click or a lost window abandons a half-typed "g" sequence
   document.addEventListener("click", function (e) {
