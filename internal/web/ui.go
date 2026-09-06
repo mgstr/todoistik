@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"sort"
@@ -324,75 +325,152 @@ type processData struct {
 	CreatedAt time.Time
 	Remaining int
 	One       bool // processing one named item, not working down the inbox
-	Contexts  []string
-	Tags      []string
+
+	// stage two: the branch has been chosen and the form for it is up.
+	// Empty As is stage one, the question itself.
+	As        string
+	Vals      url.Values     // what the fields show — seeded on the way in, echoed back on a bounce
+	Hits      []*app.Project // the name matched several projects; which one was meant?
+	NeedDOD   bool           // the name matched none, so the project would be a new one
+	Note      string         // why the form came back instead of being accepted
+	Projects  []*app.Project // every active project, for the name box's datalist
+	Back      string         // stage one for this item — where "back" and esc go
+	AsAction  string
+	AsProject string
+	Q         string // "?one=1" when a single picked item, to be carried by the form
+
+	Contexts []string
+	Tags     []string
 }
 
-func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
-	src := r.URL.Query().Get("src")
-	if src == "" {
-		src = "inbox"
-	}
-	d := &processData{Src: src}
-	d.Contexts, _ = s.app.Contexts()
-	d.Tags, _ = s.app.Tags()
+// processItem loads the item a processing screen is about: the named one, or
+// the oldest when the Inbox Zero run is working down the list. A nil item with
+// no error means the inbox is empty and the run is over.
+func (s *Server) processItem(src string, id int64) (*processData, error) {
+	d := &processData{Src: src, ID: id}
 	switch src {
 	case "inbox":
 		items, err := s.app.Inbox()
 		if err != nil {
-			httpError(w, err)
-			return
+			return nil, err
 		}
-		// ?item= names one item: p on a selected row, rather than the Inbox
-		// Zero run, which always takes the oldest and comes back for the next.
-		if want := int64Query(r, "item"); want != 0 {
-			var it *app.InboxItem
+		if len(items) == 0 {
+			return nil, nil
+		}
+		it := items[0]
+		if id != 0 {
+			it = nil
 			for _, cand := range items {
-				if cand.ID == want {
+				if cand.ID == id {
 					it = cand
 					break
 				}
 			}
 			if it == nil {
-				// already processed, in this tab or another one
-				http.Redirect(w, r, "/inbox", http.StatusSeeOther)
-				return
+				return nil, nil // processed already, in another tab or by a back button
 			}
-			d.One = true
-			d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, len(items)
-			break
 		}
-		if len(items) == 0 {
-			p := s.newPage("Inbox Zero", "inbox", r)
-			s.render(w, "process_done.html", p)
-			return
-		}
-		it := items[0]
 		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, len(items)
 	case "someday":
-		id := int64Query(r, "item")
 		it, err := s.app.SomedayItem(id)
 		if err != nil {
-			httpError(w, err)
-			return
+			return nil, err
 		}
 		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, 1
 	default:
-		http.NotFound(w, r)
+		return nil, fmt.Errorf("unknown source %q", src)
+	}
+	return d, nil
+}
+
+// links fills in the URLs the screen needs, now that the item is known. They
+// are built here rather than in the template because they all carry the same
+// two facts — which item, and whether this is a run or one picked item — and a
+// template assembling that four times is four places for it to drift.
+func (d *processData) links() {
+	one := ""
+	if d.One {
+		one = "&one=1"
+		d.Q = "?one=1"
+	}
+	base := fmt.Sprintf("/process?src=%s&item=%d", url.QueryEscape(d.Src), d.ID)
+	d.Back = base + one
+	d.AsAction = base + "&as=action" + one
+	d.AsProject = base + "&as=project" + one
+}
+
+func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	src := q.Get("src")
+	if src == "" {
+		src = "inbox"
+	}
+	d, err := s.processItem(src, int64Query(r, "item"))
+	if err != nil {
+		httpError(w, err)
 		return
 	}
-	// the nav slot is the one the item came from, and it says so: while the
-	// screen is up that entry reads "Processing…" — see implementation.md,
-	// "Navigation"
-	p := s.newPage("Processing", src, r).help("process")
+	if d == nil {
+		if src == "someday" || int64Query(r, "item") != 0 {
+			// the item was decided about already; the list is the honest answer
+			http.Redirect(w, r, listFor(src), http.StatusSeeOther)
+			return
+		}
+		s.render(w, "process_done.html", s.newPage("Inbox Zero", "inbox", r))
+		return
+	}
+	d.One = q.Get("one") != ""
+	d.As = q.Get("as")
+	d.links()
+	d.Vals = url.Values{}
+	switch d.As {
+	case "action":
+		d.Vals.Set("title", d.Text)
+	case "project":
+		d.Vals.Set("ptitle", d.Text)
+		d.Vals.Set("paction", "")
+	default:
+		d.As = ""
+	}
+	s.renderProcess(w, r, d)
+}
+
+// renderProcess picks the template the stage calls for and fills in the two
+// lists stage two needs. One place, so a form that bounces back comes up
+// identical to the one that was submitted.
+func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *processData) {
+	if d.As != "" {
+		d.Contexts, _ = s.app.Contexts()
+		d.Tags, _ = s.app.Tags()
+		d.Projects, _ = s.app.ProjectList(app.Filters{})
+	}
+	tmpl := "process.html"
+	switch d.As {
+	case "action":
+		tmpl = "process_action.html"
+	case "project":
+		tmpl = "process_project.html"
+	}
+	p := s.newPage("Processing", d.Src, r).help("process")
 	p.Processing = true
 	p.Data = d
-	s.render(w, "process.html", p)
+	s.render(w, tmpl, p)
+}
+
+func listFor(src string) string {
+	if src == "someday" {
+		return "/someday"
+	}
+	return "/inbox"
 }
 
 func int64Query(r *http.Request, key string) int64 {
+	return parseID(r.URL.Query().Get(key))
+}
+
+func parseID(s string) int64 {
 	var id int64
-	for _, c := range r.URL.Query().Get(key) {
+	for _, c := range s {
 		if c < '0' || c > '9' {
 			return 0
 		}
@@ -404,7 +482,7 @@ func int64Query(r *http.Request, key string) int64 {
 func actionFieldsFromForm(r *http.Request, prefix string) app.ActionFields {
 	get := func(k string) string { return strings.TrimSpace(r.FormValue(prefix + k)) }
 	ctx, param := splitContextInput(get("context"))
-	return app.ActionFields{
+	f := app.ActionFields{
 		Title:        get("title"),
 		Context:      ctx,
 		ContextParam: param,
@@ -416,6 +494,16 @@ func actionFieldsFromForm(r *http.Request, prefix string) app.ActionFields {
 		SnoozeUntil:  get("snooze"),
 		Tags:         strings.Fields(get("tags")),
 	}
+	// "who" is a two-state control, and switching it back to "I do it" must
+	// leave nothing behind: the name box keeps its text when it is hidden, and
+	// a leftover name would otherwise file a waiting-for action nobody asked
+	// for. Only forms that carry the control are affected — a form with a bare
+	// "assigned to" field, like the action editor, has no "who" key and is
+	// read exactly as before.
+	if _, carries := r.Form[prefix+"who"]; carries && get("who") != "them" {
+		f.AssignedTo = ""
+	}
+	return f
 }
 
 func splitContextInput(s string) (name, param string) {
@@ -434,12 +522,36 @@ func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFiel
 		Tags:        strings.Fields(r.FormValue("ptags")),
 	}
 	var actions []app.ActionFields
-	for _, t := range r.Form["paction"] {
-		if t = strings.TrimSpace(t); t != "" {
-			actions = append(actions, app.ActionFields{Title: t})
+	for i, t := range r.Form["paction"] {
+		if t = strings.TrimSpace(t); t == "" {
+			continue
 		}
+		af := app.ActionFields{Title: t}
+		// only the first action carries a "who": it is the one the screen
+		// shows a control for, and a project's next action is the one whose
+		// owner is worth deciding while the project is being written
+		if i == 0 && r.FormValue("pwho") == "them" {
+			af.AssignedTo = strings.TrimSpace(r.FormValue("passigned"))
+		}
+		actions = append(actions, af)
 	}
 	return pf, actions
+}
+
+// bounce sends a stage-two form back to the screen instead of accepting it,
+// carrying everything that was typed plus the reason. Nothing is written and
+// the item is untouched, so this is the same non-answer as leaving.
+func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id int64, as, note string, hits []*app.Project, needDOD bool) {
+	d, err := s.processItem(src, id)
+	if err != nil || d == nil {
+		http.Redirect(w, r, listFor(src), http.StatusSeeOther)
+		return
+	}
+	d.One = r.URL.Query().Get("one") != ""
+	d.As, d.Note, d.Hits, d.NeedDOD = as, note, hits, needDOD
+	d.Vals = r.Form
+	d.links()
+	s.renderProcess(w, r, d)
 }
 
 func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
@@ -452,8 +564,10 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 		err = s.app.ProcessReference(src, id)
 	case "twominute":
 		err = s.app.ProcessTwoMinute(src, id)
-	case "action", "delegate":
-		_, err = s.app.ProcessAction(src, id, actionFieldsFromForm(r, ""), 0, false)
+	case "action":
+		if done := s.processActionBranch(w, r, src, id); !done {
+			return
+		}
 	case "project":
 		pf, actions := projectFieldsFromForm(r)
 		_, err = s.app.ProcessProject(src, id, pf, actions)
@@ -481,6 +595,63 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/process", http.StatusSeeOther)
+}
+
+// processActionBranch resolves the one field on the action form that can not
+// be settled by reading it: the project name. Empty means standalone; a name
+// matching exactly one active project files it there; a name matching several
+// asks which; a name matching none offers to create that project, with this
+// action as its first. It reports whether the branch was settled — false means
+// the form has already been sent back and there is nothing left to redirect.
+func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
+	f := actionFieldsFromForm(r, "")
+	parked := r.FormValue("park") != ""
+	if pid := parseID(strings.TrimSpace(r.FormValue("projectid"))); pid != 0 {
+		if _, err := s.app.ProcessAction(src, id, f, pid, parked); err != nil {
+			httpError(w, err)
+			return false
+		}
+		return true
+	}
+	name := strings.TrimSpace(r.FormValue("project"))
+	if name == "" {
+		// a standalone action is a next action from the moment it exists,
+		// so there is nothing for park to mean here
+		if _, err := s.app.ProcessAction(src, id, f, 0, false); err != nil {
+			httpError(w, err)
+			return false
+		}
+		return true
+	}
+	hits, err := s.app.MatchProjects(name)
+	if err != nil {
+		httpError(w, err)
+		return false
+	}
+	switch {
+	case len(hits) == 1:
+		if _, err := s.app.ProcessAction(src, id, f, hits[0].ID, parked); err != nil {
+			httpError(w, err)
+			return false
+		}
+		return true
+	case len(hits) > 1:
+		s.bounce(w, r, src, id, "action",
+			"That name matches more than one active project. Pick the one you meant.", hits, false)
+		return false
+	}
+	dod := strings.TrimSpace(r.FormValue("dod"))
+	if dod == "" {
+		s.bounce(w, r, src, id, "action",
+			"No active project matches that name. Give it a definition of done to create it, or clear the box to leave the action standalone.", nil, true)
+		return false
+	}
+	if _, err := s.app.ProcessProject(src, id, app.ProjectFields{Title: name, DOD: dod},
+		[]app.ActionFields{f}); err != nil {
+		httpError(w, err)
+		return false
+	}
+	return true
 }
 
 // --- actions -------------------------------------------------------------

@@ -1,0 +1,47 @@
+{{template "top" .}}
+{{$d := .Data}}
+<div class="process" data-cancel="{{$d.Back}}">
+  <div class="subject">
+    <h1 class="capture-text">{{$d.Text}}</h1>
+    <p class="cap">captured {{age $d.CreatedAt}}</p>
+  </div>
+
+  {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
+
+  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack">
+    <label>Title <input name="ptitle" value="{{$d.Vals.Get "ptitle"}}" required
+      placeholder="A reference to the outcome, not what to do"></label>
+
+    <label>Definition of done <textarea name="dod" rows="2" required
+      placeholder="How you will know it is done">{{$d.Vals.Get "dod"}}</textarea></label>
+
+    <label>First action <input name="paction" value="{{$d.Vals.Get "paction"}}" required
+      placeholder="Becomes the next action"></label>
+
+    <div class="who">
+      <span class="lbl">Who</span>
+      <input type="radio" name="pwho" id="pwho-me" value="me" {{if ne ($d.Vals.Get "pwho") "them"}}checked{{end}}>
+      <label class="seg" for="pwho-me">I do it</label>
+      <input type="radio" name="pwho" id="pwho-them" value="them" {{if eq ($d.Vals.Get "pwho") "them"}}checked{{end}}>
+      <label class="seg" for="pwho-them">Someone else</label>
+      <input class="whobox" name="passigned" value="{{$d.Vals.Get "passigned"}}" placeholder="who or what">
+    </div>
+
+    <label>More actions <input name="paction"></label>
+    <label>&nbsp;<input name="paction"></label>
+
+    <details>
+      <summary>more</summary>
+      <div class="stack">
+        <label>Description <textarea name="pdescription" rows="2">{{$d.Vals.Get "pdescription"}}</textarea></label>
+        <label>Tags <input name="ptags" value="{{$d.Vals.Get "ptags"}}" placeholder="#house"></label>
+      </div>
+    </details>
+
+    <div class="branches">
+      <button class="primary">Create project</button>
+      <a class="button" href="{{$d.Back}}">Back</a>
+    </div>
+  </form>
+</div>
+{{template "bottom" .}}

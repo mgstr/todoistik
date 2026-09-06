@@ -2,7 +2,7 @@
 {{if not .Data}}<p class="empty">Inbox zero. Nothing to decide about.</p>{{end}}
 <ul class="list"{{if .Data}} data-inbox-zero="/process"{{end}}>
 {{range .Data}}
-  <li class="row" data-kb-row data-href="/process?item={{.ID}}" data-process>
+  <li class="row" data-kb-row data-href="/process?item={{.ID}}&one=1" data-process>
     <span class="title">{{.Text}}</span>
     <span class="age">{{age .CreatedAt}}</span>
   </li>
