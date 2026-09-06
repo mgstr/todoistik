@@ -33,12 +33,11 @@
   {{end}}
   </ul>
 
-  <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
   <details {{if $d.Ask}}open{{end}}>
     <summary>Add an action</summary>
     <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
-      {{template "actionformfields" (dict "Title" "" "Duration" "" "Description" "" "Tags" "" "AssignedTo" "" "DueDate" "" "SnoozeUntil" "" "NeedsFocus" false "ContextLabel" "")}}
-      <label class="inline-label"><input type="checkbox" name="parked"> parked (written down in advance, not next)</label>
+      {{template "actionformfields" (dict "Title" "" "Written" "")}}
+      {{template "notation" $d}}
       <button class="primary">Add action</button>
     </form>
   </details>

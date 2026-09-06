@@ -1,7 +1,12 @@
 {{template "top" .}}
 <div class="item">
   <h2>Tags</h2>
-  <p class="muted">The remembered list. A tag still carried by items can not be removed.</p>
+  <p class="muted">The remembered list. A name has to be here before writing it in a
+  description means anything — that is what stops #car and #Car becoming two tags.
+  A tag still carried by items can not be removed.</p>
+  <form method="post" action="/settings/tags/add" class="addname">
+    <input name="name" placeholder="car" required><button>Add tag</button>
+  </form>
   <ul class="list">
   {{range .Data.Tags}}
     <li class="row"><span class="title">#{{.}}</span>
@@ -14,6 +19,10 @@
 
   <h2>Contexts</h2>
   <p class="muted">Context names and their remembered parameter values.</p>
+  <form method="post" action="/settings/contexts/add" class="addname">
+    <input name="name" placeholder="home" required>
+    <input name="param" placeholder="parameter (optional)"><button>Add context</button>
+  </form>
   <ul class="list">
   {{range .Data.Contexts}}
     <li class="row"><span class="title">@{{.Name}}</span>

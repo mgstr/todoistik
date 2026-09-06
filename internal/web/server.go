@@ -251,6 +251,7 @@ func (s *Server) routes() {
 
 	// settings: tag / context list management
 	m.HandleFunc("GET /settings", s.settingsPage)
+	m.HandleFunc("POST /settings/{kind}/add", s.settingsAdd)
 	m.HandleFunc("POST /settings/{kind}/remove", s.settingsRemove)
 }
 

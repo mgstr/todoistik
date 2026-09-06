@@ -6,20 +6,9 @@
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
-  <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
-
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action{{$d.Q}}" class="stack">
-    <div class="who">
-      <span class="lbl">Who</span>
-      <input type="radio" name="who" id="who-me" value="me" {{if ne ($d.Vals.Get "who") "them"}}checked{{end}}>
-      <label class="seg" for="who-me">I do it</label>
-      <input type="radio" name="who" id="who-them" value="them" {{if eq ($d.Vals.Get "who") "them"}}checked{{end}}>
-      <label class="seg" for="who-them">Someone else</label>
-      <input class="whobox" name="assigned" value="{{$d.Vals.Get "assigned"}}" placeholder="who or what">
-    </div>
-
     <label>Title <input name="title" value="{{$d.Vals.Get "title"}}" required autofocus
       placeholder="Starts with a verb, fully self-descriptive"></label>
 
@@ -35,28 +24,10 @@
       placeholder="How you will know the outcome is reached"></textarea></label>
     {{end}}
 
-    <label class="inline-label"><input type="checkbox" name="park" {{if $d.Vals.Get "park"}}checked{{end}}>
-      park it — do not make it the next action <span class="hint">(only inside a project)</span></label>
+    <label>Description <textarea name="description" rows="5" spellcheck="false"
+      placeholder="Anything worth keeping with it — and everything else this action carries.">{{$d.Vals.Get "description"}}</textarea></label>
 
-    <details>
-      <summary>more</summary>
-      <div class="stack">
-        <label>Context <input name="context" list="ctxlist" value="{{$d.Vals.Get "context"}}"
-          placeholder="@home or @person(Andres)"></label>
-        <label>Duration <select name="duration">
-          <option value="">—</option>
-          {{$dur := $d.Vals.Get "duration"}}
-          <option {{if eq $dur "short"}}selected{{end}}>short</option>
-          <option {{if eq $dur "medium"}}selected{{end}}>medium</option>
-          <option {{if eq $dur "long"}}selected{{end}}>long</option>
-        </select></label>
-        <label class="inline-label"><input type="checkbox" name="focus" {{if $d.Vals.Get "focus"}}checked{{end}}> needs focus</label>
-        <label>Description <textarea name="description" rows="2">{{$d.Vals.Get "description"}}</textarea></label>
-        <label>Tags <input name="tags" value="{{$d.Vals.Get "tags"}}" placeholder="#car #finance"></label>
-        <label>Due date <input type="date" name="due" value="{{$d.Vals.Get "due"}}"></label>
-        <label>Snooze until <input type="date" name="snooze" value="{{$d.Vals.Get "snooze"}}"></label>
-      </div>
-    </details>
+    {{template "notation" $d}}
 
     <div class="branches">
       <button class="primary">Create action</button>

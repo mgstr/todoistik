@@ -298,3 +298,18 @@ nav .addnew .ghint { top: calc(-.62rem - 1px); }
 body.login { display: grid; place-items: center; min-height: 100vh; }
 body.login form { display: flex; flex-direction: column; gap: .75rem; width: 18rem; }
 .audit .title { font-size: .9rem; }
+
+/* The notation the description box is written in. Folded: it is read on the
+   first few passes and never again, which is the same argument the filter
+   panels are collapsed on. The remembered names are listed with it because a
+   name that is not on those lists stays prose — the list is the difference
+   between metadata and text, so it belongs beside the syntax, not on another
+   screen. */
+.notation { font-size: .85rem; max-width: 34rem; }
+.notation summary { font-weight: 600; color: var(--muted); }
+.notation dl { display: grid; grid-template-columns: auto 1fr; gap: .1rem .7rem; margin: .5rem 0; }
+.notation dt { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); white-space: nowrap; }
+.notation dd { margin: 0; color: var(--muted); }
+.notation .known { margin: .35rem 0 0; display: flex; gap: .3rem; flex-wrap: wrap; align-items: baseline; }
+.notation .known b { color: var(--muted); font-weight: 600; min-width: 4.5rem; }
+.addname { display: flex; gap: .4rem; flex-wrap: wrap; margin: .5rem 0 .75rem; }

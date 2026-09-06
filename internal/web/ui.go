@@ -506,31 +506,78 @@ func parseID(s string) int64 {
 	return id
 }
 
-func actionFieldsFromForm(r *http.Request, prefix string) app.ActionFields {
-	get := func(k string) string { return strings.TrimSpace(r.FormValue(prefix + k)) }
-	ctx, param := splitContextInput(get("context"))
-	f := app.ActionFields{
-		Title:        get("title"),
-		Context:      ctx,
-		ContextParam: param,
-		Duration:     app.Duration(get("duration")),
-		NeedsFocus:   get("focus") != "",
-		Description:  get("description"),
-		AssignedTo:   get("assigned"),
-		DueDate:      get("due"),
-		SnoozeUntil:  get("snooze"),
-		Tags:         strings.Fields(get("tags")),
+// writtenAction is an action as the form gives it: a title, a project, and one
+// box holding everything else. Parked and Today do not live on ActionFields —
+// one is the absence of a timestamp and the other is a tag the app manages —
+// so they are carried alongside and applied by the handler.
+type writtenAction struct {
+	Fields app.ActionFields
+	Parked bool
+	Today  bool
+}
+
+// readAction reads the two controls of an action form. inProject decides
+// whether #parked means anything, since a standalone action is always a next
+// action (design.md, "Standalone actions").
+func (s *Server) readAction(r *http.Request, inProject bool) (writtenAction, error) {
+	var wa writtenAction
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		return wa, err
 	}
-	// "who" is a two-state control, and switching it back to "I do it" must
-	// leave nothing behind: the name box keeps its text when it is hidden, and
-	// a leftover name would otherwise file a waiting-for action nobody asked
-	// for. Only forms that carry the control are affected — a form with a bare
-	// "assigned to" field, like the action editor, has no "who" key and is
-	// read exactly as before.
-	if _, carries := r.Form[prefix+"who"]; carries && get("who") != "them" {
-		f.AssignedTo = ""
+	d, err := app.ParseDescription(r.FormValue("description"), v, inProject)
+	if err != nil {
+		return wa, err
 	}
-	return f
+	wa.Parked, wa.Today = d.Parked, d.Today
+	wa.Fields = app.ActionFields{
+		Title:        strings.TrimSpace(r.FormValue("title")),
+		Context:      d.Context,
+		ContextParam: d.ContextParam,
+		Duration:     d.Duration,
+		NeedsFocus:   d.NeedsFocus,
+		Description:  d.Prose,
+		AssignedTo:   d.AssignedTo,
+		DueDate:      d.DueDate,
+		SnoozeUntil:  d.SnoozeUntil,
+		Tags:         d.Tags,
+	}
+	return wa, nil
+}
+
+// setParked makes the #parked token mean what the Park button means. Like
+// today it is set by comparison rather than written over: the underlying field
+// is a timestamp, and restamping one that was already set would reset an age
+// that nothing asked to reset.
+func (s *Server) setParked(id int64, before *app.Action, parked bool) error {
+	if before.ProjectID == 0 {
+		return nil // a standalone action is always a next action
+	}
+	if (before.BecameNextAt == nil) == parked {
+		return nil
+	}
+	return s.app.SetNext(id, !parked)
+}
+
+// applyToday makes the #today token mean what the pick dot means. It is not an
+// ActionFields value because the tag is the app's to manage — it is cleared
+// every morning (design.md, "#today") — so it is set by comparison rather than
+// written over.
+func (s *Server) applyToday(id int64, want bool) error {
+	act, err := s.app.Action(id)
+	if err != nil {
+		return err
+	}
+	has := false
+	for _, t := range act.Tags {
+		if t == app.TodayTag {
+			has = true
+		}
+	}
+	if has == want {
+		return nil
+	}
+	return s.app.ToggleTag("action", id, app.TodayTag)
 }
 
 func splitContextInput(s string) (name, param string) {
@@ -636,24 +683,31 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 // action as its first. It reports whether the branch was settled — false means
 // the form has already been sent back and there is nothing left to redirect.
 func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
-	f := actionFieldsFromForm(r, "")
-	parked := r.FormValue("park") != ""
-	if pid := parseID(strings.TrimSpace(r.FormValue("projectid"))); pid != 0 {
-		if _, err := s.app.ProcessAction(src, id, f, pid, parked); err != nil {
+	pid := parseID(strings.TrimSpace(r.FormValue("projectid")))
+	name := strings.TrimSpace(r.FormValue("project"))
+	wa, err := s.readAction(r, pid != 0 || name != "")
+	if err != nil {
+		s.bounce(w, r, src, id, "action", err.Error(), false)
+		return false
+	}
+	f, parked := wa.Fields, wa.Parked
+	if pid != 0 {
+		act, err := s.app.ProcessAction(src, id, f, pid, parked)
+		if err != nil {
 			httpError(w, err)
 			return false
 		}
-		return true
+		return s.finishAction(w, act.ID, wa.Today)
 	}
-	name := strings.TrimSpace(r.FormValue("project"))
 	if name == "" {
 		// a standalone action is a next action from the moment it exists,
 		// so there is nothing for park to mean here
-		if _, err := s.app.ProcessAction(src, id, f, 0, false); err != nil {
+		act, err := s.app.ProcessAction(src, id, f, 0, false)
+		if err != nil {
 			httpError(w, err)
 			return false
 		}
-		return true
+		return s.finishAction(w, act.ID, wa.Today)
 	}
 	hits, err := s.app.MatchProjects(name)
 	if err != nil {
@@ -662,11 +716,12 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src
 	}
 	switch {
 	case len(hits) == 1:
-		if _, err := s.app.ProcessAction(src, id, f, hits[0].ID, parked); err != nil {
+		act, err := s.app.ProcessAction(src, id, f, hits[0].ID, parked)
+		if err != nil {
 			httpError(w, err)
 			return false
 		}
-		return true
+		return s.finishAction(w, act.ID, wa.Today)
 	case len(hits) > 1:
 		s.bounce(w, r, src, id, "action",
 			"That name matches more than one active project. Pick the one you meant below.", false)
@@ -678,8 +733,22 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src
 			"No active project matches that name. Give it a definition of done to create it, or clear the box to leave the action standalone.", true)
 		return false
 	}
-	if _, err := s.app.ProcessProject(src, id, app.ProjectFields{Title: name, DOD: dod},
-		[]app.ActionFields{f}); err != nil {
+	p, err := s.app.ProcessProject(src, id, app.ProjectFields{Title: name, DOD: dod},
+		[]app.ActionFields{f})
+	if err != nil {
+		httpError(w, err)
+		return false
+	}
+	if len(p.Actions) == 1 {
+		return s.finishAction(w, p.Actions[0].ID, wa.Today)
+	}
+	return true
+}
+
+// finishAction applies the one thing that is not written when the action is
+// created: whether it was picked for today.
+func (s *Server) finishAction(w http.ResponseWriter, id int64, today bool) bool {
+	if err := s.applyToday(id, today); err != nil {
 		httpError(w, err)
 		return false
 	}
@@ -710,7 +779,25 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) actionUpdate(w http.ResponseWriter, r *http.Request) {
 	id := idParam(r)
-	if err := s.app.UpdateAction(id, actionFieldsFromForm(r, "")); err != nil {
+	act, err := s.app.Action(id)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	wa, err := s.readAction(r, act.ProjectID != 0)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	if err := s.app.UpdateAction(id, wa.Fields); err != nil {
+		httpError(w, err)
+		return
+	}
+	if err := s.setParked(id, act, wa.Parked); err != nil {
+		httpError(w, err)
+		return
+	}
+	if err := s.applyToday(id, wa.Today); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -839,8 +926,13 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 	case "tag":
 		err = s.app.ToggleTag("project", id, r.FormValue("tag"))
 	case "addaction":
-		f := actionFieldsFromForm(r, "")
-		_, err = s.app.CreateAction(id, f, r.FormValue("parked") != "")
+		var wa writtenAction
+		if wa, err = s.readAction(r, true); err == nil {
+			var act *app.Action
+			if act, err = s.app.CreateAction(id, wa.Fields, wa.Parked); err == nil {
+				err = s.applyToday(act.ID, wa.Today)
+			}
+		}
 	default:
 		http.NotFound(w, r)
 		return
@@ -1053,6 +1145,32 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "settings.html", p)
 }
 
+// settingsAdd is where a name is learned. Nothing else teaches the app one:
+// a `@name` or `#name` written in a description is metadata only if it is
+// already on the list, which is what stops @home and @Home drifting apart
+// (design.md, "Contexts").
+func (s *Server) settingsAdd(w http.ResponseWriter, r *http.Request) {
+	var err error
+	switch r.PathValue("kind") {
+	case "tags":
+		err = s.app.AddTag(r.FormValue("name"))
+	case "contexts":
+		err = s.app.AddContext(r.FormValue("name"), r.FormValue("param"))
+	default:
+		http.NotFound(w, r)
+		return
+	}
+	s.backToSettings(w, r, err)
+}
+
+func (s *Server) backToSettings(w http.ResponseWriter, r *http.Request, err error) {
+	if err != nil {
+		http.Redirect(w, r, "/settings?err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+}
+
 func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.PathValue("kind") {
@@ -1066,9 +1184,5 @@ func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if err != nil {
-		http.Redirect(w, r, "/settings?err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+	s.backToSettings(w, r, err)
 }

@@ -75,21 +75,10 @@
 {{end}}
 
 {{define "actionformfields"}}
-<label>Title <input name="title" value="{{.Title}}" required placeholder="Starts with a verb, fully self-descriptive"></label>
-<label>Context <input name="context" list="ctxlist" value="{{.ContextLabel}}" placeholder="@home or @person(Andres)"></label>
-<label>Duration <select name="duration">
-  <option value="">—</option>
-  {{$d := printf "%s" .Duration}}
-  <option {{if eq $d "short"}}selected{{end}}>short</option>
-  <option {{if eq $d "medium"}}selected{{end}}>medium</option>
-  <option {{if eq $d "long"}}selected{{end}}>long</option>
-</select></label>
-<label class="inline-label"><input type="checkbox" name="focus" {{if .NeedsFocus}}checked{{end}}> needs focus</label>
-<label>Description <textarea name="description" rows="2">{{.Description}}</textarea></label>
-<label>Tags <input name="tags" value="{{joinTags .Tags}}" placeholder="#car #finance"></label>
-<label>Assigned to <input name="assigned" value="{{.AssignedTo}}" placeholder="empty = you do it"></label>
-<label>Due date <input type="date" name="due" value="{{.DueDate}}"></label>
-<label>Snooze until <input type="date" name="snooze" value="{{.SnoozeUntil}}"></label>
+<label>Title <input name="title" value="{{.Title}}" required autofocus
+  placeholder="Starts with a verb, fully self-descriptive"></label>
+<label>Description <textarea name="description" rows="5" spellcheck="false"
+  placeholder="Anything worth keeping with it — and everything else this action carries.">{{.Written}}</textarea></label>
 {{end}}
 
 {{define "projectcands"}}
@@ -110,4 +99,32 @@
     <p class="candnote">{{len .Hits}} of {{.Total}} — type to narrow</p>
   {{end}}
 </div>
+{{end}}
+
+{{define "notation"}}
+{{/* Folded, because it is read on the first few passes and never again — the
+     same progressive-disclosure argument as the filter panels. It lists the
+     remembered names as well as the notation, because a name that is not on
+     that list stays prose, so the list IS the difference between metadata and
+     text. */}}
+<details class="notation">
+  <summary>notation</summary>
+  <dl>
+    <dt>@name</dt><dd>context — what has to be true before this is possible</dd>
+    <dt>@name(parameter)</dt><dd>a context that needs naming, like @person(Marju)</dd>
+    <dt>@waitingFor(who)</dt><dd>someone else has it; puts it in Waiting for</dd>
+    <dt>#short #medium #long</dt><dd>how big it is</dd>
+    <dt>#focus</dt><dd>needs undivided attention</dd>
+    <dt>#today</dt><dd>picked for today</dd>
+    <dt>#parked</dt><dd>inside a project: written down in advance, not yet next</dd>
+    <dt>#name</dt><dd>tag</dd>
+    <dt>due:2026-09-20</dt><dd>a real deadline</dd>
+    <dt>snooze:2026-09-20</dt><dd>out of sight until then</dd>
+  </dl>
+  <p class="known"><b>contexts</b>
+    {{range .Contexts}}<span class="badge ctx">@{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
+  <p class="known"><b>tags</b>
+    {{range .Tags}}<span class="badge tag">#{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
+  <p class="muted">Anything else keeps its @ or # and stays part of the text.</p>
+</details>
 {{end}}
