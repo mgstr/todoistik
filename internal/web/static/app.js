@@ -330,6 +330,24 @@
   // hx-boost swaps the body, taking the rendered bar with it
   document.addEventListener("htmx:afterSwap", renderKeybar);
 
+  // A field that opens focused with the caret at position 0 means the first
+  // thing typed lands in front of the text already there, which is never what
+  // was meant. Neither the browser nor htmx places the caret when it honours
+  // autofocus, so it is placed here. This is the one thing in this file that
+  // is not the keyboard layer, and it is allowed the same way the layer is:
+  // it decides nothing and stores nothing — the rule it must not break is that
+  // the server is the single source of truth (see implementation.md, "Stack").
+  function caretToEnd() {
+    const el = document.querySelector("[autofocus]");
+    if (!el || el !== document.activeElement) return;
+    if (typeof el.selectionStart !== "number") return;
+    el.setSelectionRange(el.value.length, el.value.length);
+  }
+  // afterSettle, not afterSwap: htmx honours autofocus in the settle step, so
+  // on a boosted navigation the field is not focused yet when the swap fires
+  document.addEventListener("htmx:afterSettle", caretToEnd);
+  caretToEnd();
+
   renderKeybar();
 
   // filter forms apply themselves on any change

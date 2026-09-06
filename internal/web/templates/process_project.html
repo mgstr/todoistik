@@ -9,7 +9,7 @@
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack">
-    <label>Title <input name="ptitle" value="{{$d.Vals.Get "ptitle"}}" required
+    <label>Title <input name="ptitle" value="{{$d.Vals.Get "ptitle"}}" required autofocus
       placeholder="A reference to the outcome, not what to do"></label>
 
     <label>Definition of done <textarea name="dod" rows="2" required
