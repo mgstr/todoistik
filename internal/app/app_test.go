@@ -480,3 +480,67 @@ func TestProcessActionRejectsCompletedProject(t *testing.T) {
 		t.Fatal("a refused branch must leave the item in the inbox")
 	}
 }
+
+// The picker offered when an action is being given a home: matched by the
+// name filter's rule, ordered by recent activity, capped with the true total
+// reported so the screen can say what it is not showing.
+func TestProjectCandidates(t *testing.T) {
+	a, now := newTestApp(t)
+	mk := func(title, action string) *Project {
+		p, err := a.CreateProject(ProjectFields{Title: title, DOD: "done when done"},
+			[]ActionFields{{Title: action}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		*now = now.Add(time.Minute) // each one is newer than the last
+		return p
+	}
+	mk("Kitchen renovation", "Measure the wall")
+	mk("Winter-proof the car", "Check the battery")
+	mk("Kitchen lighting", "Choose the fittings")
+	newest := mk("Sail licence", "Book the exam")
+
+	// no query: everything, newest activity first
+	hits, total, err := a.ProjectCandidates("", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 4 || len(hits) != 4 {
+		t.Fatalf("got %d hits of %d, want 4 of 4", len(hits), total)
+	}
+	if hits[0].ID != newest.ID {
+		t.Fatalf("most recently active first: got %q", hits[0].Title)
+	}
+
+	// the cap reports the true total, so the screen can say what it hides
+	hits, total, _ = a.ProjectCandidates("", 2)
+	if len(hits) != 2 || total != 4 {
+		t.Fatalf("capped: got %d hits of %d, want 2 of 4", len(hits), total)
+	}
+
+	// the name filter's rule: every word a substring, in any order
+	if hits, _, _ = a.ProjectCandidates("kit", 0); len(hits) != 2 {
+		t.Fatalf("kit should match both kitchens: got %d", len(hits))
+	}
+	if hits, _, _ = a.ProjectCandidates("winter car", 0); len(hits) != 1 {
+		t.Fatalf("words match in any order: got %d", len(hits))
+	}
+	if hits, _, _ = a.ProjectCandidates("zzz", 0); len(hits) != 0 {
+		t.Fatal("a name matching nothing offers nothing")
+	}
+
+	// filing an action into a project makes it the most recent again
+	it, _, _ := a.Capture("Order the worktop")
+	kitchen, _, _ := a.ProjectCandidates("Kitchen renovation", 0)
+	*now = now.Add(time.Minute)
+	if _, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID, false); err != nil {
+		t.Fatal(err)
+	}
+	hits, _, _ = a.ProjectCandidates("", 0)
+	if hits[0].Title != "Kitchen renovation" {
+		t.Fatalf("the project just filed into leads: got %q", hits[0].Title)
+	}
+	if hits[0].OpenCount != 2 {
+		t.Fatalf("open count: got %d, want 2", hits[0].OpenCount)
+	}
+}

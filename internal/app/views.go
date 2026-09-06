@@ -382,6 +382,66 @@ func (a *App) MatchProjects(q string) ([]*Project, error) {
 	return hits, nil
 }
 
+// ProjectCandidate is one row of the picker offered when an action is being
+// given a home: the project, plus the two things worth knowing before filing
+// into it — how much is open there, and whether it is stalled (the Project
+// itself carries that, and design.md says filing a next action into a stalled
+// project is exactly what resolves the stall).
+type ProjectCandidate struct {
+	*Project
+	OpenCount int
+	LastUsed  time.Time
+}
+
+// ProjectCandidates: the active projects offered while naming a home for an
+// action. An empty query offers all of them, a non-empty one narrows by the
+// rule the name filter uses (see MatchProjects).
+//
+// Ordered by recent activity, which during a run is the useful order: several
+// captures in a row usually belong to the same outcome, so the project wanted
+// next is very often the one just used. Alphabetical would put an arbitrary
+// few at the top of a capped list and stalled-first would push the wanted one
+// down. "Recent" needs nothing stored — it is the newest of the project's own
+// creation and its newest action's.
+//
+// Capped at limit, and the count before capping is returned alongside so the
+// screen can say what it is not showing: a cap that does not announce itself
+// reads as a complete list, which is the same failure as a filtered view that
+// does not say so (design.md, "Views").
+func (a *App) ProjectCandidates(q string, limit int) ([]*ProjectCandidate, int, error) {
+	all, err := a.ProjectList(Filters{})
+	if err != nil {
+		return nil, 0, err
+	}
+	var hits []*ProjectCandidate
+	for _, p := range all {
+		if !matchName(q, p.Title) {
+			continue
+		}
+		c := &ProjectCandidate{Project: p, LastUsed: p.CreatedAt}
+		for _, act := range p.Actions {
+			if act.CompletedAt == nil {
+				c.OpenCount++
+			}
+			if act.CreatedAt.After(c.LastUsed) {
+				c.LastUsed = act.CreatedAt
+			}
+		}
+		hits = append(hits, c)
+	}
+	total := len(hits)
+	sort.SliceStable(hits, func(i, j int) bool {
+		if !hits[i].LastUsed.Equal(hits[j].LastUsed) {
+			return hits[i].LastUsed.After(hits[j].LastUsed)
+		}
+		return hits[i].Title < hits[j].Title
+	})
+	if limit > 0 && len(hits) > limit {
+		hits = hits[:limit]
+	}
+	return hits, total, nil
+}
+
 func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project, error) {
 	rows, err := a.db.Query(`SELECT id, title, dod, description, created_at, last_reviewed_at, snooze_until, completed_at
 		FROM projects WHERE ` + where)
