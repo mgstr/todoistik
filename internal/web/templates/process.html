@@ -7,13 +7,13 @@
   </div>
 
   <div class="branches">
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash{{$q}}" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="trash">
       <button>Trash</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference{{$q}}" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
       <button title="not actionable, kept outside the app">Reference material</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute{{$q}}" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="done">
       <button title="under two minutes: do it now, record it done">Two-minute rule — done</button>
     </form>
   </div>
@@ -25,7 +25,7 @@
       <button>Keep incubating</button>
     </form>
     {{else}}
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$q}}" class="inline">
+    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$q}}" class="inline" data-key="s" data-key-label="someday">
       <input type="hidden" name="text" value="{{$d.Text}}">
       <button title="worth looking at some time, but not now">Someday/Maybe</button>
     </form>
@@ -33,8 +33,8 @@
   </div>
 
   <div class="branches">
-    <a class="button" href="{{$d.AsAction}}">Action <span class="hint">— a step</span></a>
-    <a class="button" href="{{$d.AsProject}}">Project <span class="hint">— an outcome</span></a>
+    <a class="button" href="{{$d.AsAction}}" data-key="a" data-key-label="action">Action <span class="hint">— a step</span></a>
+    <a class="button" href="{{$d.AsProject}}" data-key="p" data-key-label="project">Project <span class="hint">— an outcome</span></a>
   </div>
 </div>
 {{template "bottom" .}}

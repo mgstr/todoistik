@@ -112,9 +112,38 @@
     if (!zero) pushRowKeys(view, row);
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
+    branchKeys().forEach(function (k) { view.push(k); });
     if (document.querySelector("[data-cancel]")) view.push(["esc", "cancel"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     return { view: view, global: globalKeys() };
+  }
+
+  // A screen can give its own controls keys, by declaring them on the control:
+  // data-key is the key, data-key-label what the bar calls it. Both the bar and
+  // the handler read the page, so — like the row keys above — a key can only
+  // exist here if the thing it presses exists, and it can never be advertised
+  // without working. Document order is the bar's order, which lets the template
+  // decide how the answers read rather than this file.
+  function branchKeys() {
+    return Array.from(document.querySelectorAll("[data-key]")).map(function (el) {
+      return [el.dataset.key, el.dataset.keyLabel || ""];
+    });
+  }
+
+  function branchFor(key) {
+    if (key.length !== 1) return null;
+    return document.querySelector('[data-key="' + CSS.escape(key) + '"]');
+  }
+
+  // Pressing the key does exactly what clicking the control does: submit the
+  // form, or follow the link. Nothing here knows what a branch means.
+  function press(el) {
+    if (el.tagName === "FORM") {
+      if (el.requestSubmit) el.requestSubmit(); else el.submit();
+      return;
+    }
+    const href = el.getAttribute("href");
+    if (href) window.location.href = href;
   }
 
   function pushRowKeys(into, row) {
@@ -214,6 +243,11 @@
       }
       return;
     }
+
+    // a key the page declares beats the standing map: on a screen that has
+    // its own answers, those are what the letters mean there
+    const branch = branchFor(e.key);
+    if (branch) { e.preventDefault(); press(branch); return; }
 
     const row = selected();
     switch (e.key) {
