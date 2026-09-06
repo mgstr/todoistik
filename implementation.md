@@ -440,11 +440,24 @@ per-view one.
 
 ## Screen layout
 
-Three bands, borrowed from a TUI: a fixed nav line at the top, a fixed key bar
-at the bottom, and the view's content scrolling between them. The chrome never
-scrolls away, so which view you are in and what you can press are always on
-screen, however long the list is.
+A rail down the left, a fixed key bar along the bottom of what is left of the
+window, and the view's content scrolling between them. The chrome never scrolls
+away, so which view you are in and what you can press are always on screen,
+however long the list is.
 
+- **the nav is a rail rather than a line across the top.** Main caps its column
+  at 62rem and the rail is 11.5rem wide, so on a window wider than about 76rem
+  the rail costs nothing: it spends margin that was already empty. A bar across
+  the top spent 3rem of height on every screen instead, and height is the axis a
+  list is actually short of. Below about 76rem it becomes a trade of width for
+  height, and below about 48rem it does not work at all — there is no second
+  layout for that case, because design.md's "Design principles" say the app is
+  used at a desk. See `research/left-nav-study.html` for the four variants and
+  the arithmetic
+- **the key bar sits beside the rail, not under it**, so its left edge lines up
+  with the content whose keys it is naming. It answers "what can I press here",
+  which is a question about what is on screen and not about where else I could
+  go
 - **the view's header line is fixed too**, not just the nav — it carries the
   item count and the view's primary action (Inbox's "Process — Inbox Zero"),
   which are worth no less at item 200 than at item 1. It no longer carries the
@@ -511,12 +524,21 @@ redundant — and unlike the map, it says something the bar cannot.
 
 ## Navigation
 
-The nav bar opens with the `+` capture control (see "Capture"), then lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order:
+The rail opens with the `+` capture control (see "Capture"), then lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order, under five captions:
 
-Inbox, Today, Next actions, Projects, Tasks, Waiting for, Calendar, Someday/Maybe, Scheduler, Review, Archive, Audit, Settings.
+| | |
+|---|---|
+| Capture | Inbox |
+| Do | Today, Next actions |
+| Committed | Projects, Tasks, Waiting for, Calendar |
+| Later | Someday/Maybe, Scheduler, Review |
+| Records | Archive, Audit, Settings |
 
-- **item-count badges** sit in the top-right corner of a view's label, iPhone-style, for every view except **Archive**, **Audit** and **Settings** — those three are not open loops to work through, so a running count adds nothing actionable. Cornered rather than inline because a count on the label's own baseline reads as a second word in the view's *name*, and because a badge outside the text flow cannot shift every label after it when its number changes. Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
-- **the counts blank while `g` is held.** The jump letters land in the same strip of space, at the neighbouring item's top-left, so the overlay gets it to itself. Blanking rather than widening the nav to fit both: during the overlay you are choosing a destination, not reading counts, and the alternative pays horizontal space always to fix something visible only while a key is down
+- **the captions say what a row could only imply.** The order inside them is the order the bar had and nothing collapses or hides: the grouping is a claim about what *kind* of place each view is, not a way to show fewer of them. It costs the height of five captions, which a column has and a row did not — a bar could only put the thirteen in a line and leave adjacency to do the work. "Records" earns its keep twice over, being the same three views that carry no count, for the same reason: they are not open loops to work through
+
+- **item-count badges** sit at the right-hand end of a view's row, for every view except **Archive**, **Audit** and **Settings** — those three are not open loops to work through, so a running count adds nothing actionable. Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
+- **the count sits on the row's right edge because the rail gives it one.** It used to hang off the label's top-right corner, and both halves of that reasoning were about a horizontal bar: an inline count there read as a second word in the view's *name*, and it shifted every label after it whenever the number changed. Rows one fixed width wide have neither problem, so the count can sit where a sidebar count belongs. The blanking rule went with it: the jump letters used to land in the same strip of space and had to be given it, and now they have a gutter of their own (see "Keyboard view-jump overlay")
+- **where a row is both the current view and the alert, the alert wins the badge.** Standing on the Inbox is not the same as having emptied it, so its count stays red-on-white rather than turning accent — the label already resolves this way, and a badge disagreeing with the label beside it would be saying two things at once
 - **a badge is omitted entirely when its count is 0**, never shown as a bare "0". A wall of empty badges is exactly the noise a badge exists to cut through
 - **Inbox is the one exception to how the signal is carried**: when its count is non-zero, the nav *label itself* changes color, not just its badge. Design.md treats a non-empty inbox as the one state with a non-negotiable response ("Inbox Zero" run "regularly, and always as part of the weekly review"), so it gets a stronger signal than a small badge can give it
 - **while the processing screen is up, the slot it was reached from reads "Processing…"** — the Inbox's for an Inbox Zero run or for a single picked item, the Someday/Maybe one for an item you decided to move on (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen, and marked the Inbox even when the item being processed came from Someday/Maybe. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I"
@@ -524,7 +546,7 @@ Inbox, Today, Next actions, Projects, Tasks, Waiting for, Calendar, Someday/Mayb
 
 #### Keyboard view-jump overlay
 
-Vimium-style. Pressing `g` overlays a one-letter tag near the top-left corner of every nav view's label; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 13 views, the view's own first letter where it is free, otherwise a distinct fallback:
+Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every nav row — a strip the rail keeps permanently empty for it, so nothing has to move or blank to make room, which is what the top bar had to do to its counts; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 13 views, the view's own first letter where it is free, otherwise a distinct fallback:
 
 | View | Key | View | Key |
 |---|---|---|---|

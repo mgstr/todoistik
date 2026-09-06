@@ -49,6 +49,12 @@ constant. Revisit here if the row starts to feel crowded.
 **2026-09-05 · decided: D, outlined corner pill.** Implemented in
 `internal/web/static/style.css` (`nav .badge.navcount`).
 
+**Superseded 2026-09-07 by `left-nav-study.html`.** The nav is a rail now: the
+count sits at the row's right edge rather than the label's corner, and the
+blanking rule below is gone with the collision it existed for. What follows is
+the record of what a *horizontal* bar had to solve, which is still the reason
+the badge is outlined and still the reason red is spent only on the Inbox.
+
 The counts sat inline, on the same baseline as the view's label, which read as
 a second word in the view's name rather than as a marker attached to it. Four
 placements were rendered side by side, each in both app themes:
@@ -156,33 +162,43 @@ picker.
 
 ## left-nav-study.html — the nav as a rail down the left
 
-**2026-09-07 · open, nothing decided.** Nothing in `internal/web` has moved;
-this is a look at a change, not a record of one. On the `research/left-nav`
-branch.
+**2026-09-07 · decided: C, the grouped rail.** Implemented in
+`internal/web/templates/_layout.html` (the rail, its captions and the `.pane`
+the key bar moved into) and `internal/web/static/style.css` (`nav`, `nav .grp`,
+`nav .badge.navcount`, `.ghint`).
 
 Four whole Next actions screens in both themes, because turning the nav is not
 a change to the nav — it is a change to how much room everything else gets.
 
-| | Variant | Note |
+| | Variant | Outcome |
 |---|---|---|
-| A | Top bar, as built | The baseline. 3rem of height always, 5.4rem once it wraps |
-| B | Rail, straight translation | The same thirteen, stacked. Counts gain a right edge; the `g` hints gain a gutter |
-| C | Rail, grouped | Capture / Do / Committed / Later / Records — five kinds of place a row can only imply |
-| D | Rail, grouped, records at the foot | The page's recommendation, if the rail is taken at all |
+| A | Top bar, as built | The starting point. 3rem of height always, 5.4rem once it wraps |
+| B | Rail, straight translation | Rejected: it leaves the thirteen in one undifferentiated column, which is the bar's own weakness carried over into a shape that no longer forces it |
+| **C** | **Rail, grouped** | **Chosen.** Capture / Do / Committed / Later / Records — five kinds of place a row could only imply by adjacency |
+| D | Rail, grouped, Records pinned to the foot | Not taken, though the page recommended it. The difference is one `margin-top: auto`; C's version keeps every row at a position that does not move when the window's height does |
 
-What the page is really for is the arithmetic. Main caps its column at 62rem
-and the rail is 11.5rem, so above about **76rem of window the rail is free** —
-it spends margin that was already empty and hands 3rem of height back to the
-list. Between 48 and 76rem it is a straight trade of width for height. Below
-48rem it does not work at all, where today's bar wraps and survives.
+The page's real argument is the arithmetic. Main caps its column at 62rem and
+the rail is 11.5rem, so above about **76rem of window the rail is free** — it
+spends margin that was already empty and hands 3rem of height back to the list.
+Between 48 and 76rem it is a straight trade of width for height. Below 48rem it
+does not work at all, where the bar wrapped and survived.
 
-Two things it would reopen, listed on the page rather than waved through:
+Both things the page said a rail would reopen were reopened rather than waved
+through, and both are now decided:
 
-- **the nav badge decision.** Half of nav-badge-study's reasoning was about a
-  horizontal bar — labels shifting as counts change, and the collision with the
-  `g` hints. A rail has neither pressure, so the corner pill would be up for
-  re-deciding, and the "counts blank while `g` is held" rule would have nothing
-  left to solve
-- **whether this is a desktop app.** The narrow window is the blocker, and the
-  honest answers are a breakpoint that swaps the rail back for a bar (two navs
-  to keep true) or a sentence in design.md saying the app is used at a desk
+- **the nav badge.** Half of nav-badge-study's reasoning was about a horizontal
+  bar — an inline count reading as a second word in the view's name, and labels
+  shifting sideways when a number changed. Neither pressure survives in a column
+  of fixed-width rows, so the count moved from the label's corner to the row's
+  right edge, and the "counts blank while `g` is held" rule was deleted: the
+  hints have a gutter of their own now and nothing collides. That study's
+  variants still stand for what a *bar* had to solve
+- **whether this is a desktop app.** Answered yes, in design.md's "Design
+  principles", rather than by a breakpoint that would have meant two navs to
+  keep true. The phone was always a capture device reaching the app through the
+  capture API, and that had simply never been written down
+
+One bug surfaced while building it, older than the rail: on the Inbox's own row
+the count was drawn accent-on-red and could not be read, because `a.on` and
+`a.alert` set the same property and `a.on` came second. The alert wins it now —
+standing on the Inbox is not the same as having emptied it.
