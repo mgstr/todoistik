@@ -24,19 +24,23 @@ type SomedayItem struct {
 
 type Duration string
 
+// Three buckets, and deliberately no unit in any of them. Naming minutes made
+// the field ask how long something takes, which is a question with no honest
+// answer and one you have to stop and work out; naming sizes asks how big it
+// feels, which you already know. Fewer buckets for the same reason — four
+// meant deciding between two that were next to each other.
 const (
-	DurNone Duration = ""
-	Dur5    Duration = "<5min"
-	Dur15   Duration = "<15min"
-	Dur1h   Duration = "<1h"
-	DurLong Duration = ">1h"
+	DurNone   Duration = ""
+	DurShort  Duration = "short"
+	DurMedium Duration = "medium"
+	DurLong   Duration = "long"
 )
 
-var Durations = []Duration{Dur5, Dur15, Dur1h, DurLong}
+var Durations = []Duration{DurShort, DurMedium, DurLong}
 
 func (d Duration) Valid() bool {
 	switch d {
-	case DurNone, Dur5, Dur15, Dur1h, DurLong:
+	case DurNone, DurShort, DurMedium, DurLong:
 		return true
 	}
 	return false
@@ -102,7 +106,6 @@ type Project struct {
 	ID             int64      `json:"id"`
 	Title          string     `json:"title"`
 	DOD            string     `json:"dod"`
-	Description    string     `json:"description,omitempty"`
 	Tags           []string   `json:"tags,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	LastReviewedAt time.Time  `json:"lastReviewedAt"`

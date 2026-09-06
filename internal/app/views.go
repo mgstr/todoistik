@@ -443,7 +443,7 @@ func (a *App) ProjectCandidates(q string, limit int) ([]*ProjectCandidate, int, 
 }
 
 func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project, error) {
-	rows, err := a.db.Query(`SELECT id, title, dod, description, created_at, last_reviewed_at, snooze_until, completed_at
+	rows, err := a.db.Query(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until, completed_at
 		FROM projects WHERE ` + where)
 	if err != nil {
 		return nil, err
@@ -453,7 +453,7 @@ func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project
 		p := &Project{}
 		var created, reviewed string
 		var comp sql.NullString
-		if err := rows.Scan(&p.ID, &p.Title, &p.DOD, &p.Description, &created, &reviewed, &p.SnoozeUntil, &comp); err != nil {
+		if err := rows.Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &comp); err != nil {
 			rows.Close()
 			return nil, err
 		}

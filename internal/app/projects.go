@@ -15,7 +15,6 @@ var (
 type ProjectFields struct {
 	Title       string
 	DOD         string
-	Description string
 	SnoozeUntil string
 	Tags        []string
 }
@@ -39,14 +38,14 @@ func (a *App) CreateProject(f ProjectFields, actions []ActionFields) (*Project, 
 	}
 	now := a.now().UTC()
 	p := &Project{
-		Title: f.Title, DOD: f.DOD, Description: f.Description,
+		Title: f.Title, DOD: f.DOD,
 		Tags: normTags(f.Tags), SnoozeUntil: f.SnoozeUntil,
 		CreatedAt: now, LastReviewedAt: now,
 	}
 	err := a.tx(func(tx *sql.Tx) error {
-		res, err := tx.Exec(`INSERT INTO projects (title, dod, description, created_at, last_reviewed_at, snooze_until)
-			VALUES (?,?,?,?,?,?)`,
-			p.Title, p.DOD, p.Description, ts(p.CreatedAt), ts(p.LastReviewedAt), p.SnoozeUntil)
+		res, err := tx.Exec(`INSERT INTO projects (title, dod, created_at, last_reviewed_at, snooze_until)
+			VALUES (?,?,?,?,?)`,
+			p.Title, p.DOD, ts(p.CreatedAt), ts(p.LastReviewedAt), p.SnoozeUntil)
 		if err != nil {
 			return err
 		}
@@ -86,9 +85,9 @@ func (a *App) projectRowTx(tx *sql.Tx, id int64) (*Project, error) {
 	p := &Project{}
 	var created, reviewed string
 	var completed sql.NullString
-	err := tx.QueryRow(`SELECT id, title, dod, description, created_at, last_reviewed_at, snooze_until, completed_at
+	err := tx.QueryRow(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until, completed_at
 		FROM projects WHERE id=?`, id).
-		Scan(&p.ID, &p.Title, &p.DOD, &p.Description, &created, &reviewed, &p.SnoozeUntil, &completed)
+		Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &completed)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +158,8 @@ func (a *App) UpdateProject(id int64, f ProjectFields) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`UPDATE projects SET title=?, dod=?, description=?, snooze_until=? WHERE id=?`,
-			f.Title, f.DOD, f.Description, f.SnoozeUntil, id); err != nil {
+		if _, err := tx.Exec(`UPDATE projects SET title=?, dod=?, snooze_until=? WHERE id=?`,
+			f.Title, f.DOD, f.SnoozeUntil, id); err != nil {
 			return err
 		}
 		if err := a.setTagsTx(tx, "project", id, normTags(f.Tags)); err != nil {

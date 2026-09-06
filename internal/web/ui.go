@@ -543,10 +543,9 @@ func splitContextInput(s string) (name, param string) {
 
 func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields) {
 	pf := app.ProjectFields{
-		Title:       strings.TrimSpace(r.FormValue("ptitle")),
-		DOD:         strings.TrimSpace(r.FormValue("dod")),
-		Description: strings.TrimSpace(r.FormValue("pdescription")),
-		Tags:        strings.Fields(r.FormValue("ptags")),
+		Title: strings.TrimSpace(r.FormValue("ptitle")),
+		DOD:   strings.TrimSpace(r.FormValue("dod")),
+		Tags:  strings.Fields(r.FormValue("ptags")),
 	}
 	var actions []app.ActionFields
 	for i, t := range r.Form["paction"] {
@@ -805,7 +804,6 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	f := app.ProjectFields{
 		Title:       strings.TrimSpace(r.FormValue("title")),
 		DOD:         strings.TrimSpace(r.FormValue("dod")),
-		Description: strings.TrimSpace(r.FormValue("description")),
 		SnoozeUntil: strings.TrimSpace(r.FormValue("snooze")),
 		Tags:        strings.Fields(r.FormValue("tags")),
 	}

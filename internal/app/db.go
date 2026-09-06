@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS projects (
 	id INTEGER PRIMARY KEY,
 	title TEXT NOT NULL,
 	dod TEXT NOT NULL DEFAULT '',
-	description TEXT NOT NULL DEFAULT '',
 	created_at TEXT NOT NULL,
 	last_reviewed_at TEXT NOT NULL,
 	snooze_until TEXT NOT NULL DEFAULT '',
@@ -108,8 +107,45 @@ CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)
 `
 
 func (a *App) migrate() error {
-	_, err := a.db.Exec(schema)
-	return err
+	if _, err := a.db.Exec(schema); err != nil {
+		return err
+	}
+	// The schema above only ever creates what is missing, so a database made
+	// by an older build needs the rest said out loud. Each step is written to
+	// be a no-op the second time it runs.
+	has, err := a.hasColumn("projects", "description")
+	if err != nil {
+		return err
+	}
+	if has {
+		// A project's own description was dropped: its definition of done is
+		// the thing worth writing, and a second free-text field beside it was
+		// somewhere for the same sentence to be written twice. Material that
+		// belongs to a commitment lives on the action it belongs to (design.md,
+		// "Deliberate omissions").
+		if _, err := a.db.Exec(`ALTER TABLE projects DROP COLUMN description`); err != nil {
+			return err
+		}
+	}
+	// The duration buckets stopped naming minutes. Two of the four old buckets
+	// were both "small enough to just do", which is why they collapse together.
+	for _, m := range [][2]string{
+		{"<5min", "short"}, {"<15min", "short"}, {"<1h", "medium"}, {">1h", "long"},
+	} {
+		if _, err := a.db.Exec(`UPDATE actions SET duration=? WHERE duration=?`, m[1], m[0]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) hasColumn(table, column string) (bool, error) {
+	rows, err := a.db.Query(`SELECT 1 FROM pragma_table_info(?) WHERE name=?`, table, column)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), rows.Err()
 }
 
 // Today returns the current day in the app's configured timezone.
