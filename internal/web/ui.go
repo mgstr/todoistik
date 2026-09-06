@@ -384,7 +384,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	// the nav slot is the one the item came from, and it says so: while the
 	// screen is up that entry reads "Processing…" — see implementation.md,
 	// "Navigation"
-	p := s.newPage("What is it?", src, r).help("process")
+	p := s.newPage("Processing", src, r).help("process")
 	p.Processing = true
 	p.Data = d
 	s.render(w, "process.html", p)
