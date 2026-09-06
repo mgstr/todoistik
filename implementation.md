@@ -94,15 +94,19 @@ The Inbox view holds a list and nothing else — no heading, no count of its own
 no button. The two things it can do are keys, and the key bar names both when
 they apply.
 
-- **`p` processes the selected item**, at `/process?item=<id>`, and returns to
-  the list afterwards. **`z` runs Inbox Zero**, at `/process`, which takes the
-  oldest item, comes back for the next one after each answer, and ends on the
-  done screen. `z` is exactly `p` repeated: the same screen, fed the oldest item
-  instead of the selected one
-- **one flag distinguishes them**, `?one=1` on the branch form's action. Without
-  it the run carries on to `/process`; with it the answer goes back to `/inbox`.
-  The screen itself is the same either way, which is what keeps `z` from being a
-  second implementation of processing
+- **`p` processes the selected item**, at `/process?item=<id>&one=1`, and
+  returns to the list afterwards. **`z` runs Inbox Zero**, at `/process`, which
+  takes the oldest item, comes back for the next one after each answer, and
+  ends on the done screen. `z` is exactly `p` repeated: the same screen, fed the
+  oldest item instead of the selected one
+- **one flag distinguishes them**, `?one=1`, carried on the screen's own URL and
+  on the branch form's action. Without it the run carries on to `/process`; with
+  it the answer goes back to `/inbox`. The screen itself is the same either way,
+  which is what keeps `z` from being a second implementation of processing.
+  The flag is stated rather than inferred from `item` being present, because
+  stage two pins the item on the URL even during a run (see "Stage two") — and
+  an inference that holds everywhere except one screen is worse than a
+  parameter
 - **`esc` leaves the screen**, back to the inbox, identically whether you got
   there by `p` or by `z`. Nothing is written on the way out and the item stays
   exactly where it was, so abandoning a run costs only the run. It is the same
@@ -165,10 +169,9 @@ and all eight branches on screen at once — three buttons and five forms in
     that it existed is the audit entry
   - **it moves to a list, still raw** — Someday/Maybe from the inbox, Keep
     incubating for an item already there
-  - **it is actionable** — action, waiting-for, project. Still to be designed;
-    the row holds a `…` in the meantime so the screen does not read as though
-    the answer were missing. `research/process-actionable-study.html` is the
-    proposal under discussion, with the form live enough to try
+  - **it is actionable** — Action, for a line that names a step, and Project,
+    for one that names an outcome. These are the only two answers in the row,
+    and they are the only two that open a second stage — see "Stage two"
 - **Someday/Maybe is one click and carries the text as it stands.** design.md
   allows the text to be reworded and a `snoozeUntil` to be set at this point,
   and both were fields on the old form. Both are still reachable, on the
@@ -180,6 +183,55 @@ and all eight branches on screen at once — three buttons and five forms in
   bare button. The branch *is* the new date (design.md, "Inbox Zero"), so a
   one-click version would either set nothing or silently clear the snooze the
   item already had. It is a candidate for stage two once stage two exists
+
+## Stage two
+
+Answering Action or Project opens a form on the same screen, at
+`/process?src=&item=&as=action|project`. Server-rendered as its own page rather
+than revealed in place: the second stage has to survive a reload and a back
+button — it is where the typing happens — and a URL that names the stage is what
+gives it that for free. It also keeps the rule that the server is the single
+source of truth (see "Stack"), which a stage that only exists in the DOM would
+quietly break.
+
+- **`esc` and "back" both go to stage one**, not out of the screen. Leaving is
+  still one press away from there, so abandoning costs at most two — and each
+  press undoes exactly the last decision, which is what a stage-two `esc`
+  landing on the inbox would not do. Nothing is written on either step
+- **"who does it" is one row that grows**, not two rows that appear: choosing
+  "someone else" reveals the name box to its right, on the same line. A field
+  opening underneath pushes everything below it down, and on a form read top to
+  bottom that costs a re-read. It is built out of two radios with their labels
+  styled as buttons and a `:has()` rule on the row, so it stays a plain form the
+  server reads — no JS, which the keyboard layer has a monopoly on
+- **a name switched back to "I do it" is discarded**, server-side. The box keeps
+  its text when it is hidden, and a leftover name would file a waiting-for
+  action nobody asked for. Only forms carrying the control are affected; the
+  action editor's plain "assigned to" field is read exactly as before
+- **the project box is resolved on submit, not on keystroke.** It is a text
+  input with a datalist of the active projects, so the browser does the
+  narrowing while you type, and the server settles what the text meant when you
+  press the button:
+  - empty — standalone
+  - one active project matches — filed there
+  - several match — the form comes back with those projects as the choice, and
+    nothing has been written
+  - none match — the form comes back asking for a definition of done, and
+    supplying one creates that project with this action as its first
+- **a form that comes back is not an error page.** It carries every value that
+  was typed, the reason at the top, and the item still sitting in the inbox.
+  This is the same non-answer as leaving the screen: the app asked a question it
+  could not answer for you, and nothing was decided in the meantime
+- **matching is on the project title only**, though the name filter over the
+  Projects view also matches action titles. Right when searching for a project,
+  wrong when naming the one an action should join — a stray hit on some action's
+  wording would file it under a project you never named. `MatchProjects` says so
+  where it is defined
+- **park is on the form and always visible**, labelled with where it applies. It
+  is ignored for a standalone action, which is a next action by definition, and
+  the study that designed this row had it appear only once a project was
+  resolved — which needs the resolution to happen while you type, and it does
+  not. Revisit if the label turns out to be doing too much work
 
 ## Interface density
 
@@ -384,11 +436,12 @@ so none of them reads as something nobody noticed.
   reads as a count until you know it is an id, and the view has had none of the
   attention the others have. Its help line and its row layout are both first
   drafts
-- **the process screen still has no keys of its own.** Its layout has been
-  reworked (see "The processing screen") but every branch is still a mouse
-  target, on the one screen in the app that is worked hardest. The keys wait
-  on the actionable row, because that row decides how many branches there are
-  to key
+- **the process screen still has no keys of its own.** Its layout and its
+  branches are built now (see "The processing screen" and "Stage two"), but
+  every one of them is still a mouse target, on the one screen in the app that
+  is worked hardest. The row settled how many keys there are to give — `t` `r`
+  `2` `s` `a` `p`, six of them — and left one thing to decide with them: `t` is
+  "pick for today" on every list view and would be "trash" here
 
 ## Wanted, not specified
 

@@ -103,7 +103,10 @@ changes the answer.
 
 ## process-actionable-study.html — the third row of the processing screen
 
-**2026-09-06 · open, no decision yet.** Nothing in the app implements this page.
+**2026-09-06 · decided and built.** Implemented in `internal/app/someday.go`
+(`ProcessAction` taking a project and a park flag), `internal/app/views.go`
+(`MatchProjects`), `internal/web/ui.go` (`processActionBranch`, `bounce`) and
+the two `process_action.html` / `process_project.html` templates.
 
 The actionable answers — action, waiting-for, project — written out as a
 sequence of questions run five deep: action or project, who does it, standalone
@@ -131,3 +134,18 @@ action wherever an action is being written, including inside the project form.
 
 Three changes it would need from design.md are listed on the page.
 
+Two things shipped differently from what the page renders, both because the
+page had JavaScript the app will not:
+
+- **the project box resolves on submit, not on keystroke.** The study narrows
+  live as you type; the app narrows through a `datalist` while you type and
+  settles what the text meant when you press the button, bouncing the form back
+  when it matched several projects or none. JS in this app does one job, the
+  keyboard layer (implementation.md, "Stack"), and a live matcher is not it
+- **park is always on the form**, labelled *(only inside a project)*, rather
+  than appearing once a project is resolved. Its visibility in the study was
+  driven by the live matching that did not ship
+
+The **who** row shipped exactly as rendered, growing sideways rather than
+opening a row — two radios with their labels styled as buttons and a `:has()`
+rule, no script involved.
