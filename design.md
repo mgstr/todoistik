@@ -452,7 +452,7 @@ For each item the only question asked is: what is it? The answer is one of:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action, which becomes the next action
-- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly. Optionally a `snoozeUntil` date can be set, to exclude it from the weekly review requirement until that date.
+- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly, and a `snoozeUntil` date may be set to exclude it from the weekly review requirement until that date - both optional, and both done on the item itself once it has landed rather than as a condition of filing it. Answering "what is it?" is the decision being asked for here; wording an idea better is a separate act, and one that reads differently once the idea is sitting among the others it will be reviewed with.
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
