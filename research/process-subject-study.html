@@ -1,0 +1,270 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Process Subject Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg: #f4f6f9; --page-card: #ffffff; --page-fg: #171a20;
+  --page-muted: #616a7d; --page-line: #dde1e9; --page-accent: #2456d6;
+  --shadow: 0 1px 2px rgba(20,28,48,.05), 0 8px 24px -12px rgba(20,28,48,.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #101319; --page-card: #171b22; --page-fg: #e8eaf0;
+    --page-muted: #949cad; --page-line: #262b35; --page-accent: #8aa9ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+.eyebrow { font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted); }
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+h2 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -.01em; }
+.dek { margin: .6rem 0 0; max-width: 40rem; color: var(--page-muted); }
+section { display: flex; flex-direction: column; gap: 1rem; }
+.note { margin: 0; max-width: 42rem; color: var(--page-muted); font-size: .95rem; }
+.controls { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; padding: .75rem; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 9; }
+.controls b { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); margin-right: .25rem; }
+.controls button { font: inherit; font-size: .85rem; padding: .25rem .6rem; border: 1px solid var(--page-line); border-radius: 999px; background: transparent; color: var(--page-fg); cursor: pointer; }
+.controls button[aria-pressed="true"] { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+
+.spec { display: flex; flex-direction: column; gap: .5rem; }
+.spec > header { display: flex; gap: .6rem; align-items: baseline; flex-wrap: wrap; }
+.tag { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-accent); }
+.spec > header p { margin: 0; color: var(--page-muted); font-size: .9rem; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+@media (max-width: 52rem) { .pair { grid-template-columns: 1fr; } }
+.frame { border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+
+/* ---- specimen: todoistik's own processing screen, reproduced ------------- */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--fg);
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --badge-bg: #f0f0f0;
+  --select: #eef2ff; --bar-bg: #eceef3;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --badge-bg: #23262d;
+  --select: #22304d; --bar-bg: #1f232b;
+}
+.app .nav { display: flex; flex-wrap: wrap; gap: .15rem; padding: .5rem .75rem .4rem; border-bottom: 1px solid var(--line); }
+.app .nav span { position: relative; padding: .25rem .5rem; border-radius: 6px; font-size: .92rem; }
+.app .nav span.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app .nav .navcount {
+  position: absolute; top: -.35rem; right: -.4rem; min-width: 1.1rem; height: 1.1rem;
+  padding: 0 .28rem; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--badge-bg); color: var(--muted);
+  font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
+}
+.app .nav span.on .navcount { border-color: var(--accent); color: var(--accent); }
+.app .screen { padding: 1rem 1.1rem 1.4rem; min-height: 15rem; }
+.app .keybar {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .35rem .75rem; border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted); font-size: .8rem;
+}
+.app .keybar b { font-weight: 700; color: var(--fg); margin-right: .25rem; }
+.app .keybar span { margin-right: .8rem; }
+
+.app .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; align-items: center; }
+.app button {
+  font: inherit; color: var(--fg); background: var(--badge-bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem; cursor: pointer;
+}
+.app .rowmark { color: var(--muted); }
+
+/* the subject block is what this study is about — everything above is fixed */
+.app .subject { margin: 0 0 .2rem; }
+.app .cap { color: var(--muted); font-size: .9rem; margin: .2rem 0 0; }
+.app .capture-text { margin: .8rem 0 .4rem; font-size: 1.5rem; font-weight: 600; }
+.app .chip {
+  display: inline-block; font-size: .7rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted); vertical-align: middle;
+}
+.app .left { font-size: .7rem; padding: .05rem .4rem; border-radius: 8px; background: var(--badge-bg); color: var(--muted); }
+
+/* ---------- A — as built today ---------- */
+/* nothing: the base rules above are the shipped ones */
+
+/* ---------- B — type only, age as a chip on the same line ---------- */
+.v-b .capture-text { font-size: 2.1rem; line-height: 1.15; letter-spacing: -.02em; margin: .6rem 0 .35rem; }
+.v-b .capture-text .chip { font-size: .7rem; font-weight: 400; margin-left: .5rem; vertical-align: .35em; }
+
+/* ---------- C — card ---------- */
+.v-c .subject {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--badge-bg);
+  padding: .85rem 1rem; margin: .5rem 0 .2rem;
+}
+.v-c .capture-text { font-size: 1.6rem; line-height: 1.2; margin: 0; }
+.v-c .cap { margin: .35rem 0 0; }
+
+/* ---------- D — accent rule ---------- */
+.v-d .subject {
+  border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .8rem; margin: .8rem 0 .2rem;
+}
+.v-d .capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; }
+.v-d .cap { margin: .3rem 0 0; }
+
+/* ---------- E — the selected row, carried over from the list ---------- */
+.v-e .subject {
+  background: var(--select); outline: 1px solid var(--accent); border-radius: 8px;
+  padding: .7rem .85rem; margin: .8rem 0 .2rem;
+}
+.v-e .capture-text { font-size: 1.5rem; line-height: 1.2; margin: 0; }
+.v-e .cap { margin: .3rem 0 0; }
+
+/* ---- counter options ---- */
+.count-none .navcount, .count-none .left { display: none; }
+.count-nav .left { display: none; }
+.count-chip .navcount { display: none; }
+
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 34rem; }
+th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); }
+tbody tr:last-child td { border-bottom: none; }
+code { font: 400 .88em/1 "IBM Plex Mono", ui-monospace, monospace; background: var(--page-bg); padding: .1rem .3rem; border-radius: 4px; }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">todoistik · research</p>
+  <h1>The processing screen, and where the eye lands</h1>
+  <p class="dek">The screen lost its crumb line (<em>“Inbox Zero · 4 left”</em>) and its
+  <em>“What is it?”</em> heading, and its eight stacked forms became rows of buttons.
+  What is left is a captured sentence set as an ordinary heading, sitting above four
+  controls that are visually louder than it is — the buttons have borders and fills,
+  the subject has nothing. This page renders the whole screen five ways, so the
+  comparison is the real screen and not a swatch.</p>
+</header>
+
+<div class="controls">
+  <b>Capture</b>
+  <button data-text="0" aria-pressed="true">short</button>
+  <button data-text="1">typical</button>
+  <button data-text="2">long</button>
+  <b style="margin-left:1rem">Run counter</b>
+  <button data-count="none" aria-pressed="true">none</button>
+  <button data-count="nav">nav badge</button>
+  <button data-count="chip">chip on the subject</button>
+</div>
+
+<section id="variants"></section>
+
+<section>
+  <h2>What each one is betting on</h2>
+  <div class="matrix">
+  <table>
+    <thead><tr><th>Variant</th><th>The bet</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td><b>A · as built</b></td><td>Nothing needs doing; the text is first on the page and that is enough</td><td>A bordered button outweighs unboxed text, so the loudest thing on screen is the menu, not the item</td></tr>
+      <tr><td><b>B · type only</b></td><td>Size alone. The capture is set big enough that no container is needed, and <code>captured today</code> shrinks to a chip beside it</td><td>Nothing marks where the subject ends and the branches begin; a long capture at 2.1rem eats the screen</td></tr>
+      <tr><td><b>C · card</b></td><td>The thing being decided about gets a container, so it reads as an object on a tray rather than as a title</td><td>A second boxed element on a screen that is already all boxes; competes with the buttons instead of outranking them</td></tr>
+      <tr><td><b>D · accent rule</b></td><td>One vertical accent bar, the way a quotation is marked. Emphasis with no enclosing shape, so it cannot be confused with a control</td><td>The accent is spent elsewhere in the app on “this is where you are”; here it would also mean “this is what you are deciding about”</td></tr>
+      <tr><td><b>E · the row, carried over</b></td><td>Exactly the selected-row treatment from the list (<code>--select</code> + accent outline). The item you pressed <code>p</code> on arrives looking like the item you pressed <code>p</code> on</td><td>Reads as still-selectable — the list's selection styling implies <code>j</code>/<code>k</code> would move it, and here there is nothing to move to</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>The run counter is a separate question</h2>
+  <p class="note">Removing the crumb also removed the only place a run said how much was
+  left, and the nav badge is suppressed while the screen is up (implementation.md,
+  “Navigation”). So a run now counts down invisibly. The three toggles above put the
+  count back in the nav, put it on the subject as a <code>4 left</code> chip, or leave it
+  gone. Worth deciding on its own: it is orthogonal to A–E, and “gone” is a defensible
+  answer — a count you cannot see is also a count you cannot be discouraged by.</p>
+</section>
+</div>
+
+<script>
+const TEXTS = [
+  "Winter tyres",
+  "Call the dentist about the crown that came off",
+  "Ask Marju whether the accountant needs the Q3 receipts before the 20th, and which format the bank wants them in"
+];
+
+const VARIANTS = [
+  ["A", "v-a", "As built today — h1 at 1.5rem, the age on its own muted line"],
+  ["B", "v-b", "Type only — 2.1rem, the age demoted to a chip"],
+  ["C", "v-c", "Card — the subject in a bordered, tinted panel"],
+  ["D", "v-d", "Accent rule — a quotation bar on the left edge"],
+  ["E", "v-e", "The row, carried over — the list's own selected-row styling"]
+];
+
+let textIdx = 0, countMode = "none";
+
+function screen(theme, variantClass) {
+  return `
+  <div class="frame">
+    <div class="app ${theme} ${variantClass} count-${countMode}">
+      <div class="nav">
+        <span class="on">Processing…<span class="navcount">4</span></span>
+        <span>Today</span><span>Next</span><span>Projects</span><span>Tasks</span>
+      </div>
+      <div class="screen">
+        <div class="subject">
+          <h1 class="capture-text">${TEXTS[textIdx]}</h1>
+          <p class="cap">captured today <span class="chip">captured today</span> <span class="left">4 left</span></p>
+        </div>
+        <div class="branches">
+          <button>Trash</button><button>Reference material</button><button>Two-minute rule — done</button>
+        </div>
+        <div class="branches"><button>Someday/Maybe</button></div>
+        <div class="branches"><span class="rowmark">…</span></div>
+      </div>
+      <div class="keybar">
+        <div><span><b>esc</b>cancel</span></div>
+        <div><span><b>q</b>add to inbox</span><span><b>g</b>go to</span><span><b>?</b>help</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  document.getElementById("variants").innerHTML = VARIANTS.map(function (v) {
+    return `<div class="spec">
+      <header><span class="tag">${v[0]}</span><h2>${v[2]}</h2></header>
+      <div class="pair">${screen("light", v[1])}${screen("dark", v[1])}</div>
+    </div>`;
+  }).join("");
+  // B folds the age into a chip on the title's own line; every other variant
+  // keeps the muted line under it, so the two are never both visible
+  document.querySelectorAll(".app").forEach(function (app) {
+    const chip = app.querySelector(".cap .chip");
+    if (app.classList.contains("v-b")) {
+      app.querySelector(".cap").firstChild.textContent = "";
+      app.querySelector(".capture-text").appendChild(chip);
+    } else {
+      chip.remove();
+    }
+  });
+}
+
+document.addEventListener("click", function (e) {
+  const b = e.target.closest("button[data-text], button[data-count]");
+  if (!b) return;
+  const group = b.dataset.text !== undefined ? "text" : "count";
+  document.querySelectorAll(`button[data-${group}]`).forEach(function (o) {
+    o.setAttribute("aria-pressed", String(o === b));
+  });
+  if (group === "text") textIdx = Number(b.dataset.text);
+  else countMode = b.dataset.count;
+  render();
+});
+
+render();
+</script>

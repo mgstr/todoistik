@@ -68,3 +68,33 @@ widening the nav permanently to fix something visible only while a key is down.
 If you want to change the badge style after living with D, start from this page:
 the four variants are still in it, each as a CSS block that can be lifted
 straight into `style.css`.
+
+---
+
+## process-subject-study.html — the processing screen, and where the eye lands
+
+**2026-09-06 · decided: D, the accent rule.** Implemented in
+`internal/web/static/style.css` (`.process .subject`, `.capture-text`).
+
+Stripping the screen of its crumb and its *"What is it?"* heading left the
+captured line as an ordinary `h1` above a menu of bordered, filled buttons —
+so the loudest thing on a screen about one sentence was the menu. Five
+treatments were rendered as the whole screen, in both themes, at three capture
+lengths:
+
+| | Variant | Outcome |
+|---|---|---|
+| A | As built — `h1` 1.5rem | The starting point, and the problem |
+| B | Type only — 2.1rem, age as a chip | Runner-up; size alone does win the page, but a three-line capture at 2.1rem takes the screen over |
+| C | Card | Rejected: another box among boxes, competing with the buttons rather than outranking them |
+| **D** | **Accent rule** | **Chosen.** Emphasis with no enclosing shape, so it cannot be mistaken for a control; the accent is otherwise unspent on this screen, and a rule holds a one-line and a three-line capture equally |
+| E | The list's selected-row styling, carried over | Rejected: implies the item is still selectable, and `j`/`k` have nowhere to go here |
+
+Also settled here: **the run counter stays gone.** Removing the crumb removed
+the only *"N left"*, and the nav badge is suppressed while the screen is up
+(implementation.md, "Navigation"), so a run counts down invisibly. Two ways
+back were rendered — the nav badge restored, and a `4 left` chip on the subject
+— and neither was taken: a count you cannot see is also a count you cannot be
+discouraged by on the fourteenth item, and the screen is meant to hold one
+decision at a time. Both toggles are still in the page if living with it
+changes the answer.
