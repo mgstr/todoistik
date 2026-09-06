@@ -333,6 +333,11 @@ One rule, applied wherever something is made:
   hiding it moves everything below and leaves no sign the thing is possible.
   Disabled is not a control lying about what it will do — it is one saying
   "not yet", which is true and useful
+- **which is why a control that can never work is absent instead.** Disabled
+  means *not yet*, so it is only honest where filling something in would make
+  the control work. Where the answer is *never* — removing a built-in name (see
+  "The remembered lists") — the control is not drawn at all, because a dim one
+  would promise a state that does not exist
 - **the prerequisites are the form's own `required` fields**, so the rule needs
   no per-screen list and cannot drift from what the server will accept. A scope
   with no required fields is never gated
@@ -357,10 +362,12 @@ short names in a column wastes a screen saying nothing.
   design.md says why that is worth showing rather than merely possible
 - **built-in names are drawn differently and never removable**: dashed outline,
   muted, with the reason on the control. They are fields wearing a name
-- **removal is disabled, not hidden**, the same rule create buttons follow (see
-  "Create buttons"). A control that is there and dim can say *why* — still
-  carried by 3 items, or built in — where a missing one says nothing, and the
-  question "why can I not delete this?" is exactly the one being asked
+- **a name in use keeps its remove control, disabled; a built-in has none at
+  all.** The two are different answers and are drawn differently: *not yet*,
+  which the dim control explains — still carried by 3 items — and *never*,
+  which no control says better than a dim one, since a dim one implies a state
+  in which it would work. The dashed outline is what marks a built-in; the
+  absent control is what stops you looking for the way to remove it
 - **the server refuses independently.** A disabled button is a hint; the domain
   checks both conditions itself. This mattered: a structural name is carried by
   no row in `item_tags`, so the in-use check alone would have passed it and the
