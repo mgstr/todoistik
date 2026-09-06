@@ -134,18 +134,20 @@ action wherever an action is being written, including inside the project form.
 
 Three changes it would need from design.md are listed on the page.
 
-Two things shipped differently from what the page renders, both because the
-page had JavaScript the app will not:
+What shipped has since moved past this page in two ways, and the page is kept
+as the record of the reasoning rather than of the result:
 
-- **the project box resolves on submit, not on keystroke.** The study narrows
-  live as you type; the app narrows through a `datalist` while you type and
-  settles what the text meant when you press the button, bouncing the form back
-  when it matched several projects or none. JS in this app does one job, the
-  keyboard layer (implementation.md, "Stack"), and a live matcher is not it
-- **park is always on the form**, labelled *(only inside a project)*, rather
-  than appearing once a project is resolved. Its visibility in the study was
-  driven by the live matching that did not ship
+- **the project is chosen, not typed.** The study's box resolves a typed name
+  on submit; the app now has a picker — the list is in the page, letters filter
+  it, `↑↓` and `ctrl-j`/`ctrl-k` move, and creating a project is an explicit
+  choice rather than what an unmatched name means. See implementation.md,
+  "Stage two"
+- **the form is three controls.** Everything the study drew as a field —
+  who does it, size, focus, context, tags, dates — is now written in the
+  description box instead (design.md, "Writing an action"), so `park` and the
+  `who` row are gone from the form entirely
 
 The **who** row shipped exactly as rendered, growing sideways rather than
-opening a row — two radios with their labels styled as buttons and a `:has()`
-rule, no script involved.
+opening a row — and was then removed with the rest of the fields when the
+description became the form. The `:has()` technique it used survives in the
+picker.

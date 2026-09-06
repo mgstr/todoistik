@@ -260,45 +260,38 @@ quietly break.
   its text when it is hidden, and a leftover name would file a waiting-for
   action nobody asked for. Only forms carrying the control are affected; the
   action editor's plain "assigned to" field is read exactly as before
-- **the project box has a picker under it**, served by htmx as you type
-  (`GET /process/projects`, debounced 200ms) — the app's first fragment
-  endpoint, which "Stack" already allows htmx for. The datalist it replaces did
-  narrow as you typed, but by the browser's rule rather than the app's, and it
-  could show nothing but a title. The picker matches the way design.md says it
-  should, and a row has somewhere to put what is worth knowing before filing
-  into one:
-  - **ordered by recent activity**, which during a run is the order that pays:
-    several captures in a row usually belong to the same outcome, so the
-    project wanted next is very often the one just used. Nothing is stored for
-    it — "recent" is the newest of the project's own creation and its newest
-    action's
-  - **capped at eight, with the true total beside it** — `8 of 137 — type to
-    narrow`. A cap that does not announce itself reads as a complete list,
-    which is the failure design.md names for a filtered view that stays quiet
-    ("Views"). The cap can never block, because typing is what reaches past it
-  - **stalled is marked on the row**, because filing a next action into a
-    stalled project is exactly what resolves the stall (design.md, "Inbox
-    Zero"), so the picker is where a stall is most cheaply fixed
-- **the picker is a list of the ordinary kind**, `[data-kb-row]` rows carrying
-  radios, so `j`/`k` move through it and `↵` picks with the machinery every
-  other list already uses. `j`/`k` cannot live in the box itself — it has to be
-  typeable — so the box carries `data-kb-into` and `↓` drops out of it into the
-  list. Tab reaches the same place, and focus and selection are kept in step in
-  both directions
-- **this needed one fix in the key layer, which was a bug everywhere.**
-  `typing()` treated any `<input>` as a field being typed into, radios and
-  checkboxes included, so tabbing onto a checkbox silently killed `j`, `k`, `c`
-  and `t` on every view. It now stands down only for fields that take text
-- **resolution on submit is unchanged, and stays the point.** The picker is an
-  aid, not a replacement: typing a name and pressing `↵` straight from the box
-  still does what it always did, so there is no mode and no interception of
-  `↵`. Picking a row is the explicit route, setting the id outright:
-  - empty — standalone
-  - one active project matches — filed there
-  - several match — the form comes back saying so, with those projects sitting
-    in the picker below it, and nothing has been written
-  - none match — the form comes back asking for a definition of done, and
-    supplying one creates that project with this action as its first
+- **the project is chosen from a picker, and the picker is the whole control.**
+  Closed it shows the choice — `<standalone>` until you make one. `↓` opens the
+  list of active projects, newest activity first; the rows carry the same
+  `stalled` marker and open count they always did. It is built from the page
+  rather than fetched, so filtering is instant and there is no endpoint behind
+  it: a hundred projects is a couple of KB, and the htmx fragment this replaced
+  was a round trip per keystroke to do less
+- **letters filter, and the arrows move.** `j`/`k` cannot do both — they are
+  letters, and project names start with them — so movement takes the form vim
+  itself uses when the letters are spoken for: `↑`/`↓` and `ctrl-j`/`ctrl-k`.
+  Filtering uses the app's own rule, every whitespace-separated word a
+  substring in any order, so `winter car` finds *Winter-proof the car*
+- **`esc` unwinds one step at a time** — the filter, then the choice — and then
+  stops being the picker's key at all. Once the list is closed and nothing is
+  chosen, the press is let through to the screen, or the form could not be left
+  from that field
+- **`enter` on `<standalone>` opens the new-project dialog**, which is the only
+  way to create one from here. That is deliberate: text that matches nothing is
+  a typo far more often than an intention, and the version this replaced turned
+  a typo plus a definition of done into a duplicate project
+- **the new project is held, not created.** The dialog fills two hidden fields;
+  the project and its first action are written together when the action form is
+  submitted. Anything else would need a project with no actions, which
+  `CreateProject` refuses and design.md argues against — and it means an
+  abandoned form leaves nothing behind. Verified: cancelling the dialog and
+  abandoning the form leave no empty project
+- **the dialog stops both of its keys.** `esc` reaching the screen would close
+  the dialog and leave the form in one press; this was a real bug, found by
+  pressing it
+- **there is nothing left to resolve on submit.** What is posted is an id, or a
+  pending new project, or neither. The bounce that used to ask *which project
+  did you mean* is gone with the text box that made the question possible
 - **a form that comes back is not an error page.** It carries every value that
   was typed, the reason at the top, and the item still sitting in the inbox.
   This is the same non-answer as leaving the screen: the app asked a question it
