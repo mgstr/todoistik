@@ -164,6 +164,15 @@ func plainName(s string) bool {
 // back (design.md, "Tags").
 func (a *App) RemoveTag(tag string) error {
 	tag = normTag(tag)
+	// A structural name is a field wearing a tag's notation, and nothing
+	// carries it in item_tags — so the in-use check below would pass it and
+	// the delete would quietly do nothing. Refuse it out loud: the Settings
+	// page disables the control, but a disabled control is a hint, not a lock.
+	for _, s := range StructuralTags {
+		if tag == s {
+			return fmt.Errorf("#%s is built in — it is a field, not a label", tag)
+		}
+	}
 	return a.tx(func(tx *sql.Tx) error {
 		var n int
 		if err := tx.QueryRow(`SELECT COUNT(*) FROM item_tags WHERE tag=?`, tag).Scan(&n); err != nil {
@@ -181,6 +190,9 @@ func (a *App) RemoveTag(tag string) error {
 // remembered lists. Refused while any action still carries it.
 func (a *App) RemoveContext(name string) error {
 	name = strings.TrimPrefix(strings.TrimSpace(name), "@")
+	if name == WaitingForContext {
+		return fmt.Errorf("@%s is built in — it is a field, not a label", WaitingForContext)
+	}
 	return a.tx(func(tx *sql.Tx) error {
 		var n int
 		if err := tx.QueryRow(`SELECT COUNT(*) FROM actions WHERE context=?`, name).Scan(&n); err != nil {
