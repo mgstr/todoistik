@@ -260,14 +260,43 @@ quietly break.
   its text when it is hidden, and a leftover name would file a waiting-for
   action nobody asked for. Only forms carrying the control are affected; the
   action editor's plain "assigned to" field is read exactly as before
-- **the project box is resolved on submit, not on keystroke.** It is a text
-  input with a datalist of the active projects, so the browser does the
-  narrowing while you type, and the server settles what the text meant when you
-  press the button:
+- **the project box has a picker under it**, served by htmx as you type
+  (`GET /process/projects`, debounced 200ms) — the app's first fragment
+  endpoint, which "Stack" already allows htmx for. The datalist it replaces did
+  narrow as you typed, but by the browser's rule rather than the app's, and it
+  could show nothing but a title. The picker matches the way design.md says it
+  should, and a row has somewhere to put what is worth knowing before filing
+  into one:
+  - **ordered by recent activity**, which during a run is the order that pays:
+    several captures in a row usually belong to the same outcome, so the
+    project wanted next is very often the one just used. Nothing is stored for
+    it — "recent" is the newest of the project's own creation and its newest
+    action's
+  - **capped at eight, with the true total beside it** — `8 of 137 — type to
+    narrow`. A cap that does not announce itself reads as a complete list,
+    which is the failure design.md names for a filtered view that stays quiet
+    ("Views"). The cap can never block, because typing is what reaches past it
+  - **stalled is marked on the row**, because filing a next action into a
+    stalled project is exactly what resolves the stall (design.md, "Inbox
+    Zero"), so the picker is where a stall is most cheaply fixed
+- **the picker is a list of the ordinary kind**, `[data-kb-row]` rows carrying
+  radios, so `j`/`k` move through it and `↵` picks with the machinery every
+  other list already uses. `j`/`k` cannot live in the box itself — it has to be
+  typeable — so the box carries `data-kb-into` and `↓` drops out of it into the
+  list. Tab reaches the same place, and focus and selection are kept in step in
+  both directions
+- **this needed one fix in the key layer, which was a bug everywhere.**
+  `typing()` treated any `<input>` as a field being typed into, radios and
+  checkboxes included, so tabbing onto a checkbox silently killed `j`, `k`, `c`
+  and `t` on every view. It now stands down only for fields that take text
+- **resolution on submit is unchanged, and stays the point.** The picker is an
+  aid, not a replacement: typing a name and pressing `↵` straight from the box
+  still does what it always did, so there is no mode and no interception of
+  `↵`. Picking a row is the explicit route, setting the id outright:
   - empty — standalone
   - one active project matches — filed there
-  - several match — the form comes back with those projects as the choice, and
-    nothing has been written
+  - several match — the form comes back saying so, with those projects sitting
+    in the picker below it, and nothing has been written
   - none match — the form comes back asking for a definition of done, and
     supplying one creates that project with this action as its first
 - **a form that comes back is not an error page.** It carries every value that
