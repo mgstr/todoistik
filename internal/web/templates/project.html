@@ -21,7 +21,6 @@
   <form method="post" action="/project/{{$p.ID}}" class="stack">
     <label>Title <input name="title" value="{{$p.Title}}" required></label>
     <label>Definition of done <textarea name="dod" rows="3" placeholder="Empty DOD = error state">{{$p.DOD}}</textarea></label>
-    <label>Description <textarea name="description" rows="2">{{$p.Description}}</textarea></label>
     <label>Tags <input name="tags" value="{{joinTags $p.Tags}}"></label>
     <label>Snooze until <input type="date" name="snooze" value="{{$p.SnoozeUntil}}"></label>
     <button class="primary">Save</button>

@@ -46,10 +46,9 @@
         <label>Duration <select name="duration">
           <option value="">—</option>
           {{$dur := $d.Vals.Get "duration"}}
-          <option {{if eq $dur "<5min"}}selected{{end}}>&lt;5min</option>
-          <option {{if eq $dur "<15min"}}selected{{end}}>&lt;15min</option>
-          <option {{if eq $dur "<1h"}}selected{{end}}>&lt;1h</option>
-          <option {{if eq $dur ">1h"}}selected{{end}}>&gt;1h</option>
+          <option {{if eq $dur "short"}}selected{{end}}>short</option>
+          <option {{if eq $dur "medium"}}selected{{end}}>medium</option>
+          <option {{if eq $dur "long"}}selected{{end}}>long</option>
         </select></label>
         <label class="inline-label"><input type="checkbox" name="focus" {{if $d.Vals.Get "focus"}}checked{{end}}> needs focus</label>
         <label>Description <textarea name="description" rows="2">{{$d.Vals.Get "description"}}</textarea></label>

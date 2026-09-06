@@ -553,6 +553,12 @@ func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFiel
 			continue
 		}
 		af := app.ActionFields{Title: t}
+		// a project has no description of its own any more, so material that
+		// came with the item lands on the first action — the same commitment,
+		// and where design.md now says such material lives
+		if i == 0 {
+			af.Description = strings.TrimSpace(r.FormValue("adescription"))
+		}
 		// only the first action carries a "who": it is the one the screen
 		// shows a control for, and a project's next action is the one whose
 		// owner is worth deciding while the project is being written
