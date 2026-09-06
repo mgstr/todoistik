@@ -389,3 +389,23 @@ so none of them reads as something nobody noticed.
   target, on the one screen in the app that is worked hardest. The keys wait
   on the actionable row, because that row decides how many branches there are
   to key
+
+## Wanted, not specified
+
+A third list, `todo.md`, and it is deliberately unlike the two registers above.
+Those two are about the gap between this repo's documents and its code:
+"Specified, not yet built" is a rule design.md states and the code does not yet
+apply, and "Deferred, by decision" is a rough edge that was looked at and left.
+Both are commitments — something is owed, and the entry says what.
+
+`todo.md` owes nothing. It holds ideas for after the MVP — a verb checker, AI
+help during processing, a TUI, light mode, themes, localization, configuration
+in a file. None of them has been designed, argued for or promised, and design.md
+is deliberately silent on all of them: writing a rule for something nobody has
+decided to build would make the spec a wish list, and a spec that cannot be
+trusted to describe the app is worse than a short one.
+
+The point of keeping the three apart is that they are read differently. An entry
+in a register is a thing to finish; a line in `todo.md` is a thing to consider.
+An idea graduates by leaving `todo.md` — becoming a rule in design.md, or a
+decision here — not by being implemented while still sitting in it.

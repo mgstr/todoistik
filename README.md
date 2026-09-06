@@ -1,7 +1,9 @@
 # todoistik
 
 A single-user GTD app. [design.md](design.md) says what it does and why;
-[implementation.md](implementation.md) says what it is built out of.
+[implementation.md](implementation.md) says what it is built out of;
+[todo.md](todo.md) collects what is wanted after the MVP and has not been
+designed yet.
 
 ## Run
 
