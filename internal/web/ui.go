@@ -50,6 +50,7 @@ type page struct {
 	View         string // active nav entry
 	HelpName     string // the view's full name, for the ? panel
 	HelpText     string // what this view is for, for the ? panel
+	Processing   bool   // the nav slot named by View reads "Processing…" instead
 	Filters      app.Filters
 	FilterQuery  string // current filter query string (for sort/order links)
 	Hidden       int    // how many items the filters hide
@@ -380,7 +381,11 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	p := s.newPage("What is it?", "inbox", r).help("process")
+	// the nav slot is the one the item came from, and it says so: while the
+	// screen is up that entry reads "Processing…" — see implementation.md,
+	// "Navigation"
+	p := s.newPage("What is it?", src, r).help("process")
+	p.Processing = true
 	p.Data = d
 	s.render(w, "process.html", p)
 }
