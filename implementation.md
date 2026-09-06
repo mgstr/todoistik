@@ -60,6 +60,7 @@ Nothing else. The read API is read only, and capture is the only way in.
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
+- `ctrl-enter` submits the form being typed in — see "The description as the form"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
@@ -444,6 +445,13 @@ redundant — and unlike the map, it says something the bar cannot.
   about that view rather than invented separately — the panel must not become
   a second, quietly diverging description of the app
 
+- **the panel is also where a screen puts anything else it has to explain.**
+  The description notation lives there rather than beside the box it describes
+  (see "The description as the form"), and that is the rule rather than the
+  exception: one place per screen, reached by one key that is the same key
+  everywhere. A second explanation somewhere on the page would compete with it
+  and win, being nearer — and then the panel is furniture nobody opens
+
 ## Navigation
 
 The nav bar opens with the `+` capture control (see "Capture"), then lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order:
@@ -507,12 +515,22 @@ box and the columns behind it.
 - **the written line has a fixed order** — context, waiting-for, size, focus,
   parked, today, tags, then the dates. It is pinned by a test, because a codec
   that reorders on every save would churn the field forever
-- **the notation is documented in a fold under the box**, listing the syntax
-  and the remembered names together. Together, because a name that is not on
-  those lists stays prose — the list *is* the difference between metadata and
-  text, so it belongs beside the syntax rather than on another screen. Folded
-  for the same reason the filter panels are: it is read on the first few passes
-  and never again
+- **the notation is documented in the `?` panel**, not beside the box. Extra
+  explanation has one home in this app, and a fold under the field was a second
+  one — a screen that answers "how does this work?" in two places has neither
+  answer where you look first. The panel carries the syntax and the remembered
+  names together, because a name that is not on those lists stays prose: the
+  list *is* the difference between metadata and text
+- **an action's own page gained a help entry to carry it.** A detail page sits
+  under no view and so had no panel at all (see "View help"), which was right
+  while it had nothing of its own to say — it now holds the box an action is
+  written in, and that is exactly what the panel explains
+- **`ctrl-enter` (or `cmd-enter`) submits the form being typed in.** Plain
+  Enter cannot: in a textarea it makes a newline, and the description box is a
+  textarea, so without this the one key that finishes a form is unreachable
+  from the field you spend the most time in. It is general rather than a
+  process-screen key — it does whatever the form's own submit button does, or
+  nothing — and the key bar names that button rather than guessing a verb
 
 ## Specified, not yet built
 
