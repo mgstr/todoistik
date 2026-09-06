@@ -475,6 +475,44 @@ capture dialog (see "Capture"). The `+` at the head of the nav carries a `G`
 tag of its own while the overlay is up, so the sequence is discoverable in the
 same glance as the jumps, on every view.
 
+## The description as the form
+
+An action's form is a title, a project and one box (design.md, "Writing an
+action"). `internal/app/tokens.go` is the codec between what is written in that
+box and the columns behind it.
+
+- **the columns stay the truth; the text is parsed into them and rendered back
+  out of them**, not the other way around. The app changes those fields from
+  outside the box — picking for today, a detach stamping a parked action, a
+  delegation restamping the clock — and if the text owned them, every one of
+  those would have to rewrite prose. This way each is a column update, and the
+  box shows the new truth next time it is opened
+- **`#parked` is derived, never stored**: it is "inside a project, with no
+  `becameNextActionAt`". So it appears and disappears on its own when an action
+  is attached or detached, with nothing to keep in step
+- **`#today` and `#parked` are applied by comparison, not written over.** Both
+  sit behind existing operations (`ToggleTag`, `SetNext`) rather than being
+  fields on `ActionFields`, because writing them over would restamp a clock
+  nothing asked to restamp — `SetNext` deliberately keeps the original stamp
+  when an action is already next
+- **a token has to start a word and carry a known name.** The word boundary
+  alone already excludes `andres@home.example`; the vocabulary check excludes
+  `invoice #12345` and everything else. Together they are what let the box hold
+  ordinary prose safely, and they are design.md's anti-drift rule rather than a
+  new invention
+- **dates use a third notation**, `due:2026-09-20` and `snooze:2026-09-20`.
+  Neither is a name off a list, so neither is an `@` or a `#`; spelling the key
+  out keeps them readable without a fourth sigil to learn
+- **the written line has a fixed order** — context, waiting-for, size, focus,
+  parked, today, tags, then the dates. It is pinned by a test, because a codec
+  that reorders on every save would churn the field forever
+- **the notation is documented in a fold under the box**, listing the syntax
+  and the remembered names together. Together, because a name that is not on
+  those lists stays prose — the list *is* the difference between metadata and
+  text, so it belongs beside the syntax rather than on another screen. Folded
+  for the same reason the filter panels are: it is read on the first few passes
+  and never again
+
 ## Specified, not yet built
 
 Places where design.md states a rule the code does not yet apply. Kept as a
@@ -494,6 +532,14 @@ on purpose.
   named exception to "The protocol is followed, not enforced" and not an
   oversight in that goal — design.md says why the exception holds and what
   would have to be true of a second one
+- **a name can only be added in Settings.** design.md says a name that matches
+  nothing should be offered for creation where it was written, behind an
+  explicit confirm — "deliberate enough to stop drift, cheap enough not to
+  fight capture" (see "Contexts"). What is built is the deliberate half only:
+  writing `@garage` when `garage` is unknown leaves it as text, and the name
+  has to be added on the Settings page first. The confirm belongs on the action
+  forms and is the next thing this needs; until it is there, the round trip
+  through Settings is the cost of the anti-drift rule
 - **snooze, edit, tag and park/unpark have no keys yet** (see "Keyboard").
   Complete and pick-for-today are built; the rest are settled a view at a time
   as each is worked on
