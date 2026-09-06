@@ -351,3 +351,11 @@ body.login form { display: flex; flex-direction: column; gap: .75rem; width: 18r
 }
 #newproject-dialog::backdrop { background: rgba(0,0,0,.45); }
 #newproject-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+
+/* A create button that cannot be pressed yet stays where it is and goes dim.
+   Hiding it moves everything under it and leaves no sign that creating is
+   what happens here — dim says "not yet", which is the true thing to say. */
+button:disabled, .button:disabled {
+  opacity: .45; cursor: not-allowed; border-color: var(--line);
+}
+button:disabled:hover { border-color: var(--line); }

@@ -98,14 +98,7 @@
     const help = document.getElementById("help");
     if (help && !help.hidden) return { view: [["esc", "close help"]], global: [] };
     const np = document.getElementById("newproject-dialog");
-    if (np && np.open) {
-      const okBtn = np.querySelector("#np-ok");
-      const view = [];
-      if (okBtn && !okBtn.hidden) view.push(["\u21b5", "create"]);
-      else view.push(["\u2026", "a title and a definition of done"]);
-      view.push(["esc", "cancel"]);
-      return { view: view, global: [] };
-    }
+    if (np && np.open) return { view: makeKeys(np).concat([["esc", "cancel"]]), global: [] };
     const picker = document.querySelector("[data-picker] .pickerlist:not([hidden])");
     if (picker) {
       return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
@@ -122,12 +115,9 @@
 
     const view = [];
     const typed = document.activeElement;
-    if (typed && typed.closest) {
+    if (typed && typed.closest && typing({ target: typed })) {
       const form = typed.closest("form");
-      const btn = form && submitButton(form);
-      if (btn && typing({ target: typed })) {
-        view.push(["^\u21b5", btn.textContent.trim().toLowerCase()]);
-      }
+      if (form) makeKeys(form).forEach(function (k) { view.push(k); });
     }
     const row = selected();
     const zero = document.querySelector("[data-inbox-zero]");
@@ -185,6 +175,18 @@
     if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
   }
 
+  // What the create button in this scope offers, said the way the screen says
+  // it: the button's own words when it can be pressed, and what is still blank
+  // when it cannot.
+  function makeKeys(scope) {
+    const btn = makeButton(scope);
+    if (!btn) return [];
+    if (!btn.disabled) return [["^\u21b5", btn.textContent.trim().toLowerCase()]];
+    const need = missing(scope);
+    if (!need.length) return [];
+    return [["\u2026", "needs " + need.join(" and ")]];
+  }
+
   function keygroup(cls, items) {
     const box = document.createElement("div");
     box.className = cls;
@@ -212,6 +214,46 @@
   function submitButton(form) {
     return form.querySelector("button[type=submit], button:not([type]):not([type=button])");
   }
+
+  // The button that makes the thing, whether the thing is made by submitting a
+  // form or by confirming a dialog.
+  function makeButton(scope) {
+    return submitButton(scope) || scope.querySelector("button.primary");
+  }
+
+  // What is still blank, named the way the screen names it. Reading the label
+  // rather than the field means the bar says "needs a definition of done", in
+  // the same words as the thing being pointed at.
+  function missing(scope) {
+    return Array.from(scope.querySelectorAll("[required]"))
+      .filter(function (el) { return el.value.trim() === ""; })
+      .map(function (el) {
+        const label = el.closest("label");
+        if (!label) return el.name;
+        return label.childNodes[0].textContent.trim().toLowerCase() || el.name;
+      });
+  }
+
+  // A create button whose prerequisites are unmet is disabled, not hidden. It
+  // still says that creating is what happens here and where the control is;
+  // hiding it moves everything under it and leaves no clue the thing is
+  // possible at all. Disabled promises nothing false — it says "not yet".
+  function gate(scope) {
+    const btn = makeButton(scope);
+    if (!btn) return;
+    if (!scope.querySelector("[required]")) return;
+    btn.hidden = false;
+    btn.disabled = missing(scope).length > 0;
+  }
+
+  function gateAll() {
+    document.querySelectorAll("form, dialog").forEach(gate);
+    renderKeybar();
+  }
+  document.addEventListener("input", function (e) {
+    const scope = e.target.closest && e.target.closest("form, dialog");
+    if (scope) { gate(scope); renderKeybar(); }
+  });
 
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
@@ -280,11 +322,8 @@
       // from inside it. Derived from the page like everything else: it does
       // what the form's own submit button does, or nothing.
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        const form = e.target.closest("form");
-        if (form && submitButton(form)) {
-          e.preventDefault();
-          if (form.requestSubmit) form.requestSubmit(); else form.submit();
-        }
+        e.preventDefault();
+        submitScope(e.target);
         return;
       }
       if (e.key === "Escape") { e.target.blur(); return; }
@@ -514,6 +553,14 @@
           return;
         case e.key === "Enter":
           e.preventDefault(); e.stopPropagation();
+          // ctrl-enter is the form's, everywhere and always. Here it takes
+          // whatever the list is showing as chosen first, so what is submitted
+          // is what is on screen, and then finishes.
+          if (e.ctrlKey || e.metaKey) {
+            if (openList) take(list.querySelector(".pickrow.on"));
+            submitScope(root);
+            return;
+          }
           if (openList) { take(list.querySelector(".pickrow.on")); return; }
           if (!idField.value && !newField.value) newProjectDialog(root); else open();
           return;
@@ -554,21 +601,17 @@
     title.value = ""; dod.value = "";
 
     // A project needs both a title and a definition of done — design.md will
-    // not make one without them. So the button that would make it is not
-    // offered until it can be: an enabled control that refuses is a control
-    // that lies about what it will do.
-    function ready() { return title.value.trim() !== "" && dod.value.trim() !== ""; }
-    function sync() { ok.hidden = !ready(); renderKeybar(); }
-    title.oninput = sync;
-    dod.oninput = sync;
-    sync();
+    // not make one without them — so until it has both the button is disabled.
+    // It stays on screen: see gate().
+    function ready() { return !ok.disabled; }
+    gate(dlg);
 
     dlg.showModal();
     title.focus();
     renderKeybar();
 
-    function done(ok) {
-      if (ok) {
+    function done(confirmed) {
+      if (confirmed) {
         if (!ready()) { (title.value.trim() === "" ? title : dod).focus(); return; }
         const name = title.value.trim();
         root.querySelector("[name=newproject]").value = name;
@@ -581,23 +624,42 @@
       root.querySelector(".pickerbox").focus();
       renderKeybar();
     }
-    dlg.querySelector("#np-ok").onclick = function () { done(true); };
+    ok.onclick = function () { done(true); };
     dlg.querySelector("#np-cancel").onclick = function () { done(false); };
     // the dialog owns both keys outright: letting Escape reach the screen
     // would close the dialog and leave the form in the same press
     dlg.onkeydown = function (e) {
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); }
-      if (e.key === "Enter" && e.target !== dod) { e.preventDefault(); e.stopPropagation(); done(true); }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); return; }
+      if (e.key !== "Enter") return;
+      // ctrl-enter finishes from anywhere in the dialog, including the
+      // textarea where a plain Enter has to keep meaning "newline"
+      if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); done(true); return; }
+      if (e.target !== dod) { e.preventDefault(); e.stopPropagation(); done(true); }
     };
+  }
+
+  // submitScope finishes whatever is being written around el — the dialog if
+  // there is one, otherwise the form. Refuses when the create button is
+  // disabled, so the key and the button can never disagree.
+  function submitScope(el) {
+    const dlg = el.closest("dialog");
+    const scope = dlg || el.closest("form");
+    if (!scope) return false;
+    const btn = makeButton(scope);
+    if (!btn || btn.disabled) return false;
+    if (dlg) { btn.click(); return true; }
+    if (scope.requestSubmit) scope.requestSubmit(); else scope.submit();
+    return true;
   }
 
   function setupPickers() {
     document.querySelectorAll("[data-picker]").forEach(setupPicker);
   }
   setupPickers();
+  gateAll();
 
   // hx-boost swaps the body, taking the rendered bar with it
-  document.addEventListener("htmx:afterSwap", function () { renderKeybar(); setupPickers(); });
+  document.addEventListener("htmx:afterSwap", function () { renderKeybar(); setupPickers(); gateAll(); });
 
   // A field that opens focused with the caret at position 0 means the first
   // thing typed lands in front of the text already there, which is never what
