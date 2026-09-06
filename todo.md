@@ -1,4 +1,4 @@
-# Things to implement in Todoiskit app
+# Things to implement in the todoistik app
 
 Ideas for after the MVP. This is a holding pen, not a plan and not a spec:
 nothing here has been designed, argued for or promised, and design.md stays
