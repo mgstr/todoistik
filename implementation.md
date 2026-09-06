@@ -291,12 +291,12 @@ quietly break.
   version this replaced turned a typo plus a definition of done into a
   duplicate project. `c` is a command only while the list is shut — an open
   list is being filtered, and every letter there belongs to the filter
-- **the dialog offers Create only once it can be acted on.** A project needs a
-  title and a definition of done, so until both are non-blank the button is not
-  there and the key bar says what is missing rather than naming a key that
-  would refuse. An enabled control that rejects is a control lying about what
-  it will do. `enter` while incomplete moves to the empty field instead of
-  doing nothing, so the key is never a dead end
+- **the dialog's Create is disabled until it can be acted on**, and stays where
+  it is. It first *hid* the button, which was wrong twice over: the screen
+  jumps as it appears, and while it is gone nothing says that creating is what
+  happens here at all. Disabled promises nothing false — it says "not yet" —
+  and the key bar names what is still blank. `enter` while incomplete moves to
+  the empty field rather than doing nothing, so the key is never a dead end
 - **the new project is held, not created.** The dialog fills two hidden fields;
   the project and its first action are written together when the action form is
   submitted. Anything else would need a project with no actions, which
@@ -323,6 +323,26 @@ quietly break.
   the study that designed this row had it appear only once a project was
   resolved — which needs the resolution to happen while you type, and it does
   not. Revisit if the label turns out to be doing too much work
+
+## Create buttons
+
+One rule, applied wherever something is made:
+
+- **a create button whose prerequisites are unmet is disabled, never hidden.**
+  It still says that creating is what happens here and where the control is;
+  hiding it moves everything below and leaves no sign the thing is possible.
+  Disabled is not a control lying about what it will do — it is one saying
+  "not yet", which is true and useful
+- **the prerequisites are the form's own `required` fields**, so the rule needs
+  no per-screen list and cannot drift from what the server will accept. A scope
+  with no required fields is never gated
+- **it applies to dialogs as well as forms.** A `<dialog>` is a scope like a
+  form is; the button it gates is its submit button, or its primary one
+- **the key bar reads the same state.** When the button can be pressed it
+  offers `^↵` with the button's own words; when it cannot it says what is still
+  blank, named from the field's label — *needs title and definition of done* —
+  so the bar and the button never disagree and neither has to be re-checked
+  against the other
 
 ## Interface density
 
@@ -533,12 +553,19 @@ box and the columns behind it.
   under no view and so had no panel at all (see "View help"), which was right
   while it had nothing of its own to say — it now holds the box an action is
   written in, and that is exactly what the panel explains
-- **`ctrl-enter` (or `cmd-enter`) submits the form being typed in.** Plain
+- **`ctrl-enter` (or `cmd-enter`) finishes whatever is being written.** Plain
   Enter cannot: in a textarea it makes a newline, and the description box is a
   textarea, so without this the one key that finishes a form is unreachable
   from the field you spend the most time in. It is general rather than a
-  process-screen key — it does whatever the form's own submit button does, or
-  nothing — and the key bar names that button rather than guessing a verb
+  process-screen key — the dialog if there is one, the form otherwise — and it
+  does whatever that scope's own create button does, refusing when the button
+  is disabled, so the key and the button can never disagree. The bar names the
+  button rather than guessing a verb
+- **inside the project picker it belongs to the form, not the picker.** Plain
+  `enter` there opens the list or takes a row; `ctrl-enter` takes whatever the
+  list is showing as chosen and then finishes, so what is submitted is what is
+  on screen. Without the distinction the universal key meant something local
+  on the one screen it is most wanted
 
 ## Specified, not yet built
 
