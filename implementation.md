@@ -51,6 +51,15 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
 - `p` processes the selected inbox item and `z` runs Inbox Zero over the whole inbox — see "Processing from the Inbox"
+- **a screen may declare keys on its own controls**, with `data-key` and
+  `data-key-label` on the form or link the key presses. The key layer reads
+  those off the page: the bar lists them in document order, and pressing one
+  does exactly what clicking the control does — submit that form, follow that
+  link. Nothing in the JS knows what any of them mean. This is the same
+  construction as the row keys and buys the same guarantee, that a key cannot
+  be advertised without working, extended to a screen whose controls are not
+  rows. A declared key beats the standing map while that screen is up, which is
+  what lets `t` mean trash on the processing screen and today everywhere else
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
@@ -183,6 +192,34 @@ and all eight branches on screen at once — three buttons and five forms in
   bare button. The branch *is* the new date (design.md, "Inbox Zero"), so a
   one-click version would either set nothing or silently clear the snooze the
   item already had. It is a candidate for stage two once stage two exists
+
+### The keys
+
+Six, one per answer, listed in the bar in the order the rows present them:
+`t` trash, `r` reference, `2` two-minute, `s` someday, `a` action, `p` project,
+then `esc`. Each is the branch's own first letter except the two-minute rule,
+which is the rule's own number — `c` would have matched "done" elsewhere in the
+app, but there `c` completes an action that exists, and this branch records
+something done that never became one.
+
+- **`t` is trash here and "pick for today" on every list view**, and that was
+  chosen with the collision in view rather than around it. Every other branch
+  gets its initial, and breaking the pattern for one of them costs more than
+  the collision does: the screens are disjoint, the bar names the key on both,
+  and trashing is recoverable from the audit log by recapturing (design.md,
+  "Audit entry"). Worth revisiting if it ever fires by accident
+- **there is no confirmation on `t`**, for the same reason there is none
+  anywhere else — see design.md, "The protocol is followed, not enforced". The
+  answer is recorded and recoverable, and a modal on the one screen worked
+  hardest would be paid on every pass to protect against a rare slip
+- **Keep incubating has no key**, alone among the branches. That branch *is*
+  the new snooze date it carries, so a keystroke would submit whatever the date
+  box happens to hold — empty, unless touched, which silently clears a snooze
+  the item already had. It waits for a stage two that can ask for the date
+- **stage two takes no keys of its own.** Your hands are in a text field there
+  and the key layer stands down while you are typing, which is correct. What
+  the browser already gives is enough: `Enter` submits, `esc` blurs the field
+  and a second `esc` goes back to stage one
 
 ## Stage two
 
@@ -436,12 +473,6 @@ so none of them reads as something nobody noticed.
   reads as a count until you know it is an id, and the view has had none of the
   attention the others have. Its help line and its row layout are both first
   drafts
-- **the process screen still has no keys of its own.** Its layout and its
-  branches are built now (see "The processing screen" and "Stage two"), but
-  every one of them is still a mouse target, on the one screen in the app that
-  is worked hardest. The row settled how many keys there are to give — `t` `r`
-  `2` `s` `a` `p`, six of them — and left one thing to decide with them: `t` is
-  "pick for today" on every list view and would be "trash" here
 
 ## Wanted, not specified
 
