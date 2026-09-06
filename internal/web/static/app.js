@@ -97,6 +97,20 @@
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
     const help = document.getElementById("help");
     if (help && !help.hidden) return { view: [["esc", "close help"]], global: [] };
+    const np = document.getElementById("newproject-dialog");
+    if (np && np.open) return { view: [["\u21b5", "create"], ["esc", "cancel"]], global: [] };
+    const picker = document.querySelector("[data-picker] .pickerlist:not([hidden])");
+    if (picker) {
+      return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
+        ["type", "filter"], ["esc", "back"]], global: [] };
+    }
+    const closed = document.querySelector("[data-picker] .pickerbox");
+    if (closed && closed === document.activeElement) {
+      const empty = !document.querySelector("[data-picker] [name=projectid]").value &&
+        !document.querySelector("[data-picker] [name=newproject]").value;
+      return { view: [["\u2193", "projects"],
+        [" \u21b5", empty ? "create project" : "change"], ["esc", "standalone"]], global: [] };
+    }
     if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
 
     const view = [];
@@ -336,6 +350,11 @@
   // reaching a choice with Tab selects its row, so focus and selection say the
   // same thing however you got there
   document.addEventListener("focusin", function (e) {
+    if (e.target.classList && e.target.classList.contains("pickerbox")) renderKeybar();
+    if (e.target.closest && !e.target.closest("[data-picker]")) {
+      const openList = document.querySelector("[data-picker] .pickerlist:not([hidden])");
+      if (openList) { openList.hidden = true; renderKeybar(); }
+    }
     const row = e.target.closest && e.target.closest("[data-kb-row]");
     if (row && e.target.type === "radio" && !row.classList.contains("kb-selected")) select(row);
   });
@@ -356,8 +375,177 @@
     if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
   });
 
+  // The project picker. A project is chosen, never typed, so what is submitted
+  // is an id or a pending new project — never a name to be resolved. It owns
+  // the keyboard while it has focus, which is why its handler stops the event
+  // before the layer above sees it: j and k are letters here.
+  //
+  // Letters filter and the arrows move, rather than the other way round. j/k
+  // cannot filter and move at the same time, and with a long list typing is
+  // the fast path — so movement takes the form vim itself uses when the
+  // letters are spoken for: the arrows, and ctrl-j / ctrl-k.
+  function setupPicker(root) {
+    const box = root.querySelector(".pickerbox");
+    const list = root.querySelector(".pickerlist");
+    const idField = root.querySelector("[name=projectid]");
+    const newField = root.querySelector("[name=newproject]");
+    const dodField = root.querySelector("[name=newdod]");
+    const rows = function () {
+      return Array.from(list.querySelectorAll(".pickrow")).filter(function (r) { return !r.hidden; });
+    };
+
+    function label() {
+      if (newField.value) return "+ " + newField.value;
+      if (!idField.value) return "<standalone>";
+      const row = list.querySelector('[data-pick="' + idField.value + '"]');
+      return row ? row.dataset.title : "<standalone>";
+    }
+
+    function close() {
+      list.hidden = true;
+      box.readOnly = true;
+      box.value = label();
+      renderKeybar();
+    }
+
+    function open() {
+      if (!list.hidden) return;
+      box.readOnly = false;
+      box.value = "";
+      list.hidden = false;
+      filter();
+      highlight(rows()[0]);
+      renderKeybar();
+    }
+
+    function filter() {
+      const q = box.value.trim().toLowerCase();
+      let shown = null;
+      list.querySelectorAll(".pickrow").forEach(function (row) {
+        const hay = (row.dataset.title || "").toLowerCase();
+        // every word must appear, in any order — the rule the name filter uses
+        const hit = q === "" || q.split(/\s+/).every(function (w) { return hay.includes(w); });
+        row.hidden = !hit && !row.classList.contains("pnew");
+        if (!row.hidden && !shown) shown = row;
+      });
+      if (!list.querySelector(".pickrow.on:not([hidden])")) highlight(shown);
+    }
+
+    function highlight(row) {
+      list.querySelectorAll(".pickrow.on").forEach(function (r) { r.classList.remove("on"); });
+      if (row) { row.classList.add("on"); row.scrollIntoView({ block: "nearest" }); }
+    }
+
+    function move(delta) {
+      const all = rows();
+      if (!all.length) return;
+      const cur = list.querySelector(".pickrow.on");
+      let i = cur ? all.indexOf(cur) + delta : 0;
+      i = Math.max(0, Math.min(all.length - 1, i));
+      highlight(all[i]);
+    }
+
+    function take(row) {
+      if (!row) return;
+      if (row.dataset.pick === "new") { close(); newProjectDialog(root); return; }
+      newField.value = ""; dodField.value = "";
+      idField.value = row.dataset.pick;
+      close();
+    }
+
+    function standalone() {
+      idField.value = ""; newField.value = ""; dodField.value = "";
+      close();
+    }
+
+    box.addEventListener("input", filter);
+    box.addEventListener("mousedown", function () { if (list.hidden) open(); });
+    list.addEventListener("click", function (e) {
+      const row = e.target.closest(".pickrow");
+      if (row) take(row);
+    });
+
+    root.addEventListener("keydown", function (e) {
+      if (e.target !== box) return;
+      const openList = !list.hidden;
+      const ctrl = e.ctrlKey && !e.metaKey && !e.altKey;
+      switch (true) {
+        case e.key === "ArrowDown" || (ctrl && e.key === "j"):
+          e.preventDefault(); e.stopPropagation();
+          if (openList) move(1); else open();
+          return;
+        case e.key === "ArrowUp" || (ctrl && e.key === "k"):
+          e.preventDefault(); e.stopPropagation();
+          if (openList) move(-1);
+          return;
+        case e.key === "Enter":
+          e.preventDefault(); e.stopPropagation();
+          if (openList) { take(list.querySelector(".pickrow.on")); return; }
+          if (!idField.value && !newField.value) newProjectDialog(root); else open();
+          return;
+        case e.key === "Escape":
+          // one step at a time: the filter first, then the choice. Once there
+          // is nothing of ours left to undo the key is not ours either — it
+          // has to reach the screen, or the form could not be left from here
+          if (openList && box.value !== "") {
+            e.preventDefault(); e.stopPropagation();
+            box.value = ""; filter(); return;
+          }
+          if (openList || idField.value || newField.value) {
+            e.preventDefault(); e.stopPropagation();
+            standalone(); return;
+          }
+          return;
+      }
+    });
+
+    close();
+  }
+
+  // The new project is held, not created: until the action form is submitted
+  // there is no action to be its first, and a project without one is a thing
+  // design.md will not make.
+  function newProjectDialog(root) {
+    const dlg = document.getElementById("newproject-dialog");
+    if (!dlg) return;
+    const title = dlg.querySelector("#np-title");
+    const dod = dlg.querySelector("#np-dod");
+    title.value = ""; dod.value = "";
+    dlg.showModal();
+    title.focus();
+    renderKeybar();
+
+    function done(ok) {
+      if (ok) {
+        const name = title.value.trim();
+        if (name === "") return;
+        root.querySelector("[name=newproject]").value = name;
+        root.querySelector("[name=newdod]").value = dod.value.trim();
+        root.querySelector("[name=projectid]").value = "";
+        const box = root.querySelector(".pickerbox");
+        box.value = "+ " + name;
+      }
+      dlg.close();
+      root.querySelector(".pickerbox").focus();
+      renderKeybar();
+    }
+    dlg.querySelector("#np-ok").onclick = function () { done(true); };
+    dlg.querySelector("#np-cancel").onclick = function () { done(false); };
+    // the dialog owns both keys outright: letting Escape reach the screen
+    // would close the dialog and leave the form in the same press
+    dlg.onkeydown = function (e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); }
+      if (e.key === "Enter" && e.target !== dod) { e.preventDefault(); e.stopPropagation(); done(true); }
+    };
+  }
+
+  function setupPickers() {
+    document.querySelectorAll("[data-picker]").forEach(setupPicker);
+  }
+  setupPickers();
+
   // hx-boost swaps the body, taking the rendered bar with it
-  document.addEventListener("htmx:afterSwap", renderKeybar);
+  document.addEventListener("htmx:afterSwap", function () { renderKeybar(); setupPickers(); });
 
   // A field that opens focused with the caret at position 0 means the first
   // thing typed lands in front of the text already there, which is never what

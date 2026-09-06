@@ -329,11 +329,11 @@ type processData struct {
 	// stage two: the branch has been chosen and the form for it is up.
 	// Empty As is stage one, the question itself.
 	As        string
-	Vals      url.Values     // what the fields show — seeded on the way in, echoed back on a bounce
-	NeedDOD   bool           // the name matched none, so the project would be a new one
-	Note      string         // why the form came back instead of being accepted
-	Cands     *candidateData // the projects the picker is currently offering
-	Back      string         // stage one for this item — where "back" and esc go
+	Vals      url.Values   // what the fields show — seeded on the way in, echoed back on a bounce
+	NeedDOD   bool         // the name matched none, so the project would be a new one
+	Note      string       // why the form came back instead of being accepted
+	Picker    []pickerData // every active project, newest activity first, for the picker
+	Back      string       // stage one for this item — where "back" and esc go
 	AsAction  string
 	AsProject string
 	Q         string // "?one=1" when a single picked item, to be carried by the form
@@ -398,29 +398,11 @@ func (d *processData) links() {
 	d.AsProject = base + "&as=project" + one
 }
 
-// projectCandidateLimit is how many projects the picker shows at once. Enough
-// that a modest database never needs typing at all, few enough that the list
-// does not push the rest of the form off the screen. What is left out is
-// counted on screen, and typing is what reaches it.
-const projectCandidateLimit = 8
-
-type candidateData struct {
-	Hits  []*app.ProjectCandidate
-	Total int
-	Query string
-}
-
-// processProjectCandidates serves the picker's list on its own, for htmx to
-// swap in as the name is typed. It is a fragment, not a page: the only thing
-// that changes while you type is which projects are worth offering.
-func (s *Server) processProjectCandidates(w http.ResponseWriter, r *http.Request) {
-	q := strings.TrimSpace(r.URL.Query().Get("project"))
-	hits, total, err := s.app.ProjectCandidates(q, projectCandidateLimit)
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-	s.render(w, "projectcands", &candidateData{Hits: hits, Total: total, Query: q})
+type pickerData struct {
+	ID      int64  `json:"id"`
+	Title   string `json:"title"`
+	Stalled bool   `json:"stalled,omitempty"`
+	Open    int    `json:"open,omitempty"`
 }
 
 func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
@@ -468,8 +450,11 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		d.Tags, _ = s.app.Tags()
 	}
 	if d.As == "action" {
-		hits, total, _ := s.app.ProjectCandidates(d.Vals.Get("project"), projectCandidateLimit)
-		d.Cands = &candidateData{Hits: hits, Total: total, Query: d.Vals.Get("project")}
+		cands, _, _ := s.app.ProjectCandidates("", 0)
+		d.Picker = make([]pickerData, 0, len(cands))
+		for _, c := range cands {
+			d.Picker = append(d.Picker, pickerData{c.ID, c.Title, c.Stalled, c.OpenCount})
+		}
 	}
 	tmpl := "process.html"
 	switch d.As {
@@ -676,73 +661,44 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/process", http.StatusSeeOther)
 }
 
-// processActionBranch resolves the one field on the action form that can not
-// be settled by reading it: the project name. Empty means standalone; a name
-// matching exactly one active project files it there; a name matching several
-// asks which; a name matching none offers to create that project, with this
-// action as its first. It reports whether the branch was settled — false means
-// the form has already been sent back and there is nothing left to redirect.
+// processActionBranch turns the action form into the thing it describes. The
+// project is chosen, not typed, so there is nothing left to resolve: an id
+// files it there, a pending new project is created with this action as its
+// first, and neither means standalone. It reports whether the branch was
+// settled — false means the form has already been sent back.
 func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
 	pid := parseID(strings.TrimSpace(r.FormValue("projectid")))
-	name := strings.TrimSpace(r.FormValue("project"))
-	wa, err := s.readAction(r, pid != 0 || name != "")
+	newProject := strings.TrimSpace(r.FormValue("newproject"))
+	wa, err := s.readAction(r, pid != 0 || newProject != "")
 	if err != nil {
 		s.bounce(w, r, src, id, "action", err.Error(), false)
 		return false
 	}
-	f, parked := wa.Fields, wa.Parked
-	if pid != 0 {
-		act, err := s.app.ProcessAction(src, id, f, pid, parked)
+	f := wa.Fields
+
+	if newProject != "" {
+		// the project and its first action are created together: until the
+		// form is submitted there is no action to be its first, and design.md
+		// will not have a project without one
+		p, err := s.app.ProcessProject(src, id,
+			app.ProjectFields{Title: newProject, DOD: strings.TrimSpace(r.FormValue("newdod"))},
+			[]app.ActionFields{f})
 		if err != nil {
-			httpError(w, err)
+			s.bounce(w, r, src, id, "action", err.Error(), false)
 			return false
 		}
-		return s.finishAction(w, act.ID, wa.Today)
-	}
-	if name == "" {
-		// a standalone action is a next action from the moment it exists,
-		// so there is nothing for park to mean here
-		act, err := s.app.ProcessAction(src, id, f, 0, false)
-		if err != nil {
-			httpError(w, err)
-			return false
+		if len(p.Actions) == 1 {
+			return s.finishAction(w, p.Actions[0].ID, wa.Today)
 		}
-		return s.finishAction(w, act.ID, wa.Today)
+		return true
 	}
-	hits, err := s.app.MatchProjects(name)
+
+	act, err := s.app.ProcessAction(src, id, f, pid, wa.Parked && pid != 0)
 	if err != nil {
-		httpError(w, err)
+		s.bounce(w, r, src, id, "action", err.Error(), false)
 		return false
 	}
-	switch {
-	case len(hits) == 1:
-		act, err := s.app.ProcessAction(src, id, f, hits[0].ID, parked)
-		if err != nil {
-			httpError(w, err)
-			return false
-		}
-		return s.finishAction(w, act.ID, wa.Today)
-	case len(hits) > 1:
-		s.bounce(w, r, src, id, "action",
-			"That name matches more than one active project. Pick the one you meant below.", false)
-		return false
-	}
-	dod := strings.TrimSpace(r.FormValue("dod"))
-	if dod == "" {
-		s.bounce(w, r, src, id, "action",
-			"No active project matches that name. Give it a definition of done to create it, or clear the box to leave the action standalone.", true)
-		return false
-	}
-	p, err := s.app.ProcessProject(src, id, app.ProjectFields{Title: name, DOD: dod},
-		[]app.ActionFields{f})
-	if err != nil {
-		httpError(w, err)
-		return false
-	}
-	if len(p.Actions) == 1 {
-		return s.finishAction(w, p.Actions[0].ID, wa.Today)
-	}
-	return true
+	return s.finishAction(w, act.ID, wa.Today)
 }
 
 // finishAction applies the one thing that is not written when the action is

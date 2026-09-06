@@ -313,3 +313,34 @@ body.login form { display: flex; flex-direction: column; gap: .75rem; width: 18r
 .notation .known { margin: .35rem 0 0; display: flex; gap: .3rem; flex-wrap: wrap; align-items: baseline; }
 .notation .known b { color: var(--muted); font-weight: 600; min-width: 4.5rem; }
 .addname { display: flex; gap: .4rem; flex-wrap: wrap; margin: .5rem 0 .75rem; }
+
+/* The project picker: chosen, never typed. Closed it shows the choice; open it
+   is a filter box over a list. Eight rows tall, then it scrolls — the list is
+   ordered by recent activity, so what you want is usually already at the top,
+   and typing is what reaches the rest. */
+.picker { position: relative; max-width: 34rem; }
+.pickerbox { width: 100%; }
+.pickerbox[readonly] { cursor: pointer; color: var(--fg); }
+.pickerlist {
+  list-style: none; margin: .2rem 0 0; padding: .2rem;
+  border: 1px solid var(--accent); border-radius: 8px; background: var(--bg);
+  max-height: 14rem; overflow-y: auto;
+  position: absolute; left: 0; right: 0; z-index: 6;
+  box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+.pickrow {
+  display: flex; align-items: baseline; gap: .45rem;
+  padding: .2rem .45rem; border-radius: 6px; cursor: pointer; font-size: .95rem;
+}
+.pickrow:hover { background: var(--row-hover); }
+.pickrow.on { background: var(--select); outline: 1px solid var(--accent); }
+.pickrow.pnew { color: var(--muted); border-top: 1px solid var(--line); margin-top: .2rem; padding-top: .35rem; }
+
+#newproject-dialog {
+  width: min(30rem, 90vw); padding: 1.1rem 1.35rem;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--fg);
+  box-shadow: 0 12px 48px rgba(0,0,0,.45);
+}
+#newproject-dialog::backdrop { background: rgba(0,0,0,.45); }
+#newproject-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }

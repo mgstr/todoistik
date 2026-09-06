@@ -12,17 +12,25 @@
     <label>Title <input name="title" value="{{$d.Vals.Get "title"}}" required autofocus
       placeholder="Starts with a verb, fully self-descriptive"></label>
 
-    <label>Project <input name="project" value="{{$d.Vals.Get "project"}}"
-      placeholder="empty — a standalone action"
-      data-kb-into
-      hx-get="/process/projects" hx-trigger="keyup changed delay:200ms"
-      hx-target="#projcands" hx-swap="outerHTML"></label>
-    {{template "projectcands" $d.Cands}}
-
-    {{if $d.NeedDOD}}
-    <label>Definition of done <textarea name="dod" rows="2" required
-      placeholder="How you will know the outcome is reached"></textarea></label>
-    {{end}}
+    <label>Project
+      <div class="picker" data-picker>
+        <input type="hidden" name="projectid" value="">
+        <input type="hidden" name="newproject" value="">
+        <input type="hidden" name="newdod" value="">
+        <input class="pickerbox" readonly autocomplete="off" spellcheck="false" value="&lt;standalone&gt;">
+        <ul class="pickerlist" hidden>
+          <li class="pickrow" data-pick="" data-title="standalone">&lt;standalone&gt;</li>
+          {{range $d.Picker}}
+          <li class="pickrow" data-pick="{{.ID}}" data-title="{{.Title}}">
+            <span class="title">{{.Title}}</span>
+            {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
+            {{if .Open}}<span class="badge">{{.Open}} open</span>{{end}}
+          </li>
+          {{end}}
+          <li class="pickrow pnew" data-pick="new" data-title="">+ new project…</li>
+        </ul>
+      </div>
+    </label>
 
     <label>Description <textarea name="description" rows="5" spellcheck="false"
       placeholder="Anything worth keeping with it — and everything else this action carries.">{{$d.Vals.Get "description"}}</textarea></label>
@@ -35,4 +43,18 @@
     </div>
   </form>
 </div>
+
+<dialog id="newproject-dialog" aria-labelledby="np-title-label">
+  <h2 id="np-title-label">New project</h2>
+  <div class="stack">
+    <label>Title <input id="np-title" autocomplete="off"></label>
+    <label>Definition of done <textarea id="np-dod" rows="2"
+      placeholder="How you will know it is done"></textarea></label>
+    <p class="muted">It is created together with this action, which becomes its first.</p>
+    <div class="branches">
+      <button type="button" id="np-ok" class="primary">Create</button>
+      <button type="button" id="np-cancel">Cancel</button>
+    </div>
+  </div>
+</dialog>
 {{template "bottom" .}}
