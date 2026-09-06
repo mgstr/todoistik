@@ -126,6 +126,61 @@ they apply.
   moved to last. Views with no run to work down keep the ordinary order, acting
   on the selection first
 
+## The processing screen
+
+One captured line, and a menu of answers to "what is it?". The first working
+version put the question in a heading, the run's position in a crumb above it,
+and all eight branches on screen at once — three buttons and five forms in
+`<details>`, every field of every branch one click from being visible.
+
+- **the screen carries no prose.** The heading *"What is it?"*, the crumb
+  (*"Inbox Zero · 4 left"*, *"Processing one inbox item"*) and the branch
+  explanations were all removed. They are correct and they are read once: this
+  is a screen worked through many times a day, and a sentence you have already
+  learned is noise on the hundredth pass. What the screen is for is carried by
+  the `?` panel, which is where every view's explanation lives (see "View
+  help"), and the branch buttons keep their one-line `title` for the two that
+  are not self-evident
+- **the captured line is marked with an accent rule**, not boxed and not merely
+  set large. Every control on the screen is a bordered, filled button, so
+  unboxed text loses to its own menu; a card would have been a fifth boxed
+  thing and would read as a control itself. A quotation rule marks the subject
+  without enclosing it, holds a three-line capture as well as a one-line one,
+  and spends an accent that nothing else on this screen is using. Chosen from
+  five treatments in `research/process-subject-study.html`, which also settles
+  why no *"N left"* came back with it
+- **deciding and describing are two stages.** The question a branch answers is
+  *what is this*, and that is one click. Everything a branch then needs — a
+  title in valid form, a context, a definition of done — belongs to a second
+  step, after the answer is given. The old screen mixed them: choosing "Project"
+  and filling in a project were the same act, so the cost of *considering* a
+  branch was reading its whole form. Stage two is not built yet; the branches
+  that need one are the actionable ones, and they are the part still being
+  designed
+- **the branches are grouped into rows by what the answer costs**, one row per
+  group, and the grouping is the only structure the screen has left now that
+  the prose is gone:
+  - **nothing changes but the audit log** — Trash, Reference material,
+    Two-minute rule. The item leaves and no new object is created; the record
+    that it existed is the audit entry
+  - **it moves to a list, still raw** — Someday/Maybe from the inbox, Keep
+    incubating for an item already there
+  - **it is actionable** — action, waiting-for, project. Still to be designed;
+    the row holds a `…` in the meantime so the screen does not read as though
+    the answer were missing. `research/process-actionable-study.html` is the
+    proposal under discussion, with the form live enough to try
+- **Someday/Maybe is one click and carries the text as it stands.** design.md
+  allows the text to be reworded and a `snoozeUntil` to be set at this point,
+  and both were fields on the old form. Both are still reachable, on the
+  someday item's own page (`/somedayitem/{id}`) — which is where you are sent
+  by the item you just filed, and where you would edit it anyway a week later.
+  Making them optional fields *here* charged every filing for a rewording that
+  is usually not wanted
+- **Keep incubating keeps its date box**, and is the one branch that is not a
+  bare button. The branch *is* the new date (design.md, "Inbox Zero"), so a
+  one-click version would either set nothing or silently clear the snooze the
+  item already had. It is a candidate for stage two once stage two exists
+
 ## Interface density
 
 The first working version rendered every view's filter controls open, all the time, on every page — which meant scanning past a wall of checkboxes and selects to find the list itself. The fix is progressive disclosure on the filter controls, not on the item rows.
@@ -327,7 +382,8 @@ so none of them reads as something nobody noticed.
   reads as a count until you know it is an id, and the view has had none of the
   attention the others have. Its help line and its row layout are both first
   drafts
-- **the process screen is a first draft.** It works and it is reachable two
-  ways, but its branches are still eight forms stacked on a page, with no keys
-  of their own. A rework is expected; `esc` and `?` were added ahead of it
-  because they are true of whatever it becomes
+- **the process screen still has no keys of its own.** Its layout has been
+  reworked (see "The processing screen") but every branch is still a mouse
+  target, on the one screen in the app that is worked hardest. The keys wait
+  on the actionable row, because that row decides how many branches there are
+  to key
