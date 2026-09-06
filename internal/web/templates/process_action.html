@@ -7,7 +7,6 @@
   </div>
 
   <datalist id="ctxlist">{{range $d.Contexts}}<option value="@{{.}}">{{end}}</datalist>
-  <datalist id="projlist">{{range $d.Projects}}<option value="{{.Title}}">{{end}}</datalist>
 
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
@@ -24,14 +23,12 @@
     <label>Title <input name="title" value="{{$d.Vals.Get "title"}}" required autofocus
       placeholder="Starts with a verb, fully self-descriptive"></label>
 
-    <label>Project <input name="project" list="projlist" value="{{$d.Vals.Get "project"}}"
-      placeholder="empty — a standalone action"></label>
-
-    {{if $d.Hits}}
-    <div class="picks">
-      {{range $d.Hits}}<label class="chip"><input type="radio" name="projectid" value="{{.ID}}" required> {{.Title}}</label>{{end}}
-    </div>
-    {{end}}
+    <label>Project <input name="project" value="{{$d.Vals.Get "project"}}"
+      placeholder="empty — a standalone action"
+      data-kb-into
+      hx-get="/process/projects" hx-trigger="keyup changed delay:200ms"
+      hx-target="#projcands" hx-swap="outerHTML"></label>
+    {{template "projectcands" $d.Cands}}
 
     {{if $d.NeedDOD}}
     <label>Definition of done <textarea name="dod" rows="2" required

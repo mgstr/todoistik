@@ -185,8 +185,24 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .who input[type=radio]:focus-visible + .seg { outline: 2px solid var(--accent); outline-offset: 1px; }
 .who .whobox { max-width: 11rem; display: none; }
 .who:has(input[value=them]:checked) .whobox { display: inline-block; }
-/* the candidates offered when a typed project name matched more than one */
-.picks { display: flex; gap: .4rem; flex-wrap: wrap; margin: -.2rem 0 .2rem; }
+/* the projects the picker is offering. Rows rather than chips, because a row
+   has somewhere to put what is worth knowing before filing into one — whether
+   it is stalled, how much is open there — and because rows are what j/k move
+   through everywhere else in the app. */
+.cands { display: flex; flex-direction: column; margin: -.2rem 0 .2rem; max-width: 34rem; }
+/* two classes deep on purpose: these rows sit inside .stack, whose label rule
+   would otherwise stand them on end and grey them out */
+.cands .cand {
+  display: flex; flex-direction: row; align-items: baseline; gap: .45rem;
+  cursor: pointer; padding: .2rem .45rem; border-radius: 6px;
+  font-size: .95rem; color: var(--fg);
+}
+.cands .cand input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.cands .cand:hover { background: var(--row-hover); }
+.cands .cand.kb-selected { background: var(--select); outline: 1px solid var(--accent); }
+.cands .cand:has(input:checked) { background: var(--select); font-weight: 600; }
+.cands .cand:has(input:checked) .title::before { content: "\2713\00a0"; color: var(--accent); }
+.candnote { color: var(--muted); font-size: .8rem; margin: .2rem 0 0 .45rem; }
 .hint { color: var(--muted); font-weight: 400; }
 
 details { margin: .6rem 0; border: 1px solid var(--line); border-radius: 8px; padding: .4rem .75rem; }

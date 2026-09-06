@@ -330,10 +330,9 @@ type processData struct {
 	// Empty As is stage one, the question itself.
 	As        string
 	Vals      url.Values     // what the fields show — seeded on the way in, echoed back on a bounce
-	Hits      []*app.Project // the name matched several projects; which one was meant?
 	NeedDOD   bool           // the name matched none, so the project would be a new one
 	Note      string         // why the form came back instead of being accepted
-	Projects  []*app.Project // every active project, for the name box's datalist
+	Cands     *candidateData // the projects the picker is currently offering
 	Back      string         // stage one for this item — where "back" and esc go
 	AsAction  string
 	AsProject string
@@ -399,6 +398,31 @@ func (d *processData) links() {
 	d.AsProject = base + "&as=project" + one
 }
 
+// projectCandidateLimit is how many projects the picker shows at once. Enough
+// that a modest database never needs typing at all, few enough that the list
+// does not push the rest of the form off the screen. What is left out is
+// counted on screen, and typing is what reaches it.
+const projectCandidateLimit = 8
+
+type candidateData struct {
+	Hits  []*app.ProjectCandidate
+	Total int
+	Query string
+}
+
+// processProjectCandidates serves the picker's list on its own, for htmx to
+// swap in as the name is typed. It is a fragment, not a page: the only thing
+// that changes while you type is which projects are worth offering.
+func (s *Server) processProjectCandidates(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("project"))
+	hits, total, err := s.app.ProjectCandidates(q, projectCandidateLimit)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	s.render(w, "projectcands", &candidateData{Hits: hits, Total: total, Query: q})
+}
+
 func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	src := q.Get("src")
@@ -442,7 +466,10 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 	if d.As != "" {
 		d.Contexts, _ = s.app.Contexts()
 		d.Tags, _ = s.app.Tags()
-		d.Projects, _ = s.app.ProjectList(app.Filters{})
+	}
+	if d.As == "action" {
+		hits, total, _ := s.app.ProjectCandidates(d.Vals.Get("project"), projectCandidateLimit)
+		d.Cands = &candidateData{Hits: hits, Total: total, Query: d.Vals.Get("project")}
 	}
 	tmpl := "process.html"
 	switch d.As {
@@ -541,14 +568,14 @@ func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFiel
 // bounce sends a stage-two form back to the screen instead of accepting it,
 // carrying everything that was typed plus the reason. Nothing is written and
 // the item is untouched, so this is the same non-answer as leaving.
-func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id int64, as, note string, hits []*app.Project, needDOD bool) {
+func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id int64, as, note string, needDOD bool) {
 	d, err := s.processItem(src, id)
 	if err != nil || d == nil {
 		http.Redirect(w, r, listFor(src), http.StatusSeeOther)
 		return
 	}
 	d.One = r.URL.Query().Get("one") != ""
-	d.As, d.Note, d.Hits, d.NeedDOD = as, note, hits, needDOD
+	d.As, d.Note, d.NeedDOD = as, note, needDOD
 	d.Vals = r.Form
 	d.links()
 	s.renderProcess(w, r, d)
@@ -637,13 +664,13 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src
 		return true
 	case len(hits) > 1:
 		s.bounce(w, r, src, id, "action",
-			"That name matches more than one active project. Pick the one you meant.", hits, false)
+			"That name matches more than one active project. Pick the one you meant below.", false)
 		return false
 	}
 	dod := strings.TrimSpace(r.FormValue("dod"))
 	if dod == "" {
 		s.bounce(w, r, src, id, "action",
-			"No active project matches that name. Give it a definition of done to create it, or clear the box to leave the action standalone.", nil, true)
+			"No active project matches that name. Give it a definition of done to create it, or clear the box to leave the action standalone.", true)
 		return false
 	}
 	if _, err := s.app.ProcessProject(src, id, app.ProjectFields{Title: name, DOD: dod},

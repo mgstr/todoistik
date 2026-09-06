@@ -92,3 +92,23 @@
 <label>Due date <input type="date" name="due" value="{{.DueDate}}"></label>
 <label>Snooze until <input type="date" name="snooze" value="{{.SnoozeUntil}}"></label>
 {{end}}
+
+{{define "projectcands"}}
+<div id="projcands" class="cands">
+  {{range .Hits}}
+  <label class="cand" data-kb-row>
+    <input type="radio" name="projectid" value="{{.ID}}">
+    <span class="title">{{.Title}}</span>
+    {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
+    {{if .OpenCount}}<span class="badge">{{.OpenCount}} open</span>{{end}}
+  </label>
+  {{end}}
+  {{if .Query}}
+    {{if not .Hits}}<p class="candnote">No active project matches — press Create to make it one.</p>
+    {{else if gt .Total (len .Hits)}}<p class="candnote">{{len .Hits}} of {{.Total}} matched — keep typing to narrow</p>
+    {{else}}<p class="candnote">{{.Total}} matched</p>{{end}}
+  {{else if gt .Total (len .Hits)}}
+    <p class="candnote">{{len .Hits}} of {{.Total}} — type to narrow</p>
+  {{end}}
+</div>
+{{end}}

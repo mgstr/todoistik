@@ -219,6 +219,7 @@ func (s *Server) routes() {
 
 	// Inbox Zero / processing
 	m.HandleFunc("GET /process", s.processPage)
+	m.HandleFunc("GET /process/projects", s.processProjectCandidates)
 	m.HandleFunc("POST /process/{src}/{id}/{branch}", s.processBranch)
 
 	// actions
