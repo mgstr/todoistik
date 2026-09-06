@@ -26,6 +26,7 @@ The document is organised in four parts:
 - add only functionality that I will use, don't add anything for future development
 - app should be fast, it usage should not be obstacle
 - the keyboard only support should be provided
+- **the app is used at a desk.** Every screen assumes a window wide enough to hold the navigation beside the list rather than above it, and keyboard only assumes a keyboard. The phone is a capture device and nothing else - the share sheet posts to the capture API (see "External capture"), which is the one way in that was ever meant to be used away from the desk. Reading, processing and reviewing are not designed for a small screen, and designing for one would mean a second layout of every screen that has to be kept true against the first, for a way of working I do not do
 - the app should be AI friendly, so AI could get info from it for analysis and control the info send to it (using inbox) - see "The read API" and "External capture"
 - the design of the app should allow to follow principles described in David Allen's book "GTD - Getting Things Done"
 
