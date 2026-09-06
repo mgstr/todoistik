@@ -151,3 +151,38 @@ The **who** row shipped exactly as rendered, growing sideways rather than
 opening a row — and was then removed with the rest of the fields when the
 description became the form. The `:has()` technique it used survives in the
 picker.
+
+---
+
+## left-nav-study.html — the nav as a rail down the left
+
+**2026-09-07 · open, nothing decided.** Nothing in `internal/web` has moved;
+this is a look at a change, not a record of one. On the `research/left-nav`
+branch.
+
+Four whole Next actions screens in both themes, because turning the nav is not
+a change to the nav — it is a change to how much room everything else gets.
+
+| | Variant | Note |
+|---|---|---|
+| A | Top bar, as built | The baseline. 3rem of height always, 5.4rem once it wraps |
+| B | Rail, straight translation | The same thirteen, stacked. Counts gain a right edge; the `g` hints gain a gutter |
+| C | Rail, grouped | Capture / Do / Committed / Later / Records — five kinds of place a row can only imply |
+| D | Rail, grouped, records at the foot | The page's recommendation, if the rail is taken at all |
+
+What the page is really for is the arithmetic. Main caps its column at 62rem
+and the rail is 11.5rem, so above about **76rem of window the rail is free** —
+it spends margin that was already empty and hands 3rem of height back to the
+list. Between 48 and 76rem it is a straight trade of width for height. Below
+48rem it does not work at all, where today's bar wraps and survives.
+
+Two things it would reopen, listed on the page rather than waved through:
+
+- **the nav badge decision.** Half of nav-badge-study's reasoning was about a
+  horizontal bar — labels shifting as counts change, and the collision with the
+  `g` hints. A rail has neither pressure, so the corner pill would be up for
+  re-deciding, and the "counts blank while `g` is held" rule would have nothing
+  left to solve
+- **whether this is a desktop app.** The narrow window is the blocker, and the
+  honest answers are a breakpoint that swaps the rail back for a bar (two navs
+  to keep true) or a sentence in design.md saying the app is used at a desk

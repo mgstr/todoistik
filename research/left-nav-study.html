@@ -1,0 +1,702 @@
+<meta charset="utf-8">
+<title>Left Rail Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ---- page chrome tokens (light is the bare :root) ---------------------- */
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-warn:    #a2571b;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:     #101319;
+    --page-card:   #171b22;
+    --page-fg:     #e8eaf0;
+    --page-muted:  #949cad;
+    --page-line:   #262b35;
+    --page-accent: #8aa9ff;
+    --page-warn:   #e0a760;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:     #101319;
+  --page-card:   #171b22;
+  --page-fg:     #e8eaf0;
+  --page-muted:  #949cad;
+  --page-line:   #262b35;
+  --page-accent: #8aa9ff;
+  --page-warn:   #e0a760;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -12px rgba(0, 0, 0, .7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* wider than the other studies on purpose: this one is about how much
+   horizontal space the chrome takes, so the specimens have to be able to
+   reach a real desktop width */
+.wrap {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+h1 {
+  margin: .55rem 0 0;
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.dek {
+  margin: .6rem 0 0;
+  max-width: 38rem;
+  color: var(--page-muted);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  margin-top: 1.35rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg);
+  background: var(--page-card);
+  border: 1px solid var(--page-line);
+  border-radius: 8px;
+  padding: .55rem .8rem;
+  cursor: pointer;
+}
+.toggle:hover { border-color: var(--page-accent); color: var(--page-accent); }
+.toggle:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.toggle[aria-pressed="true"] {
+  background: var(--page-accent);
+  border-color: var(--page-accent);
+  color: #fff;
+}
+.seg { display: flex; gap: 0; }
+.seg .toggle { border-radius: 0; margin-left: -1px; }
+.seg .toggle:first-child { border-radius: 8px 0 0 8px; margin-left: 0; }
+.seg .toggle:last-child { border-radius: 0 8px 8px 0; }
+.controls .note { font-size: .85rem; color: var(--page-muted); }
+
+/* ---- specimen cards ---------------------------------------------------- */
+.card {
+  background: var(--page-card);
+  border: 1px solid var(--page-line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem .85rem;
+  padding: 1.1rem 1.35rem .85rem;
+}
+.tag {
+  font: 600 .78rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-accent);
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  padding: .28rem .45rem;
+}
+.card h2 { margin: 0; font-size: 1.12rem; font-weight: 600; letter-spacing: -.01em; }
+.card .why {
+  margin: 0 0 0 auto;
+  font-size: .88rem;
+  color: var(--page-muted);
+}
+.card .body { padding: 0 1.35rem 1.25rem; display: flex; flex-direction: column; gap: .7rem; }
+.card p.take { margin: 0; font-size: .92rem; color: var(--page-muted); max-width: 48rem; }
+.card p.take b { color: var(--page-fg); font-weight: 600; }
+
+/* one specimen row: the theme label, then the screen */
+.spec {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+}
+.spec .lbl {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  padding-top: .4rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--page-muted);
+}
+.frame {
+  flex: 0 1 auto;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--page-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+body[data-w="laptop"] .frame { max-width: 60rem; }
+body[data-w="narrow"] .frame { max-width: 38rem; }
+
+/* ---- the specimen: todoistik itself, its own stylesheet ---------------- */
+.app {
+  display: flex;
+  height: 40rem;
+  overflow: hidden;
+  --main-pad-top: 1rem;
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
+  --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff; --bar-bg: #eceef3;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
+  --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d; --bar-bg: #1f232b;
+}
+.app.v-top { flex-direction: column; }
+.app.v-rail { flex-direction: row; }
+.app .col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.app nav, .app .keybar { flex: 0 0 auto; }
+.app main {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  padding: var(--main-pad-top) max(1.25rem, calc(50% - 31rem)) 2rem;
+}
+.app a { color: var(--accent); text-decoration: none; }
+
+/* the bar as built: wrapping row, counts as corner pills */
+.app nav {
+  display: flex; flex-wrap: wrap; gap: .55rem .15rem; align-items: center;
+  padding: .75rem .75rem .4rem; border-bottom: 1px solid var(--line);
+  position: relative; background: var(--bg); z-index: 5;
+}
+.app nav a, .app nav .addnew {
+  position: relative; padding: .25rem .5rem; border-radius: 6px;
+  font-size: .92rem; line-height: 1.45;
+}
+.app nav a { color: var(--fg); white-space: nowrap; }
+.app nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app nav a.alert { color: var(--danger); font-weight: 700; }
+.app nav a.on.alert { background: var(--select); }
+.app nav .addnew {
+  margin-right: .35rem;
+  padding: calc(.25rem - 1px) calc(.5rem - 1px);
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--badge-bg); color: var(--muted);
+  font: inherit; font-size: .92rem; font-weight: 700; line-height: 1.45;
+  cursor: default;
+}
+.app .navcount {
+  position: absolute; top: -.35rem; right: -.4rem;
+  min-width: 1.1rem; height: 1.1rem; padding: 0 .28rem;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--badge-bg); color: var(--muted);
+  font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.app nav a.alert .navcount { background: var(--danger); border-color: var(--danger); color: #fff; }
+.app nav a.on .navcount { border-color: var(--accent); color: var(--accent); }
+/* shipped rule: the counts get out of the way while g is held */
+body.hints .app.v-top .navcount { visibility: hidden; }
+
+/* ---- the rail --------------------------------------------------------- */
+.app.v-rail > nav {
+  flex-direction: column; flex-wrap: nowrap; align-items: stretch;
+  gap: .05rem; width: 11.5rem;
+  padding: .6rem .5rem .6rem;
+  border-bottom: none; border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+/* the left gutter is permanent, so the g hints have somewhere to land that
+   nothing else wants — and so every label starts at the same x */
+.app.v-rail nav a, .app.v-rail nav .addnew {
+  display: flex; align-items: center; gap: .4rem;
+  padding: .28rem .5rem .28rem 1.55rem;
+  white-space: nowrap;
+}
+.app.v-rail nav .addnew {
+  justify-content: center;
+  margin: 0 0 .35rem; padding: calc(.28rem - 1px) calc(.5rem - 1px);
+}
+.app.v-rail .navcount {
+  position: static; margin-left: auto;
+  min-width: 1.15rem; height: 1.1rem; padding: 0 .3rem;
+}
+.app.v-rail nav .grp {
+  padding: .55rem .5rem .15rem 1.55rem;
+  font: 600 .62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.app.v-rail nav .grp.ruled { border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .5rem; }
+/* D only: the tail falls to the foot of the rail */
+.app.v-tail nav .grp.system { margin-top: auto; }
+
+/* ---- the g hints ------------------------------------------------------- */
+.app .ghint {
+  position: absolute; top: -.62rem; left: 0; z-index: 20;
+  padding: 0 .3rem; border-radius: 4px;
+  font: 700 .68rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-transform: uppercase; letter-spacing: .02em;
+  color: #2b2200; background: linear-gradient(#fff785, #ffc542);
+  border: 1px solid #c38a22; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  pointer-events: none; display: none;
+}
+.app .addnew .ghint { top: calc(-.62rem - 1px); }
+/* in the rail the hint sits in the gutter, vertically centred: no vertical
+   gap between rows to hang it in, and no count to collide with */
+.app.v-rail .ghint, .app.v-rail .addnew .ghint {
+  top: 50%; left: .18rem; transform: translateY(-50%);
+}
+body.hints .app .ghint { display: inline-block; }
+
+/* ---- the page inside: Next actions ------------------------------------ */
+.app .pagehead {
+  display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap;
+  position: sticky; top: calc(-1 * var(--main-pad-top)); z-index: 4;
+  background: var(--bg);
+  margin: calc(-1 * var(--main-pad-top)) 0 0;
+  padding: var(--main-pad-top) 0 .4rem;
+}
+.app .count { color: var(--muted); font-size: .9rem; font-weight: normal; }
+.app .filters {
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  padding: .5rem; border: 1px solid var(--line); border-radius: 10px; margin: .5rem 0;
+  font-size: .88rem;
+}
+.app .filters fieldset { border: none; margin: 0; padding: 0; display: flex; gap: .3rem; flex-wrap: wrap; align-items: center; }
+.app .filters legend { float: left; color: var(--muted); margin-right: .3rem; padding: 0; }
+.app .chip { display: inline-flex; align-items: center; gap: .2rem; background: var(--badge-bg); border-radius: 8px; padding: .1rem .45rem; }
+.app .namebox { min-width: 14rem; }
+.app input, .app select, .app button {
+  font: inherit; font-size: .88rem; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem;
+}
+.app button { background: var(--badge-bg); cursor: default; }
+.app .list { list-style: none; margin: .25rem 0; padding: 0; }
+.app .row {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  padding: .2rem .5rem; border-radius: 6px;
+}
+.app .row.sel { background: var(--select); outline: 1px solid var(--accent); }
+.app .row .title { color: var(--fg); flex-shrink: 1; }
+.app .badge {
+  font-size: .76rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted); white-space: nowrap;
+}
+.app .badge.tag { color: var(--accent); }
+.app .badge.ctx { color: var(--ok); }
+.app .badge.proj { background: transparent; border: 1px solid var(--line); }
+.app .badge.due { color: var(--fg); }
+.app .badge.due.overdue { background: var(--danger); color: #fff; font-weight: 600; }
+.app .badge.focus { color: #c88a00; }
+.app .age {
+  font-size: .7rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted); white-space: nowrap;
+}
+.app .check { border: none; background: transparent; padding: 0 .15rem; font-size: 1rem; }
+.app .pick { border: none; background: transparent; color: var(--line); padding: 0 .15rem; margin-left: auto; }
+.app .keybar {
+  display: flex; flex-wrap: nowrap; gap: 1rem; align-items: center;
+  padding: .35rem max(.75rem, calc(50% - 31rem));
+  border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted);
+  font-size: .8rem; overflow: hidden;
+}
+.app .keybar > div { display: flex; gap: 1rem; align-items: center; }
+.app .keybar > .kb-global { margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line); }
+.app .keybar span { white-space: nowrap; }
+.app .keybar b {
+  display: inline-block; margin-right: .3rem;
+  color: var(--accent); font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ---- prose sections and the matrix ------------------------------------- */
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 40rem; }
+th, td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th {
+  font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted);
+}
+tbody tr:last-child td { border-bottom: none; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.yes { color: var(--page-accent); font-weight: 600; }
+.no  { color: var(--page-warn); font-weight: 600; }
+
+h3 { margin: 0 0 .5rem; font-size: 1.02rem; font-weight: 600; }
+.section { display: flex; flex-direction: column; gap: .75rem; }
+.section > p { margin: 0; color: var(--page-muted); font-size: .95rem; max-width: 46rem; }
+.section > p b { color: var(--page-fg); font-weight: 600; }
+.rec { border-left: 3px solid var(--page-accent); padding: .1rem 0 .1rem 1rem; }
+.rec p { margin: 0; color: var(--page-muted); font-size: .95rem; max-width: 46rem; }
+.rec p + p { margin-top: .5rem; }
+.rec b { color: var(--page-fg); font-weight: 600; }
+.sums { display: flex; flex-wrap: wrap; gap: .75rem; }
+.sum {
+  flex: 1 1 13rem; border: 1px solid var(--page-line); border-radius: 12px;
+  background: var(--page-card); padding: .8rem .95rem;
+}
+.sum .n {
+  font: 600 1.5rem/1.1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.sum .k {
+  display: block; margin-top: .3rem;
+  font-size: .85rem; color: var(--page-muted);
+}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">todoistik · navigation</div>
+    <h1>Left Rail Study</h1>
+    <p class="dek">
+      The nav as a vertical bar down the left instead of a horizontal bar across the
+      top, rendered with the app's own stylesheet in both themes. Each specimen is a
+      whole Next actions screen, because moving the nav is not a change to the nav —
+      it is a change to how much room everything else gets.
+    </p>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="window width">
+        <button class="toggle" type="button" data-w="wide" aria-pressed="true">Desktop</button>
+        <button class="toggle" type="button" data-w="laptop" aria-pressed="false">Laptop</button>
+        <button class="toggle" type="button" data-w="narrow" aria-pressed="false">Narrow</button>
+      </div>
+      <button class="toggle" id="hintToggle" type="button" aria-pressed="false">Hold g</button>
+      <span class="note">Width is the whole argument against a rail; the g hints are the argument for one.</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <header>
+      <span class="tag">A</span>
+      <h2>Top bar — as built today</h2>
+      <span class="why">The baseline</span>
+    </header>
+    <div class="body">
+      <div class="spec"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-top" data-screen="top"></div></div></div>
+      <div class="spec"><span class="lbl">Light</span><div class="frame"><div class="app light v-top" data-screen="top"></div></div></div>
+      <p class="take">
+        Fourteen targets in one wrapping row. It costs <b>3rem of height, always</b>,
+        and at Narrow it wraps to a second row and costs 5.4rem — on the axis a list
+        of items can least afford to lose. Press <b>Hold g</b>: the
+        counts blank, because the jump letters and the corner pills want the same
+        strip of space. That workaround is the shipped answer from
+        <b>nav-badge-study.html</b>, and it exists only because the bar is horizontal.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">B</span>
+      <h2>Rail, straight translation</h2>
+      <span class="why">Same thirteen, stacked</span>
+    </header>
+    <div class="body">
+      <div class="spec"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-rail" data-screen="plain"></div></div></div>
+      <div class="spec"><span class="lbl">Light</span><div class="frame"><div class="app light v-rail" data-screen="plain"></div></div></div>
+      <p class="take">
+        The same order, nothing regrouped. Two things fall out for free. The counts
+        get a <b>right edge of their own</b>, so they can sit inline where a sidebar
+        count belongs instead of hanging off a corner. And the jump hints get a
+        permanent left gutter — press <b>Hold g</b> and nothing has to blank. The row
+        under the cursor is also unambiguous now: the active view is a filled bar at a
+        fixed x, which matters more here than in most apps, because
+        <b>no view has an h1</b> — the nav is the only place the page says its name.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">C</span>
+      <h2>Rail, grouped</h2>
+      <span class="why">The thing a top bar cannot do</span>
+    </header>
+    <div class="body">
+      <div class="spec"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-rail" data-screen="grouped"></div></div></div>
+      <div class="spec"><span class="lbl">Light</span><div class="frame"><div class="app light v-rail" data-screen="grouped"></div></div></div>
+      <p class="take">
+        Vertical space is cheap, so the thirteen destinations can admit that they are
+        <b>five different kinds of place</b>: where things arrive, what you do today,
+        what you have committed to, what is deferred, and the machinery. A top bar can
+        only put them in a row and let adjacency imply it. The cost is four captions'
+        worth of height and one more decision to keep true — a view that moves between
+        groups is now a doc change, not just a reorder.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">D</span>
+      <h2>Rail, grouped, tail at the foot</h2>
+      <span class="why">Recommended</span>
+    </header>
+    <div class="body">
+      <div class="spec"><span class="lbl">Dark</span><div class="frame"><div class="app dark v-rail v-tail" data-screen="tail"></div></div></div>
+      <div class="spec"><span class="lbl">Light</span><div class="frame"><div class="app light v-rail v-tail" data-screen="tail"></div></div></div>
+      <p class="take">
+        C, with Archive, Audit and Settings pushed to the bottom of the rail. It is the
+        same split the key bar already makes between the keys for this view and the
+        keys that are always there: <b>the ten places you work, and the three you look
+        things up in</b>. It also gives the rail a reason to run the full height, which
+        puts the key bar's left edge in line with the content it describes rather than
+        under the nav.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>What the rail costs, in numbers</h3>
+    <p>
+      Main is centred by padding and caps its column at <b>62rem</b>. The rail is
+      <b>11.5rem</b>. So the arithmetic is not "a rail is narrower", it is a threshold:
+    </p>
+    <div class="sums">
+      <div class="sum"><span class="n">≥ 76rem</span><span class="k">Window wide enough that the column was already capped — the rail costs <b>nothing</b>, it eats margin that was empty anyway, and buys back 3rem of height.</span></div>
+      <div class="sum"><span class="n">48–76rem</span><span class="k">The laptop case. The rail takes 11.5rem straight off the reading column. Rows wrap sooner; the filter bar gains a line.</span></div>
+      <div class="sum"><span class="n">&lt; 48rem</span><span class="k">A phone. 11.5rem is a quarter of the screen and the rail is unusable — the top bar wraps and survives. A rail needs an answer here that today's bar does not.</span></div>
+    </div>
+    <p>
+      Try the three width buttons above on card A and card D. On <b>Desktop</b> the rail
+      is free. On <b>Laptop</b> it is a real trade: height for width. On <b>Narrow</b> it
+      does not work, and that is the one thing that has to be decided before any of this
+      ships.
+    </p>
+  </section>
+
+  <section class="section">
+    <h3>What it breaks</h3>
+    <p>
+      <b>The nav badge decision.</b> nav-badge-study settled on the outlined corner pill,
+      and half its reasoning was about a horizontal bar: labels shifting sideways as
+      counts change, and the collision with the g hints. In a rail neither pressure
+      exists — rows are fixed-width, so an inline right-aligned count moves nothing, and
+      the hints have their own gutter. Moving the nav <b>reopens that decision</b>; it
+      does not override it silently.
+    </p>
+    <p>
+      <b>The keybar's alignment.</b> Today it spans the window and centres its padding
+      the same way main does. With a full-height rail it starts after the rail, so the
+      two left edges agree. That is better, but it is a second change riding along with
+      the first.
+    </p>
+    <p>
+      <b>The + button.</b> A rail row is wide enough to carry a word beside the plus.
+      Left as just <b>+</b> here on purpose — that is a separate call, not part of
+      turning the bar.
+    </p>
+  </section>
+
+  <section class="section">
+    <h3>Side by side</h3>
+    <div class="matrix">
+      <table>
+        <thead>
+          <tr><th>Variant</th><th>Costs</th><th>Counts</th><th>g hints</th><th>Grouping</th><th>Narrow window</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A — top bar</td><td class="no">3rem height, always</td><td>Corner pill</td><td class="no">Collide; counts blank</td><td class="no">Adjacency only</td><td class="yes">Wraps, still works</td></tr>
+          <tr><td>B — plain rail</td><td>11.5rem width under 76rem</td><td class="yes">Inline, right-aligned</td><td class="yes">Own gutter</td><td class="no">None</td><td class="no">Unusable</td></tr>
+          <tr><td>C — grouped</td><td>Same, plus caption height</td><td class="yes">Inline, right-aligned</td><td class="yes">Own gutter</td><td class="yes">Five named groups</td><td class="no">Unusable</td></tr>
+          <tr><td>D — grouped + tail</td><td>Same as C</td><td class="yes">Inline, right-aligned</td><td class="yes">Own gutter</td><td class="yes">Groups + work/lookup split</td><td class="no">Unusable</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>The recommendation</h3>
+    <div class="rec">
+      <p>
+        <b>D, if the app is used at a desktop width.</b> Above 76rem the rail is free —
+        it spends margin that was already empty and hands back height to the list, which
+        is the axis every view in this app is short of. It also dissolves two
+        workarounds rather than adding any: the blanking counts and the cornered badge.
+      </p>
+      <p>
+        <b>The narrow window is the blocker, not the design.</b> The honest options are
+        to collapse the rail to a top bar below a breakpoint (two navs to keep true), or
+        to decide the app is a desktop app and say so in design.md. The second is
+        cheaper and probably truer, but it is a design decision and belongs in the docs
+        before any CSS moves.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  var VIEWS = [
+    { label: "Inbox",     key: "i", count: 7,  alert: true, group: "Capture" },
+    { label: "Today",     key: "t", count: 3,  group: "Do" },
+    { label: "Next",      key: "n", count: 12, on: true, group: "Do" },
+    { label: "Projects",  key: "p", count: 4,  group: "Committed" },
+    { label: "Tasks",     key: "k", count: 9,  group: "Committed" },
+    { label: "Waiting",   key: "w", count: 2,  group: "Committed" },
+    { label: "Calendar",  key: "c", count: 1,  group: "Committed" },
+    { label: "Someday",   key: "s", count: 15, group: "Later" },
+    { label: "Scheduler", key: "h", count: 6,  group: "Later" },
+    { label: "Review",    key: "r", count: 2,  group: "Later" },
+    { label: "Archive",   key: "a", group: "Records" },
+    { label: "Audit",     key: "u", group: "Records" },
+    { label: "Settings",  key: "e", group: "Records" }
+  ];
+
+  var ITEMS = [
+    { title: "book flights to Porto", proj: "Porto in April", ctx: "online", dur: "#medium", age: "today" },
+    { title: "call the dentist", ctx: "phone", dur: "#short", age: "yesterday", sel: true },
+    { title: "fix the garden gate", ctx: "home", dur: "#medium", tags: ["house"], age: "4 days ago" },
+    { title: "renew passport", ctx: "errand", dur: "#long", due: "2026-10-02", age: "a week ago" },
+    { title: "reply to Maarja about the lease", ctx: "online", dur: "#short", tags: ["house"], age: "3 weeks ago" },
+    { title: "look into the boiler noise", ctx: "home", dur: "#long", focus: true, age: "a month ago" },
+    { title: "read the Kaupmees contract", proj: "Kaupmees renewal", ctx: "desk", dur: "#long", focus: true, due: "2026-08-30", overdue: true, age: "5 months ago" },
+    { title: "restore grandfather's clock", ctx: "home", dur: "#long", age: "3 years ago" }
+  ];
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function navLink(v) {
+    var cls = [];
+    if (v.on) cls.push("on");
+    if (v.alert) cls.push("alert");
+    var count = v.count ? '<span class="navcount">' + v.count + "</span>" : "";
+    return '<a class="' + cls.join(" ") + '" href="#">' +
+      '<span class="ghint">' + v.key + "</span>" + esc(v.label) + count + "</a>";
+  }
+
+  function buildNav(kind) {
+    var out = '<button class="addnew" type="button"><span class="ghint">g</span>+</button>';
+    if (kind === "top" || kind === "plain") {
+      VIEWS.forEach(function (v) { out += navLink(v); });
+      return out;
+    }
+    var seen = null, first = true;
+    VIEWS.forEach(function (v) {
+      if (v.group !== seen) {
+        seen = v.group;
+        var cls = "grp" + (first ? "" : " ruled") + (v.group === "Records" ? " system" : "");
+        out += '<div class="' + cls + '">' + esc(v.group) + "</div>";
+        first = false;
+      }
+      out += navLink(v);
+    });
+    return out;
+  }
+
+  function itemRow(it) {
+    var b = "";
+    if (it.proj) b += '<span class="badge proj">' + esc(it.proj) + "</span>";
+    if (it.ctx) b += '<span class="badge ctx">@' + esc(it.ctx) + "</span>";
+    if (it.dur) b += '<span class="badge">' + esc(it.dur) + "</span>";
+    if (it.focus) b += '<span class="badge focus" title="needs focus">★</span>';
+    (it.tags || []).forEach(function (t) { b += '<span class="badge tag">#' + esc(t) + "</span>"; });
+    if (it.due) b += '<span class="badge due' + (it.overdue ? " overdue" : "") + '">due ' + esc(it.due) + "</span>";
+    return '<li class="row' + (it.sel ? " sel" : "") + '">' +
+      '<button class="check" type="button">☐</button>' +
+      '<span class="title">' + esc(it.title) + "</span>" + b +
+      '<span class="age">' + esc(it.age) + "</span>" +
+      '<button class="pick" type="button">●</button></li>';
+  }
+
+  function buildMain() {
+    var rows = ITEMS.map(itemRow).join("");
+    return '<main>' +
+      '<header class="pagehead"><span class="count">' + ITEMS.length + "</span></header>" +
+      '<div class="filters">' +
+        '<input class="namebox" placeholder="filter by name (/)">' +
+        '<fieldset><legend>Context</legend>' +
+          '<label class="chip">@desk</label><label class="chip">@errand</label>' +
+          '<label class="chip">@home</label><label class="chip">@online</label>' +
+          '<label class="chip">@phone</label></fieldset>' +
+        '<fieldset><legend>Tags</legend>' +
+          '<label class="chip">#car</label><label class="chip">#house</label>' +
+          '<label class="chip">#money</label></fieldset>' +
+        '<fieldset><legend>Duration</legend>' +
+          '<label class="chip">#short</label><label class="chip">#medium</label>' +
+          '<label class="chip">#long</label></fieldset>' +
+        '<select><option>focus: all</option></select>' +
+        '<select><option>by age</option></select>' +
+        '<label class="chip">reverse</label>' +
+        "<button>Apply</button>" +
+      "</div>" +
+      '<ul class="list">' + rows + "</ul>" +
+      "</main>";
+  }
+
+  function buildKeybar() {
+    var view = [["c", "complete"], ["t", "today"], ["e", "edit"], ["j k", "move"], ["/", "filter"]];
+    var glob = [["q", "add"], ["g", "go"], ["?", "help"]];
+    function grp(cls, keys) {
+      return '<div class="' + cls + '">' + keys.map(function (k) {
+        return "<span><b>" + esc(k[0]) + "</b>" + esc(k[1]) + "</span>";
+      }).join("") + "</div>";
+    }
+    return '<footer class="keybar">' + grp("kb-view", view) + grp("kb-global", glob) + "</footer>";
+  }
+
+  document.querySelectorAll("[data-screen]").forEach(function (app) {
+    app.innerHTML = "<nav>" + buildNav(app.dataset.screen) + "</nav>" +
+      '<div class="col">' + buildMain() + buildKeybar() + "</div>";
+  });
+
+  var hintToggle = document.getElementById("hintToggle");
+  hintToggle.addEventListener("click", function () {
+    var on = document.body.classList.toggle("hints");
+    hintToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    hintToggle.textContent = on ? "Release g" : "Hold g";
+  });
+
+  document.body.dataset.w = "wide";
+  document.querySelectorAll("[data-w]").forEach(function (btn) {
+    if (!btn.classList.contains("toggle")) return;
+    btn.addEventListener("click", function () {
+      document.body.dataset.w = btn.dataset.w;
+      document.querySelectorAll(".seg .toggle").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    });
+  });
+</script>
