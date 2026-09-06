@@ -98,3 +98,36 @@ back were rendered — the nav badge restored, and a `4 left` chip on the subjec
 discouraged by on the fourteenth item, and the screen is meant to hold one
 decision at a time. Both toggles are still in the page if living with it
 changes the answer.
+
+---
+
+## process-actionable-study.html — the third row of the processing screen
+
+**2026-09-06 · open, no decision yet.** Nothing in the app implements this page.
+
+The actionable answers — action, waiting-for, project — written out as a
+sequence of questions run five deep: action or project, who does it, standalone
+or filed, an existing project or a new one, next action or parked. The page
+argues that only the first is a question and the rest are fields and defaults,
+and it renders the argument rather than asserting it: the project box is live,
+so the three states it has to carry (empty → standalone, matched → filed there,
+unmatched → create it) can be tried before any of it is written.
+
+The green line under each form says what pressing the button would create. It
+is there because that is the claim the page has to make good on — that fewer
+questions did not mean less said.
+
+The **who** control is one row that grows rather than two rows that appear:
+pressing "Someone else" reveals the name box to its right, on the same line,
+and puts the cursor in it. An extra row opening underneath pushes everything
+below it down, and on a form you are reading top to bottom that costs a
+re-read; growing sideways costs nothing. Switching back to "I do it" clears
+the box, so a name cannot be left behind on an action that is yours.
+
+Two more it settles by rendering them: a **new project's first action cannot
+be parked** (a project's first action is its next action by definition, so the
+park control is absent in that state), and the **who** control belongs on the
+action wherever an action is being written, including inside the project form.
+
+Three changes it would need from design.md are listed on the page.
+

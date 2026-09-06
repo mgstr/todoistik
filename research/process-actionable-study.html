@@ -1,0 +1,470 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Process Actionable Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg: #f4f6f9; --page-card: #ffffff; --page-fg: #171a20;
+  --page-muted: #616a7d; --page-line: #dde1e9; --page-accent: #2456d6;
+  --page-warn: #a2571b; --page-warn-bg: #fdf4e7;
+  --shadow: 0 1px 2px rgba(20,28,48,.05), 0 8px 24px -12px rgba(20,28,48,.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #101319; --page-card: #171b22; --page-fg: #e8eaf0;
+    --page-muted: #949cad; --page-line: #262b35; --page-accent: #8aa9ff;
+    --page-warn: #e0a760; --page-warn-bg: #241d12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 64rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.5rem; }
+.eyebrow { font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted); }
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+h2 { margin: 0; font-size: 1.3rem; font-weight: 600; letter-spacing: -.01em; }
+h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.dek { margin: .6rem 0 0; max-width: 42rem; color: var(--page-muted); }
+section { display: flex; flex-direction: column; gap: 1rem; }
+.note { margin: 0; max-width: 44rem; color: var(--page-muted); font-size: .95rem; }
+.tag { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-accent); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+@media (max-width: 56rem) { .pair { grid-template-columns: 1fr; } }
+.frame { border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+code { font: 400 .88em/1 "IBM Plex Mono", ui-monospace, monospace; background: var(--page-bg); padding: .1rem .3rem; border-radius: 4px; }
+
+/* ---- the two trees, side by side ---------------------------------------- */
+.trees { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 56rem) { .trees { grid-template-columns: 1fr; } }
+.tree { border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); padding: 1rem 1.1rem 1.2rem; box-shadow: var(--shadow); }
+.tree > h3 { margin-bottom: .1rem; }
+.tree > p { margin: .1rem 0 .9rem; color: var(--page-muted); font-size: .88rem; }
+.step { position: relative; padding: 0 0 0 1.1rem; margin: 0 0 .4rem; }
+.step::before { content: ""; position: absolute; left: .3rem; top: .55rem; width: .45rem; height: .45rem; border-radius: 999px; background: var(--page-line); }
+.step.q::before { background: var(--page-accent); }
+.step.q { font-weight: 600; }
+.step .sub { color: var(--page-muted); font-size: .88rem; font-weight: 400; }
+.chain { border-left: 1px dashed var(--page-line); margin-left: .5rem; padding-left: 1rem; }
+.tally { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid var(--page-line); font-size: .88rem; }
+.tally b { font-variant-numeric: tabular-nums; }
+.warn { color: var(--page-warn); }
+
+/* ---- specimen: todoistik itself ----------------------------------------- */
+.app { font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37; --badge-bg: #f0f0f0;
+  --select: #eef2ff; --bar-bg: #eceef3;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a; --badge-bg: #23262d;
+  --select: #22304d; --bar-bg: #1f232b;
+}
+.app .nav { display: flex; flex-wrap: wrap; gap: .15rem; padding: .5rem .75rem .4rem; border-bottom: 1px solid var(--line); }
+.app .nav span { padding: .25rem .5rem; border-radius: 6px; font-size: .92rem; }
+.app .nav span.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app .screen { padding: 1rem 1.1rem 1.4rem; }
+.app .keybar {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .35rem .75rem; border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted); font-size: .8rem;
+}
+.app .keybar b { font-weight: 700; color: var(--fg); margin-right: .25rem; }
+.app .keybar span { margin-right: .8rem; }
+
+/* shipped today: the subject rule (research/process-subject-study.html, D) */
+.app .subject { border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .8rem; margin: .2rem 0 .2rem; }
+.app .capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; font-weight: 600; }
+.app .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
+
+.app .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; align-items: center; }
+.app button, .app input, .app textarea, .app select {
+  font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem;
+}
+.app button { background: var(--badge-bg); cursor: pointer; }
+.app button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.app .rowmark { color: var(--muted); }
+
+/* stage two */
+.app .stage2 { display: flex; flex-direction: column; gap: .55rem; max-width: 34rem; margin: 1rem 0 0; }
+.app .f { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
+.app .f input, .app .f textarea { color: var(--fg); }
+.app .seg { border-radius: 6px; }
+.app .seg.on { background: var(--select); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.app .who { display: flex; gap: .35rem; align-items: center; }
+.app .who .lbl { font-size: .85rem; color: var(--muted); margin-right: .25rem; }
+.app .who .whobox { max-width: 11rem; }
+.app .projstate { font-size: .85rem; color: var(--muted); display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; margin-top: -.2rem; }
+.app .pchip {
+  font-size: .8rem; padding: .1rem .45rem; border-radius: 8px; cursor: pointer;
+  background: var(--badge-bg); border: 1px solid var(--line); color: var(--fg);
+}
+.app .pchip.on { background: var(--select); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.app .pchip.make { border-style: dashed; }
+.app .park { display: flex; flex-direction: row; align-items: center; gap: .35rem; font-size: .85rem; color: var(--muted); }
+.app details.more { border: 1px solid var(--line); border-radius: 8px; padding: .3rem .6rem; font-size: .85rem; color: var(--muted); }
+.app details.more summary { cursor: pointer; font-weight: 600; color: var(--fg); }
+.app .outcome {
+  font-size: .85rem; border-left: 3px solid var(--ok); padding: .2rem 0 .2rem .6rem;
+  color: var(--fg);
+}
+.app .outcome b { color: var(--ok); }
+.app [hidden] { display: none !important; }
+
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 34rem; }
+th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); }
+tbody tr:last-child td { border-bottom: none; }
+.controls { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; padding: .7rem .9rem; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); box-shadow: var(--shadow); }
+.controls b { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); margin-right: .25rem; }
+.controls button { font: inherit; font-size: .85rem; padding: .25rem .6rem; border: 1px solid var(--page-line); border-radius: 999px; background: transparent; color: var(--page-fg); cursor: pointer; }
+.controls button[aria-pressed="true"] { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">todoistik · research</p>
+  <h1>The actionable row, and how deep the question really is</h1>
+  <p class="dek">The processing screen's third row — the answers that make something you
+  have to act on. Written out as a sequence of questions it is five deep: action or
+  project, who does it, standalone or filed, existing project or a new one, next action
+  or parked. This page is the argument that it is <em>one</em> question and one form, and
+  the form is live: type into the project box and watch the three states it has.</p>
+</header>
+
+<section>
+  <h2>Where the depth goes</h2>
+  <div class="trees">
+    <div class="tree">
+      <h3>As a sequence of questions</h3>
+      <p>Each step waits for the one above it.</p>
+      <div class="step q">Action or project?</div>
+      <div class="chain">
+        <div class="step q">Who does it — me, or someone else?</div>
+        <div class="step q">Standalone, or filed under an outcome?</div>
+        <div class="chain">
+          <div class="step q">Which project — and does one exist?</div>
+          <div class="chain">
+            <div class="step q">Is it the next action?</div>
+            <div class="step">no project yet → go and create one, then come back <span class="sub warn">(leaves the screen)</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tally"><b>5</b> questions, up to <b>4</b> of them sequential, one detour off the screen.</div>
+    </div>
+
+    <div class="tree">
+      <h3>Separated by kind</h3>
+      <p>Only one of the five is a question.</p>
+      <div class="step q">Does this line name a step, or an outcome? <span class="sub">— decides which object is created, cannot be defaulted</span></div>
+      <div class="chain">
+        <div class="step">Who does it <span class="sub">— a field (<code>assignedTo</code>), visible, two states</span></div>
+        <div class="step">Where it lives <span class="sub">— one field, three states: empty · matched · unmatched-so-create</span></div>
+        <div class="step">Next or parked <span class="sub">— already settled in design.md: next by default, parking is deliberate</span></div>
+      </div>
+      <div class="tally"><b>1</b> question, then <b>1</b> form. Two of its fields can be left alone and still be right.</div>
+    </div>
+  </div>
+  <p class="note">The three that stopped being questions did not stop mattering — they became
+  a field you can see, a field you can leave empty, and a default that design.md
+  already argued for. Nothing was hidden; what was removed is the waiting.</p>
+</section>
+
+<section>
+  <h2><span class="tag">stage 1</span> The screen, with its third row filled in</h2>
+  <p class="note">Two buttons, in the row the <code>…</code> is holding today. The wording asks
+  the distinction rather than naming the object — “a step” and “an outcome” is the
+  judgement being made; “Action” and “Project” is what it produces.</p>
+  <div class="pair" id="stage1"></div>
+</section>
+
+<section>
+  <h2><span class="tag">stage 2</span> The action form, live</h2>
+  <p class="note">Type in the <b>Project</b> box. Empty means standalone. Matching text picks
+  an active project — the same matcher the name filter uses. Text that matches nothing
+  offers to create it, and only then asks for a definition of done. The green line at the
+  bottom says what pressing the button would actually create, which is the thing worth
+  checking on this page.</p>
+  <div class="controls">
+    <b>Active projects</b>
+    <span class="note" style="font-size:.85rem">Winter-proof the car · Kitchen renovation · Q3 accounts · Sail licence</span>
+  </div>
+  <div class="pair" id="stage2action"></div>
+</section>
+
+<section>
+  <h2><span class="tag">stage 2</span> The project form, two seedings</h2>
+  <p class="note">The same form is reached two ways, and the only difference is which field
+  the captured line landed in. That is what lets “this is an outcome” and “this step has
+  no home yet” be one code path.</p>
+  <div class="controls">
+    <b>Reached from</b>
+    <button data-seed="outcome" aria-pressed="true">the capture is an outcome</button>
+    <button data-seed="step">a step with no home yet</button>
+  </div>
+  <div class="pair" id="stage2project"></div>
+</section>
+
+<section>
+  <h2>What it asks of design.md</h2>
+  <div class="matrix">
+  <table>
+    <thead><tr><th>Change</th><th>design.md today</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>“Someone else does it” stops being a top-level branch</b></td>
+        <td>Listed alongside Action, Project, Trash…</td>
+        <td>It creates the same object as Action with one field set, and that field is equally valid on a project's first action. A branch that differs by a field is a field</td>
+      </tr>
+      <tr>
+        <td><b>A new project can be created from the action branch</b></td>
+        <td>“an existing active project can be named instead”</td>
+        <td>Otherwise a step whose outcome is not yet tracked has no correct answer here — it becomes standalone and the outcome goes unrecorded</td>
+      </tr>
+      <tr>
+        <td><b>A project's first action can be delegated</b></td>
+        <td>Silent</td>
+        <td>Already implied — the delegate branch says a delegated action belongs to a project as validly as one you do yourself. Saying it once, on the field, covers both</td>
+      </tr>
+      <tr>
+        <td><b>The first action of a new project cannot be parked</b></td>
+        <td>“at least one action, which becomes the next action”</td>
+        <td>Not a change — a consequence worth rendering. The park control is absent in the create-a-project state, present when an existing project is picked</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Then the keys fall out</h2>
+  <p class="note">With the row settled the screen is six single keystrokes and nothing else:
+  <code>t</code> trash · <code>r</code> reference · <code>2</code> two-minute ·
+  <code>s</code> someday · <code>a</code> action · <code>p</code> project — plus
+  <code>esc</code> to leave without answering. That is why implementation.md's register
+  parked the keys behind this row rather than adding them first: the row decides how
+  many there are. One thing to settle with them: <code>t</code> is “pick for today” on
+  every list view, and would be “trash” here.</p>
+</section>
+</div>
+
+<script>
+const PROJECTS = ["Winter-proof the car", "Kitchen renovation", "Q3 accounts", "Sail licence"];
+const CAPTURE = "Book the winter tyre change";
+const OUTCOME_CAPTURE = "Car ready for winter";
+
+// the same shape as internal/app/views.go matchName: case-insensitive substring
+function match(q) {
+  q = q.trim().toLowerCase();
+  if (!q) return [];
+  return PROJECTS.filter(function (p) { return p.toLowerCase().includes(q); });
+}
+
+function nav(label) {
+  return '<div class="nav"><span class="on">' + label + '</span><span>Today</span>' +
+         '<span>Next</span><span>Projects</span><span>Tasks</span></div>';
+}
+function keybar(view) {
+  return '<div class="keybar"><div>' + view + '</div>' +
+         '<div><span><b>q</b>add to inbox</span><span><b>g</b>go to</span><span><b>?</b>help</span></div></div>';
+}
+function subject(text) {
+  return '<div class="subject"><h1 class="capture-text">' + text + '</h1>' +
+         '<p class="cap">captured today</p></div>';
+}
+
+/* The "who" control is one row, and it stays one row: pressing "Someone else"
+   grows the row to the right rather than opening a field below it, so nothing
+   under the cursor moves. The box takes focus as it appears, which makes the
+   press and the typing one gesture. */
+function whoRow() {
+  return '<div class="who"><span class="lbl">Who</span>' +
+    '<button class="seg on" data-who="me">I do it</button>' +
+    '<button class="seg" data-who="them">Someone else</button>' +
+    '<input class="whobox" placeholder="who or what" hidden></div>';
+}
+
+function wireWho(app) {
+  const box = app.querySelector(".whobox");
+  app.querySelectorAll(".who .seg").forEach(function (b) {
+    b.addEventListener("click", function () {
+      app.querySelectorAll(".who .seg").forEach(function (o) { o.classList.toggle("on", o === b); });
+      const them = b.dataset.who === "them";
+      box.hidden = !them;
+      if (them) box.focus(); else box.value = "";
+      app.dispatchEvent(new CustomEvent("whochange"));
+    });
+  });
+  box.addEventListener("input", function () {
+    app.dispatchEvent(new CustomEvent("whochange"));
+  });
+}
+
+/* ---- stage 1 ---- */
+function stage1(theme) {
+  return '<div class="frame"><div class="app ' + theme + '">' + nav("Processing…") +
+    '<div class="screen">' + subject(CAPTURE) +
+      '<div class="branches"><button>Trash</button><button>Reference material</button>' +
+        '<button>Two-minute rule — done</button></div>' +
+      '<div class="branches"><button>Someday/Maybe</button></div>' +
+      '<div class="branches"><button>Action <span class="rowmark">— a step</span></button>' +
+        '<button>Project <span class="rowmark">— an outcome</span></button></div>' +
+    '</div>' + keybar('<span><b>esc</b>cancel</span>') + '</div></div>';
+}
+
+/* ---- stage 2, the action form ---- */
+function actionForm(theme) {
+  return '<div class="frame"><div class="app ' + theme + '" data-actionform>' + nav("Processing…") +
+    '<div class="screen">' + subject(CAPTURE) +
+      '<div class="stage2">' +
+        whoRow() +
+        '<label class="f">Title <input class="titlebox" value="' + CAPTURE + '"></label>' +
+        '<label class="f">Project <input class="projbox" autocomplete="off" ' +
+          'placeholder="empty — a standalone action"></label>' +
+        '<div class="projstate"></div>' +
+        '<label class="f dodbox" hidden>Definition of done ' +
+          '<textarea rows="2" placeholder="How you will know the outcome is reached"></textarea></label>' +
+        '<label class="park" hidden><input type="checkbox"> park it — do not make it the next action</label>' +
+        '<details class="more"><summary>more</summary>context · duration · due date · tags · needs focus · snooze</details>' +
+        '<div class="outcome"></div>' +
+        '<div class="branches"><button class="primary">Create</button><button>back</button></div>' +
+      '</div>' +
+    '</div>' + keybar('<span><b>esc</b>cancel</span>') + '</div></div>';
+}
+
+function wireActionForm(app) {
+  const proj = app.querySelector(".projbox");
+  const state = app.querySelector(".projstate");
+  const dod = app.querySelector(".dodbox");
+  const park = app.querySelector(".park");
+  const out = app.querySelector(".outcome");
+  let picked = null;   // a matched project name
+  let making = false;  // creating a new project with this text
+
+  function delegated() { return app.querySelector('[data-who="them"]').classList.contains("on"); }
+  function who() {
+    const name = app.querySelector(".whobox").value.trim();
+    return delegated() ? (name ? "waiting on " + name : "waiting for someone") : "yours";
+  }
+
+  function render() {
+    const q = proj.value.trim();
+    const hits = match(q);
+    state.textContent = "";
+    dod.hidden = true;
+    park.hidden = true;
+
+    if (!q) {
+      picked = null; making = false;
+      state.textContent = "Standalone — when it is done, it is done.";
+    } else if (hits.length) {
+      making = false;
+      if (!hits.includes(picked)) picked = hits[0];
+      hits.forEach(function (p) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "pchip" + (p === picked ? " on" : "");
+        chip.textContent = p;
+        chip.addEventListener("click", function () { picked = p; render(); });
+        state.appendChild(chip);
+      });
+      park.hidden = false;
+    } else {
+      picked = null;
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "pchip make" + (making ? " on" : "");
+      chip.textContent = "create project “" + q + "”";
+      chip.addEventListener("click", function () { making = !making; render(); });
+      state.append("No active project matches. ");
+      state.appendChild(chip);
+      // a brand-new project's first action IS its next action, so no park here
+      dod.hidden = !making;
+    }
+    outcome();
+  }
+
+  function hitsNow() { return match(proj.value); }
+
+  function outcome() {
+    const parked = !park.hidden && park.querySelector("input").checked;
+    let s;
+    if (picked) {
+      s = "an action in <b>" + picked + "</b>, " + (parked ? "parked" : "its next action") +
+          ", " + who();
+    } else if (making) {
+      s = "a new project <b>" + proj.value.trim() + "</b>, with this as its first action — " +
+          "its next action, " + who();
+    } else if (hitsNow().length) {
+      s = "nothing yet — pick one of the projects above";
+    } else if (proj.value.trim()) {
+      s = "nothing yet — take <b>create project</b> above, or empty the box to leave it standalone";
+    } else {
+      s = "a <b>standalone</b> action, a next action from the moment it exists, " + who();
+    }
+    out.innerHTML = "→ " + s;
+  }
+
+  proj.addEventListener("input", render);
+  park.querySelector("input").addEventListener("change", outcome);
+  wireWho(app);
+  app.addEventListener("whochange", outcome);
+  render();
+}
+
+/* ---- stage 2, the project form ---- */
+function projectForm(theme, seed) {
+  const outcome = seed === "outcome";
+  const ptitle = outcome ? OUTCOME_CAPTURE : "";
+  const first = outcome ? "" : CAPTURE;
+  const shown = outcome ? OUTCOME_CAPTURE : CAPTURE;
+  return '<div class="frame"><div class="app ' + theme + '">' + nav("Processing…") +
+    '<div class="screen">' + subject(shown) +
+      '<div class="stage2">' +
+        '<label class="f">Title <input value="' + ptitle + '" ' +
+          'placeholder="A reference to the outcome, not what to do"></label>' +
+        '<label class="f">Definition of done <textarea rows="2" ' +
+          'placeholder="How you will know it is done"></textarea></label>' +
+        '<label class="f">First action <input value="' + first + '" ' +
+          'placeholder="Becomes the next action"></label>' +
+        whoRow() +
+        '<label class="f">More actions <input></label>' +
+        '<details class="more"><summary>more</summary>description · tags</details>' +
+        '<div class="outcome">→ a project <b>' + (outcome ? OUTCOME_CAPTURE : "…") +
+          '</b> and its first action <b>' + (outcome ? "…" : CAPTURE) + '</b>, its next action</div>' +
+        '<div class="branches"><button class="primary">Create</button><button>back</button></div>' +
+      '</div>' +
+    '</div>' + keybar('<span><b>esc</b>cancel</span>') + '</div></div>';
+}
+
+/* ---- render ---- */
+document.getElementById("stage1").innerHTML = stage1("light") + stage1("dark");
+document.getElementById("stage2action").innerHTML = actionForm("light") + actionForm("dark");
+document.querySelectorAll("[data-actionform]").forEach(wireActionForm);
+
+function renderProject(seed) {
+  document.getElementById("stage2project").innerHTML =
+    projectForm("light", seed) + projectForm("dark", seed);
+  document.querySelectorAll("#stage2project .app").forEach(wireWho);
+}
+renderProject("outcome");
+
+document.addEventListener("click", function (e) {
+  const b = e.target.closest("button[data-seed]");
+  if (!b) return;
+  document.querySelectorAll("button[data-seed]").forEach(function (o) {
+    o.setAttribute("aria-pressed", String(o === b));
+  });
+  renderProject(b.dataset.seed);
+});
+</script>
