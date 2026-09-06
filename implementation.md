@@ -518,6 +518,27 @@ so none of them reads as something nobody noticed.
   attention the others have. Its help line and its row layout are both first
   drafts
 
+## Schema changes
+
+There are no migration files and no version number. `migrate()` runs the
+`CREATE TABLE IF NOT EXISTS` schema, then a short list of steps each written to
+be a no-op the second time it runs — a column dropped only if `pragma_table_info`
+still reports it, a value rewritten only where the old value is still there.
+
+- **that is enough because there is one database.** A numbered migration table
+  earns its keep when you cannot see every deployment; here there is one file
+  on one machine, and a step that checks the database rather than a version
+  counter cannot get out of step with it
+- **the audit log is not rewritten, ever.** Its snapshots are JSON of the item
+  as it was, so a field dropped from the schema is still there, in the entries
+  written while it existed — which is the same property design.md relies on for
+  recovering a trashed item, applied to a dropped field. Migrating out the
+  project description did not destroy a single one; they are all still readable
+  in `audit_log.snapshot`
+- **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
+  rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
+  current
+
 ## Wanted, not specified
 
 A third list, `todo.md`, and it is deliberately unlike the two registers above.
