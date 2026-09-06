@@ -1,44 +1,50 @@
 {{template "top" .}}
 <div class="item">
   <h2>Tags</h2>
-  <p class="muted">The remembered list. A name has to be here before writing it in a
-  description means anything — that is what stops #car and #Car becoming two tags.
-  A tag still carried by items can not be removed.</p>
+  <p class="muted">A name has to be on this list before writing it in a description
+  means anything — that is what stops <code>#car</code> and <code>#Car</code> becoming
+  two tags. The count is what carries it. A name still in use can not be removed:
+  removing it would be editing those items behind their back.</p>
+
   <form method="post" action="/settings/tags/add" class="addname">
-    <input name="name" placeholder="car" required><button>Add tag</button>
+    <input name="name" placeholder="car" required autocomplete="off"><button>Add tag</button>
   </form>
-  <ul class="list">
+
+  <ul class="cloud">
   {{range .Data.Tags}}
-    <li class="row"><span class="title">#{{.}}</span>
-      <form method="post" action="/settings/tags/remove" class="inline">
-        <input type="hidden" name="name" value="{{.}}"><button class="danger small">remove</button>
-      </form>
+    <li class="name {{if .Builtin}}builtin{{end}}">
+      <span class="title">#{{.Name}}</span>
+      <span class="badge count">{{.Count}}</span>
+      {{template "namedelete" (dict "Use" . "Action" "/settings/tags/remove" "Fields" (dict "name" .Name))}}
     </li>
-  {{else}}<li class="row"><span class="muted">none yet</span></li>{{end}}
+  {{end}}
   </ul>
 
   <h2>Contexts</h2>
-  <p class="muted">Context names and their remembered parameter values.</p>
+  <p class="muted">What has to be true before an action is possible at all. The values
+  under a context are its remembered parameters — <code>@person(Marju)</code> — and each
+  is removed on its own.</p>
+
   <form method="post" action="/settings/contexts/add" class="addname">
-    <input name="name" placeholder="home" required>
-    <input name="param" placeholder="parameter (optional)"><button>Add context</button>
+    <input name="name" placeholder="home" required autocomplete="off">
+    <input name="param" placeholder="parameter (optional)" autocomplete="off">
+    <button>Add context</button>
   </form>
-  <ul class="list">
+
+  <ul class="cloud">
   {{range .Data.Contexts}}
-    <li class="row"><span class="title">@{{.Name}}</span>
-      <form method="post" action="/settings/contexts/remove" class="inline">
-        <input type="hidden" name="name" value="{{.Name}}"><button class="danger small">remove</button>
-      </form>
-      {{$ctx := .Name}}
+    {{$ctx := .Name}}
+    <li class="name {{if .Builtin}}builtin{{end}}">
+      <span class="title">@{{.Name}}</span>
+      <span class="badge count">{{.Count}}</span>
+      {{template "namedelete" (dict "Use" . "Action" "/settings/contexts/remove" "Fields" (dict "name" .Name))}}
       {{range .Params}}
-        <span class="badge">{{.}}
-        <form method="post" action="/settings/params/remove" class="inline">
-          <input type="hidden" name="context" value="{{$ctx}}"><input type="hidden" name="value" value="{{.}}">
-          <button class="small" title="remove value">×</button>
-        </form></span>
+        <span class="param">{{.Name}}<span class="badge count">{{.Count}}</span>
+          {{template "namedelete" (dict "Use" . "Action" "/settings/params/remove" "Fields" (dict "context" $ctx "value" .Name))}}
+        </span>
       {{end}}
     </li>
-  {{else}}<li class="row"><span class="muted">none yet</span></li>{{end}}
+  {{end}}
   </ul>
 </div>
 {{template "bottom" .}}

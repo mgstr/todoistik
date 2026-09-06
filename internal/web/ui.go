@@ -1106,17 +1106,20 @@ func (s *Server) reviewDone(w http.ResponseWriter, r *http.Request) {
 // --- settings ------------------------------------------------------------
 
 type settingsData struct {
-	Tags     []string
-	Contexts []map[string]any
+	Tags     []app.NameUse
+	Contexts []app.NameUse
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d := &settingsData{}
-	d.Tags, _ = s.app.Tags()
-	names, _ := s.app.Contexts()
-	for _, n := range names {
-		params, _ := s.app.ContextParams(n)
-		d.Contexts = append(d.Contexts, map[string]any{"Name": n, "Params": params})
+	var err error
+	if d.Tags, err = s.app.TagList(); err != nil {
+		httpError(w, err)
+		return
+	}
+	if d.Contexts, err = s.app.ContextList(); err != nil {
+		httpError(w, err)
+		return
 	}
 	p := s.newPage("Settings", "settings", r)
 	p.Data = d

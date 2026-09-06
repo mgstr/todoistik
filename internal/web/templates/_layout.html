@@ -110,3 +110,15 @@
   <p class="muted">Anything else keeps its @ or # and stays part of the text.</p>
 </div>
 {{end}}
+
+{{define "namedelete"}}
+{{/* Disabled rather than absent, the same rule create buttons follow: a
+     control that is there and dim says why it cannot be used, where one that
+     is missing says nothing at all. The title is where the reason lives. */}}
+{{$u := .Use}}
+<form method="post" action="{{.Action}}" class="inline">
+  {{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}
+  <button class="small danger" {{if not $u.Removable}}disabled{{end}}
+    title="{{if $u.Builtin}}built in — this name is a field, not a label{{else if $u.Count}}still carried by {{$u.Count}} item(s){{else}}remove{{end}}">×</button>
+</form>
+{{end}}

@@ -359,3 +359,24 @@ button:disabled, .button:disabled {
   opacity: .45; cursor: not-allowed; border-color: var(--line);
 }
 button:disabled:hover { border-color: var(--line); }
+
+/* The remembered lists, as clouds rather than rows: these are a vocabulary,
+   and a vocabulary is read as a set. The count against every name — built-in
+   ones included — is the only place the app says how much of the work is
+   short, or needs focus, or is parked. */
+.cloud { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; padding: 0; margin: .5rem 0 1.25rem; }
+.cloud .name {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .2rem .3rem .2rem .5rem; border: 1px solid var(--line); border-radius: 999px;
+}
+.cloud .name.builtin { border-style: dashed; }
+.cloud .name .title { font-size: .9rem; }
+.cloud .name.builtin .title { color: var(--muted); }
+.cloud .badge.count { font-variant-numeric: tabular-nums; }
+.cloud .param {
+  display: inline-flex; align-items: center; gap: .25rem;
+  margin-left: .15rem; padding: .05rem .2rem .05rem .45rem;
+  background: var(--badge-bg); border-radius: 999px; font-size: .8rem; color: var(--muted);
+}
+.cloud button.small.danger { border: none; background: transparent; padding: 0 .2rem; }
+.cloud button.small.danger:disabled { opacity: .3; }
