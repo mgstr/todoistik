@@ -1,0 +1,261 @@
+package app
+
+import (
+	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+)
+
+// The description is the one field an action is written in, and everything an
+// action carries besides its title and its project is spelled inside it:
+// `@context`, `@context(parameter)`, `@waitingFor(who)`, `#tag`, and the four
+// tags that stand for fields. This file is the codec between that text and the
+// columns — see design.md, "Writing an action".
+//
+// The columns remain the truth. The text is parsed into them on save and
+// written back out of them on open, rather than the other way around, because
+// the app changes those fields from outside the box: picking for today, a
+// detach stamping a parked action, a delegation restamping the clock. If the
+// text owned them, every one of those would have to rewrite prose.
+
+// Names that always parse as tokens, whatever is on the remembered lists.
+// Each one stands for a column, which is why none of them can be removed in
+// Settings: deleting one would not remove a label, it would remove a field.
+const (
+	WaitingForContext = "waitingFor"
+	FocusTag          = "focus"
+	ParkedTag         = "parked"
+)
+
+// StructuralTags are the tags that are not tags: each is a field wearing a
+// tag's notation. TodayTag is here too — it was already built in.
+var StructuralTags = []string{
+	string(DurShort), string(DurMedium), string(DurLong),
+	FocusTag, ParkedTag, TodayTag,
+}
+
+// Vocabulary is what makes an `@name` or a `#name` metadata rather than prose:
+// the names already on the remembered lists, plus the structural ones. A name
+// that is not known stays in the text exactly as written — which is what keeps
+// `marju@gmail.com` from becoming a context and `invoice #12345` from becoming
+// a tag, and what keeps design.md's rule that names are never typed fresh
+// (see "Contexts").
+type Vocabulary struct {
+	Contexts map[string]bool
+	Tags     map[string]bool
+}
+
+func (v *Vocabulary) knownContext(name string) bool {
+	return name == WaitingForContext || (v != nil && v.Contexts[name])
+}
+
+func (v *Vocabulary) knownTag(name string) bool {
+	for _, s := range StructuralTags {
+		if name == s {
+			return true
+		}
+	}
+	return v != nil && v.Tags[name]
+}
+
+// Vocabulary reads the remembered lists.
+func (a *App) Vocabulary() (*Vocabulary, error) {
+	v := &Vocabulary{Contexts: map[string]bool{}, Tags: map[string]bool{}}
+	names, err := a.Contexts()
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range names {
+		v.Contexts[n] = true
+	}
+	names, err = a.Tags()
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range names {
+		v.Tags[n] = true
+	}
+	return v, nil
+}
+
+// A token starts a word: preceded by the start of the text or by whitespace.
+// That alone already excludes an email address, and the vocabulary check
+// excludes the rest.
+var tokenRe = regexp.MustCompile(`(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?`)
+
+// DescFields is a description read as the fields it spells.
+type DescFields struct {
+	Prose        string
+	Context      string
+	ContextParam string
+	AssignedTo   string
+	Duration     Duration
+	NeedsFocus   bool
+	Parked       bool
+	Today        bool
+	Tags         []string
+}
+
+// ParseDescription reads a written description into its fields and the prose
+// left over. inProject says whether the action has a home, because parking is
+// only meaningful inside one (design.md, "Standalone actions").
+func ParseDescription(text string, v *Vocabulary, inProject bool) (DescFields, error) {
+	var f DescFields
+	var seenDuration, seenContext, seenWaiting bool
+	var err error
+
+	prose := tokenRe.ReplaceAllStringFunc(text, func(m string) string {
+		sub := tokenRe.FindStringSubmatch(m)
+		lead, sigil, name, param := sub[1], sub[2], sub[3], sub[5]
+		hasParam := sub[4] != ""
+
+		keep := func() string { return m }
+		switch sigil {
+		case "@":
+			if !v.knownContext(name) {
+				return keep()
+			}
+			if name == WaitingForContext {
+				if !hasParam || strings.TrimSpace(param) == "" {
+					err = orFirst(err, fmt.Errorf("@%s needs a name in brackets — who or what is it waiting on?", WaitingForContext))
+					return keep()
+				}
+				if seenWaiting {
+					err = orFirst(err, fmt.Errorf("@%s given twice", WaitingForContext))
+					return keep()
+				}
+				seenWaiting = true
+				f.AssignedTo = strings.TrimSpace(param)
+				return lead
+			}
+			if seenContext {
+				err = orFirst(err, fmt.Errorf("more than one context: @%s and @%s. An action has at most one", f.Context, name))
+				return keep()
+			}
+			seenContext = true
+			f.Context, f.ContextParam = name, strings.TrimSpace(param)
+			return lead
+		case "#":
+			if !v.knownTag(name) {
+				return keep()
+			}
+			switch d := Duration(name); d {
+			case DurShort, DurMedium, DurLong:
+				if seenDuration {
+					err = orFirst(err, fmt.Errorf("more than one size: #%s and #%s. Pick one", f.Duration, name))
+					return keep()
+				}
+				seenDuration = true
+				f.Duration = d
+				return lead
+			}
+			switch name {
+			case FocusTag:
+				f.NeedsFocus = true
+			case ParkedTag:
+				if !inProject {
+					err = orFirst(err, errParkedStandalone)
+					return keep()
+				}
+				f.Parked = true
+			case TodayTag:
+				f.Today = true
+			default:
+				f.Tags = append(f.Tags, name)
+			}
+			return lead
+		}
+		return keep()
+	})
+
+	f.Prose = strings.TrimSpace(collapseBlankLines(prose))
+	sort.Strings(f.Tags)
+	return f, err
+}
+
+var errParkedStandalone = fmt.Errorf("#%s only means something inside a project — a standalone action is always a next action", ParkedTag)
+
+func orFirst(existing, e error) error {
+	if existing != nil {
+		return existing
+	}
+	return e
+}
+
+// collapseBlankLines tidies what removing tokens leaves behind: runs of spaces
+// inside a line, and the empty lines a metadata line becomes once emptied.
+func collapseBlankLines(s string) string {
+	lines := strings.Split(s, "\n")
+	out := make([]string, 0, len(lines))
+	for _, ln := range lines {
+		out = append(out, strings.TrimRight(strings.Join(strings.Fields(ln), " "), " "))
+	}
+	for len(out) > 0 && out[len(out)-1] == "" {
+		out = out[:len(out)-1]
+	}
+	return strings.Join(out, "\n")
+}
+
+// Describe writes an action's fields back out as the text they are written in:
+// the prose, then one line carrying every token, in a fixed order so that
+// opening and saving an action twice cannot shuffle it.
+func Describe(act *Action) string {
+	var f DescFields
+	f.Prose = act.Description
+	f.Context, f.ContextParam = act.Context, act.ContextParam
+	f.AssignedTo = act.AssignedTo
+	f.Duration = act.Duration
+	f.NeedsFocus = act.NeedsFocus
+	f.Parked = act.ProjectID != 0 && act.BecameNextAt == nil
+	for _, t := range act.Tags {
+		if t == TodayTag {
+			f.Today = true
+			continue
+		}
+		f.Tags = append(f.Tags, t)
+	}
+	return f.String()
+}
+
+func (f DescFields) String() string {
+	var tokens []string
+	if f.Context != "" {
+		tokens = append(tokens, atToken(f.Context, f.ContextParam))
+	}
+	if f.AssignedTo != "" {
+		tokens = append(tokens, atToken(WaitingForContext, f.AssignedTo))
+	}
+	if f.Duration != DurNone {
+		tokens = append(tokens, "#"+string(f.Duration))
+	}
+	if f.NeedsFocus {
+		tokens = append(tokens, "#"+FocusTag)
+	}
+	if f.Parked {
+		tokens = append(tokens, "#"+ParkedTag)
+	}
+	if f.Today {
+		tokens = append(tokens, "#"+TodayTag)
+	}
+	tags := append([]string(nil), f.Tags...)
+	sort.Strings(tags)
+	for _, t := range tags {
+		tokens = append(tokens, "#"+t)
+	}
+	line := strings.Join(tokens, " ")
+	switch {
+	case f.Prose == "":
+		return line
+	case line == "":
+		return f.Prose
+	}
+	return f.Prose + "\n\n" + line
+}
+
+func atToken(name, param string) string {
+	if param == "" {
+		return "@" + name
+	}
+	return "@" + name + "(" + param + ")"
+}
