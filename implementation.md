@@ -276,10 +276,18 @@ quietly break.
   stops being the picker's key at all. Once the list is closed and nothing is
   chosen, the press is let through to the screen, or the form could not be left
   from that field
-- **`enter` on `<standalone>` opens the new-project dialog**, which is the only
-  way to create one from here. That is deliberate: text that matches nothing is
-  a typo far more often than an intention, and the version this replaced turned
-  a typo plus a definition of done into a duplicate project
+- **`c` opens the new-project dialog, and so does `enter` on `<standalone>`.**
+  These are the only ways to create one from here, which is deliberate: text
+  that matches nothing is a typo far more often than an intention, and the
+  version this replaced turned a typo plus a definition of done into a
+  duplicate project. `c` is a command only while the list is shut — an open
+  list is being filtered, and every letter there belongs to the filter
+- **the dialog offers Create only once it can be acted on.** A project needs a
+  title and a definition of done, so until both are non-blank the button is not
+  there and the key bar says what is missing rather than naming a key that
+  would refuse. An enabled control that rejects is a control lying about what
+  it will do. `enter` while incomplete moves to the empty field instead of
+  doing nothing, so the key is never a dead end
 - **the new project is held, not created.** The dialog fills two hidden fields;
   the project and its first action are written together when the action form is
   submitted. Anything else would need a project with no actions, which
