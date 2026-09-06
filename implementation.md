@@ -179,9 +179,17 @@ and all eight branches on screen at once — three buttons and five forms in
     that it existed is the audit entry
   - **it moves to a list, still raw** — Someday/Maybe from the inbox, Keep
     incubating for an item already there
-  - **it is actionable** — Action, for a line that names a step, and Project,
-    for one that names an outcome. These are the only two answers in the row,
-    and they are the only two that open a second stage — see "Stage two"
+  - **it is actionable** — Action and Project, the only two answers in the row
+    and the only two that open a second stage (see "Stage two"). They carried
+    *"— a step"* and *"— an outcome"* while the row was new; the gloss was
+    removed once it had been read, on the same argument as the rest of the
+    screen's prose. The distinction they name is in the `?` panel, which is
+    where a thing that has to be explained belongs (see "View help")
+
+  A link wearing `.button` is a button and looks like one to the pixel: two of
+  these six answers navigate rather than post, and that is an implementation
+  detail no one should be able to see. The class carries the same fill, hover
+  and metrics as the element
 - **Someday/Maybe is one click and carries the text as it stands.** design.md
   allows the text to be reworded and a `snoozeUntil` to be set at this point,
   and both were fields on the old form. Both are still reachable, on the
