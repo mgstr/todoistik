@@ -98,7 +98,14 @@
     const help = document.getElementById("help");
     if (help && !help.hidden) return { view: [["esc", "close help"]], global: [] };
     const np = document.getElementById("newproject-dialog");
-    if (np && np.open) return { view: [["\u21b5", "create"], ["esc", "cancel"]], global: [] };
+    if (np && np.open) {
+      const okBtn = np.querySelector("#np-ok");
+      const view = [];
+      if (okBtn && !okBtn.hidden) view.push(["\u21b5", "create"]);
+      else view.push(["\u2026", "a title and a definition of done"]);
+      view.push(["esc", "cancel"]);
+      return { view: view, global: [] };
+    }
     const picker = document.querySelector("[data-picker] .pickerlist:not([hidden])");
     if (picker) {
       return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
@@ -108,8 +115,8 @@
     if (closed && closed === document.activeElement) {
       const empty = !document.querySelector("[data-picker] [name=projectid]").value &&
         !document.querySelector("[data-picker] [name=newproject]").value;
-      return { view: [["\u2193", "projects"],
-        [" \u21b5", empty ? "create project" : "change"], ["esc", "standalone"]], global: [] };
+      return { view: [["\u2193", "projects"], ["c", "new project"],
+        ["\u21b5", empty ? "new project" : "change"], ["esc", "standalone"]], global: [] };
     }
     if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
 
@@ -483,6 +490,12 @@
           if (openList) { take(list.querySelector(".pickrow.on")); return; }
           if (!idField.value && !newField.value) newProjectDialog(root); else open();
           return;
+        // a letter can only be a command while the list is shut, because an
+        // open list is being filtered and every letter belongs to the filter
+        case e.key === "c" && !openList && !ctrl:
+          e.preventDefault(); e.stopPropagation();
+          newProjectDialog(root);
+          return;
         case e.key === "Escape":
           // one step at a time: the filter first, then the choice. Once there
           // is nothing of ours left to undo the key is not ours either — it
@@ -510,15 +523,27 @@
     if (!dlg) return;
     const title = dlg.querySelector("#np-title");
     const dod = dlg.querySelector("#np-dod");
+    const ok = dlg.querySelector("#np-ok");
     title.value = ""; dod.value = "";
+
+    // A project needs both a title and a definition of done — design.md will
+    // not make one without them. So the button that would make it is not
+    // offered until it can be: an enabled control that refuses is a control
+    // that lies about what it will do.
+    function ready() { return title.value.trim() !== "" && dod.value.trim() !== ""; }
+    function sync() { ok.hidden = !ready(); renderKeybar(); }
+    title.oninput = sync;
+    dod.oninput = sync;
+    sync();
+
     dlg.showModal();
     title.focus();
     renderKeybar();
 
     function done(ok) {
       if (ok) {
+        if (!ready()) { (title.value.trim() === "" ? title : dod).focus(); return; }
         const name = title.value.trim();
-        if (name === "") return;
         root.querySelector("[name=newproject]").value = name;
         root.querySelector("[name=newdod]").value = dod.value.trim();
         root.querySelector("[name=projectid]").value = "";
