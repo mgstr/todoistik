@@ -220,6 +220,21 @@ something done that never became one.
   and the key layer stands down while you are typing, which is correct. What
   the browser already gives is enough: `Enter` submits, `esc` blurs the field
   and a second `esc` goes back to stage one
+- **the form opens with the title focused and the caret at its end.** The
+  common answer by a wide margin is an action you will do yourself, standalone,
+  under the wording the capture already has — and that answer should cost one
+  `Enter`, not a walk through the controls that were right by default. Focus
+  therefore skips the "who" row, which is the field most often left alone, and
+  lands on the one you might actually retype. `autofocus` does the focusing on
+  both paths — the browser on a full load, htmx on a boosted one — but neither
+  places the caret, and a pre-filled field opening at position 0 means the
+  first thing typed lands in front of the text already there. `app.js` moves it
+  to the end on settle: the one thing in that file which is not the keyboard
+  layer, allowed because it decides nothing and stores nothing
+- **the cost is paid on the way out**, and deliberately: with a field focused
+  from the start, `esc` blurs before it navigates, so abandoning stage two is
+  three presses rather than two. That is the right trade in a screen worked
+  many times a day — the abandon path is rare and the typing path is not
 
 ## Stage two
 
