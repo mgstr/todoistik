@@ -539,6 +539,8 @@ otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
   the server, because `hx-boost` swaps the body's `innerHTML` and an attribute
   up there would freeze at its first-load value — the same trap the ages flag
   had to step around
+- **the nav says which mode you are in**, not which view you left: the
+  highlighted slot reads `Doing…` while it is up — see "Navigation"
 - **a swap ends the mode.** Completing navigates, and the row the mode was
   showing is gone with the page it was on
 
@@ -681,6 +683,21 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 13 v
 - **Inbox is the one exception to how the signal is carried**: when its count is non-zero, the nav *label itself* changes color, not just its badge. Design.md treats a non-empty inbox as the one state with a non-negotiable response ("Inbox Zero" run "regularly, and always as part of the weekly review"), so it gets a stronger signal than a small badge can give it
 - **while the processing screen is up, the slot it was reached from reads "Processing…"** — the Inbox's for an Inbox Zero run or for a single picked item, the Someday/Maybe one for an item you decided to move on (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen, and marked the Inbox even when the item being processed came from Someday/Maybe. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I"
 - **that slot drops its badge and its red for as long as it reads "Processing…"**. The count means the inbox needs emptying and the red says it loudly (see the exception above); both are answered by the fact that you are emptying it at that moment, and an alarm about the thing you are currently doing is noise. Nothing else carries the number at the moment either: the line that read *"Inbox Zero · N left"* was removed with the rest of the screen's prose (see "The processing screen"), so a run currently counts down invisibly. Whether it comes back, and where, is the open question in `research/process-subject-study.html` — and "nowhere" is a live answer, because a count you cannot see is also a count you cannot be discouraged by. The slot stays a link with its `g i` intact: `esc` is the way out (see "Processing from the Inbox") and the nav must not be the one route that quietly stops working
+
+- **doing mode borrows the same slot, and it reads "Doing…"** — the view you
+  were in when you pressed `d`, since that is the one that is highlighted. The
+  same trade as above and for the same reason: the mode has no entry of its own
+  and should not get one, the rail is where "where am I" is already answered,
+  and the view's name is not news while you are in the middle of one of its
+  items. The badge goes with the label, as it does for a run. The difference is
+  that this one is done in the browser rather than rendered: the mode is built
+  there out of the selected row (see "Doing mode"), so the label is taken and
+  put back the same way — exactly the markup that was lifted, and only if that
+  page is still the page on screen
+- **the slot stays a link both times.** In doing mode every key but `c` and
+  `esc` is swallowed, so `g n` will not take you out; the rail still will, and a
+  mode that could only be left one way would be a trap the moment that way was
+  forgotten
 
 #### Keyboard view-jump overlay
 
