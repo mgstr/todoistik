@@ -9,6 +9,8 @@
     i: "/inbox", t: "/today", n: "/next", p: "/projects", k: "/tasks",
     w: "/waiting", c: "/calendar", s: "/someday", h: "/scheduler",
     r: "/review", a: "/archive", u: "/audit", e: "/settings",
+    // not a view: g z is g i then z, which is the pair pressed most often
+    z: "/process",
   };
 
   // Vimium-style hints: holding "g" pins the jump key onto each nav link, so
@@ -111,7 +113,16 @@
       return { view: [["\u2193", "projects"], ["c", "new project"],
         ["\u21b5", empty ? "new project" : "change"], ["esc", "standalone"]], global: [] };
     }
-    if (gPending) return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
+    if (gPending) {
+      // z is the one jump with nothing on screen to mark: the processing
+      // screen has no nav entry of its own (see implementation.md,
+      // "Navigation"), so the bar is where it can be offered — and only while
+      // there is an inbox to work down, or it would be a key that does nothing
+      const view = [["\u2026", "press a marked key"]];
+      if (document.querySelector("nav a.alert")) view.push(["z", "inbox zero"]);
+      view.push(["esc", "cancel"]);
+      return { view: view, global: [] };
+    }
 
     const view = [];
     const typed = document.activeElement;

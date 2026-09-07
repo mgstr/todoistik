@@ -1,5 +1,5 @@
 {{template "top" .}}
-{{if not .Data}}<p class="empty">Inbox zero. Nothing to decide about.</p>{{end}}
+{{if not .Data}}<p class="empty">Inbox zero.</p>{{end}}
 <ul class="list"{{if .Data}} data-inbox-zero="/process"{{end}}>
 {{range .Data}}
   <li class="row" data-kb-row data-href="/process?item={{.ID}}&one=1" data-process>
