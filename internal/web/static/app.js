@@ -97,6 +97,8 @@
     if (help && !help.hidden) return { view: [["esc", "close help"]], global: [] };
     const np = document.getElementById("newproject-dialog");
     if (np && np.open) return { view: makeKeys(np).concat([["esc", "cancel"]]), global: [] };
+    const dd = draftDialog();
+    if (dd && dd.open) return { view: makeKeys(dd).concat([["esc", "cancel"]]), global: [] };
     const picker = document.querySelector("[data-picker] .pickerlist:not([hidden])");
     if (picker) {
       return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
@@ -159,12 +161,26 @@
       if (el.requestSubmit) el.requestSubmit(); else el.submit();
       return;
     }
+    // a button is pressed by pressing it, so the key and the mouse arrive at
+    // the same handler and cannot come to differ
+    if (el.tagName === "BUTTON") { el.click(); return; }
     const href = el.getAttribute("href");
     if (href) window.location.href = href;
   }
 
   function pushRowKeys(into, row) {
     if (!row) return;
+    // an action written before its project exists is not on the list yet, so
+    // none of the list's keys mean anything to it. What it has instead is
+    // where it sits, and the keys for that are offered only where they would
+    // do something: no "up" on the first row, no "down" on the last.
+    if (row.hasAttribute("data-draft")) {
+      into.push(["\u21b5", "edit"]);
+      if (row.previousElementSibling) into.push(["u", "up"]);
+      if (row.nextElementSibling) into.push(["d", "down"]);
+      into.push(["r", "remove"]);
+      return;
+    }
     // opening an inbox item is processing it, so the two keys share a label
     if (row.hasAttribute("data-process")) into.push(["\u21b5 p", "process"]);
     else if (row.dataset.href) into.push(["\u21b5", "open"]);
@@ -226,6 +242,9 @@
     return Array.from(scope.querySelectorAll("[required]"))
       .filter(function (el) { return el.value.trim() === ""; })
       .map(function (el) {
+        // a requirement with no box of its own says what to call it, since
+        // there is no label to read it off — see the project form's action
+        if (el.dataset.label) return el.dataset.label;
         const label = el.closest("label");
         if (!label) return el.name;
         return label.childNodes[0].textContent.trim().toLowerCase() || el.name;
@@ -359,6 +378,7 @@
       case "k": e.preventDefault(); move(-1); break;
       case "Enter":
       case "o": {
+        if (row && row.hasAttribute("data-draft")) { e.preventDefault(); openDraft(row); break; }
         const radio = row && row.querySelector("input[type=radio]");
         if (radio) { e.preventDefault(); radio.checked = true; renderKeybar(); break; }
         if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
@@ -377,6 +397,9 @@
         if (list) { e.preventDefault(); window.location.href = list.dataset.inboxZero; }
         break;
       }
+      case "u": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, -1); } break;
+      case "d": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, 1); } break;
+      case "r": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); removeDraft(row); } break;
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
       case "q": e.preventDefault(); openCapture(); break;
@@ -434,6 +457,7 @@
   document.addEventListener("click", function (e) {
     setPending(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
+    if (e.target.closest("[data-draft-add]")) { e.preventDefault(); openDraft(null); return; }
     const row = rowFromEvent(e);
     if (row) select(row);
   });
@@ -445,6 +469,113 @@
     const row = rowFromEvent(e);
     if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
   });
+
+  // Actions written before their project exists (the project branch of
+  // processing). They are held in the form as rows of hidden fields rather
+  // than saved as they are written, because there is nothing yet to save them
+  // to: design.md will not make a project without an action, so the project
+  // and its actions are created in the one submit. A refused form therefore
+  // has to carry them back, which is why they are form fields and not state
+  // kept in here — see implementation.md, "Writing a project".
+  function draftDialog() { return document.getElementById("draft-dialog"); }
+
+  function draftValues(row) {
+    return {
+      title: row.querySelector("[name=atitle]").value,
+      meta: row.querySelector("[name=ameta]").value,
+      description: row.querySelector("[name=adescription]").value,
+    };
+  }
+
+  function writeDraft(row, v) {
+    row.querySelector(".title").textContent = v.title;
+    row.querySelector(".draftmeta").textContent = v.meta;
+    row.querySelector(".draftnote").textContent = v.description ? "note" : "";
+    row.querySelector("[name=atitle]").value = v.title;
+    row.querySelector("[name=ameta]").value = v.meta;
+    row.querySelector("[name=adescription]").value = v.description;
+  }
+
+  // The create button is gated on there being an action, the same way it is
+  // gated on a title and a DOD: a hidden required field the list keeps in step
+  // with itself, so the one gate still reads the whole form.
+  function syncDrafts(form) {
+    if (!form) return;
+    const flag = form.querySelector("[name=hasaction]");
+    if (flag) flag.value = form.querySelector("[data-draft]") ? "1" : "";
+    gate(form);
+    renderKeybar();
+  }
+
+  function moveDraft(row, delta) {
+    const other = delta < 0 ? row.previousElementSibling : row.nextElementSibling;
+    if (!other) return;
+    if (delta < 0) row.parentNode.insertBefore(row, other);
+    else row.parentNode.insertBefore(other, row);
+    row.scrollIntoView({ block: "nearest" });
+    renderKeybar();
+  }
+
+  function removeDraft(row) {
+    const form = row.closest("form");
+    const next = row.nextElementSibling || row.previousElementSibling;
+    row.remove();
+    select(next || null);
+    syncDrafts(form);
+  }
+
+  // One dialog, opened blank to add and filled to edit — the same fields in
+  // both cases, and the same fields the processing screen writes an action in.
+  function openDraft(row) {
+    const dlg = draftDialog();
+    const list = document.querySelector("[data-draft-list]");
+    const tpl = document.getElementById("draftrow-template");
+    if (!dlg || !list || !tpl) return;
+    const form = list.closest("form");
+    const title = dlg.querySelector("[name=title]");
+    const meta = dlg.querySelector("[name=meta]");
+    const desc = dlg.querySelector("[name=description]");
+    const ok = dlg.querySelector("[data-draft-ok]");
+    const v = row ? draftValues(row) : { title: "", meta: "", description: "" };
+    title.value = v.title; meta.value = v.meta; desc.value = v.description;
+    dlg.querySelector("h2").textContent = row ? "Edit action" : "Add an action";
+    ok.textContent = row ? "Save action" : "Create action";
+
+    gate(dlg);
+    dlg.showModal();
+    title.focus();
+    renderKeybar();
+
+    function done(confirmed) {
+      if (confirmed) {
+        if (ok.disabled) { title.focus(); return; }
+        let target = row;
+        if (!target) {
+          target = tpl.content.firstElementChild.cloneNode(true);
+          list.appendChild(target);
+        }
+        writeDraft(target, {
+          title: title.value.trim(),
+          meta: meta.value.trim(),
+          description: desc.value.trim(),
+        });
+        select(target);
+      }
+      dlg.close();
+      syncDrafts(form);
+    }
+    ok.onclick = function () { done(true); };
+    dlg.querySelector("[data-draft-cancel]").onclick = function () { done(false); };
+    // the dialog owns both keys outright, for the reason the new-project one
+    // does: Escape reaching the screen would close the dialog and leave the
+    // whole form in the same press
+    dlg.onkeydown = function (e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); return; }
+      if (e.key !== "Enter") return;
+      if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); done(true); return; }
+      if (e.target !== desc) { e.preventDefault(); e.stopPropagation(); done(true); }
+    };
+  }
 
   // The project picker. A project is chosen, never typed, so what is submitted
   // is an id or a pending new project — never a name to be resolved. It owns
@@ -652,6 +783,7 @@
 
   function setupPickers() {
     document.querySelectorAll("[data-picker]").forEach(setupPicker);
+    document.querySelectorAll("[data-drafts]").forEach(syncDrafts);
   }
   setupPickers();
   gateAll();

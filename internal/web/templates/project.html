@@ -21,8 +21,7 @@
   <form method="post" action="/project/{{$p.ID}}" class="stack">
     <label>Title <input name="title" value="{{$p.Title}}" required></label>
     <label>Definition of done <textarea name="dod" rows="3" placeholder="Empty DOD = error state">{{$p.DOD}}</textarea></label>
-    <label>Tags <input name="tags" value="{{joinTags $p.Tags}}"></label>
-    <label>Snooze until <input type="date" name="snooze" value="{{$p.SnoozeUntil}}"></label>
+    <label>Meta <input name="meta" value="{{$p.Meta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
     <button class="primary">Save</button>
   </form>
 
@@ -36,7 +35,7 @@
   <details {{if $d.Ask}}open{{end}}>
     <summary>Add an action</summary>
     <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
-      {{template "actionformfields" (dict "Title" "" "Meta" "" "Description" "")}}
+      {{template "actionfields" (dict "Title" "" "Meta" "" "Description" "" "Focus" false)}}
       <button class="primary">Add action</button>
     </form>
   </details>

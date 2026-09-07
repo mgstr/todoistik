@@ -348,11 +348,12 @@ type processData struct {
 	// stage two: the branch has been chosen and the form for it is up.
 	// Empty As is stage one, the question itself.
 	As        string
-	Vals      url.Values   // what the fields show — seeded on the way in, echoed back on a bounce
-	NeedDOD   bool         // the name matched none, so the project would be a new one
-	Note      string       // why the form came back instead of being accepted
-	Picker    []pickerData // every active project, newest activity first, for the picker
-	Back      string       // stage one for this item — where "back" and esc go
+	Vals      url.Values    // what the fields show — seeded on the way in, echoed back on a bounce
+	NeedDOD   bool          // the name matched none, so the project would be a new one
+	Note      string        // why the form came back instead of being accepted
+	Picker    []pickerData  // every active project, newest activity first, for the picker
+	Drafts    []draftAction // the project screen's actions, written before the project exists
+	Back      string        // stage one for this item — where "back" and esc go
 	AsAction  string
 	AsProject string
 	Q         string // "?one=1" when a single picked item, to be carried by the form
@@ -596,11 +597,103 @@ func splitContextInput(s string) (name, param string) {
 	return s, ""
 }
 
-func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields) {
+// draftAction is an action written on the project screen before the project
+// exists. It is the three fields an action is written in, carried through the
+// form as hidden values so that the project and its actions arrive in one
+// submit — until that submit there is nothing for an action to belong to.
+type draftAction struct {
+	Title       string
+	Meta        string
+	Description string
+}
+
+func draftsFromForm(r *http.Request) []draftAction {
+	_ = r.ParseForm()
+	at := func(v []string, i int) string {
+		if i < len(v) {
+			return strings.TrimSpace(v[i])
+		}
+		return ""
+	}
+	metas, descs := r.Form["ameta"], r.Form["adescription"]
+	var out []draftAction
+	for i, t := range r.Form["atitle"] {
+		if t = strings.TrimSpace(t); t == "" {
+			continue
+		}
+		out = append(out, draftAction{Title: t, Meta: at(metas, i), Description: at(descs, i)})
+	}
+	return out
+}
+
+// projectMetaFromForm reads the two fields every project-writing form shares:
+// a title and a DOD, plus the meta line that carries its tags and its snooze.
+func (s *Server) projectMetaFromForm(r *http.Request) (app.ProjectFields, error) {
 	pf := app.ProjectFields{
 		Title: strings.TrimSpace(r.FormValue("ptitle")),
 		DOD:   strings.TrimSpace(r.FormValue("dod")),
-		Tags:  strings.Fields(r.FormValue("ptags")),
+	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		return pf, err
+	}
+	pm, err := app.ParseProjectMeta(r.FormValue("pmeta"), v)
+	if err != nil {
+		return pf, err
+	}
+	pf.Tags, pf.SnoozeUntil = pm.Tags, pm.SnoozeUntil
+	return pf, nil
+}
+
+// projectFromForm reads the project screen: the project, its actions, and
+// which of them were picked for today. Today comes back separately because it
+// is not an ActionFields value — the tag is the app's to manage, and there is
+// no action to hang it on until the project has been created.
+func (s *Server) projectFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields, []bool, error) {
+	pf, err := s.projectMetaFromForm(r)
+	if err != nil {
+		return pf, nil, nil, err
+	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		return pf, nil, nil, err
+	}
+	var actions []app.ActionFields
+	var todays []bool
+	for _, d := range draftsFromForm(r) {
+		// inProject, because that is what it is about to be
+		m, err := app.ParseMeta(d.Meta, v, true)
+		if err != nil {
+			return pf, nil, nil, fmt.Errorf("%s: %w", d.Title, err)
+		}
+		if m.Parked {
+			return pf, nil, nil, fmt.Errorf("%s: an action written here becomes a next action of the new project — #%s only means something once the project exists", d.Title, app.ParkedTag)
+		}
+		actions = append(actions, app.ActionFields{
+			Title:        d.Title,
+			Description:  d.Description,
+			Context:      m.Context,
+			ContextParam: m.ContextParam,
+			Duration:     m.Duration,
+			NeedsFocus:   m.NeedsFocus,
+			AssignedTo:   m.AssignedTo,
+			DueDate:      m.DueDate,
+			SnoozeUntil:  m.SnoozeUntil,
+			Tags:         m.Tags,
+		})
+		todays = append(todays, m.Today)
+	}
+	return pf, actions, todays, nil
+}
+
+// promoteFromForm reads the promote form, which writes a project the same way
+// but still types its actions as plain titles: promoting is one screen away
+// from the action being promoted, and the actions it opens with are a list to
+// sketch rather than a set of items to write in full.
+func (s *Server) promoteFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields, error) {
+	pf, err := s.projectMetaFromForm(r)
+	if err != nil {
+		return pf, nil, err
 	}
 	var actions []app.ActionFields
 	for i, t := range r.Form["paction"] {
@@ -614,15 +707,40 @@ func projectFieldsFromForm(r *http.Request) (app.ProjectFields, []app.ActionFiel
 		if i == 0 {
 			af.Description = strings.TrimSpace(r.FormValue("adescription"))
 		}
-		// only the first action carries a "who": it is the one the screen
-		// shows a control for, and a project's next action is the one whose
-		// owner is worth deciding while the project is being written
-		if i == 0 && r.FormValue("pwho") == "them" {
-			af.AssignedTo = strings.TrimSpace(r.FormValue("passigned"))
-		}
 		actions = append(actions, af)
 	}
-	return pf, actions
+	return pf, actions, nil
+}
+
+// processProjectBranch turns the project form into the project it describes,
+// with its actions. Like the action branch it reports whether the branch was
+// settled — false means the form has already been sent back, which matters
+// more here than anywhere else: the actions live in the form until it is
+// accepted, so an error that threw the page away would throw them away too.
+func (s *Server) processProjectBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
+	pf, actions, todays, err := s.projectFromForm(r)
+	if err != nil {
+		s.bounce(w, r, src, id, "project", err.Error(), false)
+		return false
+	}
+	p, err := s.app.ProcessProject(src, id, pf, actions)
+	if err != nil {
+		s.bounce(w, r, src, id, "project", err.Error(), false)
+		return false
+	}
+	// #today on one of them is applied once there is an action to apply it to.
+	// The order is the order they were written in, which is the order they
+	// were created in.
+	for i, want := range todays {
+		if !want || i >= len(p.Actions) {
+			continue
+		}
+		if err := s.applyToday(p.Actions[i].ID, true); err != nil {
+			httpError(w, err)
+			return false
+		}
+	}
+	return true
 }
 
 // bounce sends a stage-two form back to the screen instead of accepting it,
@@ -637,6 +755,7 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id i
 	d.One = r.URL.Query().Get("one") != ""
 	d.As, d.Note, d.NeedDOD = as, note, needDOD
 	d.Vals = r.Form
+	d.Drafts = draftsFromForm(r)
 	d.links()
 	s.renderProcess(w, r, d)
 }
@@ -656,8 +775,9 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "project":
-		pf, actions := projectFieldsFromForm(r)
-		_, err = s.app.ProcessProject(src, id, pf, actions)
+		if done := s.processProjectBranch(w, r, src, id); !done {
+			return
+		}
 	case "someday":
 		text := strings.TrimSpace(r.FormValue("text"))
 		_, err = s.app.ProcessSomeday(id, text, strings.TrimSpace(r.FormValue("snooze")))
@@ -818,7 +938,11 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 	case "pick":
 		err = s.app.ToggleTag("action", id, app.TodayTag)
 	case "promote":
-		pf, actions := projectFieldsFromForm(r)
+		var pf app.ProjectFields
+		var actions []app.ActionFields
+		if pf, actions, err = s.promoteFromForm(r); err != nil {
+			break
+		}
 		var p *app.Project
 		if p, err = s.app.Promote(id, pf, actions); err == nil {
 			http.Redirect(w, r, "/project/"+itoa(p.ID), http.StatusSeeOther)
@@ -874,11 +998,20 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	f := app.ProjectFields{
-		Title:       strings.TrimSpace(r.FormValue("title")),
-		DOD:         strings.TrimSpace(r.FormValue("dod")),
-		SnoozeUntil: strings.TrimSpace(r.FormValue("snooze")),
-		Tags:        strings.Fields(r.FormValue("tags")),
+		Title: strings.TrimSpace(r.FormValue("title")),
+		DOD:   strings.TrimSpace(r.FormValue("dod")),
 	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	pm, err := app.ParseProjectMeta(r.FormValue("meta"), v)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	f.Tags, f.SnoozeUntil = pm.Tags, pm.SnoozeUntil
 	if err := s.app.UpdateProject(idParam(r), f); err != nil {
 		httpError(w, err)
 		return

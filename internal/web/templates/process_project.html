@@ -8,29 +8,38 @@
 
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
-  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack">
+  {{/* The project and its actions are written on one screen and created in one
+       submit, because until that submit there is no project for an action to
+       belong to. So the actions are held here as rows carrying hidden fields,
+       and an action is written in the same form it is written in everywhere
+       else — see the add-action dialog below. */}}
+  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack" data-drafts>
     <label>Title <input name="ptitle" value="{{$d.Vals.Get "ptitle"}}" required autofocus
       placeholder="A reference to the outcome, not what to do"></label>
 
     <label>Definition of done <textarea name="dod" rows="2" required
       placeholder="How you will know it is done">{{$d.Vals.Get "dod"}}</textarea></label>
 
-    <label>First action <input name="paction" value="{{$d.Vals.Get "paction"}}" required
-      placeholder="Becomes the next action"></label>
+    <label>Meta <input name="pmeta" value="{{$d.Vals.Get "pmeta"}}" autocomplete="off"
+      spellcheck="false" class="metabox"></label>
 
-    <div class="who">
-      <span class="lbl">Who</span>
-      <input type="radio" name="pwho" id="pwho-me" value="me" {{if ne ($d.Vals.Get "pwho") "them"}}checked{{end}}>
-      <label class="seg" for="pwho-me">I do it</label>
-      <input type="radio" name="pwho" id="pwho-them" value="them" {{if eq ($d.Vals.Get "pwho") "them"}}checked{{end}}>
-      <label class="seg" for="pwho-them">Someone else</label>
-      <input class="whobox" name="passigned" value="{{$d.Vals.Get "passigned"}}" placeholder="who or what">
+    {{/* design.md will not make a project without an action, so the create
+         button is gated on there being one. It is a required field with no
+         box: the gate already reads what is missing off the form's required
+         fields, and a project's missing action is missing in exactly that
+         sense. */}}
+    <input type="hidden" name="hasaction" data-label="an action" required
+      value="{{if $d.Drafts}}1{{end}}">
+
+    <div class="actionsbar">
+      <button type="button" data-draft-add data-key="a" data-key-label="add action">Add action</button>
     </div>
 
-    <label>More actions <input name="paction"></label>
-    <label>&nbsp;<input name="paction"></label>
-
-    <label>Tags <input name="ptags" value="{{$d.Vals.Get "ptags"}}" placeholder="#house"></label>
+    {{/* after the button, because the button is what the eye goes to first on
+         an empty project and what the list grows away from once it is not */}}
+    <ul class="list drafts" data-draft-list>
+      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
+    </ul>
 
     <div class="branches">
       <button class="primary">Create project</button>
@@ -38,4 +47,23 @@
     </div>
   </form>
 </div>
+
+{{/* The same fields the processing screen writes an action in, with the
+     project answered: there is only one it could belong to, so the control
+     says which and cannot be changed. */}}
+<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
+  <h2 id="draft-dialog-title">Add an action</h2>
+  <div class="stack">
+    {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
+      "Fixed" "<this project>" "Focus" false)}}
+    <div class="branches">
+      <button type="button" class="primary" data-draft-ok>Create action</button>
+      <button type="button" data-draft-cancel>Cancel</button>
+    </div>
+  </div>
+</dialog>
+
+{{/* one definition of a row, cloned by the keyboard layer when an action is
+     added and rendered by the server when a refused form comes back */}}
+<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "")}}</template>
 {{template "bottom" .}}

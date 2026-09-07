@@ -201,6 +201,31 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    everywhere else — the ? panel's terms, the audit log. It also stops @home
    and #short from reading as words in a sentence, which is the whole reason
    they left the description box */
+/* An action written before its project exists. It reads as a list row because
+   it is one — j/k reach it and the row keys act on it — but it is dashed, the
+   way a parked badge is, because nothing about it is saved yet. */
+.drafts { margin: .25rem 0 .5rem; }
+.row.draft { border: 1px dashed var(--line); margin: .2rem 0; }
+.row.draft .draftmeta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .78rem; color: var(--muted);
+}
+/* the parts of a row that have nothing to say take no room, so an action with
+   no meta and no note is one clean line */
+.row.draft .draftmeta:empty, .row.draft .draftnote:empty { display: none; }
+
+#draft-dialog {
+  width: min(38rem, 92vw); padding: 1.1rem 1.35rem;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--fg);
+  box-shadow: 0 12px 48px rgba(0,0,0,.45);
+}
+#draft-dialog::backdrop { background: rgba(0,0,0,.45); }
+#draft-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+/* the project is answered here, not asked: it reads as the box it is
+   everywhere else, but nothing about it can be pressed or typed into */
+#draft-dialog .pickerbox[readonly] { cursor: default; color: var(--muted); }
+
 .metabox {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .88rem;
@@ -218,22 +243,6 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; }
 .process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
 .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
-/* "who" is one row that grows, not two rows that appear: choosing "someone
-   else" reveals the name box to its right rather than opening a field below
-   it, so nothing under the cursor moves on a form read top to bottom. The
-   radios themselves are hidden and their labels carry the look — which keeps
-   this a plain form the server reads, with no JS in it. */
-.who { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: .2rem 0; }
-.who .lbl { font-size: .85rem; color: var(--muted); margin-right: .25rem; }
-.who input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
-.who .seg {
-  cursor: pointer; font-size: .95rem; padding: .3rem .5rem;
-  border: 1px solid var(--line); border-radius: 6px; background: var(--badge-bg);
-}
-.who input[type=radio]:checked + .seg { background: var(--select); border-color: var(--accent); color: var(--accent); font-weight: 600; }
-.who input[type=radio]:focus-visible + .seg { outline: 2px solid var(--accent); outline-offset: 1px; }
-.who .whobox { max-width: 11rem; display: none; }
-.who:has(input[value=them]:checked) .whobox { display: inline-block; }
 /* the projects the picker is offering. Rows rather than chips, because a row
    has somewhere to put what is worth knowing before filing into one — whether
    it is stalled, how much is open there — and because rows are what j/k move

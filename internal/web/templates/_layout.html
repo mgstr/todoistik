@@ -85,14 +85,66 @@
 </li>
 {{end}}
 
-{{define "actionformfields"}}
-<label>Title <input name="title" value="{{.Title}}" required autofocus
+{{define "actionfields"}}
+{{/* The fields an action is written in, wherever it is being written: its own
+     page, the processing screen, the add-action dialog on a project form, and
+     the box under a project's action list. One definition, because four
+     drifting copies of the same form is exactly how the meta line would end up
+     on three of them.
+
+     The project control is the difference between the four. Picker means
+     choose one; Fixed means it is already decided and says which; neither
+     means the screen has already answered it elsewhere.
+
+     Two boxes for the writing, because they are read for different reasons:
+     the meta line says what the app thinks this action is, the description
+     says what it is about. The notation lives in the ? panel, not beside the
+     box. */}}
+<label>Title <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
-{{/* Two boxes, because they are read for different reasons: the meta line says
-     what the app thinks this action is, the description says what it is about.
-     The notation lives in the ? panel, not beside the box. */}}
+{{if .Picker}}
+<label>Project
+  <div class="picker" data-picker>
+    <input type="hidden" name="projectid" value="">
+    <input type="hidden" name="newproject" value="">
+    <input type="hidden" name="newdod" value="">
+    <input class="pickerbox" readonly autocomplete="off" spellcheck="false" value="&lt;standalone&gt;">
+    <ul class="pickerlist" hidden>
+      <li class="pickrow" data-pick="" data-title="standalone">&lt;standalone&gt;</li>
+      {{range .Picker}}
+      <li class="pickrow" data-pick="{{.ID}}" data-title="{{.Title}}">
+        <span class="title">{{.Title}}</span>
+        {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
+        {{if .Open}}<span class="badge">{{.Open}} open</span>{{end}}
+      </li>
+      {{end}}
+      <li class="pickrow pnew" data-pick="new" data-title="">+ new project…</li>
+    </ul>
+  </div>
+</label>
+{{else if .Fixed}}
+<label>Project <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
+{{end}}
 <label>Meta <input name="meta" value="{{.Meta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
 <label>Description <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
+{{end}}
+
+{{define "draftrow"}}
+{{/* An action written before its project exists. It is a row like any other so
+     that j/k reach it, and three hidden fields so that the form carries it:
+     the project and its actions are created in one submit, because until that
+     submit there is no project for an action to belong to. */}}
+<li class="row draft" data-kb-row data-draft>
+  <span class="title">{{.Title}}</span>
+  {{/* always emitted, empty when there is nothing to say: the keyboard layer
+       clones this row and fills it in, and a row it had to build out of parts
+       would be a second definition of what a row is */}}
+  <span class="draftmeta">{{.Meta}}</span>
+  <span class="badge draftnote">{{if .Description}}note{{end}}</span>
+  <input type="hidden" name="atitle" value="{{.Title}}">
+  <input type="hidden" name="ameta" value="{{.Meta}}">
+  <input type="hidden" name="adescription" value="{{.Description}}">
+</li>
 {{end}}
 
 

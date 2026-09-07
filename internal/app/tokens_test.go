@@ -187,3 +187,58 @@ func TestWriteMetaEmpty(t *testing.T) {
 
 func timeNow() time.Time { return time.Date(2026, 9, 6, 10, 0, 0, 0, time.UTC) }
 func ptrNow() *time.Time { t := timeNow(); return &t }
+
+// A project's line is the same notation narrowed to what a project has. What
+// it does not have is refused by name: a size written on a project is a
+// mistake about where the thing belongs, not a field to drop quietly.
+func TestParseProjectMeta(t *testing.T) {
+	v := vocab([]string{"home"}, []string{"car", "house"})
+	f, err := ParseProjectMeta("#house #car snooze:2026-10-01", v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(f.Tags, []string{"car", "house"}) {
+		t.Fatalf("tags: %v", f.Tags)
+	}
+	if f.SnoozeUntil != "2026-10-01" {
+		t.Fatalf("snooze: %q", f.SnoozeUntil)
+	}
+	for _, c := range []struct{ text, wants string }{
+		{"@home", "no context"},
+		{"@waitingFor(Marju)", "no @waitingFor"},
+		{"#short", "no size"},
+		{"#focus", "no #focus"},
+		{"#today", "no #today"},
+		{"#parked", "no #parked"},
+		{"due:2026-10-01", "no due date"},
+		{"#nosuchtag", "is not notation"},
+		{"a house in the country", "is not notation"},
+	} {
+		_, err := ParseProjectMeta(c.text, v)
+		if err == nil {
+			t.Fatalf("%q should have been refused", c.text)
+		}
+		if !strings.Contains(err.Error(), c.wants) {
+			t.Fatalf("%q: error should say %q: %v", c.text, c.wants, err)
+		}
+	}
+}
+
+func TestWriteProjectMetaRoundTrips(t *testing.T) {
+	v := vocab(nil, []string{"car", "house"})
+	p := &Project{Tags: []string{"house", "car"}, SnoozeUntil: "2026-10-01"}
+	line := WriteProjectMeta(p)
+	f, err := ParseProjectMeta(line, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(f.Tags, []string{"car", "house"}) || f.SnoozeUntil != "2026-10-01" {
+		t.Fatalf("did not survive: %+v", f)
+	}
+	if again := WriteProjectMeta(&Project{Tags: f.Tags, SnoozeUntil: f.SnoozeUntil}); again != line {
+		t.Fatalf("not stable:\n first %q\nsecond %q", line, again)
+	}
+	if got := WriteProjectMeta(&Project{}); got != "" {
+		t.Fatalf("nothing to say means an empty box, got %q", got)
+	}
+}

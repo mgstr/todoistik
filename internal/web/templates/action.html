@@ -10,7 +10,7 @@
   {{range $a.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
   <form method="post" action="/action/{{$a.ID}}" class="stack">
-    {{template "actionformfields" $a}}
+    {{template "actionfields" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description "Focus" true)}}
     <button class="primary">Save</button>
   </form>
 
@@ -38,7 +38,7 @@
     <form method="post" action="/action/{{$a.ID}}/promote" class="stack">
       <label>Project title <input name="ptitle" value="{{$a.Title}}" required placeholder="Edit into a reference to the outcome"></label>
       <label>Definition of done <textarea name="dod" rows="2" required></textarea></label>
-      <label>Tags <input name="ptags" value="{{joinTags $a.Tags}}"></label>
+      <label>Meta <input name="pmeta" value="{{$a.PromotedMeta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
       <label>First action <input name="paction" value="{{$a.Title}}" required></label>
       <label>Its description <textarea name="adescription" rows="2">{{$a.Description}}</textarea></label>
       <label>More actions <input name="paction"></label>

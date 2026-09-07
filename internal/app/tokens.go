@@ -320,3 +320,71 @@ func atToken(name, param string) string {
 // Meta is WriteMeta as a method, so a template can ask an action for its meta
 // line without the web layer assembling it.
 func (a *Action) Meta() string { return WriteMeta(a) }
+
+// ProjectMeta is a project's meta line read as the fields it spells. A project
+// carries less than an action: no context, no size, no deadline and nobody it
+// is waiting on. Those belong to the actions under it — a project is not a
+// thing you do, so there is nothing for them to describe (design.md, "Tags").
+type ProjectMeta struct {
+	Tags        []string
+	SnoozeUntil string
+}
+
+// ParseProjectMeta reads a project's meta line. It is the same notation read
+// by the same parser, narrowed to what a project has: writing an action's
+// field here is refused by name rather than ignored, because a size or a
+// context written on a project is a mistake about where the thing belongs, and
+// silently dropping it would leave that mistake believed.
+func ParseProjectMeta(text string, v *Vocabulary) (ProjectMeta, error) {
+	// inProject so that #parked parses instead of erroring in an action's
+	// words; it is refused just below, in a project's
+	f, left, err := parseTokens(text, v, true)
+	if err != nil {
+		return ProjectMeta{}, err
+	}
+	if left != "" {
+		return ProjectMeta{}, fmt.Errorf("%q is not notation — an unknown name, or prose that belongs in the definition of done", left)
+	}
+	for _, no := range []struct {
+		written bool
+		what    string
+	}{
+		{f.Context != "", "context"},
+		{f.AssignedTo != "", "@" + WaitingForContext},
+		{f.Duration != DurNone, "size"},
+		{f.NeedsFocus, "#" + FocusTag},
+		{f.Today, "#" + TodayTag},
+		{f.Parked, "#" + ParkedTag},
+		{f.DueDate != "", "due date"},
+	} {
+		if no.written {
+			return ProjectMeta{}, fmt.Errorf("a project has no %s; that belongs on an action under it", no.what)
+		}
+	}
+	return ProjectMeta{Tags: f.Tags, SnoozeUntil: f.SnoozeUntil}, nil
+}
+
+// WriteProjectMeta is the other direction, and it goes through the same
+// writer, so a project's line cannot drift into a second dialect of the same
+// notation.
+func WriteProjectMeta(p *Project) string {
+	return MetaFields{Tags: p.Tags, SnoozeUntil: p.SnoozeUntil}.String()
+}
+
+// Meta is WriteProjectMeta as a method, for the same reason Action.Meta is.
+func (p *Project) Meta() string { return WriteProjectMeta(p) }
+
+// PromotedMeta is the project meta line a promotion starts from: this action's
+// tags, and nothing else it carries. design.md, "Promoting an action", sends
+// the tags to the project and everything else to its first action, so a
+// context or a size must not arrive here — and #today is a pick made this
+// morning, not something a new project should inherit.
+func (a *Action) PromotedMeta() string {
+	var tags []string
+	for _, t := range a.Tags {
+		if t != TodayTag {
+			tags = append(tags, t)
+		}
+	}
+	return WriteProjectMeta(&Project{Tags: tags})
+}

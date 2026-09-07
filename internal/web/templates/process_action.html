@@ -9,32 +9,11 @@
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action{{$d.Q}}" class="stack">
-    <label>Title <input name="title" value="{{$d.Vals.Get "title"}}" required autofocus
-      placeholder="Starts with a verb, fully self-descriptive"></label>
-
-    <label>Project
-      <div class="picker" data-picker>
-        <input type="hidden" name="projectid" value="">
-        <input type="hidden" name="newproject" value="">
-        <input type="hidden" name="newdod" value="">
-        <input class="pickerbox" readonly autocomplete="off" spellcheck="false" value="&lt;standalone&gt;">
-        <ul class="pickerlist" hidden>
-          <li class="pickrow" data-pick="" data-title="standalone">&lt;standalone&gt;</li>
-          {{range $d.Picker}}
-          <li class="pickrow" data-pick="{{.ID}}" data-title="{{.Title}}">
-            <span class="title">{{.Title}}</span>
-            {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
-            {{if .Open}}<span class="badge">{{.Open}} open</span>{{end}}
-          </li>
-          {{end}}
-          <li class="pickrow pnew" data-pick="new" data-title="">+ new project…</li>
-        </ul>
-      </div>
-    </label>
-
-    <label>Meta <input name="meta" value="{{$d.Vals.Get "meta"}}" autocomplete="off" spellcheck="false" class="metabox"></label>
-
-    <label>Description <textarea name="description" rows="5" spellcheck="false">{{$d.Vals.Get "description"}}</textarea></label>
+    {{template "actionfields" (dict
+      "Title" ($d.Vals.Get "title")
+      "Meta" ($d.Vals.Get "meta")
+      "Description" ($d.Vals.Get "description")
+      "Picker" $d.Picker "Focus" true)}}
 
     <div class="branches">
       <button class="primary">Create action</button>
