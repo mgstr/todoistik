@@ -225,7 +225,8 @@ which is the rule's own number — `c` would have matched "done" elsewhere in th
 app, but there `c` completes an action that exists, and this branch records
 something done that never became one.
 
-- **`t` is trash here and "pick for today" on every list view**, and that was
+- **`t` is trash here and "pick for today" on the list views that offer the
+  mark** (every one but "Out of time" — see "Item lines"), and that was
   chosen with the collision in view rather than around it. Every other branch
   gets its initial, and breaking the pattern for one of them costs more than
   the collision does: the screens are disjoint, the bar names the key on both,
@@ -410,8 +411,20 @@ per-view one.
   and tags. The cost, accepted: on a Next actions row the age is a fifth chip,
   the least important of them and the most constant — see
   `research/item-line-study.html` for the four treatments this beat
-- **the today-pick keeps the right edge.** It used to be carried there by the
-  age's `margin-left: auto`; now it has its own
+- **the today-pick opens the row, beside the complete box.** It used to hold the
+  right edge — first carried there by the age's `margin-left: auto`, then by its
+  own. That put the one mark that answers *is this for today* as far from the
+  title as a row can manage, and on a list of short titles it floated alone in
+  an empty column with nothing between it and the words. In front of the
+  checkbox it reads as what it is: the two things you do to a row, together, and
+  a colour that scans straight down the list before any title is read
+- **the "Out of time" rows carry no pick at all** — design.md, "Today" says why.
+  It is dropped from the row rather than drawn disabled, and `t` goes with it:
+  the key bar builds itself from the forms a row actually has, so that row
+  simply never offers *today*. The rows in that group therefore start one dot
+  narrower than the picked ones below them, which is left as it is — the column
+  is missing because that list has no such column, and reserving the gap would
+  claim a control is there and unavailable
 - **a click selects a row, a double click opens it.** Selection used to be
   reachable only from `j`/`k`, which left the row keys the bar was offering
   unreachable without the keyboard — and on the Inbox, whose rows carry no link
