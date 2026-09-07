@@ -52,7 +52,13 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
 - `p` processes the selected inbox item and `z` runs Inbox Zero over the whole inbox — see "Processing from the Inbox"
 - **a screen may declare keys on its own controls**, with `data-key` and
-  `data-key-label` on the form or link the key presses. The key layer reads
+  `data-key-label` on the form, link or button the key presses. A declared key
+  may ask for ctrl, written `^a` — the notation the bar already uses for
+  ctrl-enter — and then it is live inside a text box too, which a bare letter
+  can never be. That is what the modifier is for and the only reason to spend
+  one: a screen whose controls sit around a form has to be reachable without
+  leaving the field. Ctrl and not cmd, because cmd-a is select-all in every box
+  on this machine and a screen key must not take that away. The key layer reads
   those off the page: the bar lists them in document order, and pressing one
   does exactly what clicking the control does — submit that form, follow that
   link. Nothing in the JS knows what any of them mean. This is the same
@@ -691,10 +697,14 @@ inside the form.
   actions that came back. It is not an `ActionFields` value — the tag is the
   app's to manage (see "The meta line") — and there is no action to hang it on
   until the project exists
-- **the keys are the list's, not the screen's.** `a` adds, and it is declared on
-  the button itself like any other screen key (see "The keys"), so the bar
-  offers it because the button is there. With a row selected: `enter` edits it
-  in the same dialog, `u` and `d` move it, `r` removes it. `u` is offered only
+- **the keys are the list's, not the screen's.** `ctrl-a` adds, declared on the
+  button itself like any other screen key (see "Keyboard"), so the bar offers it
+  because the button is there. It takes a modifier where the processing screen's
+  branch keys do not, and for a reason that is particular to this screen: this
+  is a form, your hands are in one of its boxes most of the time, and a bare
+  letter would be a letter there. With a row selected — which means your hands
+  have left the boxes — `enter` edits it in the same dialog, `u` and `d` move
+  it, `r` removes it. `u` is offered only
   when there is something above and `d` only when there is something below —
   the bar cannot advertise a key that would do nothing
 - **a draft row is dashed**, the way a parked badge is: it reads as a list row
