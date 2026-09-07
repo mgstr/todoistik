@@ -85,6 +85,11 @@
   function globalKeys() {
     const keys = [["q", "add to inbox"], ["g", "go to"]];
     if (document.getElementById("help")) keys.push(["?", "help"]);
+    // a key marked data-global belongs to the app rather than to this view, so
+    // it is read here and lands in the right half of the bar. Last, so a flag
+    // whose label changes sits in the corner and does not shift the keys
+    // beside it when it does
+    declaredKeys("[data-key][data-global]").forEach(function (k) { keys.push(k); });
     return keys;
   }
 
@@ -155,7 +160,11 @@
   // without working. Document order is the bar's order, which lets the template
   // decide how the answers read rather than this file.
   function branchKeys() {
-    return Array.from(document.querySelectorAll("[data-key]")).map(function (el) {
+    return declaredKeys("[data-key]:not([data-global])");
+  }
+
+  function declaredKeys(sel) {
+    return Array.from(document.querySelectorAll(sel)).map(function (el) {
       return [el.dataset.key, el.dataset.keyLabel || ""];
     });
   }

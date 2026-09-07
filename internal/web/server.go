@@ -248,6 +248,9 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /review/{step}", s.reviewStepPage)
 	m.HandleFunc("POST /review/{type}/{id}/done", s.reviewDone)
 
+	// the one display flag, toggled from anywhere by ctrl-t
+	m.HandleFunc("POST /ages", s.agesToggle)
+
 	// settings: tag / context list management
 	m.HandleFunc("GET /settings", s.settingsPage)
 	m.HandleFunc("POST /settings/{kind}/add", s.settingsAdd)

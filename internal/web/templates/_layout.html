@@ -33,13 +33,24 @@
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/settings" class="{{if eq .View "settings"}}on{{end}}" title="g e">Settings</a>
 </nav>
-<div class="pane">
+<div class="pane {{if .Ages}}ages{{end}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 <main>
 {{end}}
 
 {{define "bottom"}}
 </main>
+{{/* The one display flag in the app, declared the way a screen declares any
+     key (implementation.md, "The keys"): a real form, pressed by ctrl-t from
+     wherever you are. data-global moves its entry to the right half of the
+     bar, where the app's own state is read rather than this view's; the label
+     says which way the flag is set, because that is the thing being shown.
+     The form itself is hidden — it has nothing to show that the bar does not
+     already say, and the class it flips sits on the pane above. */}}
+<form method="post" action="/ages" hidden data-key="^t" data-global
+      data-key-label="ages {{if .Ages}}shown{{else}}hidden{{end}}">
+  <button>toggle ages</button>
+</form>
 <footer id="keybar" aria-hidden="true"></footer>
 </div>
 <dialog id="capture-dialog" aria-labelledby="capture-title">

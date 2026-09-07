@@ -79,12 +79,16 @@ type page struct {
 	Durations    []app.Duration
 	Nav          *app.NavCounts
 	Today        string
+	Ages         bool // the ages on rows are shown rather than hidden
 	Error        string
 	Data         any
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p := &page{Title: title, View: view, Today: s.app.Today(), Error: r.URL.Query().Get("err")}
+	if v, err := s.app.GetState(agesState); err == nil {
+		p.Ages = v == "1"
+	}
 	if h, ok := viewHelp[view]; ok {
 		p.HelpName, p.HelpText = h.Name, h.Text
 	}
@@ -113,6 +117,32 @@ func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
 		}
 	}
 	return parseFilters(q)
+}
+
+// agesState is the one display flag the app carries, kept where the per-view
+// filter sets are kept: it is remembered UI state of exactly the same kind,
+// and a single-user app has one place for that.
+const agesState = "ages"
+
+// agesToggle flips the flag and comes back to the page it was pressed on. The
+// new value is written from what was stored rather than from the request, so
+// two presses in flight cannot leave the flag saying the opposite of what the
+// last press meant.
+func (s *Server) agesToggle(w http.ResponseWriter, r *http.Request) {
+	v, err := s.app.GetState(agesState)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	next := "1"
+	if v == "1" {
+		next = "0"
+	}
+	if err := s.app.SetState(agesState, next); err != nil {
+		httpError(w, err)
+		return
+	}
+	back(w, r)
 }
 
 func filterQuery(f app.Filters) string {

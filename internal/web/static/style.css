@@ -125,6 +125,10 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
 .row .title { color: var(--fg); flex-shrink: 1; }
 .row.done .title { text-decoration: line-through; color: var(--muted); }
 .row.snoozed { opacity: .55; }
+/* the ages are hidden until asked for — ctrl-t, see implementation.md,
+   "Ages are hidden by default". The rule is on the pane and not the row, so
+   one class settles every list on the screen at once */
+.pane:not(.ages) .age { display: none; }
 /* the age reads as its own field rather than as more of the title, which is
    what a chip buys that small grey text does not */
 .age {
