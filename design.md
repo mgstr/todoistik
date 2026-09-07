@@ -279,6 +279,19 @@ The point is that the form asks for nothing that has to be decided. A row of con
 - **a contradiction is refused, never guessed at.** Two contexts, two sizes, `@waitingFor` with nobody named, `#parked` on a standalone action - each is reported and nothing is saved. Guessing which one was meant would be the app deciding something the person is in the middle of deciding.
 - **the notation is written back in a fixed order.** Opening and saving an action twice cannot shuffle or lose anything, which is what makes the line safe to keep editing.
 
+### Writing a project
+A project is written in three fields: its **title**, its **definition of done**, and a **meta** line - plus the actions under it, which are written as actions and not as part of the project (see below). The meta line is the same notation read the same way, narrowed to what a project has:
+
+| written | means |
+|---|---|
+| `#name` | a tag |
+| `snooze:2026-09-20` | out of sight until then |
+
+- **a project's line is short because a project carries little.** It has no context, no size, no deadline and nobody it is waiting on: those describe doing something, and a project is not something you do - it is the outcome that a list of actions is aimed at. Writing one of them here is **refused by name** rather than dropped, because a size written on a project is a mistake about where the thing belongs, and a silent drop would leave that mistake believed.
+- **it is the same line in both places it is written.** The project screen of Inbox Zero and a project's own page use it identically, so a project's tags are not written one way while it is being made and another way afterwards.
+- **the actions are written as actions.** Adding one opens the same form an action is written in anywhere else, with the project already answered, and each carries its own meta line - which is how a delegated action is delegated here, with `@waitingFor(who)`, exactly as it would be anywhere else.
+- **every action written while the project is being made becomes a next action of it**, so `#parked` is refused there: parking means "written down in advance, not yet next", and a project whose actions were all parked would be created already stalled, which is a contradiction (see "Inbox Zero"). Once the project exists, parking is one keystroke away.
+
 
 ## Views
 Every list the app shows is a view: a query over the items. No **item** is ever stored in a view, and a view can not be created, renamed or deleted - which is what makes the ones below permanent fixtures, and what makes each of them free.
@@ -483,7 +496,7 @@ For each item the only question asked is: what is it? The answer is one of:
 - **Project**: more than one action is needed. Requires:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
-  - at least one action, which becomes the next action. It carries the same "who does it" as the Action branch, and for the same reason - a delegated action belongs to a project exactly as validly as one you will do yourself, and the first action of a project is the one whose owner is worth settling while the project is being written. It cannot be parked: a project's first action is its next action by definition, and a project created already stalled is a contradiction
+  - at least one action. Actions are added one at a time, each written in the same form an action is written in anywhere else (see "Writing a project"), and the list can be reordered and pruned before the project is made - what is being decided here is the shape of the plan, and a plan is not written in the order it occurs to you. Every one of them becomes a next action, so none can be parked: a project created already stalled is a contradiction. Delegation is carried by each action's own meta line, because a delegated action belongs to a project exactly as validly as one you will do yourself
 - **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly, and a `snoozeUntil` date may be set to exclude it from the weekly review requirement until that date - both optional, and both done on the item itself once it has landed rather than as a condition of filing it. Answering "what is it?" is the decision being asked for here; wording an idea better is a separate act, and one that reads differently once the idea is sitting among the others it will be reviewed with.
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
@@ -553,7 +566,7 @@ Nothing is ever retyped. When an item turns out to be the wrong shape it is conv
 
 **Promote** - a standalone action becomes a project, because it turns out to need more than one step. Promotion runs the same Project branch as Inbox Zero, and is therefore subject to the same validations, with the fields prefilled from the action:
 - the project title is prefilled from the action title, and has to be edited into a reference to the outcome rather than a description of what to do
-- tags carry over to the project; the description carries over to the first action, since a project has no description of its own (see "Deliberate omissions")
+- tags carry over to the project, on its meta line; everything else the action carried is left behind with it, since a context or a size describes doing something and a project is not something you do (see "Writing a project"). The description carries over to the first action, since a project has no description of its own (see "Deliberate omissions")
 - a DOD is required
 - at least one action is required, which becomes the next action
 
