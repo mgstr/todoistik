@@ -7,11 +7,17 @@ import (
 	"strings"
 )
 
-// The description is the one field an action is written in, and everything an
-// action carries besides its title and its project is spelled inside it:
-// `@context`, `@context(parameter)`, `@waitingFor(who)`, `#tag`, and the four
-// tags that stand for fields. This file is the codec between that text and the
-// columns — see design.md, "Writing an action".
+// The meta line is the one field an action's metadata is written in:
+// `@context`, `@context(parameter)`, `@waitingFor(who)`, `#tag`, the four tags
+// that stand for fields, and the two dates. This file is the codec between
+// that line and the columns — see design.md, "Writing an action".
+//
+// It is a line of its own rather than something mixed into the description,
+// because the two are read for different reasons: the description is read to
+// remember what this action is about, and the meta line is read to see what
+// the app thinks it is. Sharing a box meant every glance at one crossed the
+// other, and meant the description could not be edited without editing
+// notation by accident.
 //
 // The columns remain the truth. The text is parsed into them on save and
 // written back out of them on open, rather than the other way around, because
@@ -90,9 +96,8 @@ var tokenRe = regexp.MustCompile(`(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?`)
 // without a fourth sigil to learn.
 var dateRe = regexp.MustCompile(`(^|\s)(due|snooze):(\S+)`)
 
-// DescFields is a description read as the fields it spells.
-type DescFields struct {
-	Prose        string
+// MetaFields is a meta line read as the fields it spells.
+type MetaFields struct {
 	Context      string
 	ContextParam string
 	AssignedTo   string
@@ -105,11 +110,31 @@ type DescFields struct {
 	Tags         []string
 }
 
-// ParseDescription reads a written description into its fields and the prose
-// left over. inProject says whether the action has a home, because parking is
-// only meaningful inside one (design.md, "Standalone actions").
-func ParseDescription(text string, v *Vocabulary, inProject bool) (DescFields, error) {
-	var f DescFields
+// ParseMeta reads a meta line into the fields it spells. inProject says
+// whether the action has a home, because parking is only meaningful inside one
+// (design.md, "Standalone actions").
+//
+// Anything the notation does not account for is refused rather than kept.
+// While this was one box with the description, an unknown `@name` or `#name`
+// stayed prose and that was the whole anti-drift rule; on a line that holds
+// nothing but names there is no prose for it to stay as, so the choice is
+// between saying so and swallowing it. A name that is not on the remembered
+// lists is usually a name that was never added, which is worth being told.
+func ParseMeta(text string, v *Vocabulary, inProject bool) (MetaFields, error) {
+	f, left, err := parseTokens(text, v, inProject)
+	if err != nil {
+		return f, err
+	}
+	if left != "" {
+		return f, fmt.Errorf("%q is not notation — an unknown @context or #tag, or prose that belongs in the description", left)
+	}
+	return f, nil
+}
+
+// parseTokens takes what it recognises and hands back what it did not, so that
+// ParseMeta can refuse a leftover while the round-trip test can look at one.
+func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string, error) {
+	var f MetaFields
 	var seenDuration, seenContext, seenWaiting bool
 	var err error
 
@@ -201,9 +226,8 @@ func ParseDescription(text string, v *Vocabulary, inProject bool) (DescFields, e
 		return keep()
 	})
 
-	f.Prose = strings.TrimSpace(collapseBlankLines(prose))
 	sort.Strings(f.Tags)
-	return f, err
+	return f, strings.TrimSpace(collapseBlankLines(prose)), err
 }
 
 var errParkedStandalone = fmt.Errorf("#%s only means something inside a project — a standalone action is always a next action", ParkedTag)
@@ -216,7 +240,7 @@ func orFirst(existing, e error) error {
 }
 
 // collapseBlankLines tidies what removing tokens leaves behind: runs of spaces
-// inside a line, and the empty lines a metadata line becomes once emptied.
+// inside a line, and the empty lines the meta line becomes once emptied.
 func collapseBlankLines(s string) string {
 	lines := strings.Split(s, "\n")
 	out := make([]string, 0, len(lines))
@@ -229,12 +253,11 @@ func collapseBlankLines(s string) string {
 	return strings.Join(out, "\n")
 }
 
-// Describe writes an action's fields back out as the text they are written in:
-// the prose, then one line carrying every token, in a fixed order so that
-// opening and saving an action twice cannot shuffle it.
-func Describe(act *Action) string {
-	var f DescFields
-	f.Prose = act.Description
+// WriteMeta writes an action's fields back out as the line they are written
+// in: every token in a fixed order, so that opening and saving an action twice
+// cannot shuffle it.
+func WriteMeta(act *Action) string {
+	var f MetaFields
 	f.Context, f.ContextParam = act.Context, act.ContextParam
 	f.AssignedTo = act.AssignedTo
 	f.Duration = act.Duration
@@ -251,7 +274,7 @@ func Describe(act *Action) string {
 	return f.String()
 }
 
-func (f DescFields) String() string {
+func (f MetaFields) String() string {
 	var tokens []string
 	if f.Context != "" {
 		tokens = append(tokens, atToken(f.Context, f.ContextParam))
@@ -284,14 +307,7 @@ func (f DescFields) String() string {
 	if f.SnoozeUntil != "" {
 		tokens = append(tokens, "snooze:"+f.SnoozeUntil)
 	}
-	line := strings.Join(tokens, " ")
-	switch {
-	case f.Prose == "":
-		return line
-	case line == "":
-		return f.Prose
-	}
-	return f.Prose + "\n\n" + line
+	return strings.Join(tokens, " ")
 }
 
 func atToken(name, param string) string {
@@ -301,6 +317,6 @@ func atToken(name, param string) string {
 	return "@" + name + "(" + param + ")"
 }
 
-// Written is Describe as a method, so a template can ask an action for the
-// text it is written in without the web layer assembling it.
-func (a *Action) Written() string { return Describe(a) }
+// Meta is WriteMeta as a method, so a template can ask an action for its meta
+// line without the web layer assembling it.
+func (a *Action) Meta() string { return WriteMeta(a) }

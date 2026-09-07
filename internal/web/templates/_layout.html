@@ -88,7 +88,11 @@
 {{define "actionformfields"}}
 <label>Title <input name="title" value="{{.Title}}" required autofocus
   placeholder="Starts with a verb, fully self-descriptive"></label>
-<label>Description <textarea name="description" rows="5" spellcheck="false">{{.Written}}</textarea></label>
+{{/* Two boxes, because they are read for different reasons: the meta line says
+     what the app thinks this action is, the description says what it is about.
+     The notation lives in the ? panel, not beside the box. */}}
+<label>Meta <input name="meta" value="{{.Meta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
+<label>Description <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
 {{end}}
 
 
@@ -99,7 +103,7 @@
      that list stays prose, so the list IS the difference between metadata and
      text. */}}
 <div class="notation">
-  <h3>Writing an action</h3>
+  <h3>The meta line</h3>
   <dl>
     <dt>@name</dt><dd>context — what has to be true before this is possible</dd>
     <dt>@name(parameter)</dt><dd>a context that needs naming, like @person(Marju)</dd>
@@ -116,7 +120,7 @@
     {{range .Contexts}}<span class="badge ctx">@{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
   <p class="known"><b>tags</b>
     {{range .Tags}}<span class="badge tag">#{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
-  <p class="muted">Anything else keeps its @ or # and stays part of the text.</p>
+  <p class="muted">Anything else on the line is refused — prose belongs in the description.</p>
 </div>
 {{end}}
 

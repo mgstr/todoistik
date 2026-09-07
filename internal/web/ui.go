@@ -513,26 +513,27 @@ func parseID(s string) int64 {
 	return id
 }
 
-// writtenAction is an action as the form gives it: a title, a project, and one
-// box holding everything else. Parked and Today do not live on ActionFields —
-// one is the absence of a timestamp and the other is a tag the app manages —
-// so they are carried alongside and applied by the handler.
+// writtenAction is an action as the form gives it: a title, a project, a meta
+// line and a description. Parked and Today do not live on ActionFields — one is
+// the absence of a timestamp and the other is a tag the app manages — so they
+// are carried alongside and applied by the handler.
 type writtenAction struct {
 	Fields app.ActionFields
 	Parked bool
 	Today  bool
 }
 
-// readAction reads the two controls of an action form. inProject decides
-// whether #parked means anything, since a standalone action is always a next
-// action (design.md, "Standalone actions").
+// readAction reads the fields of an action form. The meta line is parsed; the
+// description is stored exactly as typed, since nothing is read out of it.
+// inProject decides whether #parked means anything, since a standalone action
+// is always a next action (design.md, "Standalone actions").
 func (s *Server) readAction(r *http.Request, inProject bool) (writtenAction, error) {
 	var wa writtenAction
 	v, err := s.app.Vocabulary()
 	if err != nil {
 		return wa, err
 	}
-	d, err := app.ParseDescription(r.FormValue("description"), v, inProject)
+	d, err := app.ParseMeta(r.FormValue("meta"), v, inProject)
 	if err != nil {
 		return wa, err
 	}
@@ -543,7 +544,7 @@ func (s *Server) readAction(r *http.Request, inProject bool) (writtenAction, err
 		ContextParam: d.ContextParam,
 		Duration:     d.Duration,
 		NeedsFocus:   d.NeedsFocus,
-		Description:  d.Prose,
+		Description:  strings.TrimSpace(r.FormValue("description")),
 		AssignedTo:   d.AssignedTo,
 		DueDate:      d.DueDate,
 		SnoozeUntil:  d.SnoozeUntil,
@@ -1127,9 +1128,9 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // settingsAdd is where a name is learned. Nothing else teaches the app one:
-// a `@name` or `#name` written in a description is metadata only if it is
+// a `@name` or `#name` written on a meta line is metadata only if it is
 // already on the list, which is what stops @home and @Home drifting apart
-// (design.md, "Contexts").
+// (design.md, "Contexts"). A name that is not on it gets the line refused.
 func (s *Server) settingsAdd(w http.ResponseWriter, r *http.Request) {
 	var err error
 	switch r.PathValue("kind") {
