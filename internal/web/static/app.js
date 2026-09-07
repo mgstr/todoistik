@@ -311,6 +311,27 @@
 
   function doingBox() { return document.getElementById("doing"); }
 
+  // The nav slot you came in through reads "Doing…" while the mode is up, the
+  // way it reads "Processing…" during a run (implementation.md, "Navigation").
+  // The mode has no entry of its own and wants none: it borrows the one that
+  // already answers "where am I", and the view's name is not news while you
+  // are in the middle of one of its items. The markup is put back exactly as
+  // it was taken, badge and all — unless the page it came from is gone, in
+  // which case the nav on the new page is already right.
+  let navHeld = null;
+
+  function takeNavSlot() {
+    const on = document.querySelector("nav a.on");
+    if (!on) return;
+    navHeld = { el: on, html: on.innerHTML };
+    on.textContent = "Doing…";
+  }
+
+  function releaseNavSlot() {
+    if (navHeld && navHeld.el.isConnected) navHeld.el.innerHTML = navHeld.html;
+    navHeld = null;
+  }
+
   function enterDoing(row) {
     if (!canDo(row) || doingBox()) return;
     const title = row.querySelector(".title");
@@ -329,6 +350,7 @@
     document.body.classList.add("doing");
     if (pane.hasAttribute("data-doing-hides-nav")) document.body.classList.add("doing-no-nav");
     if (pane.hasAttribute("data-doing-hides-keybar")) document.body.classList.add("doing-no-keybar");
+    takeNavSlot();
     renderKeybar();
   }
 
@@ -336,6 +358,7 @@
     const box = doingBox();
     if (box) box.remove();
     document.body.classList.remove("doing", "doing-no-nav", "doing-no-keybar");
+    releaseNavSlot();
     renderKeybar();
   }
 
