@@ -131,8 +131,6 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
   font-size: .7rem; padding: .05rem .4rem; border-radius: 8px;
   background: var(--badge-bg); color: var(--muted); white-space: nowrap;
 }
-/* the age no longer pushes it there, so the today-pick keeps its own edge */
-.row .kb-pick { margin-left: auto; }
 
 .badge {
   font-size: .76rem; padding: .05rem .4rem; border-radius: 8px;

@@ -2,7 +2,7 @@
 <h2>Out of time <span class="count">{{len .Data.OutOfTime}}</span></h2>
 {{if not .Data.OutOfTime}}<p class="empty">Nothing due, nothing overdue.</p>{{end}}
 <ul class="list">
-{{range .Data.OutOfTime}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" true)}}{{end}}
+{{range .Data.OutOfTime}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" true "HidePick" true)}}{{end}}
 </ul>
 <h2>Picked <span class="count">{{len .Data.Picked}}</span></h2>
 {{if not .Data.Picked}}<p class="empty">No picks. The morning ritual is one look at <a href="/next">Next actions</a> and a few presses of <b>t</b>.</p>{{end}}

@@ -64,6 +64,11 @@
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}">
+  {{if not .HidePick}}
+  <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
+    <button title="pick for today (t)" class="pick {{if hasTag $a.Tags "today"}}picked{{end}}">●</button>
+  </form>
+  {{end}}
   <form method="post" action="/action/{{$a.ID}}/complete" class="kb-complete inline">
     <button title="complete (c)" class="check">{{if $a.CompletedAt}}☑{{else}}☐{{end}}</button>
   </form>
@@ -79,9 +84,6 @@
   {{if not $a.BecameNextAt}}<span class="badge parked">parked</span>{{end}}
   {{range $a.Errors}}<span class="badge error">{{.}}</span>{{end}}
   {{if $a.BecameNextAt}}<span class="age" title="how long this has been next">{{age $a.BecameNextAt}}</span>{{end}}
-  <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
-    <button title="pick for today (t)" class="pick {{if hasTag $a.Tags "today"}}picked{{end}}">●</button>
-  </form>
 </li>
 {{end}}
 
