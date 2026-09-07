@@ -563,12 +563,21 @@ capture dialog (see "Capture"). The `+` at the head of the nav carries a `G`
 tag of its own while the overlay is up, so the sequence is discoverable in the
 same glance as the jumps, on every view.
 
-## The description as the form
+## The meta line
 
-An action's form is a title, a project and one box (design.md, "Writing an
-action"). `internal/app/tokens.go` is the codec between what is written in that
-box and the columns behind it.
+An action's form is a title, a project, a meta line and a description
+(design.md, "Writing an action"). `internal/app/tokens.go` is the codec between
+what is written on that line and the columns behind it; the description goes to
+its column exactly as typed and is never read.
 
+- **the meta line sits under the title, above the description.** On the
+  processing screen the project control keeps its place between them: the first
+  two fields are what this is and where it lives, which are the two decisions
+  being made there, and metadata is not one of them
+- **the box is set in the monospace face the notation is set in everywhere
+  else** — the `?` panel's terms, the audit log. It also stops `@home` and
+  `#short` reading as words in a sentence, which is half of what they were
+  doing wrong inside the description
 - **the columns stay the truth; the text is parsed into them and rendered back
   out of them**, not the other way around. The app changes those fields from
   outside the box — picking for today, a detach stamping a parked action, a
@@ -585,16 +594,27 @@ box and the columns behind it.
   when an action is already next
 - **a token has to start a word and carry a known name.** The word boundary
   alone already excludes `andres@home.example`; the vocabulary check excludes
-  `invoice #12345` and everything else. Together they are what let the box hold
-  ordinary prose safely, and they are design.md's anti-drift rule rather than a
-  new invention
+  `invoice #12345` and everything else. They are design.md's anti-drift rule
+  rather than a new invention — what has changed is what happens to the
+  remainder
+- **what the parser did not take is refused, and this is the one rule the split
+  moved.** `ParseMeta` hands back a leftover and treats a non-empty one as an
+  error, so nothing is saved. While prose and notation shared a box the
+  leftover *was* the description, so an unknown name needed no answer; now
+  there is nowhere for it to go that is not a lie. `parseTokens` stays
+  underneath, returning what it could not read, because the round-trip test
+  needs to look at a leftover without the refusal in the way
+- **an unknown name still cannot be created from here.** design.md, "Contexts",
+  says the app should offer to add it behind a confirm; it does not, and never
+  did — `settingsAdd` is the only place a name is learned. The refusal names
+  what it did not recognise, which is as far as this goes for now
 - **dates use a third notation**, `due:2026-09-20` and `snooze:2026-09-20`.
   Neither is a name off a list, so neither is an `@` or a `#`; spelling the key
   out keeps them readable without a fourth sigil to learn
-- **the written line has a fixed order** — context, waiting-for, size, focus,
+- **the meta line has a fixed order** — context, waiting-for, size, focus,
   parked, today, tags, then the dates. It is pinned by a test, because a codec
   that reorders on every save would churn the field forever
-- **the box carries no placeholder.** This app has one user, who wrote the
+- **neither box carries a placeholder.** This app has one user, who wrote the
   spec: there is no first pass to onboard and no stranger to reassure, so a
   line of instruction under a control is read for the hundredth time by the
   person who decided the behaviour. Explanation goes in the `?` panel, which
@@ -607,8 +627,14 @@ box and the columns behind it.
   list *is* the difference between metadata and text
 - **an action's own page gained a help entry to carry it.** A detail page sits
   under no view and so had no panel at all (see "View help"), which was right
-  while it had nothing of its own to say — it now holds the box an action is
-  written in, and that is exactly what the panel explains
+  while it had nothing of its own to say — it now holds the line an action's
+  metadata is written on, and that is exactly what the panel explains
+- **a refused line is handed back differently in the two places it can be
+  written.** The processing screen bounces: everything typed comes back with
+  the reason above it, nothing is written and the item is untouched, which is
+  the same non-answer as leaving. An action's own page returns the error as a
+  plain 400, which is what every parse error there has always done — the form
+  is one browser Back away, so it has never been worth a second render path
 - **`ctrl-enter` (or `cmd-enter`) finishes whatever is being written.** Plain
   Enter cannot: in a textarea it makes a newline, and the description box is a
   textarea, so without this the one key that finishes a form is unreachable
