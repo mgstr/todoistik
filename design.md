@@ -302,6 +302,8 @@ A due date is shown in every view the item carrying it appears in, and an overdu
 
 Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
 
+**Ages are hidden until they are asked for.** Every list can say how old the things on it are - how long an action has been next, how long an idea has sat, when an entry was written - and that answer decides something two or three times a week and is noise on every other read. So the app carries one flag for it, and one for the whole app rather than one per view: ages off, which is how it starts, or ages on. It is not a filter and must not be read as one. Filtering changes which items the view returns and is therefore something the view has to confess to; this leaves a field off rows that are all still there, and hides nothing that could be acted on. Where the flag stands is written in the corner of the key bar, because a screen that can be either way has to say which way it is, and it is remembered the way a filter set is - the answer to "show me the dates" should not have to be given again after every jump between views.
+
 ### Filtering by name
 Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive**.
 

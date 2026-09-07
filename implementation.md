@@ -66,6 +66,9 @@ Nothing else. The read API is read only, and capture is the only way in.
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
+- `ctrl-t` shows or hides the ages on every list, app-wide — see "Ages are
+  hidden by default". The one key here that sets a flag rather than doing
+  something, which is why the bar reads its state back out in the corner
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
@@ -462,6 +465,40 @@ per-view one.
   360 days is twelve thirty-day months but not yet a year
 - every boundary is pinned in `internal/web/age_test.go`, which is the whole
   reason that file exists
+
+### Ages are hidden by default
+
+The flag design.md, "Views" asks for: ages off until `ctrl-t` turns them on,
+one flag for the whole app.
+
+- **`ctrl-t`, because `t` is the word and `t` is taken.** A bare `t` picks the
+  selected row for today, so the flag asks for ctrl the way any declared key may
+  (see "Keyboard"). That also makes it live inside a text box, which is right
+  for a key that changes what the page shows rather than what is being written
+- **it is a declared key on a real form**, `data-key="^t"` in the layout, so the
+  key layer reaches it the way it reaches every other screen key and nothing in
+  the JS knows what ages are. The form is hidden: the bar already says
+  everything it would have to show
+- **the bar's entry says which way the flag is set, not what the key does.**
+  `ages shown` / `ages hidden`, in the right-hand group and last in it, which is
+  the corner. Right, because the flag belongs to the app and not to the view;
+  last, because it is the one entry whose label changes and it must not shift
+  the keys beside it when it does. `data-global` on the control is what moves it
+  there — the same read-the-page construction, one attribute wider
+- **the class sits on the pane, not on `<body>` or `<html>`.** `hx-boost` swaps
+  the body's `innerHTML`, so an attribute on either of those would still hold
+  whatever it held on the first full load, and the flag would appear to stop
+  working the moment you moved between views
+- **one CSS rule against `.age` settles every list at once**, the "Archive" and
+  the "Audit" included, where the age is closer to the record than to
+  decoration. One flag with one meaning beats a flag with a list of exceptions
+  nobody can remember, and it is one keypress back. The dates written into prose
+  on a detail page — `captured 3 days ago`, `created … · next for …` — are not
+  chips and are not touched: you went there to look
+- **it is stored in `app_state` beside the per-view filter sets**, which is
+  where this app already keeps remembered screen state, and the toggle writes
+  the flip of what is stored rather than a value sent by the page — two presses
+  in flight cannot leave the flag saying the opposite of what the last one meant
 
 ## Screen layout
 
