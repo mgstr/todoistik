@@ -149,9 +149,13 @@
     });
   }
 
-  function branchFor(key) {
-    if (key.length !== 1) return null;
-    return document.querySelector('[data-key="' + CSS.escape(key) + '"]');
+  // A declared key may ask for ctrl, written "^a" — the same notation the bar
+  // already uses for ctrl-enter. Ctrl and not cmd: cmd-a is select-all in every
+  // text box on this machine, and a screen key must not take that away.
+  function branchFor(e) {
+    if (e.key.length !== 1 || e.altKey || e.metaKey) return null;
+    const want = (e.ctrlKey ? "^" : "") + e.key.toLowerCase();
+    return document.querySelector('[data-key="' + CSS.escape(want) + '"]');
   }
 
   // Pressing the key does exactly what clicking the control does: submit the
@@ -321,6 +325,16 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    // A screen key that asks for ctrl is live wherever the screen is, text
+    // boxes included — reaching it without leaving the field is the whole
+    // point of the modifier, and the reason a screen would choose one. Not
+    // while a dialog is up: a dialog owns the keyboard, and the control the
+    // key presses is on the page behind it.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector("dialog[open]")) {
+      const ctrlBranch = branchFor(e);
+      if (ctrlBranch) { e.preventDefault(); press(ctrlBranch); return; }
+    }
+
     const dlg = captureDialog();
     if (dlg && dlg.open) {
       // The dialog owns the keyboard while it is up, and both of its keys are
@@ -368,7 +382,7 @@
 
     // a key the page declares beats the standing map: on a screen that has
     // its own answers, those are what the letters mean there
-    const branch = branchFor(e.key);
+    const branch = branchFor(e);
     if (branch) { e.preventDefault(); press(branch); return; }
 
     const row = selected();
