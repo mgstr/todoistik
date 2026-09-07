@@ -24,9 +24,18 @@ type Config struct {
 	// DoingShowsKeybar: so does the key bar.
 	DoingShowsKeybar bool
 	// DoingShowsTimer: the minutes since this action went on the screen are
-	// shown beside it.
+	// shown beside it. The default only — ctrl-t flips it while the mode is up.
 	DoingShowsTimer bool
+	// DoingTimerFormat: how that number is written. "auto", or a pattern of
+	// H/HH/M/MM with anything else taken literally.
+	DoingTimerFormat string
 }
+
+// TimerAuto is the format that is not a pattern: minutes up to an hour, then
+// hours and minutes. It is the default because it is the only rendering that
+// is short while the answer is short and still right after an hour, which no
+// single pattern can be.
+const TimerAuto = "auto"
 
 // Defaults are what the app runs with when there is no file at all, and what
 // any key left out of the file falls back to.
@@ -37,17 +46,66 @@ type Config struct {
 // that are the whole of the mode. The timer is off, because a clock on the
 // wall is a thing you ask for. All three are one line away from the opposite.
 func Defaults() Config {
-	return Config{DoingShowsNav: false, DoingShowsKeybar: true, DoingShowsTimer: false}
+	return Config{
+		DoingShowsNav:    false,
+		DoingShowsKeybar: true,
+		DoingShowsTimer:  false,
+		DoingTimerFormat: TimerAuto,
+	}
 }
 
 // bools maps a key in the file to the field it sets. Adding a setting is
-// adding a line here; nothing else in this file knows any key's name.
+// adding a line here (or to strs below); nothing else in this file knows any
+// key's name.
 func (c *Config) bools() map[string]*bool {
 	return map[string]*bool{
 		"doing.show_nav":    &c.DoingShowsNav,
 		"doing.show_keybar": &c.DoingShowsKeybar,
 		"doing.show_timer":  &c.DoingShowsTimer,
 	}
+}
+
+// strs are the settings that take words rather than true/false. Each brings
+// its own check, because a string setting with no check is a typo that reaches
+// the screen — which for a value read once at startup means it stays there.
+func (c *Config) strs() map[string]*string {
+	return map[string]*string{
+		"doing.timer_format": &c.DoingTimerFormat,
+	}
+}
+
+var checks = map[string]func(string) error{
+	"doing.timer_format": checkTimerFormat,
+}
+
+// checkTimerFormat: "auto", or a pattern. In a pattern, uppercase `H`/`HH` is
+// the hours and `M`/`MM` the minutes — within the hour if the pattern also
+// asks for hours, and the whole elapsed time if it does not. Everything else
+// is literal, so `H:MM`, `HH:MM` and `M` all work, and so does `H h MM`.
+//
+// Every other capital is refused. A capital in a pattern reads as a field, and
+// silently printing `HH:NN` because `N` is not one would be exactly the kind
+// of wrong a settings file read once must not be.
+func checkTimerFormat(v string) error {
+	if strings.EqualFold(v, TimerAuto) {
+		return nil
+	}
+	if len(v) > 24 {
+		return fmt.Errorf("a format is at most 24 characters, got %d", len(v))
+	}
+	fields := 0
+	for _, r := range v {
+		switch {
+		case r == 'H' || r == 'M':
+			fields++
+		case r >= 'A' && r <= 'Z':
+			return fmt.Errorf("%q is not a field: the fields are H, HH, M and MM, and %q is capitalised like one", string(r), string(r))
+		}
+	}
+	if fields == 0 {
+		return fmt.Errorf("a format needs an H or an M in it, or the word %q", TimerAuto)
+	}
+	return nil
 }
 
 // Load reads path over the defaults. A missing file is not an error — running
@@ -70,7 +128,7 @@ func Load(path string) (Config, error) {
 	}
 	defer f.Close()
 
-	keys := c.bools()
+	bools, strs := c.bools(), c.strs()
 	sc := bufio.NewScanner(f)
 	for n := 1; sc.Scan(); n++ {
 		// a comment runs to the end of the line, and there is nothing a value
@@ -85,18 +143,25 @@ func Load(path string) (Config, error) {
 		if !ok {
 			return c, fmt.Errorf("%s:%d: not a key = value line: %q", path, n, line)
 		}
-		key = strings.TrimSpace(key)
-		field, ok := keys[key]
+		key, val = strings.TrimSpace(key), strings.TrimSpace(val)
+		if field, ok := strs[key]; ok {
+			if err := checks[key](val); err != nil {
+				return c, fmt.Errorf("%s:%d: %s: %v", path, n, key, err)
+			}
+			*field = val
+			continue
+		}
+		field, ok := bools[key]
 		if !ok {
 			return c, fmt.Errorf("%s:%d: unknown setting %q (known: %s)", path, n, key, strings.Join(Keys(), ", "))
 		}
-		switch strings.ToLower(strings.TrimSpace(val)) {
+		switch strings.ToLower(val) {
 		case "true":
 			*field = true
 		case "false":
 			*field = false
 		default:
-			return c, fmt.Errorf("%s:%d: %s wants true or false, got %q", path, n, key, strings.TrimSpace(val))
+			return c, fmt.Errorf("%s:%d: %s wants true or false, got %q", path, n, key, val)
 		}
 	}
 	return c, sc.Err()
@@ -105,8 +170,11 @@ func Load(path string) (Config, error) {
 // Keys lists every setting name, sorted, for the message a wrong one gets.
 func Keys() []string {
 	var c Config
-	out := make([]string, 0, len(c.bools()))
+	out := make([]string, 0, len(c.bools())+len(c.strs()))
 	for k := range c.bools() {
+		out = append(out, k)
+	}
+	for k := range c.strs() {
 		out = append(out, k)
 	}
 	// small and fixed, so an insertion sort is the whole of it

@@ -54,6 +54,29 @@ func TestOmittedKeyKeepsItsDefault(t *testing.T) {
 	}
 }
 
+func TestTimerFormat(t *testing.T) {
+	c, err := Load(write(t, "doing.timer_format = H:MM\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.DoingTimerFormat != "H:MM" {
+		t.Errorf("format = %q, want %q", c.DoingTimerFormat, "H:MM")
+	}
+	if Defaults().DoingTimerFormat != TimerAuto {
+		t.Errorf("default format = %q, want %q", Defaults().DoingTimerFormat, TimerAuto)
+	}
+	for _, ok := range []string{"auto", "AUTO", "M", "MM", "HH:MM", "H h MM"} {
+		if err := checkTimerFormat(ok); err != nil {
+			t.Errorf("%q was refused: %v", ok, err)
+		}
+	}
+	for _, bad := range []string{"", "hh:mm", "HH:NN", strings.Repeat("M", 25)} {
+		if err := checkTimerFormat(bad); err == nil {
+			t.Errorf("%q was accepted", bad)
+		}
+	}
+}
+
 // The three ways a settings file can be wrong all have to stop startup, since
 // the file is read once and a quietly-ignored line looks set forever.
 func TestBadLinesAreRefused(t *testing.T) {
@@ -61,6 +84,7 @@ func TestBadLinesAreRefused(t *testing.T) {
 		{"unknown key", "doing.show_everything = true\n", "unknown setting"},
 		{"no equals", "doing.show_nav true\n", "not a key = value line"},
 		{"not a bool", "doing.show_nav = sometimes\n", "wants true or false"},
+		{"bad format", "doing.timer_format = HH:NN\n", "is not a field"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Load(write(t, tc.body))

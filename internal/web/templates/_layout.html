@@ -40,7 +40,8 @@
 <div class="pane {{if .Ages}}ages{{end}}"
   {{if .Conf.DoingShowsNav}}data-doing-shows-nav{{end}}
   {{if .Conf.DoingShowsKeybar}}data-doing-shows-keybar{{end}}
-  {{if .Conf.DoingShowsTimer}}data-doing-shows-timer{{end}}>
+  {{if .Conf.DoingShowsTimer}}data-doing-shows-timer{{end}}
+  data-doing-timer-format="{{.Conf.DoingTimerFormat}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 <main>
 {{end}}

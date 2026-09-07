@@ -100,7 +100,12 @@
   function keybarGroups() {
     // doing mode is a mode like a dialog is: it owns the keyboard, so the bar
     // says the two keys that are live in it and nothing else
-    if (doingBox()) return { view: [["c", "done"], ["esc", "back"]], global: [] };
+    if (doingBox()) {
+      const timer = document.querySelector("#doing .timer");
+      const keys = [["c", "done"], ["esc", "back"]];
+      if (timer) keys.push(["^t", "timer " + (timer.hidden ? "hidden" : "shown")]);
+      return { view: keys, global: [] };
+    }
     const dlg = captureDialog();
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
     const help = document.getElementById("help");
@@ -343,7 +348,7 @@
     const p = document.createElement("p");
     p.textContent = title.textContent;
     box.appendChild(p);
-    if (pane.hasAttribute("data-doing-shows-timer")) box.appendChild(startTimer());
+    box.appendChild(startTimer(pane));
     pane.insertBefore(box, bar);
     // what the settings file said, read off the pane. The classes go on the
     // body because the rail is not inside the pane, and they come off again
@@ -356,29 +361,54 @@
     renderKeybar();
   }
 
-  // The timer: minutes since this action went on the screen, `07` up to an
-  // hour and `1:04` after it. It is never written down and never sent
-  // anywhere — it exists to give a feel for how long things take, and a
-  // second `d` on the same action starts it again from `00` (design.md,
-  // "Doing one action").
+  // The timer: the minutes since this action went on the screen. It is never
+  // written down and never sent anywhere — it exists to give a feel for how
+  // long things take, and a second `d` on the same action starts it again from
+  // zero (design.md, "Doing one action").
+  //
+  // It is always built, whatever the settings file said: that decides whether
+  // it starts visible, and `ctrl-t` decides after that. A timer that only
+  // existed when it was on would start counting from the moment it was asked
+  // for, which is not the number anyone means.
   let doingTick = null;
+  let timerOn = null; // null until the settings file has been read once
 
-  function elapsed(ms) {
-    const mins = Math.floor(ms / 60000);
-    if (mins < 60) return String(mins).padStart(2, "0");
-    return Math.floor(mins / 60) + ":" + String(mins % 60).padStart(2, "0");
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  // "auto" is the app's own rendering: minutes while there are only minutes,
+  // hours and minutes once there is an hour. Anything else is a pattern, where
+  // H/HH is the hours and M/MM the minutes — within the hour when the pattern
+  // asks for hours, and the whole elapsed time when it does not, since `M`
+  // alone can only mean "how long has this been up". Everything else in the
+  // pattern is literal (implementation.md, "Settings file").
+  function elapsed(ms, format) {
+    const mins = Math.max(0, Math.floor(ms / 60000));
+    if (!format || format.toLowerCase() === "auto") {
+      return mins < 60 ? pad2(mins) : Math.floor(mins / 60) + ":" + pad2(mins % 60);
+    }
+    const hours = Math.floor(mins / 60);
+    const rest = /H/.test(format) ? mins % 60 : mins;
+    return format.replace(/HH|H|MM|M/g, function (field) {
+      if (field === "HH") return pad2(hours);
+      if (field === "H") return String(hours);
+      if (field === "MM") return pad2(rest);
+      return String(rest);
+    });
   }
 
-  function startTimer() {
+  function startTimer(pane) {
     const started = Date.now();
+    const format = pane.dataset.doingTimerFormat || "auto";
+    if (timerOn === null) timerOn = pane.hasAttribute("data-doing-shows-timer");
     const el = document.createElement("span");
     el.className = "timer";
-    el.textContent = elapsed(0);
+    el.hidden = !timerOn;
+    el.textContent = elapsed(0, format);
     // once a second, written only when the minute has actually turned: the
     // clock has to be right the moment it is looked at, and a redraw that
     // changes nothing is one the eye can catch out of the corner
     doingTick = setInterval(function () {
-      const now = elapsed(Date.now() - started);
+      const now = elapsed(Date.now() - started, format);
       if (now !== el.textContent) el.textContent = now;
     }, 1000);
     return el;
@@ -386,6 +416,18 @@
 
   function stopTimer() {
     if (doingTick !== null) { clearInterval(doingTick); doingTick = null; }
+  }
+
+  // ctrl-t means "show me the time" wherever it is pressed: the ages on a list
+  // (see the layout's own toggle), the timer in here. The choice outlives the
+  // mode but not the page — the settings file says how doing mode opens, and
+  // the key says how it is going to be for the rest of this sitting.
+  function toggleTimer() {
+    const el = document.querySelector("#doing .timer");
+    if (!el) return;
+    timerOn = el.hidden;
+    el.hidden = !timerOn;
+    renderKeybar();
   }
 
   function exitDoing() {
@@ -459,6 +501,11 @@
         return;
       }
       if (e.key === "Escape") { e.preventDefault(); exitDoing(); return; }
+      if (e.key === "t" && e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        toggleTimer();
+        return;
+      }
       // modified keys are the browser's (reload, address bar, a new tab), and
       // taking those would be taking more than this mode is entitled to
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
