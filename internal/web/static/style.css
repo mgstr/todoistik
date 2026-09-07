@@ -144,9 +144,22 @@ body.doing main { display: none; }
 body.doing.doing-no-nav nav { display: none; }
 body.doing.doing-no-keybar #keybar { display: none; }
 #doing {
+  position: relative;
   flex: 1 1 auto; min-height: 0; overflow-y: auto;
   display: flex; align-items: center; justify-content: center;
   padding: 2rem max(1.25rem, calc(50% - 31rem));
+}
+/* The timer keeps the corner the eye visits last, and is held back by opacity
+   alone — the title's size, so it never becomes a second, quieter kind of
+   information, but faint enough not to be read unless it is looked for. In a
+   corner rather than under the title because the title then sits exactly where
+   it sits with no timer at all, and nothing moves when the digits change
+   width. See research/doing-timer-study.html for the six placements. */
+#doing .timer {
+  position: absolute; right: max(1.25rem, calc(50% - 31rem)); bottom: 2rem;
+  font-size: clamp(2rem, 7vw, 5rem); font-weight: 600; line-height: 1.1;
+  letter-spacing: -0.01em; opacity: .15;
+  font-variant-numeric: tabular-nums;
 }
 /* as large as it can be without wrapping into a wall: the width is capped in
    characters, so a short title is enormous and a long one still reads as one

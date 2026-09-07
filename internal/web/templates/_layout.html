@@ -38,8 +38,9 @@
      already on the page, and these two are the only part of it the app does
      not derive from the row itself (implementation.md, "Doing mode"). */}}
 <div class="pane {{if .Ages}}ages{{end}}"
-  {{if .Conf.DoingHidesNav}}data-doing-hides-nav{{end}}
-  {{if .Conf.DoingHidesKeybar}}data-doing-hides-keybar{{end}}>
+  {{if .Conf.DoingShowsNav}}data-doing-shows-nav{{end}}
+  {{if .Conf.DoingShowsKeybar}}data-doing-shows-keybar{{end}}
+  {{if .Conf.DoingShowsTimer}}data-doing-shows-timer{{end}}>
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 <main>
 {{end}}

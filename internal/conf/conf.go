@@ -19,10 +19,13 @@ import (
 // Config is the whole of it. Every field is also a key in the file, and the
 // zero value of this struct is not the default set — Defaults() is.
 type Config struct {
-	// DoingHidesNav: the nav rail is taken off the screen in doing mode.
-	DoingHidesNav bool
-	// DoingHidesKeybar: the key bar goes too.
-	DoingHidesKeybar bool
+	// DoingShowsNav: the nav rail stays on the screen in doing mode.
+	DoingShowsNav bool
+	// DoingShowsKeybar: so does the key bar.
+	DoingShowsKeybar bool
+	// DoingShowsTimer: the minutes since this action went on the screen are
+	// shown beside it.
+	DoingShowsTimer bool
 }
 
 // Defaults are what the app runs with when there is no file at all, and what
@@ -31,17 +34,19 @@ type Config struct {
 // The rail goes and the bar stays: doing mode exists to take away the list of
 // other places you could be, which is exactly what the rail is, while the bar
 // in that mode says `c done` and `esc back` and nothing else — the two keys
-// that are the whole of the mode. Both are one line away from the opposite.
+// that are the whole of the mode. The timer is off, because a clock on the
+// wall is a thing you ask for. All three are one line away from the opposite.
 func Defaults() Config {
-	return Config{DoingHidesNav: true, DoingHidesKeybar: false}
+	return Config{DoingShowsNav: false, DoingShowsKeybar: true, DoingShowsTimer: false}
 }
 
 // bools maps a key in the file to the field it sets. Adding a setting is
 // adding a line here; nothing else in this file knows any key's name.
 func (c *Config) bools() map[string]*bool {
 	return map[string]*bool{
-		"doing.hide_nav":    &c.DoingHidesNav,
-		"doing.hide_keybar": &c.DoingHidesKeybar,
+		"doing.show_nav":    &c.DoingShowsNav,
+		"doing.show_keybar": &c.DoingShowsKeybar,
+		"doing.show_timer":  &c.DoingShowsTimer,
 	}
 }
 

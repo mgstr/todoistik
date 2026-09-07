@@ -343,18 +343,53 @@
     const p = document.createElement("p");
     p.textContent = title.textContent;
     box.appendChild(p);
+    if (pane.hasAttribute("data-doing-shows-timer")) box.appendChild(startTimer());
     pane.insertBefore(box, bar);
     // what the settings file said, read off the pane. The classes go on the
     // body because the rail is not inside the pane, and they come off again
-    // in exitDoing — no other state is kept anywhere
+    // in exitDoing — no other state is kept anywhere. The classes hide, the
+    // settings show, so an absent attribute is what turns one on
     document.body.classList.add("doing");
-    if (pane.hasAttribute("data-doing-hides-nav")) document.body.classList.add("doing-no-nav");
-    if (pane.hasAttribute("data-doing-hides-keybar")) document.body.classList.add("doing-no-keybar");
+    if (!pane.hasAttribute("data-doing-shows-nav")) document.body.classList.add("doing-no-nav");
+    if (!pane.hasAttribute("data-doing-shows-keybar")) document.body.classList.add("doing-no-keybar");
     takeNavSlot();
     renderKeybar();
   }
 
+  // The timer: minutes since this action went on the screen, `07` up to an
+  // hour and `1:04` after it. It is never written down and never sent
+  // anywhere — it exists to give a feel for how long things take, and a
+  // second `d` on the same action starts it again from `00` (design.md,
+  // "Doing one action").
+  let doingTick = null;
+
+  function elapsed(ms) {
+    const mins = Math.floor(ms / 60000);
+    if (mins < 60) return String(mins).padStart(2, "0");
+    return Math.floor(mins / 60) + ":" + String(mins % 60).padStart(2, "0");
+  }
+
+  function startTimer() {
+    const started = Date.now();
+    const el = document.createElement("span");
+    el.className = "timer";
+    el.textContent = elapsed(0);
+    // once a second, written only when the minute has actually turned: the
+    // clock has to be right the moment it is looked at, and a redraw that
+    // changes nothing is one the eye can catch out of the corner
+    doingTick = setInterval(function () {
+      const now = elapsed(Date.now() - started);
+      if (now !== el.textContent) el.textContent = now;
+    }, 1000);
+    return el;
+  }
+
+  function stopTimer() {
+    if (doingTick !== null) { clearInterval(doingTick); doingTick = null; }
+  }
+
   function exitDoing() {
+    stopTimer();
     const box = doingBox();
     if (box) box.remove();
     document.body.classList.remove("doing", "doing-no-nav", "doing-no-keybar");
