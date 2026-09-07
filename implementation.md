@@ -651,6 +651,14 @@ however long the list is.
   twice on every screen buys nothing. The name lives in the `?` panel now,
   which is also the only place the full name appears where the nav abbreviates
   it — "Next actions" for "Next", "Someday/Maybe" for "Someday"
+- **a count of zero is not written.** `0` beside a heading reads as a number
+  worth looking at, and it is never the answer to anything: the empty line under
+  it already says the list is empty, in words that also say *why* it being empty
+  is fine. On the views whose header holds nothing but the count, the header
+  goes with it rather than leaving an empty sticky strip above the filters. Both
+  live in one partial in `_layout.html` (`count`, `counthead`), so nine views
+  and the Today sections cannot drift apart on it — and it is the rule the nav
+  badges have always followed (see "Navigation")
 - **the key bar is tinted away from the page colour** and separated by a rule.
   It is chrome, and must not read as the last row of the list
 - **the bar offers only keys that will currently do something.** It is built
@@ -967,12 +975,13 @@ so none of them reads as something nobody noticed.
 - **the Scheduler's "New schedule" button.** The Inbox's equivalent was
   replaced by keys (`p` and `z`, see "Processing from the Inbox"); the
   Scheduler's is the same shape of control and has not been through that yet
-- **the list views' header is now a bare number.** Dropping the duplicated view
-  name (see "Screen layout") left just the item count above the list, which
-  reads oddly on its own. It was left untouched on purpose: the header count is
-  the **filtered** count while the nav badge is the unfiltered one, so what to
-  do with it is part of the filtering pass, not a cosmetic fix. `nav.go` says
-  why the badge deliberately ignores filters
+- **the list views' header is still a bare number when there is one.** Dropping
+  the duplicated view name (see "Screen layout") left just the item count above
+  the list, which reads oddly on its own. Half of it is settled: at zero there
+  is no number and no header (see "Screen layout"). What that number *is* still
+  is not — the header count is the **filtered** count while the nav badge is the
+  unfiltered one, and saying so is part of the filtering pass rather than a
+  cosmetic fix. `nav.go` says why the badge deliberately ignores filters
 - **the Audit view.** Its rows carry the item's identity as `inbox #7`, which
   reads as a count until you know it is an id, and the view has had none of the
   attention the others have. Its help line and its row layout are both first
