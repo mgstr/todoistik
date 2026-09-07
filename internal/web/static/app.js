@@ -367,6 +367,20 @@
       }
       return;
     }
+    // ctrl-enter finishes the form being written, and that has to hold once
+    // your hands have left its boxes: with a row of the project's action list
+    // selected, plain enter opens that action and ctrl-enter still means "done
+    // with this form". The scope is whatever form the selection or the focus
+    // is inside — on every other screen a selected row is a link row sitting
+    // in no form at all, so there is nothing there for this to reach.
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      const row = selected();
+      const here = (row && row.closest("form")) ||
+        (document.activeElement && document.activeElement.closest &&
+          document.activeElement.closest("form"));
+      if (here) { e.preventDefault(); submitScope(here); }
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (gPending) {
