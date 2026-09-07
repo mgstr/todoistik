@@ -60,7 +60,7 @@ Nothing else. The read API is read only, and capture is the only way in.
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
-- `ctrl-enter` submits the form being typed in — see "The description as the form"
+- `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
@@ -225,16 +225,18 @@ something done that never became one.
   the new snooze date it carries, so a keystroke would submit whatever the date
   box happens to hold — empty, unless touched, which silently clears a snooze
   the item already had. It waits for a stage two that can ask for the date
-- **stage two takes no keys of its own.** Your hands are in a text field there
-  and the key layer stands down while you are typing, which is correct. What
-  the browser already gives is enough: `Enter` submits, `esc` blurs the field
-  and a second `esc` goes back to stage one
+- **stage two's action form takes no keys of its own.** Your hands are in a
+  text field there and the key layer stands down while you are typing, which is
+  correct. What the browser already gives is enough: `Enter` submits, `esc`
+  blurs the field and a second `esc` goes back to stage one. **The project form
+  is the exception**, because it grew a list: `a` adds an action and the row
+  keys act on the one selected (see "Writing a project"). They are live for the
+  same reason they are live anywhere — the moment your hands leave a field
 - **the form opens with the title focused and the caret at its end.** The
   common answer by a wide margin is an action you will do yourself, standalone,
   under the wording the capture already has — and that answer should cost one
   `Enter`, not a walk through the controls that were right by default. Focus
-  therefore skips the "who" row, which is the field most often left alone, and
-  lands on the one you might actually retype. `autofocus` does the focusing on
+  lands on the one field you might actually retype. `autofocus` does the focusing on
   both paths — the browser on a full load, htmx on a boosted one — but neither
   places the caret, and a pre-filled field opening at position 0 means the
   first thing typed lands in front of the text already there. `app.js` moves it
@@ -259,16 +261,12 @@ quietly break.
   still one press away from there, so abandoning costs at most two — and each
   press undoes exactly the last decision, which is what a stage-two `esc`
   landing on the inbox would not do. Nothing is written on either step
-- **"who does it" is one row that grows**, not two rows that appear: choosing
-  "someone else" reveals the name box to its right, on the same line. A field
-  opening underneath pushes everything below it down, and on a form read top to
-  bottom that costs a re-read. It is built out of two radios with their labels
-  styled as buttons and a `:has()` rule on the row, so it stays a plain form the
-  server reads — no JS, which the keyboard layer has a monopoly on
-- **a name switched back to "I do it" is discarded**, server-side. The box keeps
-  its text when it is hidden, and a leftover name would file a waiting-for
-  action nobody asked for. Only forms carrying the control are affected; the
-  action editor's plain "assigned to" field is read exactly as before
+- **there is no "who does it" control on either form any more.** It was a row
+  of two radios that grew a name box sideways, and it went the way every other
+  field went when the meta line took them over: delegation is written
+  `@waitingFor(who)`, on the action it belongs to, in the same notation
+  everywhere. The project form was the last screen carrying one — its first
+  action's owner is now that action's own line, like every other action's
 - **the project is chosen from a picker, and the picker is the whole control.**
   Closed it shows the choice — `<standalone>` until you make one. `↓` opens the
   list of active projects, newest activity first; the rows carry the same
@@ -318,11 +316,11 @@ quietly break.
   wrong when naming the one an action should join — a stray hit on some action's
   wording would file it under a project you never named. `MatchProjects` says so
   where it is defined
-- **park is on the form and always visible**, labelled with where it applies. It
-  is ignored for a standalone action, which is a next action by definition, and
-  the study that designed this row had it appear only once a project was
-  resolved — which needs the resolution to happen while you type, and it does
-  not. Revisit if the label turns out to be doing too much work
+- **park is not a control here.** It went with the other fields when the meta
+  line took them over, and `#parked` is what writes it — refused while a project
+  is being created, where every action written becomes a next action (see
+  "Writing a project"), and accepted everywhere an action is written into a
+  project that already exists
 
 ## Create buttons
 
@@ -517,7 +515,7 @@ redundant — and unlike the map, it says something the bar cannot.
 
 - **the panel is also where a screen puts anything else it has to explain.**
   The description notation lives there rather than beside the box it describes
-  (see "The description as the form"), and that is the rule rather than the
+  (see "The meta line"), and that is the rule rather than the
   exception: one place per screen, reached by one key that is the same key
   everywhere. A second explanation somewhere on the page would compete with it
   and win, being nearer — and then the panel is furniture nobody opens
@@ -611,6 +609,20 @@ its column exactly as typed and is never read.
 - **dates use a third notation**, `due:2026-09-20` and `snooze:2026-09-20`.
   Neither is a name off a list, so neither is an `@` or a `#`; spelling the key
   out keeps them readable without a fourth sigil to learn
+- **a project's line goes through the same codec, narrowed.** `ParseProjectMeta`
+  runs the same parser and then refuses, by name, everything a project does not
+  have — a context, a size, a due date, `@waitingFor`, `#focus`, `#today`,
+  `#parked`. Narrowing after the fact rather than writing a second parser is
+  what stops a project's line becoming a second dialect of the same notation,
+  and `WriteProjectMeta` goes back out through the same writer for the same
+  reason
+- **one definition of the fields an action is written in.** The `actionfields`
+  template is used by an action's own page, the processing screen, the
+  add-action dialog on a project form and the box under a project's action
+  list. The project control is the only difference between them — a picker, a
+  fixed name, or nothing where the screen has already answered it — because
+  four copies of a form is exactly how the meta line would have ended up on
+  three of them
 - **the meta line has a fixed order** — context, waiting-for, size, focus,
   parked, today, tags, then the dates. It is pinned by a test, because a codec
   that reorders on every save would churn the field forever
@@ -648,6 +660,45 @@ its column exactly as typed and is never read.
   list is showing as chosen and then finishes, so what is submitted is what is
   on screen. Without the distinction the universal key meant something local
   on the one screen it is most wanted
+
+## Writing a project
+
+A project and its actions are created in one submit, because until that submit
+there is nothing for an action to belong to — design.md will not make a project
+without one. So the screen holds the actions itself, as rows of hidden fields
+inside the form.
+
+- **an action written here is a row, not a saved thing.** Three hidden fields —
+  `atitle`, `ameta`, `adescription` — zipped by index on the server. Plain form
+  fields rather than state held in the keyboard layer, because that is what
+  makes a refused form able to hand them back: the bounce re-renders the rows
+  from what was posted, and nothing typed is lost to a rejected meta line
+- **the rows are built from one definition.** The server renders them from the
+  `draftrow` template on a bounce; the keyboard layer clones that same template
+  from a `<template>` element when an action is added. A row it had to assemble
+  out of parts would be a second answer to what a row is, and the two would
+  drift the first time one changed
+- **the create button is gated on there being an action**, through a required
+  field with no box of its own that the list keeps in step. The gate already
+  reads what is missing off a form's required fields (see "Create buttons"), and
+  a project's missing action is missing in exactly that sense — so `ctrl-enter`
+  and the button agree here the way they agree everywhere, with no second rule
+- **the add-action dialog is the processing screen's own form**, with the
+  project answered: `<this project>` in the same box the picker uses, read-only,
+  because there is exactly one project it could belong to and a control that
+  cannot change anything should still say what the answer is
+- **`#today` on one of them is applied after creation**, by index against the
+  actions that came back. It is not an `ActionFields` value — the tag is the
+  app's to manage (see "The meta line") — and there is no action to hang it on
+  until the project exists
+- **the keys are the list's, not the screen's.** `a` adds, and it is declared on
+  the button itself like any other screen key (see "The keys"), so the bar
+  offers it because the button is there. With a row selected: `enter` edits it
+  in the same dialog, `u` and `d` move it, `r` removes it. `u` is offered only
+  when there is something above and `d` only when there is something below —
+  the bar cannot advertise a key that would do nothing
+- **a draft row is dashed**, the way a parked badge is: it reads as a list row
+  because it is one, and the dashes say that nothing about it is saved yet
 
 ## Specified, not yet built
 
