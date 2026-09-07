@@ -1,7 +1,5 @@
 {{template "top" .}}
-<header class="pagehead">
-  <span class="count">{{len .Data}}</span>
-</header>
+{{template "counthead" (len .Data)}}
 {{$f := .Filters}}
 <form method="get" action="/projects" class="filters" data-autosubmit>
   <input type="hidden" name="f" value="1">

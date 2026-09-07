@@ -76,6 +76,18 @@
 </html>
 {{end}}
 
+{{/* A count of nothing is not shown at all. "0" beside a heading reads as a
+     number worth looking at and is never the answer to anything — the empty
+     line under it already says the list is empty, in words. Same rule the nav
+     badges follow (implementation.md, "Navigation"), in one place so a view
+     cannot drift from it. */}}
+{{define "count"}}{{if .}}<span class="count">{{.}}</span>{{end}}{{end}}
+
+{{/* Most list views have a header holding nothing but the count, so at zero
+     there is no header either — an empty sticky strip above the filters is
+     exactly the ugliness the rule is about. */}}
+{{define "counthead"}}{{if .}}<header class="pagehead"><span class="count">{{.}}</span></header>{{end}}{{end}}
+
 {{define "filterloud"}}
 {{if .Filters.Active}}<p class="filtered">Filtered — {{.Hidden}} item(s) hidden. <a href="?f=1">Reset all filters</a></p>{{end}}
 {{end}}

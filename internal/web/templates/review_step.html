@@ -1,7 +1,7 @@
 {{template "top" .}}
 {{$step := .Data.Step}}{{$items := .Data.Items}}
 <header class="pagehead">
-  <h1>Review · {{$step}} <span class="count">{{len $items}}</span></h1>
+  <h1>Review · {{$step}} {{template "count" (len $items)}}</h1>
   <a href="/review">← all steps</a>
 </header>
 {{if not $items}}
