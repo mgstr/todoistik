@@ -20,8 +20,25 @@ Flags (each also readable from the environment):
 | `-db`    | `TODOISTIK_DB`    | `todoistik.db`   | SQLite database file                       |
 | `-token` | `TODOISTIK_TOKEN` | *(empty)*        | bearer token; empty disables auth — then keep it bound to localhost |
 | `-tz`    | `TODOISTIK_TZ`    | `Local`          | the one timezone that defines "today"      |
+| `-config`| `TODOISTIK_CONFIG`| `todoistik.conf` | settings file; missing is fine, wrong is fatal |
 
 Open the address in a browser and enter the token once. Press `?` for the key map.
+
+## Settings
+
+Everything else is a screen or an item. The settings file holds only the
+choices that are neither, one `key = value` per line, `#` for comments, read
+once at startup — see implementation.md, "Settings file".
+
+```sh
+cat > todoistik.conf <<'EOF'
+doing.hide_nav = true      # hide the nav rail in doing mode (default true)
+doing.hide_keybar = false  # hide the key bar too (default false)
+EOF
+```
+
+No file means the defaults. A file with an unknown key, a line without an `=`,
+or a value that is not `true`/`false` refuses to start and says which line.
 
 ## APIs
 
@@ -46,6 +63,10 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 
 ```
 main.go                   entrypoint: flags, opens the DB, starts the server
+
+internal/conf/
+  conf.go                 the settings file: key = value, read once at startup
+  conf_test.go
 
 internal/cron/
   cron.go                 the day-granular cron dialect (design.md, "Schedule")

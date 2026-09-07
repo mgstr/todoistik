@@ -516,6 +516,15 @@ The screen can also be left at any point, on any item, without answering the que
 
 Neither escape hatch weakens the rule that the inbox must be emptied. That rule is kept by the person and not by the software - see "The protocol is followed, not enforced" - and what the app owes it is a state that cannot be misread and a cheap way to act, which is the loud inbox, the count on the nav, and the review step that asks.
 
+### Doing one action
+Every list in this app is a list of things not yet done, and reading one is deciding. Doing is the opposite of deciding, and the screen that is right for choosing is wrong for working: with an action selected in any view that shows actions, one key puts that action alone on the screen, large, and takes everything else off it - the other items, the counts, the filters, the badges on its own row.
+
+- **it is a mode, not a view.** Nothing is queried, nothing is stored, and nothing about the action changes by looking at it this way. Leaving puts you back in the view you came from with the same row still selected, because you never went anywhere
+- **two keys work in it and the rest do nothing**: **done**, which completes the action exactly as completing it from the list does - the project check included, see "Completing a next action" - and **back**, which leaves the mode. Completing also leaves it, since the thing being done is finished. A third key would be a decision, and the point of the mode is that there are none in it left to make
+- **what it shows is the title and nothing else.** Not the project, not the context, not the due date: those are what you needed in order to pick this action, and this screen is for after the picking. An action whose title does not say what to do is an action that was written badly (see "Writing an action"), and hiding that is not a kindness
+- **it is offered on an action and only while the action is open.** Not on an inbox item, which has not been decided about yet; not on a someday/maybe item, which is not committed to; not on something already completed, which has nothing left to do
+- **how much of the app's own furniture goes with it** - the navigation rail, the key bar along the bottom - is a setting and not a rule. How bare a screen has to be before it stops pulling at you is a fact about a person, not about the app, so the app takes an answer rather than having an opinion (implementation.md, "Doing mode")
+
 ### Completing a next action
 Completing a next action is the moment with the most context about what comes next, so the project is checked right there:
 

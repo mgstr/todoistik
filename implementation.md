@@ -47,7 +47,7 @@ Nothing else. The read API is read only, and capture is the only way in.
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
 - `j` / `k` move through the current list, `Enter` opens the selected item
-- single-key commands act on the selection. Complete and pick-for-today are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
+- single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
 - `p` processes the selected inbox item and `z` runs Inbox Zero over the whole inbox — see "Processing from the Inbox"
@@ -66,6 +66,7 @@ Nothing else. The read API is read only, and capture is the only way in.
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
+- `d` puts the selected action alone on the screen — see "Doing mode"
 - `ctrl-t` shows or hides the ages on every list, app-wide — see "Ages are
   hidden by default". The one key here that sets a flag rather than doing
   something, which is why the bar reads its state back out in the corner
@@ -499,6 +500,81 @@ one flag for the whole app.
   where this app already keeps remembered screen state, and the toggle writes
   the flip of what is stored rather than a value sent by the page — two presses
   in flight cannot leave the flag saying the opposite of what the last one meant
+
+## Doing mode
+
+design.md, "Doing one action" asks for the selected action alone on an
+otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
+
+- **`d`, and it collides with nothing.** The only other `d` in the app moves a
+  draft action down its list, and a draft is an action that does not exist yet
+  — there is nothing there to do. The two share the case and can never both
+  apply to one row
+- **it is built in the browser out of the row**, not served as a page of its
+  own. The mode is not a view (design.md, "Views") and holds nothing the row
+  does not: the words on the screen are the row's own title, and `c` presses the
+  row's own complete form — the same form, the same handler, the same project
+  check afterwards. A `/doing/{id}` route would have been a second way to
+  complete an action and a second thing to keep in step with the first
+- **the row says whether it can be done**, with `data-doing` on the shared row
+  template, written only for an action that is not completed. Read from the page
+  like every other key, so the bar offers `d doing` exactly where it works. This
+  is why the test is an attribute and not "has a complete form": the weekly
+  review's rows have one too, and there `c` means *reviewed*, which is not what
+  this mode would be advertising
+- **the mode owns the keyboard**, checked before anything else in the key
+  handler: `c` and `esc` do their two jobs and every other unmodified key is
+  swallowed, `ctrl-t` and the `g` jumps included. Modified keys are left alone —
+  reload, the address bar and a new tab belong to the browser, and a mode in a
+  web page is not entitled to them. The bar follows the same rule dialogs
+  already follow: the view group holds the two keys, the global group is empty
+- **it replaces the list rather than covering it.** The doing box is a flex
+  child of the pane where `main` was, so the rail and the bar keep their places
+  in the layout and the two settings are one `display: none` each, rather than a
+  full-screen overlay and a stack of z-indexes to keep it under or over the
+  furniture it is meant to hide
+- **the settings ride on the pane** as `data-doing-hides-nav` /
+  `data-doing-hides-keybar` and become classes on `<body>` while the mode is up,
+  since the rail is not inside the pane. On the body and not rendered there by
+  the server, because `hx-boost` swaps the body's `innerHTML` and an attribute
+  up there would freeze at its first-load value — the same trap the ages flag
+  had to step around
+- **a swap ends the mode.** Completing navigates, and the row the mode was
+  showing is gone with the page it was on
+
+## Settings file
+
+The choices that are not items, not screen state and not worth a screen: read
+once at startup from a `key = value` file (`internal/conf`).
+
+```
+# todoistik.conf
+doing.hide_nav = true      # the nav rail goes in doing mode
+doing.hide_keybar = false  # the key bar stays
+```
+
+- **one pair per line, `#` to the end of the line for comments, and nothing
+  else** — no sections, no nesting, no lists. A comment may trail a value,
+  since no value this format can hold contains a `#`. A setting is then one line found by grep and rewritten in
+  place, by a person or by an agent, which is the whole reason this is a file
+  and not another screen
+- **missing is fine, wrong is fatal.** No file at all is the ordinary case and
+  gives the defaults. A file that exists and has an unknown key, a line without
+  an `=`, or a value that is not `true`/`false` stops startup, naming the file,
+  the line number and what was wrong. It is read exactly once, so a line quietly
+  ignored would look set for as long as the process lives — the one failure this
+  format can have, and the reason it is loud
+- **the defaults are the rail off and the bar on.** Doing mode exists to take
+  away the list of other places you could be, which is what the rail is; the bar
+  in that mode says `c done` and `esc back` and nothing else, which is the whole
+  contract of the mode rather than furniture. Both are one line from the
+  opposite
+- **`-config`, or `TODOISTIK_CONFIG`, defaulting to `todoistik.conf` in the
+  working directory**, like every other setting the app takes. The file is
+  git-ignored: it is one machine's answer, the same way the database is
+- **nothing is written back to it.** Everything the app itself remembers —
+  filter sets, the ages flag — lives in `app_state` in the database. A file the
+  app rewrites is a file you cannot keep comments in
 
 ## Screen layout
 
