@@ -34,7 +34,8 @@ once at startup — see implementation.md, "Settings file".
 cat > todoistik.conf <<'EOF'
 doing.show_nav = false     # keep the nav rail in doing mode (default false)
 doing.show_keybar = true   # keep the key bar too (default true)
-doing.show_timer = false   # minutes since the action went on screen (default false)
+doing.show_timer = false   # start doing mode with the timer showing (default false; ctrl-t flips it)
+doing.timer_format = auto  # minutes, then H:MM past the hour. Or a pattern: H:MM, HH:MM, M
 EOF
 ```
 

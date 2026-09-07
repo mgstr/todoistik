@@ -67,9 +67,12 @@ Nothing else. The read API is read only, and capture is the only way in.
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
 - `d` puts the selected action alone on the screen — see "Doing mode"
-- `ctrl-t` shows or hides the ages on every list, app-wide — see "Ages are
-  hidden by default". The one key here that sets a flag rather than doing
-  something, which is why the bar reads its state back out in the corner
+- `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
+  are hidden by default"), and the timer while doing mode is up (see "Doing
+  mode"). The one key that sets a flag rather than doing something, which is why
+  the bar reads its state back out rather than naming an action. Two flags and
+  one key, because a mode with no ages on it and a screen with no timer on it
+  can never both want it at once
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
@@ -533,6 +536,14 @@ otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
   in the layout and the two settings are one `display: none` each, rather than a
   full-screen overlay and a stack of z-indexes to keep it under or over the
   furniture it is meant to hide
+- **the timer is always built, and `ctrl-t` is what shows it.** `doing.show_timer`
+  decides how the mode opens; the key flips it after that, and the bar in the
+  mode reads back `^t timer shown` / `^t timer hidden` the way the global entry
+  reads back the ages. The element and its interval exist either way, because a
+  timer that were created on demand would start counting from the moment it was
+  asked for — which is not the number anyone means by "how long have I been on
+  this". The flip is a variable in the keyboard layer: it outlives the mode and
+  every boosted navigation, and a reload puts the settings file back in charge
 - **the timer keeps the bottom-right corner**, in the title's own size and at
   `opacity: .15` — the size says it is not a lesser kind of information, the
   opacity keeps it from being read unless it is looked for. A corner and not a
@@ -542,6 +553,11 @@ otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
   has actually turned, and the interval is cleared on the way out. Six
   placements and three opacities were rendered before this one —
   `research/doing-timer-study.html`
+- **the format comes from the file and is applied in the browser.** The pattern
+  rides on the pane as `data-doing-timer-format` and the key layer renders it;
+  the server checks it and otherwise passes it through, which keeps the one
+  place that knows what a minute looks like next to the one thing that counts
+  them
 - **the settings ride on the pane** as `data-doing-shows-nav` /
   `data-doing-shows-keybar` / `data-doing-shows-timer` and become classes on
   `<body>` while the mode is up,
@@ -566,7 +582,8 @@ once at startup from a `key = value` file (`internal/conf`).
 # todoistik.conf
 doing.show_nav = false     # the nav rail goes in doing mode
 doing.show_keybar = true   # the key bar stays
-doing.show_timer = false   # no minutes counter beside the action
+doing.show_timer = false   # the timer starts hidden; ctrl-t shows it
+doing.timer_format = auto  # or a pattern: H:MM, HH:MM, M
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -590,6 +607,16 @@ doing.show_timer = false   # no minutes counter beside the action
   the whole contract of the mode rather than furniture; and a clock on the wall
   is a thing you ask for, not a thing a screen for concentrating on one job
   should volunteer. All three are one line from the opposite
+- **a setting that takes words brings its own check.** `true`/`false` checks
+  itself; a string does not, and a settings file read once at startup is exactly
+  where an unchecked typo lives forever. `doing.timer_format` is either the word
+  `auto` — minutes while there are only minutes, `H:MM` after that, which no
+  single pattern can express — or a pattern in which uppercase `H`/`HH` is the
+  hours and `M`/`MM` the minutes, within the hour when the pattern asks for
+  hours and the whole elapsed time when it does not. Everything else is literal,
+  so `H:MM`, `HH:MM`, `M` and `H h MM` all work. Any *other* capital is refused
+  rather than printed: a capital in a pattern reads as a field, and `HH:NN`
+  quietly rendering as `01:NN` is the failure this file cannot afford
 - **`-config`, or `TODOISTIK_CONFIG`, defaulting to `todoistik.conf` in the
   working directory**, like every other setting the app takes. The file is
   git-ignored: it is one machine's answer, the same way the database is
