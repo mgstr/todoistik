@@ -1,0 +1,271 @@
+<meta charset="utf-8">
+<title>Doing Timer Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 68rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; }
+h2 { margin: 0 0 .35rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+h3 { margin: 2rem 0 .25rem; font-size: .95rem; font-weight: 600; }
+.dek { margin: .6rem 0 0; max-width: 44rem; color: var(--page-muted); }
+.rule { height: 1px; background: var(--page-line); }
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+
+.card {
+  background: var(--page-card); border: 1px solid var(--page-line);
+  border-radius: 14px; padding: 1.25rem; box-shadow: var(--shadow);
+}
+.card > .note { margin: .1rem 0 1rem; color: var(--page-muted); max-width: 44rem; }
+.tag {
+  display: inline-block; margin-right: .5rem; padding: .1rem .45rem;
+  border: 1px solid var(--page-line); border-radius: 999px;
+  font: 600 .7rem/1.5 "IBM Plex Mono", ui-monospace, monospace; color: var(--page-muted);
+}
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+@media (max-width: 60rem) { .pair { grid-template-columns: 1fr; } }
+
+/* ---- the mock screen: the app's own colours, type and proportions ---- */
+.screen {
+  position: relative; border-radius: 10px; overflow: hidden;
+  aspect-ratio: 16 / 9; min-height: 210px; display: flex; flex-direction: column;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  container-type: inline-size;
+}
+.screen.dark  { background: #16181d; color: #e6e6e6; border: 1px solid #2c2f36; }
+.screen.light { background: #ffffff; color: #1a1a1a; border: 1px solid #e2e2e2; }
+
+.zen {
+  flex: 1 1 auto; min-height: 0; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8cqw;
+}
+.zen .title {
+  margin: 0; text-align: center; text-wrap: balance;
+  max-width: 16ch; font-size: 7cqw; font-weight: 600; line-height: 1.1; letter-spacing: -.01em;
+}
+/* the timer: the title's size, worn down by opacity alone */
+.zen .timer { font-size: 7cqw; font-weight: 600; line-height: 1.1; opacity: .3; letter-spacing: -.01em; }
+
+/* A — above */
+.zen.above { flex-direction: column; gap: .35em; }
+/* B — below */
+.zen.below { flex-direction: column; gap: .35em; }
+/* C — leading, same line */
+.zen.leading { gap: .5em; }
+/* D — trailing, same line */
+.zen.trailing { gap: .5em; }
+/* E / F — a corner, out of the text's way */
+.zen.corner .timer { position: absolute; }
+.zen.tr .timer { top: 6cqw; right: 7cqw; }
+.zen.br .timer { bottom: 6cqw; right: 7cqw; }
+
+.bar {
+  flex: 0 0 auto; background: #1f232b; color: #9a9a9a;
+  font-size: 2.2cqw; padding: 1.3cqw 6cqw; display: flex; gap: 2.5cqw;
+}
+.screen.light .bar { background: #eceef3; color: #777; }
+.bar b { color: #7da2ff; font-family: ui-monospace, Menlo, monospace; margin-right: .35em; }
+.screen.light .bar b { color: #2456d6; }
+
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--page-muted); }
+td:first-child { white-space: nowrap; font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; }
+ul { margin: .4rem 0 0; padding-left: 1.1rem; }
+li { margin: .2rem 0; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">todoistik · study</p>
+  <h1>The timer in doing mode</h1>
+  <p class="dek">
+    <code>doing.show_timer = true</code> puts the minutes since this action went on
+    the screen next to it: <span class="mono">07</span> up to an hour, then
+    <span class="mono">1:04</span>. It is set in the title's own size and pushed back with
+    opacity alone — nothing about it is smaller, so it never reads as a second,
+    quieter kind of information. It is never stored: it exists to give a feel for
+    how long things actually take, and it dies with the mode.
+  </p>
+  <p class="dek">
+    Six placements, each in both themes. The screens below are rendered with the app's
+    colours and proportions and with the rail and the key bar off, which is how the
+    settings file currently has doing mode.
+  </p>
+</header>
+
+<div class="rule"></div>
+
+<!-- A -->
+<section class="card">
+  <h2><span class="tag">A</span> Above the title</h2>
+  <p class="note">The clock reads first, then the work. Symmetrical with B, and the only one where the eye meets the number before the words.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen above"><span class="timer">07</span><p class="title">test edit case</p></div></div>
+    <div class="screen light"><div class="zen above"><span class="timer">07</span><p class="title">test edit case</p></div></div>
+  </div>
+</section>
+
+<!-- B -->
+<section class="card">
+  <h2><span class="tag">B</span> Below the title</h2>
+  <p class="note">The work reads first and the number sits under it like a caption. The title keeps the optical centre of the screen.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen below"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+    <div class="screen light"><div class="zen below"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+  </div>
+</section>
+
+<!-- C -->
+<section class="card">
+  <h2><span class="tag">C</span> Leading, on the same line</h2>
+  <p class="note">One line, the number in front. Compact, but it takes the title off centre and a bare two digits in front of a phrase reads like an index or a chapter number.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen leading"><span class="timer">07</span><p class="title">test edit case</p></div></div>
+    <div class="screen light"><div class="zen leading"><span class="timer">07</span><p class="title">test edit case</p></div></div>
+  </div>
+</section>
+
+<!-- D -->
+<section class="card">
+  <h2><span class="tag">D</span> Trailing, on the same line</h2>
+  <p class="note">One line, the number after the words — the way the app already puts an age after a title on a row. Also takes the title off centre, and moves it every minute the digits change width.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen trailing"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+    <div class="screen light"><div class="zen trailing"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+  </div>
+</section>
+
+<!-- E -->
+<section class="card">
+  <h2><span class="tag">E</span> Top right corner</h2>
+  <p class="note">Out of the title's way entirely: the title is centred exactly where it is without a timer, and the number sits where a wall clock would. Nothing moves when the digits change.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen corner tr"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+    <div class="screen light"><div class="zen corner tr"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+  </div>
+</section>
+
+<!-- F -->
+<section class="card">
+  <h2><span class="tag">F</span> Bottom right corner</h2>
+  <p class="note">The same, in the corner the eye visits last. Worth knowing: with <code>doing.show_keybar = true</code> it lands directly above the bar's own right-hand end.</p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen corner br"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+    <div class="screen light"><div class="zen corner br"><p class="title">test edit case</p><span class="timer">07</span></div></div>
+  </div>
+  <h3>F with the key bar on</h3>
+  <div class="pair">
+    <div class="screen dark">
+      <div class="zen corner br"><p class="title">test edit case</p><span class="timer">07</span></div>
+      <div class="bar"><span><b>c</b>done</span><span><b>esc</b>back</span></div>
+    </div>
+    <div class="screen light">
+      <div class="zen corner br"><p class="title">test edit case</p><span class="timer">07</span></div>
+      <div class="bar"><span><b>c</b>done</span><span><b>esc</b>back</span></div>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- the awkward cases, on the two strongest layouts -->
+<section class="card">
+  <h2>The cases that break a layout</h2>
+  <p class="note">
+    A long title that has to wrap, and an hour gone by. B keeps the block centred and grows
+    downward; E leaves the corner exactly where it was and lets the title use the middle.
+  </p>
+  <div class="pair">
+    <div class="screen dark"><div class="zen below"><p class="title">call the garage about the winter tyres</p><span class="timer">1:04</span></div></div>
+    <div class="screen dark"><div class="zen corner tr"><p class="title">call the garage about the winter tyres</p><span class="timer">1:04</span></div></div>
+  </div>
+  <div class="pair" style="margin-top:.9rem">
+    <div class="screen light"><div class="zen below"><p class="title">call the garage about the winter tyres</p><span class="timer">1:04</span></div></div>
+    <div class="screen light"><div class="zen corner tr"><p class="title">call the garage about the winter tyres</p><span class="timer">1:04</span></div></div>
+  </div>
+</section>
+
+<!-- how faint -->
+<section class="card">
+  <h2>How faint, on layout B</h2>
+  <p class="note">
+    Opacity is the only thing holding the number back, so it is the decision under the
+    decision. At <span class="mono">.20</span> it is nearly gone in the light theme; at
+    <span class="mono">.45</span> it starts to compete with the title.
+  </p>
+  <div class="pair" style="grid-template-columns: repeat(3, 1fr)">
+    <div class="screen dark"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.2">07</span></div></div>
+    <div class="screen dark"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.3">07</span></div></div>
+    <div class="screen dark"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.45">07</span></div></div>
+  </div>
+  <div class="pair" style="grid-template-columns: repeat(3, 1fr); margin-top:.9rem">
+    <div class="screen light"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.2">07</span></div></div>
+    <div class="screen light"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.3">07</span></div></div>
+    <div class="screen light"><div class="zen below"><p class="title">test edit case</p><span class="timer" style="opacity:.45">07</span></div></div>
+  </div>
+  <p class="note" style="margin-top:.9rem">Left to right: <span class="mono">.20</span> · <span class="mono">.30</span> · <span class="mono">.45</span></p>
+</section>
+
+<div class="rule"></div>
+
+<section class="card">
+  <h2>Trade-offs</h2>
+  <table>
+    <tr><th>Variant</th><th>For</th><th>Against</th></tr>
+    <tr><td>A above</td><td>Reads as a heading over the work; block stays centred</td><td>The number is the first thing seen, which is the opposite of the point</td></tr>
+    <tr><td>B below</td><td>Work first, number as a caption; centred; survives a wrapping title</td><td>The whole block shifts up a little to make room, so the title is not quite where it sits without a timer</td></tr>
+    <tr><td>C leading</td><td>One line, tightest</td><td>Reads as an index number; title goes off centre and moves as digits change</td></tr>
+    <tr><td>D trailing</td><td>One line; matches how a row already trails its age</td><td>Title off centre and drifting; on a long title it can end up alone on the second line</td></tr>
+    <tr><td>E top right</td><td>Title sits exactly where it would with no timer; nothing ever moves; wall-clock instinct</td><td>Furthest from the eye's resting point, so it is checked deliberately rather than noticed</td></tr>
+    <tr><td>F bottom right</td><td>The same, in the least-used corner</td><td>Collides with the key bar's right end when the bar is on</td></tr>
+  </table>
+  <p class="note" style="margin-top:1rem">
+    Say which letter, and which opacity if it is not <span class="mono">.30</span>.
+  </p>
+</section>
+
+</div>

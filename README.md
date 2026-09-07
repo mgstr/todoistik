@@ -32,8 +32,9 @@ once at startup — see implementation.md, "Settings file".
 
 ```sh
 cat > todoistik.conf <<'EOF'
-doing.hide_nav = true      # hide the nav rail in doing mode (default true)
-doing.hide_keybar = false  # hide the key bar too (default false)
+doing.show_nav = false     # keep the nav rail in doing mode (default false)
+doing.show_keybar = true   # keep the key bar too (default true)
+doing.show_timer = false   # minutes since the action went on screen (default false)
 EOF
 ```
 

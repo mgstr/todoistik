@@ -533,9 +533,22 @@ otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
   in the layout and the two settings are one `display: none` each, rather than a
   full-screen overlay and a stack of z-indexes to keep it under or over the
   furniture it is meant to hide
-- **the settings ride on the pane** as `data-doing-hides-nav` /
-  `data-doing-hides-keybar` and become classes on `<body>` while the mode is up,
-  since the rail is not inside the pane. On the body and not rendered there by
+- **the timer keeps the bottom-right corner**, in the title's own size and at
+  `opacity: .15` — the size says it is not a lesser kind of information, the
+  opacity keeps it from being read unless it is looked for. A corner and not a
+  line under the title, so the title sits exactly where it sits with no timer at
+  all and nothing moves when the digits change width (`tabular-nums` finishes
+  that job). It ticks on a one-second interval that writes only when the minute
+  has actually turned, and the interval is cleared on the way out. Six
+  placements and three opacities were rendered before this one —
+  `research/doing-timer-study.html`
+- **the settings ride on the pane** as `data-doing-shows-nav` /
+  `data-doing-shows-keybar` / `data-doing-shows-timer` and become classes on
+  `<body>` while the mode is up,
+  since the rail is not inside the pane. The settings are written as *show* and
+  the classes do the *hiding*, so it is a missing attribute that switches a
+  class on: the file reads as what you get, and the CSS stays one rule per thing
+  taken away. On the body and not rendered there by
   the server, because `hx-boost` swaps the body's `innerHTML` and an attribute
   up there would freeze at its first-load value — the same trap the ages flag
   had to step around
@@ -551,8 +564,9 @@ once at startup from a `key = value` file (`internal/conf`).
 
 ```
 # todoistik.conf
-doing.hide_nav = true      # the nav rail goes in doing mode
-doing.hide_keybar = false  # the key bar stays
+doing.show_nav = false     # the nav rail goes in doing mode
+doing.show_keybar = true   # the key bar stays
+doing.show_timer = false   # no minutes counter beside the action
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -566,11 +580,16 @@ doing.hide_keybar = false  # the key bar stays
   the line number and what was wrong. It is read exactly once, so a line quietly
   ignored would look set for as long as the process lives — the one failure this
   format can have, and the reason it is loud
-- **the defaults are the rail off and the bar on.** Doing mode exists to take
-  away the list of other places you could be, which is what the rail is; the bar
-  in that mode says `c done` and `esc back` and nothing else, which is the whole
-  contract of the mode rather than furniture. Both are one line from the
-  opposite
+- **every key is written as what you get, never as what is taken away.** `false`
+  is the app's own default answer for all three, so a file that says nothing and
+  a file that says `false` everywhere agree, and no setting has to be read
+  through a negation to know what it does
+- **the defaults are the rail off, the bar on and no timer.** Doing mode exists
+  to take away the list of other places you could be, which is what the rail is;
+  the bar in that mode says `c done` and `esc back` and nothing else, which is
+  the whole contract of the mode rather than furniture; and a clock on the wall
+  is a thing you ask for, not a thing a screen for concentrating on one job
+  should volunteer. All three are one line from the opposite
 - **`-config`, or `TODOISTIK_CONFIG`, defaulting to `todoistik.conf` in the
   working directory**, like every other setting the app takes. The file is
   git-ignored: it is one machine's answer, the same way the database is

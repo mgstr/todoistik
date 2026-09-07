@@ -202,3 +202,36 @@ One bug surfaced while building it, older than the rail: on the Inbox's own row
 the count was drawn accent-on-red and could not be read, because `a.on` and
 `a.alert` set the same property and `a.on` came second. The alert wins it now —
 standing on the Inbox is not the same as having emptied it.
+
+---
+
+## doing-timer-study.html — where the timer sits in doing mode
+
+**2026-09-08 · decided: F, the bottom-right corner, at `opacity: .15`.**
+Implemented in `internal/web/static/style.css` (`#doing .timer`) and
+`internal/web/static/app.js` (`startTimer`), behind `doing.show_timer`.
+
+Doing mode puts one action alone on the screen (design.md, "Doing one action").
+The timer counts the minutes since it went up — `07`, then `1:04` past the
+hour — and exists only to build a feel for how long work takes; it is never
+stored. The constraint set before the page was drawn: the title's own size, so
+it never reads as a lesser kind of information, held back by opacity alone.
+
+| | Variant | Outcome |
+|---|---|---|
+| A | Above the title | Rejected: the eye meets the clock before the work, which is the opposite of the point |
+| B | Below the title | Runner-up: reads as a caption, but the whole block shifts up to make room, so the title is not where it sits without a timer |
+| C | Leading, same line | Rejected: two digits in front of a phrase read as an index number, and the title goes off centre |
+| D | Trailing, same line | Rejected: same off-centre problem, plus the title drifts as the digits change width |
+| E | Top right corner | Close second, and the wall-clock instinct is real; the top edge is simply more in the way of a centred block than the bottom is |
+| **F** | **Bottom right corner** | **Chosen.** The corner the eye visits last. The title sits exactly where it would with no timer at all, and nothing moves when `59` becomes `1:00` |
+
+The page's second half was the decision under the decision: **how faint**, at
+`.20`, `.30` and `.45` in both themes. `.15` was chosen from it — below the
+range drawn, deliberately, because every rendered value still pulled at the eye
+on a screen whose whole purpose is that nothing does. `tabular-nums` finishes
+the job the corner started: the digits do not change width either.
+
+Known trade-off, accepted: with `doing.show_keybar = true` the timer sits
+directly above the bar's right-hand end. Rendered on the page so the collision
+was chosen rather than discovered.
