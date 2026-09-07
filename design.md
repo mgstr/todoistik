@@ -188,7 +188,7 @@ Contexts apply to **actions only**. A project is not something you do, so it has
 
 An action has **at most one** context. Notation is `@name`: `@home`, `@garage`, `@online` (an internet connection is needed, on any device), `@computer` (a real computer is needed, a phone will not do).
 
-Context names come from a remembered list - never typed fresh, otherwise `@home` and `@Home` drift into two contexts. Writing `@home` in an action's description sets the context only if `home` is on that list; if it is not, the text stays text (see "Writing an action"). Adding a new name is therefore a deliberate act, and it should be offered where it is wanted rather than as a trip to another screen: when what was written matches nothing, the app offers to create it there, behind an explicit confirm - deliberate enough to stop drift, cheap enough not to fight capture. The list is editable, so that a context no longer used can be removed; one still carried by actions can not be, since removing it would be editing those actions behind their back.
+Context names come from a remembered list - never typed fresh, otherwise `@home` and `@Home` drift into two contexts. Writing `@home` on an action's meta line sets the context only if `home` is on that list; if it is not, the line is refused rather than saved with the name quietly ignored (see "Writing an action"). Adding a new name is therefore a deliberate act, and it should be offered where it is wanted rather than as a trip to another screen: when what was written matches nothing, the app offers to create it there, behind an explicit confirm - deliberate enough to stop drift, cheap enough not to fight capture. The list is editable, so that a context no longer used can be removed; one still carried by actions can not be, since removing it would be editing those actions behind their back.
 
 #### Parameters
 A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This keeps the context namespace small and scannable, which is the only reason contexts are useful at all - putting every person and every shop chain at the top level would destroy that.
@@ -211,7 +211,7 @@ Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 - tags apply to **both projects and actions**
 - an item can have zero, one or several tags
 - in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?". The single exception is `#today`
-- tags follow the same rule context names do: from a remembered list, never typed fresh, added deliberately, and removable from the list only while no item carries them - see "Contexts". Writing `#car` in a description makes it a tag only if `car` is on the list. Areas of responsibility are few and stable, so a list that is deliberate to grow costs nothing here
+- tags follow the same rule context names do: from a remembered list, never typed fresh, added deliberately, and removable from the list only while no item carries them - see "Contexts". Writing `#car` on a meta line makes it a tag only if `car` is on the list. Areas of responsibility are few and stable, so a list that is deliberate to grow costs nothing here
 - `#today` is built in, and so are the tags that are not tags at all but fields wearing a tag's notation: `#short`, `#medium`, `#long`, `#focus` and `#parked`, along with the `@waitingFor` context. None of them can be removed, because removing one would not take away a label - it would take away a field
 - the lists are shown with **how many items carry each name**, built-in ones included. For a built-in that count is not bookkeeping: it is the only place the app says how much of the work is short, how much needs focus, how much is parked - which is a review question, asked where the vocabulary is kept
 
@@ -254,7 +254,7 @@ This keeps destructive operations (trashing an inbox item) and instant ones (com
 The one exception is `#today`, which is never audited - see "#today".
 
 ### Writing an action
-An action is written in three fields and no more: its **title**, its **project**, and one **description** box. Everything else it carries is written inside that box, in notation:
+An action is written in four fields and no more: its **title**, its **project**, a **meta** line and a **description**. Everything it carries beyond the first two is written on the meta line, in notation:
 
 | written | means |
 |---|---|
@@ -269,12 +269,15 @@ An action is written in three fields and no more: its **title**, its **project**
 | `due:2026-09-20` | a real deadline |
 | `snooze:2026-09-20` | out of sight until then |
 
-The point is that the form asks for nothing that has to be decided. A row of controls asks every question of every action, and most of them have no answer worth giving - a box asks one question, and you write only what is true. It is also the same gesture capture already is, so the two ends of the process are typed the same way.
+The point is that the form asks for nothing that has to be decided. A row of controls asks every question of every action, and most of them have no answer worth giving - a line asks one question, and you write only what is true. It is also the same gesture capture already is, so the two ends of the process are typed the same way.
 
-- **a name is notation only if it is already known.** `@name` and `#name` are read as metadata when the name is on the remembered list (see "Contexts" and "Tags"), and left alone otherwise. This is the rule that keeps `marju@gmail.com` from becoming a context and `invoice #12345` from becoming a tag, and it is the same rule that already said names are never typed fresh - a written box would otherwise be the widest possible door for `@home` and `@Home` to walk through separately.
-- **the fields are still fields.** What is written is read into them when the action is saved, and written back out of them when it is opened. Every view, filter and sort works on the fields exactly as before - nothing queries text. This is also why the app can still change them on its own: picking for today, a detach stamping a parked action, a delegation restamping the clock all move a field, and the box simply shows the new truth next time it is opened.
+- **the meta line and the description are two fields because they are read for two different reasons.** The description is read to remember what an action is about; the meta line is read to see what the app thinks it is. They shared one box until it became clear that neither could be looked at without the other in the way: the notation had to be found again at the bottom of the prose on every edit, and the prose could not be rewritten without editing notation by accident.
+- **a name is notation only if it is already known.** `@name` and `#name` are read as metadata when the name is on the remembered list (see "Contexts" and "Tags"). This is the same rule that already said names are never typed fresh - without it a written field is the widest possible door for `@home` and `@Home` to walk through separately.
+- **the meta line refuses what it cannot read.** Whatever is left on it once the notation has been taken out is reported and nothing is saved, whether that is an unknown name, a typo or a sentence. While the two shared a box this question did not arise - anything unknown stayed prose, which is what kept `marju@gmail.com` from becoming a context and `invoice #12345` from becoming a tag. On a line that holds nothing but names there is no prose left for it to stay as, so the choice is between saying so and swallowing it silently, and being told that `#hobbies` is not `#hobby` is worth more than a tag that quietly did not apply.
+- **the description is prose, and nothing is read out of it.** `@home` written there is a word like any other. Nothing an action carries can be changed by editing it, which is what makes it safe to write in freely - and it is why it, not the meta line, is where a sentence that happens to mention a context belongs.
+- **the fields are still fields.** What is written on the meta line is read into them when the action is saved, and written back out of them when it is opened. Every view, filter and sort works on the fields exactly as before - nothing queries text. This is also why the app can still change them on its own: picking for today, a detach stamping a parked action, a delegation restamping the clock all move a field, and the box simply shows the new truth next time it is opened.
 - **a contradiction is refused, never guessed at.** Two contexts, two sizes, `@waitingFor` with nobody named, `#parked` on a standalone action - each is reported and nothing is saved. Guessing which one was meant would be the app deciding something the person is in the middle of deciding.
-- **the notation is written back in a fixed order**, on its own line after the prose. Opening and saving an action twice cannot shuffle or lose anything, which is what makes the box safe to keep editing.
+- **the notation is written back in a fixed order.** Opening and saving an action twice cannot shuffle or lose anything, which is what makes the line safe to keep editing.
 
 
 ## Views
