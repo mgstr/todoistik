@@ -659,7 +659,14 @@ its column exactly as typed and is never read.
   from the field you spend the most time in. It is general rather than a
   process-screen key — the dialog if there is one, the form otherwise — and it
   does whatever that scope's own create button does, refusing when the button
-  is disabled, so the key and the button can never disagree. The bar names the
+  is disabled, so the key and the button can never disagree. It is not limited
+  to being pressed from inside a field either: once a screen has a list, your
+  hands leave the boxes to work it, and the key still has to mean "done with
+  this form" there. The scope is then whatever form the selection or the focus
+  sits inside — which on a list view is no form at all, since a selected row
+  there is a link row and the little complete and pick forms live inside the
+  row rather than around it. So the key reaches a project's draft list and
+  nothing else. The bar names the
   button rather than guessing a verb
 - **inside the project picker it belongs to the form, not the picker.** Plain
   `enter` there opens the list or takes a row; `ctrl-enter` takes whatever the
@@ -704,7 +711,9 @@ inside the form.
   is a form, your hands are in one of its boxes most of the time, and a bare
   letter would be a letter there. With a row selected — which means your hands
   have left the boxes — `enter` edits it in the same dialog, `u` and `d` move
-  it, `r` removes it. `u` is offered only
+  it, `r` removes it. `ctrl-enter` still creates the project from there:
+  plain `enter` belongs to the row you are pointing at, and the modifier is
+  what separates finishing the form from opening the thing under the cursor. `u` is offered only
   when there is something above and `d` only when there is something below —
   the bar cannot advertise a key that would do nothing
 - **a draft row is dashed**, the way a parked badge is: it reads as a list row
