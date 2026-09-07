@@ -110,11 +110,19 @@ The Inbox view holds a list and nothing else — no heading, no count of its own
 no button. The two things it can do are keys, and the key bar names both when
 they apply.
 
+- **empty, it says "Inbox zero." and stops.** It used to add *"Nothing to decide
+  about."*, which is the same sentence twice: the second half explains the first
+  to someone who did not write the spec, and there is no such person here — the
+  argument that leaves the write boxes without placeholders (see "The meta
+  line")
+
 - **`p` processes the selected item**, at `/process?item=<id>&one=1`, and
   returns to the list afterwards. **`z` runs Inbox Zero**, at `/process`, which
   takes the oldest item, comes back for the next one after each answer, and
   ends on the done screen. `z` is exactly `p` repeated: the same screen, fed the
-  oldest item instead of the selected one
+  oldest item instead of the selected one. **`g z` is that same run from
+  anywhere**, without stopping at the list on the way (see "Keyboard view-jump
+  overlay")
 - **one flag distinguishes them**, `?one=1`, carried on the screen's own URL and
   on the branch form's action. Without it the run carries on to `/process`; with
   it the answer goes back to `/inbox`. The screen itself is the same either way,
@@ -562,10 +570,21 @@ Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every
 | Waiting for | `W` | Settings | `E` |
 | Calendar | `C` | | |
 
-`g g` is the one `g` sequence that does not jump to a view: it opens the
-capture dialog (see "Capture"). The `+` at the head of the nav carries a `G`
-tag of its own while the overlay is up, so the sequence is discoverable in the
-same glance as the jumps, on every view.
+Two `g` sequences do not jump to a view:
+
+- **`g g` opens the capture dialog** (see "Capture"). The `+` at the head of the
+  nav carries a `G` tag of its own while the overlay is up, so the sequence is
+  discoverable in the same glance as the jumps, on every view
+- **`g z` starts an Inbox Zero run**, at `/process` — exactly `g i` then `z`,
+  which is the pair pressed most often, the inbox being the one list the app
+  asks to be emptied regularly and always at the weekly review (design.md,
+  "Inbox Zero"). It gets no tag of its own, because there is nothing on screen
+  to pin one to: the processing screen has no nav entry and gets none (see
+  "Navigation"), and the Inbox slot is already wearing `I`. **The key bar
+  carries it instead**, beside *"press a marked key"* while the overlay is up,
+  and only while the inbox is non-empty — so the bar still never offers a key
+  with nothing to do. That state is read off the nav's own alert, which is on
+  every page
 
 ## The meta line
 
