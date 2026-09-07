@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"todoistik/internal/app"
+	"todoistik/internal/conf"
 	"todoistik/internal/web"
 )
 
@@ -19,7 +20,14 @@ func main() {
 	dbPath := flag.String("db", env("TODOISTIK_DB", "todoistik.db"), "path to the SQLite database file")
 	token := flag.String("token", os.Getenv("TODOISTIK_TOKEN"), "bearer token; empty disables auth (bind to localhost only)")
 	tz := flag.String("tz", env("TODOISTIK_TZ", "Local"), "the one timezone that defines the day")
+	cfgPath := flag.String("config", env("TODOISTIK_CONFIG", "todoistik.conf"), "settings file; missing is fine, wrong is fatal")
 	flag.Parse()
+
+	// read once, at startup, deliberately: see internal/conf
+	cfg, err := conf.Load(*cfgPath)
+	if err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
 	loc, err := time.LoadLocation(*tz)
 	if err != nil {
@@ -32,13 +40,13 @@ func main() {
 	}
 	defer a.Close()
 
-	s, err := web.New(a, *token)
+	s, err := web.New(a, *token, cfg)
 	if err != nil {
 		log.Fatalf("web: %v", err)
 	}
 
-	fmt.Printf("todoistik listening on http://%s (db %s, tz %s, auth %s)\n",
-		*addr, *dbPath, loc, onOff(*token != ""))
+	fmt.Printf("todoistik listening on http://%s (db %s, tz %s, auth %s, config %s)\n",
+		*addr, *dbPath, loc, onOff(*token != ""), *cfgPath)
 	log.Fatal(http.ListenAndServe(*addr, s.Handler()))
 }
 

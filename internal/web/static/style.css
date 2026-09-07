@@ -136,6 +136,27 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
   background: var(--badge-bg); color: var(--muted); white-space: nowrap;
 }
 
+/* Doing mode: one action, in the middle of an empty screen. It replaces the
+   list rather than covering it, so the rail and the bar keep their places in
+   the layout and the settings file's answers are two plain display rules
+   rather than a stack of z-indexes — see implementation.md, "Doing mode" */
+body.doing main { display: none; }
+body.doing.doing-no-nav nav { display: none; }
+body.doing.doing-no-keybar #keybar { display: none; }
+#doing {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem max(1.25rem, calc(50% - 31rem));
+}
+/* as large as it can be without wrapping into a wall: the width is capped in
+   characters, so a short title is enormous and a long one still reads as one
+   sentence rather than as a paragraph */
+#doing p {
+  margin: 0; text-align: center; text-wrap: balance;
+  max-width: 16ch; font-size: clamp(2rem, 7vw, 5rem);
+  font-weight: 600; line-height: 1.1; letter-spacing: -0.01em;
+}
+
 .badge {
   font-size: .76rem; padding: .05rem .4rem; border-radius: 8px;
   background: var(--badge-bg); color: var(--muted); white-space: nowrap;

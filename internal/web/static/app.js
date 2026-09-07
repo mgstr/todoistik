@@ -98,6 +98,9 @@
   // something. A mode fills the view group and empties the global one:
   // while a dialog or an overlay is up, none of the global keys are live.
   function keybarGroups() {
+    // doing mode is a mode like a dialog is: it owns the keyboard, so the bar
+    // says the two keys that are live in it and nothing else
+    if (doingBox()) return { view: [["c", "done"], ["esc", "back"]], global: [] };
     const dlg = captureDialog();
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
     const help = document.getElementById("help");
@@ -210,6 +213,7 @@
     else if (row.dataset.href) into.push(["\u21b5", "open"]);
     else if (row.querySelector("input[type=radio]")) into.push(["\u21b5", "pick"]);
     if (row.querySelector("form.kb-complete")) into.push(["c", "done"]);
+    if (canDo(row)) into.push(["d", "doing"]);
     if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
   }
 
@@ -296,6 +300,45 @@
     if (scope) { gate(scope); renderKeybar(); }
   });
 
+  // Doing mode: the selected action alone, in the middle of an otherwise empty
+  // screen. Built here out of the row rather than served as a page of its own,
+  // because it is not a view (design.md, "Views") and there is nothing in it
+  // the row does not already hold — the title it shows is the row's title, and
+  // the one thing it can do is press the row's own complete form.
+  function canDo(row) {
+    return !!(row && row.hasAttribute("data-doing"));
+  }
+
+  function doingBox() { return document.getElementById("doing"); }
+
+  function enterDoing(row) {
+    if (!canDo(row) || doingBox()) return;
+    const title = row.querySelector(".title");
+    const pane = document.querySelector(".pane");
+    const bar = document.getElementById("keybar");
+    if (!title || !pane) return;
+    const box = document.createElement("section");
+    box.id = "doing";
+    const p = document.createElement("p");
+    p.textContent = title.textContent;
+    box.appendChild(p);
+    pane.insertBefore(box, bar);
+    // what the settings file said, read off the pane. The classes go on the
+    // body because the rail is not inside the pane, and they come off again
+    // in exitDoing — no other state is kept anywhere
+    document.body.classList.add("doing");
+    if (pane.hasAttribute("data-doing-hides-nav")) document.body.classList.add("doing-no-nav");
+    if (pane.hasAttribute("data-doing-hides-keybar")) document.body.classList.add("doing-no-keybar");
+    renderKeybar();
+  }
+
+  function exitDoing() {
+    const box = doingBox();
+    if (box) box.remove();
+    document.body.classList.remove("doing", "doing-no-nav", "doing-no-keybar");
+    renderKeybar();
+  }
+
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
   }
@@ -345,6 +388,25 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    // Doing mode answers to two keys and swallows the rest — including the
+    // ctrl ones below and the global ones further down. A mode whose whole
+    // point is that there is nothing else on the screen cannot leave the rest
+    // of the app pressable behind it.
+    if (doingBox()) {
+      if (e.key === "c") {
+        e.preventDefault();
+        const row = selected();
+        exitDoing();
+        if (row) submitIn(row, "kb-complete");
+        return;
+      }
+      if (e.key === "Escape") { e.preventDefault(); exitDoing(); return; }
+      // modified keys are the browser's (reload, address bar, a new tab), and
+      // taking those would be taking more than this mode is entitled to
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+      return;
+    }
+
     // A screen key that asks for ctrl is live wherever the screen is, text
     // boxes included — reaching it without leaving the field is the whole
     // point of the modifier, and the reason a screen would choose one. Not
@@ -446,7 +508,12 @@
         break;
       }
       case "u": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, -1); } break;
-      case "d": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, 1); } break;
+      // d moves a draft down and starts doing an action. The two never meet:
+      // a draft is an action that does not exist yet, so it has nothing to do
+      case "d":
+        if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, 1); break; }
+        if (canDo(row)) { e.preventDefault(); enterDoing(row); }
+        break;
       case "r": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); removeDraft(row); } break;
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
@@ -837,7 +904,12 @@
   gateAll();
 
   // hx-boost swaps the body, taking the rendered bar with it
-  document.addEventListener("htmx:afterSwap", function () { renderKeybar(); setupPickers(); gateAll(); });
+  document.addEventListener("htmx:afterSwap", function () {
+    // whatever was being done is gone with the old page: the mode is the row
+    // and the row has just been replaced
+    exitDoing();
+    renderKeybar(); setupPickers(); gateAll();
+  });
 
   // A field that opens focused with the caret at position 0 means the first
   // thing typed lands in front of the text already there, which is never what

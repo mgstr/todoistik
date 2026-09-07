@@ -33,7 +33,13 @@
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/settings" class="{{if eq .View "settings"}}on{{end}}" title="g e">Settings</a>
 </nav>
-<div class="pane {{if .Ages}}ages{{end}}">
+{{/* The settings file's answers ride on the pane, where the keyboard layer
+     can read them: doing mode is put together in the browser out of what is
+     already on the page, and these two are the only part of it the app does
+     not derive from the row itself (implementation.md, "Doing mode"). */}}
+<div class="pane {{if .Ages}}ages{{end}}"
+  {{if .Conf.DoingHidesNav}}data-doing-hides-nav{{end}}
+  {{if .Conf.DoingHidesKeybar}}data-doing-hides-keybar{{end}}>
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 <main>
 {{end}}
@@ -74,7 +80,8 @@
 
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
-<li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}">
+<li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
+    {{if not $a.CompletedAt}}data-doing{{end}}>
   {{if not .HidePick}}
   <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
     <button title="pick for today (t)" class="pick {{if hasTag $a.Tags "today"}}picked{{end}}">●</button>

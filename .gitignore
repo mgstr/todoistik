@@ -2,3 +2,4 @@ todoistik
 *.db
 *.db-shm
 *.db-wal
+todoistik.conf

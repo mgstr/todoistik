@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"todoistik/internal/app"
+	"todoistik/internal/conf"
 )
 
 //go:embed templates/*.html
@@ -24,12 +25,13 @@ var staticFS embed.FS
 type Server struct {
 	app   *app.App
 	token string
+	conf  conf.Config
 	tmpl  *template.Template
 	mux   *http.ServeMux
 }
 
-func New(a *app.App, token string) (*Server, error) {
-	s := &Server{app: a, token: token, mux: http.NewServeMux()}
+func New(a *app.App, token string, c conf.Config) (*Server, error) {
+	s := &Server{app: a, token: token, conf: c, mux: http.NewServeMux()}
 	funcs := template.FuncMap{
 		"age": func(v any) string {
 			switch t := v.(type) {

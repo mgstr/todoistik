@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"todoistik/internal/app"
+	"todoistik/internal/conf"
 )
 
 // viewHelp is what the ? panel shows: the view's full name and one line on
@@ -80,12 +81,13 @@ type page struct {
 	Nav          *app.NavCounts
 	Today        string
 	Ages         bool // the ages on rows are shown rather than hidden
+	Conf         conf.Config
 	Error        string
 	Data         any
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
-	p := &page{Title: title, View: view, Today: s.app.Today(), Error: r.URL.Query().Get("err")}
+	p := &page{Title: title, View: view, Today: s.app.Today(), Conf: s.conf, Error: r.URL.Query().Get("err")}
 	if v, err := s.app.GetState(agesState); err == nil {
 		p.Ages = v == "1"
 	}
