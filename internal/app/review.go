@@ -6,13 +6,29 @@ import (
 	"time"
 )
 
-// An item is outstanding for the weekly review when it is not snoozed and
-// its lastReviewedAt is older than a week. There is no global "last review"
-// record; this is also how the app shows a review is due (design.md,
-// "Weekly review").
+// An item is outstanding for the weekly review when its lastReviewedAt is
+// older than its review period. There is no global "last review" record;
+// this is also how the app shows a review is due (design.md, "Weekly
+// review").
+//
+// The period is a week for everything except someday/maybe items, whose
+// period is the settings file's review.someday_days (a month by default):
+// a parked idea does not change week to week, and a review that walks the
+// whole parking lot every time is a review that gets skipped. Snoozing
+// exempts nothing here — a snooze date is itself one of the claims the
+// review checks.
 const reviewWeek = 7 * 24 * time.Hour
 
 func (a *App) reviewCutoff() time.Time { return a.now().UTC().Add(-reviewWeek) }
+
+func (a *App) somedayReviewCutoff() time.Time {
+	return a.now().UTC().AddDate(0, 0, -a.somedayReviewDays)
+}
+
+// SetSomedayReviewDays wires in the settings file's review.someday_days,
+// once, at startup. Open seeds the same default the file has, so this is
+// only needed where a settings file is actually read.
+func (a *App) SetSomedayReviewDays(days int) { a.somedayReviewDays = days }
 
 // ReviewCounts is what the review screen (and the nav badge) shows: how
 // many items each step still has outstanding.
@@ -40,33 +56,23 @@ func (c ReviewCounts) OutstandingTotal() int {
 
 func (a *App) ReviewCounts() (*ReviewCounts, error) {
 	c := &ReviewCounts{}
-	cutoff := ts(a.reviewCutoff())
-	today := a.Today()
+	cutoff, somedayCutoff := ts(a.reviewCutoff()), ts(a.somedayReviewCutoff())
 	rows := []struct {
 		dest  *int
 		query string
+		args  []any
 	}{
-		{&c.Inbox, `SELECT COUNT(*) FROM inbox_items`},
+		{&c.Inbox, `SELECT COUNT(*) FROM inbox_items`, nil},
 		{&c.WaitingFor, `SELECT COUNT(*) FROM actions WHERE became_next_at IS NOT NULL AND completed_at IS NULL
-			AND assigned_to != '' AND last_reviewed_at < ? AND (snooze_until = '' OR snooze_until <= ?)`},
-		{&c.Projects, `SELECT COUNT(*) FROM projects WHERE completed_at IS NULL
-			AND last_reviewed_at < ? AND (snooze_until = '' OR snooze_until <= ?)`},
+			AND assigned_to != '' AND last_reviewed_at < ?`, []any{cutoff}},
+		{&c.Projects, `SELECT COUNT(*) FROM projects WHERE completed_at IS NULL AND last_reviewed_at < ?`, []any{cutoff}},
 		{&c.Next, `SELECT COUNT(*) FROM actions WHERE became_next_at IS NOT NULL AND completed_at IS NULL
-			AND assigned_to = '' AND last_reviewed_at < ? AND (snooze_until = '' OR snooze_until <= ?)`},
-		{&c.Someday, `SELECT COUNT(*) FROM someday_items WHERE last_reviewed_at < ? AND (snooze_until = '' OR snooze_until <= ?)`},
-		{&c.Schedules, `SELECT COUNT(*) FROM schedules WHERE last_reviewed_at < ?`},
+			AND assigned_to = '' AND last_reviewed_at < ?`, []any{cutoff}},
+		{&c.Someday, `SELECT COUNT(*) FROM someday_items WHERE last_reviewed_at < ?`, []any{somedayCutoff}},
+		{&c.Schedules, `SELECT COUNT(*) FROM schedules WHERE last_reviewed_at < ?`, []any{cutoff}},
 	}
-	for i, r := range rows {
-		var err error
-		switch i {
-		case 0:
-			err = a.db.QueryRow(r.query).Scan(r.dest)
-		case 5:
-			err = a.db.QueryRow(r.query, cutoff).Scan(r.dest)
-		default:
-			err = a.db.QueryRow(r.query, cutoff, today).Scan(r.dest)
-		}
-		if err != nil {
+	for _, r := range rows {
+		if err := a.db.QueryRow(r.query, r.args...).Scan(r.dest); err != nil {
 			return nil, err
 		}
 	}
@@ -98,10 +104,13 @@ func (a *App) MarkReviewed(itemType string, id int64) error {
 }
 
 // Outstanding reports whether one loaded item is still outstanding, used by
-// review screens to show progress within a step.
-func (a *App) Outstanding(lastReviewedAt time.Time, snoozeUntil string) bool {
-	if snoozeUntil != "" && snoozeUntil > a.Today() {
-		return false
-	}
+// review screens to show progress within a step. Someday/maybe items are
+// judged by SomedayOutstanding instead — see the comment at the top.
+func (a *App) Outstanding(lastReviewedAt time.Time) bool {
 	return lastReviewedAt.Before(a.reviewCutoff())
+}
+
+// SomedayOutstanding is Outstanding on the someday/maybe cadence.
+func (a *App) SomedayOutstanding(lastReviewedAt time.Time) bool {
+	return lastReviewedAt.Before(a.somedayReviewCutoff())
 }

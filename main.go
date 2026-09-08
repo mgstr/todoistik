@@ -39,6 +39,7 @@ func main() {
 		log.Fatalf("open db: %v", err)
 	}
 	defer a.Close()
+	a.SetSomedayReviewDays(cfg.ReviewSomedayDays)
 
 	s, err := web.New(a, *token, cfg)
 	if err != nil {

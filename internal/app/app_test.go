@@ -273,6 +273,70 @@ func TestStalledDerivation(t *testing.T) {
 	}
 }
 
+// The review periods: a week for everything, the someday cadence for
+// someday/maybe items — and no exemption for snoozed items, because the
+// snooze date is one of the claims the review checks (design.md, "Weekly
+// review").
+func TestReviewOutstanding(t *testing.T) {
+	a, now := newTestApp(t)
+	p, err := a.CreateProject(
+		ProjectFields{Title: "Shed built", DOD: "Roof on"},
+		[]ActionFields{{Title: "Buy the boards"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.UpdateProject(p.ID, ProjectFields{Title: p.Title, DOD: p.DOD, SnoozeUntil: "2027-01-01"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SnoozeAction(p.Actions[0].ID, "2027-01-01"); err != nil {
+		t.Fatal(err)
+	}
+	if _, acc, err := a.Capture("Learn the banjo"); err != nil || !acc {
+		t.Fatalf("capture: acc=%v err=%v", acc, err)
+	}
+	items, _ := a.Inbox()
+	if _, err := a.ProcessSomeday(items[0].ID, "Learn the banjo", "2027-01-01"); err != nil {
+		t.Fatal(err)
+	}
+
+	created := *now
+	c, err := a.ReviewCounts()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.OutstandingTotal() != 0 {
+		t.Fatalf("fresh items are outstanding: %+v", c)
+	}
+
+	// past the week: the snoozed project and its snoozed action are both
+	// outstanding, and the someday item is still inside its month
+	*now = created.Add(8 * 24 * time.Hour)
+	c, _ = a.ReviewCounts()
+	if c.Projects != 1 {
+		t.Errorf("snoozed project after 8 days: %d outstanding, want 1", c.Projects)
+	}
+	if c.Next != 1 {
+		t.Errorf("snoozed next action after 8 days: %d outstanding, want 1", c.Next)
+	}
+	if c.Someday != 0 {
+		t.Errorf("someday item after 8 days: %d outstanding, want 0 — its cadence is a month", c.Someday)
+	}
+
+	// past the month: the someday item joins them, snoozed or not
+	*now = created.Add(31 * 24 * time.Hour)
+	c, _ = a.ReviewCounts()
+	if c.Someday != 1 {
+		t.Errorf("someday item after 31 days: %d outstanding, want 1", c.Someday)
+	}
+
+	// the cadence is the settings file's to change
+	a.SetSomedayReviewDays(90)
+	c, _ = a.ReviewCounts()
+	if c.Someday != 0 {
+		t.Errorf("someday item after 31 days of a 90-day cadence: %d outstanding, want 0", c.Someday)
+	}
+}
+
 func TestCompletionRules(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, err := a.CreateProject(

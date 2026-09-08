@@ -111,6 +111,28 @@ func TestBackupDays(t *testing.T) {
 	}
 }
 
+func TestReviewSomedayDays(t *testing.T) {
+	if got := Defaults().ReviewSomedayDays; got != 30 {
+		t.Errorf("default review.someday_days = %d, want 30 — a month between someday reviews", got)
+	}
+	c, err := Load(write(t, "review.someday_days = 90\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.ReviewSomedayDays != 90 {
+		t.Errorf("review.someday_days = %d, want 90", c.ReviewSomedayDays)
+	}
+	// one is the floor: it means back on every review, and zero would be a
+	// period of no days, which means nothing
+	c, err = Load(write(t, "review.someday_days = 1\n"))
+	if err != nil {
+		t.Fatalf("one was refused: %v", err)
+	}
+	if c.ReviewSomedayDays != 1 {
+		t.Errorf("review.someday_days = %d, want 1", c.ReviewSomedayDays)
+	}
+}
+
 // The three ways a settings file can be wrong all have to stop startup, since
 // the file is read once and a quietly-ignored line looks set forever.
 func TestBadLinesAreRefused(t *testing.T) {
@@ -123,6 +145,8 @@ func TestBadLinesAreRefused(t *testing.T) {
 		{"days not a number", "backup.days = two\n", "whole number of days"},
 		{"days negative", "backup.days = -1\n", "the range is 0"},
 		{"days too many", "backup.days = 400\n", "the range is 0"},
+		{"review days zero", "review.someday_days = 0\n", "the range is 1"},
+		{"review days too many", "review.someday_days = 400\n", "the range is 1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Load(write(t, tc.body))

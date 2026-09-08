@@ -14,6 +14,11 @@ type App struct {
 	path string         // the database file, for the snapshots kept beside it
 	loc  *time.Location // the one configured timezone that defines "today"
 	now  func() time.Time
+	// somedayReviewDays: the review period for someday/maybe items, in days
+	// (see internal/app/review.go). Open seeds it with the settings file's
+	// default so a caller that reads no settings file still gets the rule;
+	// main overwrites it with whatever the file says.
+	somedayReviewDays int
 }
 
 func Open(path string, loc *time.Location) (*App, error) {
@@ -24,7 +29,7 @@ func Open(path string, loc *time.Location) (*App, error) {
 	// modernc/sqlite serializes writes poorly across many conns; one is plenty
 	// for a single-user app and removes SQLITE_BUSY from the picture.
 	db.SetMaxOpenConns(1)
-	a := &App{db: db, path: path, loc: loc, now: time.Now}
+	a := &App{db: db, path: path, loc: loc, now: time.Now, somedayReviewDays: 30}
 	if err := a.migrate(); err != nil {
 		db.Close()
 		return nil, err

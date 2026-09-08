@@ -15,7 +15,7 @@ type NavCounts struct {
 	Calendar  int
 	Someday   int
 	Scheduler int
-	Review    int // OutstandingTotal: the 7-day-aged steps only, not the inbox
+	Review    int // OutstandingTotal: the aged review steps only, not the inbox
 }
 
 // For is the same count by the view's own name, for the callers that have a

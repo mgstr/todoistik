@@ -37,6 +37,13 @@ type Config struct {
 	// takes it past that. Zero keeps none, which is how the file turns
 	// backups off (see implementation.md, "Backups").
 	BackupDays int
+	// ReviewSomedayDays: how many days a someday/maybe item can go
+	// unreviewed before the weekly review counts it as outstanding. Every
+	// other item gets a week, and that week is not a setting; this one is,
+	// because how long an idea may sit parked unasked-about is a choice
+	// about the person's patience, not about the protocol (design.md,
+	// "Weekly review").
+	ReviewSomedayDays int
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -52,13 +59,16 @@ const TimerAuto = "auto"
 // the middle of one item on: the rail is a list of other places you could be
 // and the bar is a list of other things you could press, and neither question
 // is the one being answered. The timer is off, because a clock on the wall is
-// a thing you ask for. Every one of them is one line away from the opposite.
+// a thing you ask for. A someday/maybe item waits a month between reviews,
+// because a parked idea does not change week to week (design.md, "Weekly
+// review"). Every one of them is one line away from the opposite.
 func Defaults() Config {
 	return Config{
-		ZenShowsTimer:  false,
-		ZenTimerFormat: TimerAuto,
-		ZenViews:       []string{"doing", "processing"},
-		BackupDays:     2,
+		ZenShowsTimer:     false,
+		ZenTimerFormat:    TimerAuto,
+		ZenViews:          []string{"doing", "processing"},
+		BackupDays:        2,
+		ReviewSomedayDays: 30,
 	}
 }
 
@@ -67,6 +77,12 @@ func Defaults() Config {
 // backup scheme rather than a hoard — at that scale the answer is something
 // that copies the directory off this machine, not a bigger number here.
 const MaxBackupDays = 365
+
+// MaxReviewDays is the ceiling on review.someday_days. An idea that can go
+// more than a year without being asked about is not parked, it is buried —
+// past that the number is not a cadence but a way of writing "never", and
+// "never reviewed" is the failure the whole review exists to prevent.
+const MaxReviewDays = 365
 
 // bools maps a key in the file to the field it sets. Adding a setting is
 // adding a line here (or to strs below); nothing else in this file knows any
@@ -82,8 +98,27 @@ func (c *Config) bools() map[string]*bool {
 // read as zero and quietly keep nothing.
 func (c *Config) ints() map[string]*int {
 	return map[string]*int{
-		"backup.days": &c.BackupDays,
+		"backup.days":         &c.BackupDays,
+		"review.someday_days": &c.ReviewSomedayDays,
 	}
+}
+
+// intChecks is each number key's range, with the ends explained in the
+// message — because the two keys disagree about zero: keeping no backups is
+// an answer, a review period of no days is not.
+var intChecks = map[string]func(int) error{
+	"backup.days": func(d int) error {
+		if d < 0 || d > MaxBackupDays {
+			return fmt.Errorf("it is %d, and the range is 0 (keep none) to %d", d, MaxBackupDays)
+		}
+		return nil
+	},
+	"review.someday_days": func(d int) error {
+		if d < 1 || d > MaxReviewDays {
+			return fmt.Errorf("it is %d, and the range is 1 (back on every review) to %d", d, MaxReviewDays)
+		}
+		return nil
+	},
 }
 
 // strs are the settings that take words rather than true/false. Each brings
@@ -217,8 +252,8 @@ func Load(path string) (Config, error) {
 			if err != nil {
 				return c, fmt.Errorf("%s:%d: %s wants a whole number of days, got %q", path, n, key, val)
 			}
-			if days < 0 || days > MaxBackupDays {
-				return c, fmt.Errorf("%s:%d: %s is %d, and the range is 0 (keep none) to %d", path, n, key, days, MaxBackupDays)
+			if err := intChecks[key](days); err != nil {
+				return c, fmt.Errorf("%s:%d: %s: %v", path, n, key, err)
 			}
 			*field = days
 			continue

@@ -1425,20 +1425,33 @@ func (s *Server) reviewPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "review.html", p)
 }
 
-// reviewItem is one outstanding item in a review step.
+// reviewItem is one outstanding item in a review step. SnoozeUntil is set
+// only while the snooze is live: a snoozed item is walked like any other,
+// and its date is one of the things the walk checks (design.md, "Weekly
+// review"), so the row has to show it.
 type reviewItem struct {
 	Type, Name, Link string
 	ID               int64
 	LastReviewedAt   time.Time
 	Detail           string
+	SnoozeUntil      string
 }
 
 func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 	step := r.PathValue("step")
+	today := s.app.Today()
 	var items []reviewItem
 	add := func(typ, name, link string, id int64, reviewed time.Time, snooze, detail string) {
-		if s.app.Outstanding(reviewed, snooze) {
-			items = append(items, reviewItem{Type: typ, Name: name, Link: link, ID: id, LastReviewedAt: reviewed, Detail: detail})
+		outstanding := s.app.Outstanding
+		if typ == "someday" {
+			outstanding = s.app.SomedayOutstanding
+		}
+		if outstanding(reviewed) {
+			it := reviewItem{Type: typ, Name: name, Link: link, ID: id, LastReviewedAt: reviewed, Detail: detail}
+			if snooze > today {
+				it.SnoozeUntil = snooze
+			}
+			items = append(items, it)
 		}
 	}
 	switch step {
