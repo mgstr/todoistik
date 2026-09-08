@@ -47,6 +47,22 @@ Nothing else. The read API is read only, and capture is the only way in.
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
 - `j` / `k` move through the current list, `Enter` opens the selected item
+- **the selection survives acting on the row.** A row key posts a form and the
+  answer is a whole new page — boosted or not, the list is rebuilt and the
+  class marking the selection goes with the old one, so pressing `t` used to
+  end with the cursor gone and `j` pressed to get back to the row you were
+  already on. The row is handed to the page the response renders and claimed
+  once, on arrival. Three rules keep that from selecting things nobody pointed
+  at: it is claimed only on the screen it was handed from — which is read off
+  the nav's own highlight, since on a boosted post the new page is in the DOM
+  before htmx has finished with the URL — only for a row that was selected when
+  the key was pressed, and only once, so a later `g` jump never arrives with
+  something already selected. When the row itself is gone, which is what `c`
+  does to it, the selection stays at that *position* instead: the item that
+  moved up is under the cursor and a list can be worked straight down. This is
+  the one thing the key layer keeps across a page load, and it keeps it in
+  `sessionStorage` rather than on the server, because it decides nothing and
+  survives nothing — losing it costs a keystroke (see "Stack")
 - single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
@@ -66,13 +82,16 @@ Nothing else. The read API is read only, and capture is the only way in.
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up, which is
   what lets `t` mean trash on the processing screen and today everywhere else
-- `d` puts the selected action alone on the screen — see "Doing mode"
+- `d` opens the selected action alone on a screen of its own — see "Doing"
+- `ctrl-v` opens the panel chooser: title bar, navigation, key bar, zen mode,
+  one letter each, and a second `ctrl-v` presses zen — see "Panels"
 - `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
-  are hidden by default"), and the timer while doing mode is up (see "Doing
-  mode"). The one key that sets a flag rather than doing something, which is why
-  the bar reads its state back out rather than naming an action. Two flags and
-  one key, because a mode with no ages on it and a screen with no timer on it
-  can never both want it at once
+  are hidden by default"), and the timer on the doing screen (see "Doing"). The
+  one key that sets a flag rather than doing something, which is why the bar
+  reads its state back out rather than naming an action. Two flags and one key,
+  because the screen with a timer on it has no ages and every screen with ages
+  has no timer — they can never both want it at once, and the doing screen
+  renders no ages control at all so the collision cannot even be built
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
@@ -402,6 +421,33 @@ The first working version rendered every view's filter controls open, all the ti
 - **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
 - **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
 
+### Next actions carries no filter controls, for now
+
+The panel of checkboxes and selects that this section is about was widest on
+the one screen the app is actually used from, and it sat between the nav and
+the list on every visit. It has been taken off that page while the controls
+that replace it are worked out. What went is the page furniture only:
+
+- **the filter form is gone, the filtering is not.** The per-view filter set
+  still persists in `app_state`, `/next?context=home&tag=car` still narrows the
+  page exactly as before, and the read API never saw the screen's state anyway
+  (design.md, "The read API"). Nothing about what the view *returns* moved —
+  which is why design.md is unchanged and this note lives here
+- **while the controls are off, design.md's "every filter is reachable and
+  resettable from the keyboard" is not true of this screen.** That is a debt
+  the replacement has to pay, not a rule being reversed. It is written down
+  because the gap is otherwise invisible: a filter set left on from before
+  keeps narrowing the view with nothing on the page offering to turn it off
+- **the filtered line stays**, and is now load-bearing rather than merely loud:
+  it is still the confession design.md, "Views" requires, and its "Reset all
+  filters" link is the only way back to the complete list until the new
+  controls land
+- **the header holding the count went with the form**, on the same argument:
+  the working view is read by looking down it, not by being told how far it
+  goes. It was the first view to lose one and every other view has since
+  followed, because the title bar says the count now (see "Panels") — which is
+  where this note stops being about the Next view in particular
+
 ## Item lines
 
 Every list in the app shares one row template, so this is one decision, not a
@@ -504,74 +550,88 @@ one flag for the whole app.
   the flip of what is stored rather than a value sent by the page — two presses
   in flight cannot leave the flag saying the opposite of what the last one meant
 
-## Doing mode
+## Doing
 
 design.md, "Doing one action" asks for the selected action alone on an
-otherwise empty screen. `d` enters it, `c` completes, `esc` leaves.
+otherwise empty screen. `d` opens it, `c` completes, `esc` leaves.
 
+- **it is a page: `GET /doing/{id}`.** The first version built it in the
+  browser out of the row, on the argument that it was not a view and held
+  nothing the row did not — and a `/doing/{id}` route would be a second way to
+  complete an action. Both halves stopped being true. Zen mode gives every view
+  the bareness that was the whole point of the mode (see "Panels"), so there is
+  nothing left for a mode to be; and completing here posts the *same* form to
+  the same handler as a row does, project check and all, so there is one way to
+  complete an action and this is a screen that uses it. What the URL buys is
+  what a DOM-only mode could not have: a reload, a back button, and a name that
+  `zen.views` can put in a settings file
 - **`d`, and it collides with nothing.** The only other `d` in the app moves a
   draft action down its list, and a draft is an action that does not exist yet
   — there is nothing there to do. The two share the case and can never both
   apply to one row
-- **it is built in the browser out of the row**, not served as a page of its
-  own. The mode is not a view (design.md, "Views") and holds nothing the row
-  does not: the words on the screen are the row's own title, and `c` presses the
-  row's own complete form — the same form, the same handler, the same project
-  check afterwards. A `/doing/{id}` route would have been a second way to
-  complete an action and a second thing to keep in step with the first
 - **the row says whether it can be done**, with `data-doing` on the shared row
-  template, written only for an action that is not completed. Read from the page
-  like every other key, so the bar offers `d doing` exactly where it works. This
-  is why the test is an attribute and not "has a complete form": the weekly
-  review's rows have one too, and there `c` means *reviewed*, which is not what
-  this mode would be advertising
-- **the mode owns the keyboard**, checked before anything else in the key
-  handler: `c` and `esc` do their two jobs and every other unmodified key is
-  swallowed, `ctrl-t` and the `g` jumps included. Modified keys are left alone —
-  reload, the address bar and a new tab belong to the browser, and a mode in a
-  web page is not entitled to them. The bar follows the same rule dialogs
-  already follow: the view group holds the two keys, the global group is empty
-- **it replaces the list rather than covering it.** The doing box is a flex
-  child of the pane where `main` was, so the rail and the bar keep their places
-  in the layout and the two settings are one `display: none` each, rather than a
-  full-screen overlay and a stack of z-indexes to keep it under or over the
-  furniture it is meant to hide
-- **the timer is always built, and `ctrl-t` is what shows it.** `doing.show_timer`
-  decides how the mode opens; the key flips it after that, and the bar in the
-  mode reads back `^t timer shown` / `^t timer hidden` the way the global entry
-  reads back the ages. The element and its interval exist either way, because a
-  timer that were created on demand would start counting from the moment it was
-  asked for — which is not the number anyone means by "how long have I been on
-  this". The flip is a variable in the keyboard layer: it outlives the mode and
-  every boosted navigation, and a reload puts the settings file back in charge
+  template, written only for an action that is not completed — and it now
+  carries the URL rather than being a bare marker, so the key layer navigates
+  to what the page said rather than assembling a route of its own. Read from
+  the page like every other key, so the bar offers `d doing` exactly where it
+  works. This is why the test is an attribute and not "has a complete form":
+  the weekly review's rows have one too, and there `c` means *reviewed*, which
+  is not what this screen would be advertising
+- **where "back" goes rides on the URL**, `?from=/next`, and not on the
+  Referer: the URL is the part that survives a reload, which is the whole
+  reason this is a page. The key layer writes it from the path it was pressed
+  on, the screen carries it as `data-cancel`, and the complete form posts it as
+  a `back` field so that finishing the action lands where leaving it would —
+  `back()` prefers an explicit destination to the header. A `from` that is not
+  a local path falls back to `/next`
+- **`c` and `esc` are declared keys, not a special case.** The complete form
+  carries `data-key="c"` and the section carries `data-cancel`, so the bar
+  reads `c done · esc back` off the page and the handler presses the control.
+  The label on the way out is the screen's own (`data-cancel-label`), because
+  "back" is what this one is
+- **the app's keys keep working**, which is the visible half of the mode going
+  away. It used to swallow every unmodified key; now `q`, `g`, `?` and the rest
+  are live, and the bar's right-hand group is populated like anywhere else.
+  Nothing here is being typed and nothing is half-written, so there was never
+  anything for the swallowing to protect
+- **the selection is handed back.** `d` stores the row the way a row key does
+  (see "Keyboard"), and a page with no rows neither claims that handover nor
+  swallows it — so `esc` lands on the list with the same row under the cursor,
+  and `c` lands on it with the next one, since the row it was showing is gone
+- **it opens in zen because the settings file names it**, not because the
+  screen has furniture settings of its own. `doing.show_nav` and
+  `doing.show_keybar` are gone: they were this one screen's private version of
+  a question every screen has, and `zen.views = doing, processing` is the
+  general answer (see "Settings file")
+- **the timer is always ticking, and `ctrl-t` is what shows it.**
+  `zen.show_timer` decides how the screen opens; the key flips it after that,
+  and the bar reads back `^t timer shown` / `^t timer hidden` the way the
+  global entry reads back the ages. The element exists either way, because a
+  timer created on demand would start counting from the moment it was asked
+  for — which is not the number anyone means by "how long have I been on this".
+  The flip is a variable in the keyboard layer: it outlives every boosted
+  navigation and a reload puts the settings file back in charge
+- **this screen renders no ages control at all**, which is what lets `ctrl-t`
+  mean one thing. Two hidden controls declaring the same key would be a race
+  decided by document order; the layout skips the ages form when the page says
+  it counts its own minutes (`page.Timer`), and the timer's own hidden button
+  is then the only `^t` on the page. The bar picks it up as a global key
+  because the button says `data-global` — nothing in the key layer knows what a
+  timer is beyond flipping the element it points at
 - **the timer keeps the bottom-right corner**, in the title's own size and at
   `opacity: .15` — the size says it is not a lesser kind of information, the
   opacity keeps it from being read unless it is looked for. A corner and not a
   line under the title, so the title sits exactly where it sits with no timer at
   all and nothing moves when the digits change width (`tabular-nums` finishes
   that job). It ticks on a one-second interval that writes only when the minute
-  has actually turned, and the interval is cleared on the way out. Six
-  placements and three opacities were rendered before this one —
+  has actually turned, and the interval is cleared when the page is swapped
+  away. Six placements and three opacities were rendered before this one —
   `research/doing-timer-study.html`
 - **the format comes from the file and is applied in the browser.** The pattern
-  rides on the pane as `data-doing-timer-format` and the key layer renders it;
+  rides on the pane as `data-zen-timer-format` and the key layer renders it;
   the server checks it and otherwise passes it through, which keeps the one
   place that knows what a minute looks like next to the one thing that counts
   them
-- **the settings ride on the pane** as `data-doing-shows-nav` /
-  `data-doing-shows-keybar` / `data-doing-shows-timer` and become classes on
-  `<body>` while the mode is up,
-  since the rail is not inside the pane. The settings are written as *show* and
-  the classes do the *hiding*, so it is a missing attribute that switches a
-  class on: the file reads as what you get, and the CSS stays one rule per thing
-  taken away. On the body and not rendered there by
-  the server, because `hx-boost` swaps the body's `innerHTML` and an attribute
-  up there would freeze at its first-load value — the same trap the ages flag
-  had to step around
-- **the nav says which mode you are in**, not which view you left: the
-  highlighted slot reads `Doing…` while it is up — see "Navigation"
-- **a swap ends the mode.** Completing navigates, and the row the mode was
-  showing is gone with the page it was on
 
 ## Settings file
 
@@ -580,14 +640,14 @@ once at startup from a `key = value` file (`internal/conf`).
 
 ```
 # todoistik.conf
-doing.show_nav = false     # the nav rail goes in doing mode
-doing.show_keybar = true   # the key bar stays
-doing.show_timer = false   # the timer starts hidden; ctrl-t shows it
-doing.timer_format = auto  # or a pattern: H:MM, HH:MM, M
+zen.views = doing, processing  # these screens open with every panel off
+zen.show_timer = false         # the timer starts hidden; ctrl-t shows it
+zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
-  else** — no sections, no nesting, no lists. A comment may trail a value,
+  else** — no sections, no nesting, and the one list there is is written with
+  commas on one line. A comment may trail a value,
   since no value this format can hold contains a `#`. A setting is then one line found by grep and rewritten in
   place, by a person or by an agent, which is the whole reason this is a file
   and not another screen
@@ -597,19 +657,26 @@ doing.timer_format = auto  # or a pattern: H:MM, HH:MM, M
   the line number and what was wrong. It is read exactly once, so a line quietly
   ignored would look set for as long as the process lives — the one failure this
   format can have, and the reason it is loud
-- **every key is written as what you get, never as what is taken away.** `false`
-  is the app's own default answer for all three, so a file that says nothing and
-  a file that says `false` everywhere agree, and no setting has to be read
-  through a negation to know what it does
-- **the defaults are the rail off, the bar on and no timer.** Doing mode exists
-  to take away the list of other places you could be, which is what the rail is;
-  the bar in that mode says `c done` and `esc back` and nothing else, which is
-  the whole contract of the mode rather than furniture; and a clock on the wall
-  is a thing you ask for, not a thing a screen for concentrating on one job
-  should volunteer. All three are one line from the opposite
+- **every key is written as what you get, never as what is taken away.**
+  `zen.show_timer` says when the timer is up and `zen.views` says which screens
+  are bare, so no setting has to be read through a negation to know what it
+  does. The panel keys are gone from this file entirely: what a screen wears is
+  screen state now, remembered where screen state is remembered (see "Panels"),
+  and the file only says which screens start with none of it
+- **the defaults are doing and processing bare, and no timer.** Both are
+  screens you are in the middle of one item on, where the rail is a list of
+  other places you could be and the bar a list of other things you could press;
+  and a clock on the wall is a thing you ask for, not a thing a screen for
+  concentrating on one job should volunteer. Both are one line from the opposite
+- **an empty list is an answer.** `zen.views =` means no screen opens bare,
+  which the defaults cannot say — a key left out falls back to the default, so
+  "none" has to be writable
+- **`zen.views` is checked against the app's screens, but not here.** conf
+  checks the shape and `internal/web` checks the names, which is where the list
+  of screens lives (see "Panels"). Wrong either way still stops startup
 - **a setting that takes words brings its own check.** `true`/`false` checks
   itself; a string does not, and a settings file read once at startup is exactly
-  where an unchecked typo lives forever. `doing.timer_format` is either the word
+  where an unchecked typo lives forever. `zen.timer_format` is either the word
   `auto` — minutes while there are only minutes, `H:MM` after that, which no
   single pattern can express — or a pattern in which uppercase `H`/`HH` is the
   hours and `M`/`MM` the minutes, within the hour when the pattern asks for
@@ -626,10 +693,11 @@ doing.timer_format = auto  # or a pattern: H:MM, HH:MM, M
 
 ## Screen layout
 
-A rail down the left, a fixed key bar along the bottom of what is left of the
-window, and the view's content scrolling between them. The chrome never scrolls
-away, so which view you are in and what you can press are always on screen,
-however long the list is.
+A rail down the left, a title bar across the top of what is left of the window,
+a fixed key bar along the bottom of it, and the view's content scrolling between
+them. The chrome never scrolls away, so where you are and what you can press are
+always on screen, however long the list is — and each of the three can be taken
+off it (see "Panels").
 
 - **the nav is a rail rather than a line across the top.** Main caps its column
   at 62rem and the rail is 11.5rem wide, so on a window wider than about 76rem
@@ -644,21 +712,26 @@ however long the list is.
   with the content whose keys it is naming. It answers "what can I press here",
   which is a question about what is on screen and not about where else I could
   go
-- **the view's header line is fixed too**, not just the nav — it carries the
-  item count and the view's primary action (Inbox's "Process — Inbox Zero"),
-  which are worth no less at item 200 than at item 1. It no longer carries the
-  view's *name*: the nav already says which view you are in, and saying it
-  twice on every screen buys nothing. The name lives in the `?` panel now,
-  which is also the only place the full name appears where the nav abbreviates
-  it — "Next actions" for "Next", "Someday/Maybe" for "Someday"
+- **a view's header line, where it still has one, is fixed too**, not just the
+  nav — it carries the view's primary action (Inbox's "Process — Inbox Zero"),
+  which is worth no less at item 200 than at item 1. It carries neither the
+  view's *name* nor its count any more: the title bar says both on every screen
+  (see "Panels"), and the `?` panel is where the full name is spelled out where
+  the nav abbreviates it — "Next actions" for "Next", "Someday/Maybe" for
+  "Someday"
 - **a count of zero is not written.** `0` beside a heading reads as a number
   worth looking at, and it is never the answer to anything: the empty line under
   it already says the list is empty, in words that also say *why* it being empty
-  is fine. On the views whose header holds nothing but the count, the header
-  goes with it rather than leaving an empty sticky strip above the filters. Both
-  live in one partial in `_layout.html` (`count`, `counthead`), so nine views
-  and the Today sections cannot drift apart on it — and it is the rule the nav
-  badges have always followed (see "Navigation")
+  is fine. It lives in one partial in `_layout.html` (`count`), so the places
+  that still carry a count of their own — the Today sections, a review step —
+  cannot drift apart on it, and it is the rule the nav badges have always
+  followed (see "Navigation")
+- **no view carries a count header of its own any more.** Seven of them had one
+  holding nothing else, and the title bar now says the view's name and its count
+  on every screen (see "Panels"). Two headers saying the same number is one too
+  many, and the one that goes is the one that only some screens had. The partial
+  that rendered them (`counthead`) went with them; `pagehead` is left to the
+  headers that carry something else, like the Scheduler's "New schedule"
 - **the key bar is tinted away from the page colour** and separated by a rule.
   It is chrome, and must not read as the last row of the list
 - **the bar offers only keys that will currently do something.** It is built
@@ -679,6 +752,97 @@ however long the list is.
 - this is the same progressive-disclosure argument as the filter panels (see
   "Interface density"), pointed the other way: the keys are always shown
   because they are always small, and always *true*
+
+## Panels
+
+design.md, "Panels" asks for three pieces of chrome that can each be taken off
+the screen, and one answer that takes all three. This is how they are built.
+
+- **a panel that is off is not on the page.** The template renders the rail,
+  the title bar and the key bar only when the state says so, rather than
+  hiding them with a rule. Nothing then has to be written twice — no
+  `display:none` per panel, no `:has()` reaching from the pane to a sibling —
+  and a page that is not carrying a panel cannot be read as one that is
+- **the state lives in `app_state`, beside the filter sets and the ages flag**
+  (`internal/web/panels.go`). It is remembered screen state of exactly the same
+  kind, and a single-user app has one place for that. It is one row holding one
+  query string, so a press writes it in one go: three flags, zen, whether zen
+  was the app's idea, and which zen screen is currently open
+- **zen is a state, not a fourth panel.** The three flags say what is on in the
+  ordinary way of working and are untouched while zen is up; `shown()` resolves
+  the pair into what the templates get. That is the whole of "leaving zen gives
+  the same screen back", and it is four lines rather than a saved copy to keep
+  in step
+- **asking for one panel while zen is up ends zen**, and then does what was
+  asked. "Show me the title bar" and "show me nothing" cannot both be true, and
+  the newer answer wins. The other two come back as they were, so a panel key
+  is the zen key plus one panel
+- **the chooser is four real forms in a dialog**, one per answer, each carrying
+  `data-key` — so pressing `t` there is pressing the control, the same read-off-
+  the-page construction as every other declared key (see "The keys"), and the
+  bar in the dialog lists them without knowing what a panel is. The post writes
+  the new state and comes back to the page it was pressed on, which is what
+  closes the dialog. No client-side state anywhere in it
+- **a key a dialog declares is live exactly while that dialog is open, and
+  while one is open no key outside it is.** This had to be made explicit: the
+  chooser sits in the layout, so its `t`/`n`/`k`/`z` are on every page in the
+  app, and without the rule `t` would have stopped meaning "pick for today" the
+  moment the chooser existed. It is the rule dialogs already followed in the
+  key handler, moved down to where keys are found so it holds for the bar as
+  well
+- **`ctrl-v`, and a second `ctrl-v` presses zen.** Ctrl because a bare letter
+  would collide on half the screens in the app and this key has to work on all
+  of them, `v` for *view*, and not cmd because cmd-v is paste in every box on
+  this machine. The second press answers with the option wanted most often,
+  which keeps the whole of "clear the screen" at two presses of one key
+- **it is centred, tinted like the key bar and one size up from it.** The key
+  bar's left edge lines up with the content column because it names the keys
+  for what is in that column; the title bar names the *screen*, so it belongs
+  over the pane rather than over the list — centred, it reads as a caption and
+  cannot be taken for the first row. The tint is the same argument the key bar
+  makes (see "Screen layout"): it is chrome, and must not read as part of the
+  page. The extra size is the one thing it does not share with the bar, because
+  it is read at a glance and the bar is read on purpose
+- **the title bar is a trail, and the server builds it.** Every page carries a
+  list of steps (`page.Trail`): the view — with the same count the nav badge
+  shows, read from `NavCounts.For` so the two numbers cannot come to differ —
+  then whatever is being done inside it. `newPage` writes the first step from
+  the view slug and a handler adds the rest with `step()`, which is why the
+  processing screens read "Inbox / Processing / Action"
+- **the inbox count is red here too.** It is the one count design.md asks the
+  app to say loudly, and the rail was the only place saying it — which stops
+  being enough the moment the rail is a thing you can turn off. Every other
+  crumb count is the outlined badge the nav uses (see "Navigation")
+- **a step that is a screen carries its slug; a step that is an item does
+  not.** The slug is what `zen.views` names, so "processing" is a name the
+  settings file can use and the project title in "Projects / Winter-proof the
+  car" is not. It also means the stages of processing inherit the answer given
+  for the run: zen is decided by *any* step of the trail matching, and a screen
+  reached from inside a zen screen is the middle of the same one thing
+- **the separators are drawn by CSS**, not written into the markup, so a step
+  the browser adds is punctuated like the ones the server wrote. A dialog that
+  is a step rather than a question says so with `data-crumb` and the key layer
+  appends it while it is open — that is where "Inbox / Processing / Action /
+  Create project" comes from, and adding another one is an attribute
+- **the screen only gets its say on arrival.** `zen.views` is applied when the
+  trail's screen is not the one already recorded as open, so turning zen off by
+  hand on a screen the settings file names stays off — through stage two, a
+  reload, a bounced form. Without that, "zen can be toggled manually" would be
+  false exactly where the setting applies. Leaving for a screen the file does
+  not name puts the panels back, but only if the app was the one that took them
+  away: a zen you asked for is yours
+- **the decision happens in `render`**, not in `newPage`, because a handler
+  adds its steps in between and the trail is what the answer is read from
+- **unknown names in `zen.views` stop startup.** `internal/conf` checks the
+  shape of the list and `internal/web` checks the names against the screens it
+  has, which is where that list actually lives. Splitting it that way keeps
+  `conf` from holding a copy of the app's screens, and still fails loudly — a
+  settings file is read once, so a name that quietly matched nothing would look
+  set forever
+- **the page says which view it is on the pane**, `data-view`, because the key
+  layer needs the answer and the nav can be off. It is also the more honest
+  source: on a boosted post the new page is in the DOM before htmx has finished
+  with the URL, so the address bar is a step behind at exactly the wrong moment
 
 ## View help
 
@@ -738,20 +902,17 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 13 v
 - **while the processing screen is up, the slot it was reached from reads "Processing…"** — the Inbox's for an Inbox Zero run or for a single picked item, the Someday/Maybe one for an item you decided to move on (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen, and marked the Inbox even when the item being processed came from Someday/Maybe. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I"
 - **that slot drops its badge and its red for as long as it reads "Processing…"**. The count means the inbox needs emptying and the red says it loudly (see the exception above); both are answered by the fact that you are emptying it at that moment, and an alarm about the thing you are currently doing is noise. Nothing else carries the number at the moment either: the line that read *"Inbox Zero · N left"* was removed with the rest of the screen's prose (see "The processing screen"), so a run currently counts down invisibly. Whether it comes back, and where, is the open question in `research/process-subject-study.html` — and "nowhere" is a live answer, because a count you cannot see is also a count you cannot be discouraged by. The slot stays a link with its `g i` intact: `esc` is the way out (see "Processing from the Inbox") and the nav must not be the one route that quietly stops working
 
-- **doing mode borrows the same slot, and it reads "Doing…"** — the view you
-  were in when you pressed `d`, since that is the one that is highlighted. The
-  same trade as above and for the same reason: the mode has no entry of its own
-  and should not get one, the rail is where "where am I" is already answered,
-  and the view's name is not news while you are in the middle of one of its
-  items. The badge goes with the label, as it does for a run. The difference is
-  that this one is done in the browser rather than rendered: the mode is built
-  there out of the selected row (see "Doing mode"), so the label is taken and
-  put back the same way — exactly the markup that was lifted, and only if that
-  page is still the page on screen
-- **the slot stays a link both times.** In doing mode every key but `c` and
-  `esc` is swallowed, so `g n` will not take you out; the rail still will, and a
-  mode that could only be left one way would be a trap the moment that way was
-  forgotten
+- **doing does not borrow the slot; it highlights the view it was opened
+  from.** It used to read "Doing…" there, taken and put back in the browser,
+  because the mode was built out of the row and had nowhere else to say what it
+  was. It is a page now, and there is a panel whose whole job is saying where
+  you are: the title bar reads "Next actions / Doing" and the rail says which
+  view that is (see "Panels"). One place answers it, and the nav is left saying
+  the thing it always says
+- **the slot stays a link.** Every key works on both screens now — the
+  processing screen and doing alike — so `g n` is a way out of either, and the
+  rail is another. A screen that could only be left one way would be a trap the
+  moment that way was forgotten
 
 #### Keyboard view-jump overlay
 

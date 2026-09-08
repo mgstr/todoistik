@@ -32,15 +32,20 @@ once at startup — see implementation.md, "Settings file".
 
 ```sh
 cat > todoistik.conf <<'EOF'
-doing.show_nav = false     # keep the nav rail in doing mode (default false)
-doing.show_keybar = true   # keep the key bar too (default true)
-doing.show_timer = false   # start doing mode with the timer showing (default false; ctrl-t flips it)
-doing.timer_format = auto  # minutes, then H:MM past the hour. Or a pattern: H:MM, HH:MM, M
+zen.views = doing, processing  # screens that open with every panel off (default: these two)
+zen.show_timer = false         # start the doing screen with the timer showing (default false; ctrl-t flips it)
+zen.timer_format = auto        # minutes, then H:MM past the hour. Or a pattern: H:MM, HH:MM, M
 EOF
 ```
 
 No file means the defaults. A file with an unknown key, a line without an `=`,
-or a value that is not `true`/`false` refuses to start and says which line.
+a value that is not `true`/`false`, or a screen name the app does not have
+refuses to start and says which line. `zen.views =` with nothing after it is a
+legal answer and means no screen opens that way.
+
+Which panels are on the rest of the time — the title bar, the navigation rail
+and the key bar — is not in this file: it is screen state, set with `ctrl-v`
+and remembered in the database like the filter sets.
 
 ## APIs
 
@@ -92,8 +97,10 @@ internal/web/              HTTP and HTML — thin: talks to internal/app, never 
   server.go                routes, bearer-token/cookie auth, template funcs, the DayStart-on-every-request hook
   api.go                   the capture and read APIs (JSON)
   ui.go                    every UI page handler — one per view/action, one HTTP verb+path each
+  panels.go                which panels a screen wears, zen mode, and zen.views
+  panels_test.go
   static/                  style.css, app.js (the keyboard layer), vendored htmx.min.js
-  templates/                one .html per page; _layout.html holds the shared nav, the ? help overlay, and reusable partials (actionrow, actionformfields, filterloud)
+  templates/                one .html per page; _layout.html holds the shared nav, the title bar, the panel chooser, the ? help overlay, and reusable partials (actionrow, actionformfields, filterloud)
 ```
 
 ## Working on this codebase
