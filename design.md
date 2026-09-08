@@ -300,7 +300,7 @@ Opening a single item to work on it is not a view, and not an exception to this 
 
 A due date is shown in every view the item carrying it appears in, and an overdue one is marked loudly, the same way a stalled project is. A deadline is the one thing that can not wait for the right screen to be opened, which is why it is not left to the "Calendar" alone - that view is where deadlines are ordered and asked about, not where they are learned of.
 
-Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - which filters are on and how many items they are hiding - with the reset next to it, because a view quietly showing part of itself is exactly how a view stops being trusted.
+Filters are the one piece of state a view remembers, and they are not items: they decide which items a query returns, and never what exists. Nothing is created, moved or lost by filtering, and turning every filter off gives the complete list back. A filtered view says so loudly - it shows the line it is filtered by and how many of its items are on the screen, with taking it all off one keystroke away - because a view quietly showing part of itself is exactly how a view stops being trusted. See "The filter line".
 
 **Ages are hidden until they are asked for.** Every list can say how old the things on it are - how long an action has been next, how long an idea has sat, when an entry was written - and that answer decides something two or three times a week and is noise on every other read. So the app carries one flag for it, and one for the whole app rather than one per view: ages off, which is how it starts, or ages on. It is not a filter and must not be read as one. Filtering changes which items the view returns and is therefore something the view has to confess to; this leaves a field off rows that are all still there, and hides nothing that could be acted on. Where the flag stands is written in the corner of the key bar, because a screen that can be either way has to say which way it is, and it is remembered the way a filter set is - the answer to "show me the dates" should not have to be given again after every jump between views.
 
@@ -319,22 +319,35 @@ Some screens open in zen without being asked, because they are screens you are i
 
 **Nothing else changes when a panel goes.** Every key still works with the bar hidden, every view is still reachable with the rail hidden: the bar lists the keys, it does not own them, and hiding a list of where you could go does not close the doors. A panel is a thing shown, never a thing enabled - which is what makes turning them off safe enough to be worth offering.
 
+### The filter line
+Filtering is one line, typed, and there is nothing on the screen until it is asked for. A view opens as its list and nothing else; one key puts up a bar above it, and the same key takes the bar away and every filter with it.
+
+The bar holds three things and no labels: **how many items are on the screen**, the **line**, and **apply**.
+
+- **the count is the first thing, and it is one number when nothing is filtered.** Filtered, it reads `3 of 41` - what you are looking at, out of what the view holds. That is the loudness "Views" asks for, said in the place you are already looking rather than in a sentence underneath
+- **the line is written in the notation an item is written in** (see "Writing an action"): `@home` for the context, `#car` for a tag, `#short` and `#focus` for the fields that wear a tag's notation, and everything else is words to match the name by. One notation for describing a thing and for asking for it, so there is nothing extra to learn and no second set of names
+- **apply is dead until the line has changed.** A button that can always be pressed says nothing about whether pressing it would do anything; this one says whether what you see is what you asked for
+- **the app completes the names it knows**, because they are the names it will accept - see "Contexts" and "Tags", where the rule that a name comes off a remembered list rather than being typed fresh comes from
+- **a name it does not know stops the line**, marked where it is written. It is either a name that is new or a name that is mistyped, and only the person typing knows which, so the app asks: create it, use one of at most three near ones, or take it out. Nothing is filtered until it is answered, because a filter with a name in it that means nothing is a list you cannot trust
+- **closing the bar clears the filters.** A view narrowed by a box that is not on the screen is the quiet, untrustworthy filtering this document exists to avoid, and it is the reason the bar is the *only* thing that can hide filters - a view that is filtered opens with its bar up, whatever you left it as
+
+The filter set is still remembered per view (see "Views"), so coming back to a view finds it as you left it, filtered and saying so. What is remembered is the filters, not the line: the line is written back out of them, in one fixed order, so the same filter set always reads the same way whatever order it was typed in.
+
 ### Filtering by name
 Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive**.
 
-Matching is case insensitive. Several words may be given and **all** of them have to be present, in any order and anywhere in the name - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why something matched. Clearing the box is how it resets.
+Matching is case insensitive. Several words may be given and **all** of them have to be present, in any order and anywhere in the name - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why something matched. Every word of the line that is not a name is part of it, and emptying the line is how it resets.
 
 What counts as the name is whatever names the item on that screen: the title of an action or a project, and for a someday/maybe item its text, since that is all it has. For a **project**, the titles of the actions under it count as part of its name as well - a project is remembered by a step in it at least as often as by its outcome, and hiding a project whose action matched would be hiding the answer.
 
 The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something. Processing a single item ahead of the queue is a different thing and is allowed - it takes nothing out of sight - see "Inbox Zero". Neither does **Today**, for a related reason - see "Today".
 
 ### Filtering by tag
-The **tag cloud** is the other shared filter: every tag in use, each one toggled in or out of the filter. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
+Tags are the other shared filter, written `#car` in the line, as many as you like. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
 
 - selected tags combine with **OR**: `#car` and `#finance` selected means everything about either
 - an item with **no** tags is excluded as soon as any tag is selected: the filter asks "is this about #car", and "about nothing in particular" answers no. The context filter behaves the same way and for the same reason - see "Filtering by context", where the opposite was tried first
-- clearing the selection is how it resets, and means all tags again, never none. Clearing the whole selection is **one control**, not one press per tag: a filter you take off in four presses is one you leave on, and unchecking them one at a time asks the same question four times before it can be answered
-- **only tags with something under them are offered**, the same rule the context filter follows and for the same reason - see "Filtering by context". A tag with nothing in this view is an answer that leads to an empty list. What is offered is therefore the tags of the items the *other* filters have left visible, so the cloud narrows as the view does; a tag that is selected stays on the cloud whatever the rest of the filters do to it, because a filter you cannot see is a filter you cannot turn off
+- taking a tag out of the line is how it resets, and no tag in the line means all tags again, never none
 - it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
 
 The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by. **Today** carries no filters at all - see "Today".
@@ -342,11 +355,10 @@ The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they ca
 ### Filtering by context
 Only **Next actions** carries it, because it is the only view that asks "what can I do now" - see "Contexts" for what a context is and "Next actions" for the rest of that screen's filters.
 
-It is a row of **exclusive** answers, **all** first and then every context in use, alphabetically. One at a time, because an action carries one context and standing somewhere is one answer; a set of checkboxes would ask you to describe your situation, and this row asks you to name it.
+**One context at a time**, written `@home` in the line. An action carries one context and standing somewhere is one answer, so a second one in the line is refused the way an unknown name is - it would be asking for the actions that need two places at once, which is none of them.
 
-- **only contexts with something under them are offered.** A context you have defined but have nothing waiting in is an answer that leads to an empty list, and offering it is the app inviting you to prove there is nothing there. The row is therefore a property of the view and not of the remembered list of contexts (see "Contexts") - what is on it changes as the work does, and as the other filters do: with `#car` selected, the contexts on offer are the contexts of the car actions
-- **an action with no context appears under "all" and nowhere else.** The opposite was tried first, on the argument that "nothing required" is doable everywhere and a filter about prerequisites has nothing to exclude it by. In use it read as a leak: picking `@home` and being shown four things that are not about being at home makes the answer to "what can I do here" longer than it should be, and the actions with no context are exactly the ones that are never *not* available, so they are never the ones you are looking for by asking. "All" is where the whole list lives, and it is one press away
-- **turning it off is picking "all"**, which is the same act as picking a context rather than a second control to find. That is what makes it safe for the filter to be remembered when you leave the view, the way every other filter is (see "Views")
+- **an action with no context is shown only when no context is asked for.** The opposite was tried first, on the argument that "nothing required" is doable everywhere and a filter about prerequisites has nothing to exclude it by. In use it read as a leak: asking for `@home` and being shown four things that are not about being at home makes the answer to "what can I do here" longer than it should be, and the actions with no context are exactly the ones that are never *not* available, so they are never the ones you are looking for by asking. The unfiltered list is where they live, and it is one keystroke away
+- **turning it off is taking it out of the line**, like every other filter. There is no second control for resetting one filter, because there is one control for all of them: the line
 
 The views:
 
@@ -396,11 +408,11 @@ There is no separate "what can I do right now" screen. It was this same query wi
 #### Filters
 The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
-- **context** - one at a time, "all" or a context in use, and only the contexts that have something under them - see "Filtering by context". An action with no context is found under "all".
-- **tags** - the shared tag cloud, several at a time, combining with **OR**, and one control that clears the whole selection - see "Filtering by tag"
-- **name** - the shared name filter, matching the action title - see "Filtering by name"
-- **duration** - one or several buckets, combined with OR: what fits in the time available.
-- **needs focus** - three states: **all**, **exclude** (drop the actions that can not be done while tired) and **only** (keep nothing else). Default is all. Exclude is the tired question, and only is its opposite - an hour of real attention is worth spending on the actions that need one, and nothing is more wasteful than spending it on things that could have been done half asleep.
+- **context** - `@home`, one at a time - see "Filtering by context". An action with no context is shown only when the line asks for no context
+- **tags** - `#car`, as many as you like, combining with **OR** - see "Filtering by tag"
+- **name** - every word in the line that is not a name, all of them having to match - see "Filtering by name"
+- **duration** - `#short`, `#medium`, `#long`, one or several, combined with OR: what fits in the time available
+- **needs focus** - `#focus` keeps only the actions that need real attention. An hour of it is worth spending on those, and nothing is more wasteful than spending it on things that could have been done half asleep. The opposite question - *drop what I cannot do while tired* - is not in the line yet, and is the one filter this notation still owes
 
 Resetting is a first class operation, because a filter that is awkward to remove is a filter that quietly stays on:
 - each filter resets on its own - clearing the context selection means all contexts again, never none
@@ -503,7 +515,7 @@ The views are readable from outside the app, so that an AI can analyse what is g
 
 - what it returns is a **view**. The caller states its own filters as request parameters - the same filters the view itself offers, with the same semantics, and nothing beyond them - and no parameters means the complete, unfiltered view
 - the caller's filters are its own: the screen's filter state is the screen's, and a read neither sees it nor touches it. An AI reading "Next actions" is asking its own question, not looking over your shoulder, and its answer must not depend on what you left toggled on last night
-- there is no query language, and nothing can be asked for that a view does not already offer. Every possible response is a state the corresponding screen could be put in by setting its filters, so the API can never show a list the app itself could not - which is the property that matters. A caller composing arbitrary queries would be looking at a screen that cannot exist in the app, and that is the same reason saved filters are out of scope (see "Deliberate omissions")
+- the caller may spell its filters out one parameter at a time, or write the same line the screen is filtered with (see "The filter line") - `?q=@home #car` - which is the shorter way to say the same thing and the way a person would say it. Either way **nothing can be asked for that a view does not already offer**. Every possible response is a state the corresponding screen could be put in by setting its filters, so the API can never show a list the app itself could not - which is the property that matters. A caller composing arbitrary queries would be looking at a screen that cannot exist in the app, and that is the same reason saved filters are out of scope (see "Deliberate omissions")
 - it is read only. Nothing is created, edited or completed through it. Whatever an outside tool wants to put into the app arrives in the inbox as a capture, and is decided about by hand in Inbox Zero
 - reads are not audited. The audit log records what happened to an item, and a read makes no change worth recording. The one thing it can trigger is the daily clearing of `#today`, since an API read counts as first use of a new day, and that is never audited either - see "#today"
 
