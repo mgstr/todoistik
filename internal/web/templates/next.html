@@ -1,37 +1,4 @@
 {{template "top" .}}
-{{template "counthead" (len .Data)}}
-<form method="get" action="/next" class="filters" data-autosubmit>
-  <input type="hidden" name="f" value="1">
-  <input name="name" value="{{.Filters.Name}}" placeholder="filter by name (/)" class="namebox">
-  <fieldset><legend>Context</legend>
-    {{$f := .Filters}}
-    {{range .ContextCloud}}
-      <label class="chip"><input type="checkbox" name="context" value="{{.}}" {{if has $f.Contexts .}}checked{{end}}>@{{.}}</label>
-    {{end}}
-  </fieldset>
-  <fieldset><legend>Tags</legend>
-    {{range .TagCloud}}
-      <label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>
-    {{end}}
-  </fieldset>
-  <fieldset><legend>Duration</legend>
-    {{range .Durations}}
-      <label class="chip"><input type="checkbox" name="duration" value="{{.}}" {{if has $f.Durations .}}checked{{end}}>{{.}}</label>
-    {{end}}
-  </fieldset>
-  <select name="focus" title="needs focus">
-    <option value="">focus: all</option>
-    <option value="exclude" {{if eq $f.Focus "exclude"}}selected{{end}}>focus: exclude (tired)</option>
-    <option value="only" {{if eq $f.Focus "only"}}selected{{end}}>focus: only</option>
-  </select>
-  <select name="sort" title="order">
-    <option value="age" {{if ne $f.Sort "title"}}selected{{end}}>by age</option>
-    <option value="title" {{if eq $f.Sort "title"}}selected{{end}}>by title</option>
-  </select>
-  <label class="chip"><input type="checkbox" name="desc" value="1" {{if $f.Desc}}checked{{end}}>reverse</label>
-  <button>Apply</button>
-  <a href="/next?f=1" class="reset">Reset all</a>
-</form>
 {{template "filterloud" .}}
 {{if not .Data}}<p class="empty">Nothing here. Either everything is done, or the filters are hiding it.</p>{{end}}
 <ul class="list">
