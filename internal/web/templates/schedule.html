@@ -1,8 +1,11 @@
 {{template "top" .}}
 {{$s := .Data}}
 <div class="item">
-  <p class="crumb"><a href="/scheduler">Scheduler</a> · created {{age $s.CreatedAt}}
-    {{if $s.LastFiredAt}} · last fired {{age $s.LastFiredAt}}{{else}} · never fired{{end}}
+  {{/* only the ages hide with ^t. A rule that has never fired, and the date it
+       fires next, are not ages — and the next firing is the one thing on this
+       line you would come here to read. */}}
+  <p class="crumb"><a href="/scheduler">Scheduler</a><span class="agetext"> · created {{age $s.CreatedAt}}{{if $s.LastFiredAt}} · last fired {{age $s.LastFiredAt}}{{end}}</span>
+    {{if not $s.LastFiredAt}} · never fired{{end}}
     {{if $s.NextFire}} · next {{$s.NextFire}}{{end}}
   </p>
   <h1>{{$s.RuleReadable}}</h1>

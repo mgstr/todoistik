@@ -6,11 +6,6 @@
      not filed, and moving it between projects is what Detach and Attach are
      for (design.md, "Reshaping items"). */}}
 <div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
-  <p class="crumb">
-    created {{age $a.CreatedAt}}
-    {{if $a.BecameNextAt}} · next for {{age $a.BecameNextAt}}{{end}}
-    {{if $a.CompletedAt}} · <b>completed</b>{{end}}
-  </p>
   {{range $a.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
   <form method="post" action="/action/{{$a.ID}}" id="itemform" class="stack" data-dirty-save>
@@ -18,6 +13,18 @@
     {{template "actionfields" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description
       "Fixed" (or $a.ProjectTitle "<standalone>") "Focus" false)}}
   </form>
+
+  {{/* The dates come last, over the buttons. They are the one thing on this
+       screen that is read rather than written, and nothing here is decided by
+       them: an action is opened to change its title or its meta line, and a
+       screen that opens with two timestamps has put its least useful line
+       where the eye lands first. Over the buttons they are still the last
+       thing read before Complete or Delete is pressed, which is the moment
+       "next for three weeks" actually means something. */}}
+  <p class="stamps">
+    {{if $a.CompletedAt}}<b>completed</b>{{end}}
+    <span class="agetext">created {{age $a.CreatedAt}}{{if $a.BecameNextAt}} · next for {{age $a.BecameNextAt}}{{end}}</span>
+  </p>
 
   {{/* Save is in the bar with the rest, though it belongs to the form above:
        one row of everything this screen can do, in one order, wherever the

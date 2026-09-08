@@ -182,6 +182,14 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
    "Ages are hidden by default". The rule is on the pane and not the row, so
    one class settles every list on the screen at once */
 .pane:not(.ages) .age { display: none; }
+/* ...and the same flag reaches the ages written into prose on a detail page,
+   which used to be the one exception to it. It was defended as "you went there
+   to look", and that is true of an audit row too: what you go to an action for
+   is its title and its meta line, and a flag called "ages hidden" that leaves
+   two of them on the screen is a flag with a footnote. Only the ages go — a
+   completed marker, a schedule that has never fired and its next firing are
+   not ages and stay put. */
+.pane:not(.ages) .agetext { display: none; }
 /* the age reads as its own field rather than as more of the title, which is
    what a chip buys that small grey text does not */
 .age {
@@ -395,6 +403,14 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 #draft-dialog .pickerbox[readonly] { cursor: default; color: var(--muted); }
 
 .inline-label { flex-direction: row !important; align-items: center; }
+/* the dates over the buttons on an action's page: the same muted line the
+   crumb is set in, sat where the crumb used to be read *from* rather than at
+   the top of the screen. A flex row so that the line simply disappears when
+   ^t takes the ages away, rather than leaving an empty one behind. */
+.stamps {
+  display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap;
+  color: var(--muted); font-size: .9rem; margin: 1rem 0 0;
+}
 .actionsbar { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; align-items: center; }
 
 .process { max-width: 40rem; margin: 2rem auto; }
