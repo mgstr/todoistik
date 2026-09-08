@@ -111,7 +111,7 @@ Fields:
 Rules:
 - items become someday/maybe items from the inbox, as one of the outcomes of Inbox Zero
 - when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
-- `snoozeUntil` excludes the item from the weekly review requirement until that date, so that a long someday/maybe view stays reviewable
+- someday/maybe items are reviewed on their own, longer cadence - a month by default rather than the week everything else gets (see "Weekly review"). A `snoozeUntil` does not exclude an item from that walk: the date is itself a claim - "this becomes worth looking at then" - and the review is the only place a stale one is caught
 
 ### Action
 An action is a single (non-breakable into smaller parts) task, that should be done in order to move to the desired goal.
@@ -177,9 +177,10 @@ Every one of these is a date and never a time of day, and they are all read agai
 A snoozed item is **not hidden**. It stays visible and is shown differently, to indicate that it is not yet ready to be worked on. Hiding it would be confusing: a project whose only action had become invisible would look stalled while the app insists it is not.
 
 What a snooze actually does:
-- it excludes the item from the weekly review requirement until the date passes
 - a snoozed **project** is exempt from the stalled project check
 - a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. The stalled project check knows about snoozed actions. This is the same exemption a waiting for action gets, and for the same reason
+
+What a snooze does **not** do is exempt the item from the weekly review. The snooze date is a claim about the future, and claims go stale like everything else: a wrong one either wakes the item at a moment that no longer means anything or keeps it asleep past the moment that did. The review is the only place that can be noticed, so a snoozed item is walked like any other - and checking its date is part of what walking it means.
 
 The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as making it a someday/maybe item. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
@@ -269,7 +270,7 @@ An action is written in four fields and no more: its **title**, its **project**,
 | `#parked` | inside a project: written down in advance, not yet a next action |
 | `#name` | a tag |
 | `due:2026-09-20` | a real deadline |
-| `snooze:2026-09-20` | out of sight until then |
+| `snooze:2026-09-20` | not ready to be worked on until then |
 
 The point is that the form asks for nothing that has to be decided. A row of controls asks every question of every action, and most of them have no answer worth giving - a line asks one question, and you write only what is true. It is also the same gesture capture already is, so the two ends of the process are typed the same way.
 
@@ -288,7 +289,7 @@ A project is written in three fields: its **title**, its **definition of done**,
 | written | means |
 |---|---|
 | `#name` | a tag |
-| `snooze:2026-09-20` | out of sight until then |
+| `snooze:2026-09-20` | not ready to be worked on until then |
 
 - **a project's line is short because a project carries little.** It has no context, no size, no deadline and nobody it is waiting on: those describe doing something, and a project is not something you do - it is the outcome that a list of actions is aimed at. Writing one of them here is **refused by name** rather than dropped, because a size written on a project is a mistake about where the thing belongs, and a silent drop would leave that mistake believed.
 - **it is the same line in both places it is written.** The project screen of Inbox Zero and a project's own page use it identically, so a project's tags are not written one way while it is being made and another way afterwards.
@@ -374,7 +375,7 @@ This is the only view with a rule attached to being non-empty: it must be emptie
 ### Someday/Maybe
 The someday/maybe items - raw ideas worth revisiting some time, but not now.
 
-- it is reviewed during the weekly review, skipping items that are still snoozed
+- it is reviewed during the weekly review, snoozed items included, on its own, longer cadence - see "Weekly review"
 - the age shown is the age of the idea, from its creation date
 - it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about names only: a someday/maybe item is a raw capture with nothing on it to narrow by
 
@@ -544,7 +545,7 @@ For each item the only question asked is: what is it? The answer is one of:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action. Actions are added one at a time, each written in the same form an action is written in anywhere else (see "Writing a project"), and the list can be reordered and pruned before the project is made - what is being decided here is the shape of the plan, and a plan is not written in the order it occurs to you. Every one of them becomes a next action, so none can be parked: a project created already stalled is a contradiction. Delegation is carried by each action's own meta line, because a delegated action belongs to a project exactly as validly as one you will do yourself
-- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly, and a `snoozeUntil` date may be set to exclude it from the weekly review requirement until that date - both optional, and both done on the item itself once it has landed rather than as a condition of filing it. Answering "what is it?" is the decision being asked for here; wording an idea better is a separate act, and one that reads differently once the idea is sitting among the others it will be reviewed with.
+- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly, and a `snoozeUntil` date may be set to say when it becomes worth looking at - both optional, and both done on the item itself once it has landed rather than as a condition of filing it. Answering "what is it?" is the decision being asked for here; wording an idea better is a separate act, and one that reads differently once the idea is sitting among the others it will be reviewed with.
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
@@ -589,14 +590,16 @@ The review is guided, and runs in a fixed order:
 0. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual.
 1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
 2. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
-3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are skipped.
+3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are walked too - the snooze date is one of the things being asked about.
 4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
-5. **Someday/Maybe** - promote, re-snooze or trash. Snoozed items are skipped.
+5. **Someday/Maybe** - promote, re-snooze or trash, snoozed items included. This step runs on its own, longer cadence - see below.
 6. **Scheduler** - walk the schedules: is this still wanted, and is the rule still right? A schedule set eight months ago goes on firing whether or not the reason for it still exists, and this is the only place that can be noticed before it lands in the inbox again.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
-Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item that is not snoozed and whose `lastReviewedAt` is older than a week is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
+Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item whose `lastReviewedAt` is older than its review period is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
+
+The review period is a week for everything except someday/maybe items, which get a month by default (a setting - one number, in days). A parked idea does not change from week to week, and being asked every single review about a list that mostly answers "still parked" is the kind of chore that gets the whole review skipped - which would cost the views their trustworthiness, the one thing the review exists to protect. Snoozing does not stretch the period either way: a snoozed item is still walked when its period runs out, because its snooze date is one of the claims being reviewed.
 
 ### Editing items
 Every item stays editable after it is created, and every edit is recorded in the audit log (see "Audit entry"). Nothing in the app is written once.
