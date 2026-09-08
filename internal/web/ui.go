@@ -32,9 +32,14 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
 	"settings":  {"Settings", "the remembered tags and contexts — a name still in use cannot be removed"},
 
-	// Reached only from the Inbox, so it has no nav entry and no slug of its
-	// own to be keyed by — the process page asks for this one explicitly.
-	"process": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. Esc leaves it exactly as it was."},
+	// Reached only from the Inbox, so it has no nav entry — but it is a screen
+	// with a name, which the title bar's trail says out loud and zen.views can
+	// name (see "Panels"). The process page asks for this one explicitly.
+	"processing": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. Esc leaves it exactly as it was."},
+
+	// Doing is a view now, reached from a row rather than from the nav, and it
+	// is the other screen zen.views names by default.
+	"doing": {"Doing", "one action, alone, and nothing else on the screen — c completes it, esc goes back"},
 
 	// An action's own page sits under no view, so it would have had no panel
 	// at all — but it holds the box an action is written in, and that is what
@@ -63,10 +68,36 @@ func (p *page) help(key string) *page {
 	return p
 }
 
+// crumb is one step of the title bar's trail: the view, then whatever is
+// being done inside it. Slug is the screen's own name where the step is a
+// screen — that is what zen.views names (see "Panels") — and empty where the
+// step is an item's title or a stage that is not a place of its own.
+type crumb struct {
+	Slug  string
+	Name  string
+	Count int
+	// Alert: the count is the one design.md says loudly. Only the inbox has
+	// one, and the title bar says it the way the nav says it — with the nav
+	// off, this is the only place left that can (see implementation.md,
+	// "Panels").
+	Alert bool
+}
+
+// step adds one level to the title bar's trail: where you now are inside the
+// view you are in. A step that is a screen of its own gives its slug, so that
+// zen.views can name it; a step that is an item's own title gives none.
+func (p *page) step(name, slug string) *page {
+	p.Trail = append(p.Trail, crumb{Slug: slug, Name: name})
+	return p
+}
+
 // page is the data every template gets.
 type page struct {
 	Title        string
 	View         string // active nav entry
+	Trail        []crumb
+	Panels       panels
+	Timer        bool   // this screen counts its own minutes, so ^t is the timer here
 	HelpName     string // the view's full name, for the ? panel
 	HelpText     string // what this view is for, for the ? panel
 	Processing   bool   // the nav slot named by View reads "Processing…" instead
@@ -97,6 +128,16 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p.Nav, _ = s.app.NavCounts()
 	if p.Nav == nil {
 		p.Nav = &app.NavCounts{}
+	}
+	// the trail starts at the view, with the same count the nav badge shows —
+	// one number, one rule, whichever panel you are reading it off. A screen
+	// under no view starts at its own title instead, which is all it has.
+	if h, ok := viewHelp[view]; ok {
+		c := crumb{Slug: view, Name: h.Name, Count: p.Nav.For(view)}
+		c.Alert = view == "inbox" && c.Count > 0
+		p.Trail = []crumb{c}
+	} else {
+		p.Trail = []crumb{{Name: title}}
 	}
 	p.TagCloud, _ = s.app.TagsInUse()
 	p.ContextCloud, _ = s.app.ContextsInUse()
@@ -145,6 +186,66 @@ func (s *Server) agesToggle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	back(w, r)
+}
+
+// panelsToggle answers one press in the ctrl-v dialog: a panel, or zen. Like
+// the ages flag it writes what was stored rather than what the page sent, so
+// two presses in flight cannot leave the screen saying the opposite of what
+// the last one meant — and it comes straight back to the page it was pressed
+// on, which is what closes the dialog.
+func (s *Server) panelsToggle(w http.ResponseWriter, r *http.Request) {
+	which := r.PathValue("which")
+	if which != "zen" && !isPanel(which) {
+		http.NotFound(w, r)
+		return
+	}
+	if err := s.savePanels(s.panelState().toggle(which)); err != nil {
+		httpError(w, err)
+		return
+	}
+	back(w, r)
+}
+
+func isPanel(name string) bool {
+	for _, p := range panelNames {
+		if p == name {
+			return true
+		}
+	}
+	return false
+}
+
+// doingData is the whole of the doing screen: the action, and where leaving it
+// goes. Nothing is queried for it that the action does not already hold —
+// design.md, "Doing one action" is explicit that the title is all it shows.
+type doingData struct {
+	Action *app.Action
+	Back   string
+}
+
+// doingPage is one action, alone. It is a view like any other now: its own
+// URL, so it survives a reload and a back button, and it takes part in the
+// panel rules rather than having a set of furniture settings of its own (see
+// design.md, "Doing one action").
+//
+// Where it goes back to rides on the URL rather than on the Referer, because
+// the URL is the thing that survives the reload. An action that is already
+// done has nothing left to do, so the screen refuses to open on it.
+func (s *Server) doingPage(w http.ResponseWriter, r *http.Request) {
+	act, err := s.app.Action(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	home := localPath(r.URL.Query().Get("from"), "/next")
+	if act.CompletedAt != nil {
+		http.Redirect(w, r, home, http.StatusSeeOther)
+		return
+	}
+	p := s.newPage(act.Title, viewOf(home), r).help("doing").step("Doing", "doing")
+	p.Timer = true
+	p.Data = doingData{Action: act, Back: home}
+	s.render(w, "doing.html", p)
 }
 
 func filterQuery(f app.Filters) string {
@@ -474,7 +575,8 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, listFor(src), http.StatusSeeOther)
 			return
 		}
-		s.render(w, "process_done.html", s.newPage("Inbox Zero", "inbox", r))
+		s.render(w, "process_done.html", s.newPage("Inbox Zero", "inbox", r).
+			help("processing").step("Processing", "processing"))
 		return
 	}
 	d.One = q.Get("one") != ""
@@ -515,9 +617,12 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 	case "project":
 		tmpl = "process_project.html"
 	}
-	p := s.newPage("Processing", d.Src, r).help("process")
-	if d.As == "action" {
-		p.notation(s)
+	p := s.newPage("Processing", d.Src, r).help("processing").step("Processing", "processing")
+	switch d.As {
+	case "action":
+		p.step("Action", "").notation(s)
+	case "project":
+		p.step("Project", "")
 	}
 	p.Processing = true
 	p.Data = d
@@ -1023,7 +1128,7 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	d := &projectPageData{Project: proj, Ask: r.URL.Query().Get("ask") == "1"}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
-	p := s.newPage(proj.Title, "projects", r)
+	p := s.newPage(proj.Title, "projects", r).step(proj.Title, "")
 	p.Data = d
 	s.render(w, "project.html", p)
 }
@@ -1091,7 +1196,7 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 // --- schedules -----------------------------------------------------------
 
 func (s *Server) scheduleNewPage(w http.ResponseWriter, r *http.Request) {
-	p := s.newPage("New schedule", "scheduler", r)
+	p := s.newPage("New schedule", "scheduler", r).step("New schedule", "")
 	s.render(w, "schedule_new.html", p)
 }
 
@@ -1110,7 +1215,7 @@ func (s *Server) schedulePage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	p := s.newPage("Schedule", "scheduler", r)
+	p := s.newPage("Schedule", "scheduler", r).step(sched.Text, "")
 	p.Data = sched
 	s.render(w, "schedule.html", p)
 }
@@ -1140,7 +1245,7 @@ func (s *Server) somedayItemPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	p := s.newPage("Someday/Maybe", "someday", r)
+	p := s.newPage("Someday/Maybe", "someday", r).step(it.Text, "")
 	p.Data = it
 	s.render(w, "somedayitem.html", p)
 }
@@ -1251,7 +1356,7 @@ func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sort.SliceStable(items, func(i, j int) bool { return items[i].LastReviewedAt.Before(items[j].LastReviewedAt) })
-	p := s.newPage("Review · "+step, "review", r)
+	p := s.newPage("Review · "+step, "review", r).step(step, "")
 	p.Data = map[string]any{"Step": step, "Items": items}
 	s.render(w, "review_step.html", p)
 }

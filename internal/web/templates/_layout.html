@@ -11,7 +11,10 @@
 <body hx-boost="true">
 {{/* The nav is a rail down the left, grouped: vertical space is cheap enough
      to say that the thirteen views are five different kinds of place, which a
-     row could only imply by adjacency. See implementation.md, "Navigation". */}}
+     row could only imply by adjacency. See implementation.md, "Navigation".
+     It is one of the three panels, and a panel that is off is not on the page
+     at all rather than hidden by a rule — see implementation.md, "Panels". */}}
+{{if .Panels.Nav}}
 <nav>
   <button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (q)">+</button>
   <div class="grp">Capture</div>
@@ -33,16 +36,24 @@
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/settings" class="{{if eq .View "settings"}}on{{end}}" title="g e">Settings</a>
 </nav>
-{{/* The settings file's answers ride on the pane, where the keyboard layer
-     can read them: doing mode is put together in the browser out of what is
-     already on the page, and these two are the only part of it the app does
-     not derive from the row itself (implementation.md, "Doing mode"). */}}
-<div class="pane {{if .Ages}}ages{{end}}"
-  {{if .Conf.DoingShowsNav}}data-doing-shows-nav{{end}}
-  {{if .Conf.DoingShowsKeybar}}data-doing-shows-keybar{{end}}
-  {{if .Conf.DoingShowsTimer}}data-doing-shows-timer{{end}}
-  data-doing-timer-format="{{.Conf.DoingTimerFormat}}">
+{{end}}
+{{/* The pane says what the page is, for the keyboard layer to read: which
+     view this is (the nav can be off, and the answer must not be), whether
+     the inbox is asking to be emptied, and what the settings file said about
+     the timer. Attributes and not a script block, so there is one source of
+     truth and it is the server's (implementation.md, "Stack"). */}}
+<div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}}"
+  data-view="{{.View}}"
+  {{if .Nav.Inbox}}data-inbox-full{{end}}
+  {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
+  data-zen-timer-format="{{.Conf.ZenTimerFormat}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
+{{/* The title bar: where you are, and how deep in. The view leads, carrying
+     the same count the nav badge carries, and every step inside it follows —
+     see implementation.md, "Panels". */}}
+{{if .Panels.Title}}
+<header id="titlebar">{{range .Trail}}<span class="crumb">{{.Name}}{{if .Count}}<span class="badge navcount {{if .Alert}}alert{{end}}">{{.Count}}</span>{{end}}</span>{{end}}</header>
+{{end}}
 <main>
 {{end}}
 
@@ -54,13 +65,39 @@
      bar, where the app's own state is read rather than this view's; the label
      says which way the flag is set, because that is the thing being shown.
      The form itself is hidden — it has nothing to show that the bar does not
-     already say, and the class it flips sits on the pane above. */}}
+     already say, and the class it flips sits on the pane above.
+
+     Not on a screen that counts its own minutes: there ^t is the timer, and
+     "show me the time" must never be two keys or one key with two answers
+     (implementation.md, "Doing"). */}}
+{{if not .Timer}}
 <form method="post" action="/ages" hidden data-key="^t" data-global
       data-key-label="ages {{if .Ages}}shown{{else}}hidden{{end}}">
   <button>toggle ages</button>
 </form>
-<footer id="keybar" aria-hidden="true"></footer>
+{{end}}
+{{if .Panels.Keybar}}<footer id="keybar" aria-hidden="true"></footer>{{end}}
 </div>
+{{/* The panels, and the one answer that takes all of them off at once. Four
+     real forms in a dialog: pressing a key here does what clicking does, the
+     post writes the new state, and coming back to this page is what closes
+     the dialog — no client-side state anywhere in it. Each label says which
+     way its panel is set, the way the ages entry does in the bar. */}}
+<dialog id="panels-dialog" aria-labelledby="panels-title">
+  <h2 id="panels-title">Show</h2>
+  <form method="post" action="/panels/title" data-key="t" data-key-label="title">
+    <button>Title<span class="state">{{if .Panels.Title}}shown{{else}}hidden{{end}}</span></button>
+  </form>
+  <form method="post" action="/panels/nav" data-key="n" data-key-label="navigation">
+    <button>Navigation<span class="state">{{if .Panels.Nav}}shown{{else}}hidden{{end}}</span></button>
+  </form>
+  <form method="post" action="/panels/keybar" data-key="k" data-key-label="keys">
+    <button>Keyboard shortcuts<span class="state">{{if .Panels.Keybar}}shown{{else}}hidden{{end}}</span></button>
+  </form>
+  <form method="post" action="/panels/zen" data-key="z" data-key-label="zen">
+    <button>Zen mode<span class="state">{{if .Panels.Zen}}on{{else}}off{{end}}</span></button>
+  </form>
+</dialog>
 <dialog id="capture-dialog" aria-labelledby="capture-title">
   <form method="post" action="/capture">
     <h2 id="capture-title">Add to Inbox</h2>
@@ -83,11 +120,6 @@
      cannot drift from it. */}}
 {{define "count"}}{{if .}}<span class="count">{{.}}</span>{{end}}{{end}}
 
-{{/* Most list views have a header holding nothing but the count, so at zero
-     there is no header either — an empty sticky strip above the filters is
-     exactly the ugliness the rule is about. */}}
-{{define "counthead"}}{{if .}}<header class="pagehead"><span class="count">{{.}}</span></header>{{end}}{{end}}
-
 {{define "filterloud"}}
 {{if .Filters.Active}}<p class="filtered">Filtered — {{.Hidden}} item(s) hidden. <a href="?f=1">Reset all filters</a></p>{{end}}
 {{end}}
@@ -95,7 +127,7 @@
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
-    {{if not $a.CompletedAt}}data-doing{{end}}>
+    {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}>
   {{if not .HidePick}}
   <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
     <button title="pick for today (t)" class="pick {{if hasTag $a.Tags "today"}}picked{{end}}">●</button>

@@ -19,16 +19,18 @@ import (
 // Config is the whole of it. Every field is also a key in the file, and the
 // zero value of this struct is not the default set — Defaults() is.
 type Config struct {
-	// DoingShowsNav: the nav rail stays on the screen in doing mode.
-	DoingShowsNav bool
-	// DoingShowsKeybar: so does the key bar.
-	DoingShowsKeybar bool
-	// DoingShowsTimer: the minutes since this action went on the screen are
-	// shown beside it. The default only — ctrl-t flips it while the mode is up.
-	DoingShowsTimer bool
-	// DoingTimerFormat: how that number is written. "auto", or a pattern of
+	// ZenShowsTimer: the minutes since this action went on the screen are
+	// shown beside it. The default only — ctrl-t flips it while it is up.
+	ZenShowsTimer bool
+	// ZenTimerFormat: how that number is written. "auto", or a pattern of
 	// H/HH/M/MM with anything else taken literally.
-	DoingTimerFormat string
+	ZenTimerFormat string
+	// ZenViews: the screens that open in zen mode — every panel off — without
+	// being asked. Named by the same slugs the title bar shows a trail of.
+	// Zen is still one keystroke away from being turned off again on any of
+	// them, and the panels come back on the way out (see implementation.md,
+	// "Zen mode").
+	ZenViews []string
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -40,17 +42,16 @@ const TimerAuto = "auto"
 // Defaults are what the app runs with when there is no file at all, and what
 // any key left out of the file falls back to.
 //
-// The rail goes and the bar stays: doing mode exists to take away the list of
-// other places you could be, which is exactly what the rail is, while the bar
-// in that mode says `c done` and `esc back` and nothing else — the two keys
-// that are the whole of the mode. The timer is off, because a clock on the
-// wall is a thing you ask for. All three are one line away from the opposite.
+// Doing and processing open in zen mode, because both are screens you are in
+// the middle of one item on: the rail is a list of other places you could be
+// and the bar is a list of other things you could press, and neither question
+// is the one being answered. The timer is off, because a clock on the wall is
+// a thing you ask for. Every one of them is one line away from the opposite.
 func Defaults() Config {
 	return Config{
-		DoingShowsNav:    false,
-		DoingShowsKeybar: true,
-		DoingShowsTimer:  false,
-		DoingTimerFormat: TimerAuto,
+		ZenShowsTimer:  false,
+		ZenTimerFormat: TimerAuto,
+		ZenViews:       []string{"doing", "processing"},
 	}
 }
 
@@ -59,9 +60,7 @@ func Defaults() Config {
 // key's name.
 func (c *Config) bools() map[string]*bool {
 	return map[string]*bool{
-		"doing.show_nav":    &c.DoingShowsNav,
-		"doing.show_keybar": &c.DoingShowsKeybar,
-		"doing.show_timer":  &c.DoingShowsTimer,
+		"zen.show_timer": &c.ZenShowsTimer,
 	}
 }
 
@@ -70,12 +69,52 @@ func (c *Config) bools() map[string]*bool {
 // the screen — which for a value read once at startup means it stays there.
 func (c *Config) strs() map[string]*string {
 	return map[string]*string{
-		"doing.timer_format": &c.DoingTimerFormat,
+		"zen.timer_format": &c.ZenTimerFormat,
+	}
+}
+
+// lists are the settings that take several names, written with commas between
+// them. An empty value is a legal answer and means none — `zen.views =` is how
+// a file says that no screen opens in zen mode.
+func (c *Config) lists() map[string]*[]string {
+	return map[string]*[]string{
+		"zen.views": &c.ZenViews,
 	}
 }
 
 var checks = map[string]func(string) error{
-	"doing.timer_format": checkTimerFormat,
+	"zen.timer_format": checkTimerFormat,
+	"zen.views":        checkNames,
+}
+
+// checkNames: a comma-separated list of screen slugs. Only the shape is
+// checked here — whether a name is a screen this app has is checked where the
+// screens are known (see internal/web, ScreenNames), because a settings file
+// that names a screen which does not exist has to fail at startup like any
+// other typo, and conf is not the place that knows the list.
+func checkNames(v string) error {
+	for _, name := range Split(v) {
+		for _, r := range name {
+			if r >= 'a' && r <= 'z' || r == '-' {
+				continue
+			}
+			return fmt.Errorf("%q is not a screen name: they are lower-case words", name)
+		}
+	}
+	return nil
+}
+
+// Split reads a list value: names separated by commas, spaces around them
+// ignored, empty entries dropped. Exported because the same string is read
+// back by whoever validates the names.
+func Split(v string) []string {
+	var out []string
+	for _, part := range strings.Split(v, ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // checkTimerFormat: "auto", or a pattern. In a pattern, uppercase `H`/`HH` is
@@ -128,7 +167,7 @@ func Load(path string) (Config, error) {
 	}
 	defer f.Close()
 
-	bools, strs := c.bools(), c.strs()
+	bools, strs, lists := c.bools(), c.strs(), c.lists()
 	sc := bufio.NewScanner(f)
 	for n := 1; sc.Scan(); n++ {
 		// a comment runs to the end of the line, and there is nothing a value
@@ -144,6 +183,13 @@ func Load(path string) (Config, error) {
 			return c, fmt.Errorf("%s:%d: not a key = value line: %q", path, n, line)
 		}
 		key, val = strings.TrimSpace(key), strings.TrimSpace(val)
+		if field, ok := lists[key]; ok {
+			if err := checks[key](val); err != nil {
+				return c, fmt.Errorf("%s:%d: %s: %v", path, n, key, err)
+			}
+			*field = Split(val)
+			continue
+		}
 		if field, ok := strs[key]; ok {
 			if err := checks[key](val); err != nil {
 				return c, fmt.Errorf("%s:%d: %s: %v", path, n, key, err)
@@ -170,11 +216,14 @@ func Load(path string) (Config, error) {
 // Keys lists every setting name, sorted, for the message a wrong one gets.
 func Keys() []string {
 	var c Config
-	out := make([]string, 0, len(c.bools())+len(c.strs()))
+	out := make([]string, 0, len(c.bools())+len(c.strs())+len(c.lists()))
 	for k := range c.bools() {
 		out = append(out, k)
 	}
 	for k := range c.strs() {
+		out = append(out, k)
+	}
+	for k := range c.lists() {
 		out = append(out, k)
 	}
 	// small and fixed, so an insertion sort is the whole of it

@@ -98,13 +98,11 @@
   // something. A mode fills the view group and empties the global one:
   // while a dialog or an overlay is up, none of the global keys are live.
   function keybarGroups() {
-    // doing mode is a mode like a dialog is: it owns the keyboard, so the bar
-    // says the two keys that are live in it and nothing else
-    if (doingBox()) {
-      const timer = document.querySelector("#doing .timer");
-      const keys = [["c", "done"], ["esc", "back"]];
-      if (timer) keys.push(["^t", "timer " + (timer.hidden ? "hidden" : "shown")]);
-      return { view: keys, global: [] };
+    const pd = panelsDialog();
+    // the panel chooser is a list of keys and nothing else, so the bar is that
+    // list — read off the dialog's own controls, like every other declared key
+    if (pd && pd.open) {
+      return { view: declaredKeys("[data-key]").concat([["esc", "close"]]), global: [] };
     }
     const dlg = captureDialog();
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
@@ -132,7 +130,7 @@
       // "Navigation"), so the bar is where it can be offered — and only while
       // there is an inbox to work down, or it would be a key that does nothing
       const view = [["\u2026", "press a marked key"]];
-      if (document.querySelector("nav a.alert")) view.push(["z", "inbox zero"]);
+      if (document.querySelector(".pane[data-inbox-full]")) view.push(["z", "inbox zero"]);
       view.push(["esc", "cancel"]);
       return { view: view, global: [] };
     }
@@ -156,7 +154,8 @@
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
     branchKeys().forEach(function (k) { view.push(k); });
-    if (document.querySelector("[data-cancel]")) view.push(["esc", "cancel"]);
+    const cancel = document.querySelector("[data-cancel]");
+    if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     return { view: view, global: globalKeys() };
   }
@@ -172,9 +171,20 @@
   }
 
   function declaredKeys(sel) {
-    return Array.from(document.querySelectorAll(sel)).map(function (el) {
+    return Array.from(document.querySelectorAll(sel)).filter(keyLive).map(function (el) {
       return [el.dataset.key, el.dataset.keyLabel || ""];
     });
+  }
+
+  // A key a dialog declares is live exactly while that dialog is open, and
+  // while one is open no key outside it is: a dialog owns the keyboard, and
+  // the control a page key would press is on the page behind it. Without this
+  // the chooser's t/n/k/z would mean its four panels on every screen in the
+  // app, since the dialog is in the layout and therefore always on the page.
+  function keyLive(el) {
+    const open = document.querySelector("dialog[open]");
+    const own = el.closest("dialog");
+    return open ? own === open : !own;
   }
 
   // A declared key may ask for ctrl, written "^a" — the same notation the bar
@@ -183,7 +193,11 @@
   function branchFor(e) {
     if (e.key.length !== 1 || e.altKey || e.metaKey) return null;
     const want = (e.ctrlKey ? "^" : "") + e.key.toLowerCase();
-    return document.querySelector('[data-key="' + CSS.escape(want) + '"]');
+    const all = document.querySelectorAll('[data-key="' + CSS.escape(want) + '"]');
+    for (let i = 0; i < all.length; i++) {
+      if (keyLive(all[i])) return all[i];
+    }
+    return null;
   }
 
   // Pressing the key does exactly what clicking the control does: submit the
@@ -248,7 +262,29 @@
     return box;
   }
 
+  // A dialog that is a step rather than a question says so with data-crumb,
+  // and the title bar carries it while it is up: the trail is where you are,
+  // and being in the new-project dialog is a place. The server wrote the steps
+  // before it and this is the one that only exists in the browser, which is
+  // why it is added here rather than rendered — there is no request to render
+  // it on.
+  function syncCrumb() {
+    const bar = document.getElementById("titlebar");
+    if (!bar) return;
+    const open = document.querySelector("dialog[open][data-crumb]");
+    const here = bar.querySelector(".crumb.added");
+    if (open && !here) {
+      const el = document.createElement("span");
+      el.className = "crumb added";
+      el.textContent = open.dataset.crumb;
+      bar.appendChild(el);
+    } else if (!open && here) {
+      here.remove();
+    }
+  }
+
   function renderKeybar() {
+    syncCrumb();
     const bar = document.getElementById("keybar");
     if (!bar) return;
     const groups = keybarGroups();
@@ -305,73 +341,33 @@
     if (scope) { gate(scope); renderKeybar(); }
   });
 
-  // Doing mode: the selected action alone, in the middle of an otherwise empty
-  // screen. Built here out of the row rather than served as a page of its own,
-  // because it is not a view (design.md, "Views") and there is nothing in it
-  // the row does not already hold — the title it shows is the row's title, and
-  // the one thing it can do is press the row's own complete form.
+  // Doing is a view of its own now — /doing/<id>, opened from a row with d —
+  // so nothing here builds it. What is left is the timer, because the timer is
+  // the one thing on that screen the server does not decide: it is never
+  // written down (design.md, "Doing one action"), which means it can only live
+  // in here, for as long as the tab does.
   function canDo(row) {
-    return !!(row && row.hasAttribute("data-doing"));
+    return !!(row && row.dataset.doing);
   }
 
-  function doingBox() { return document.getElementById("doing"); }
-
-  // The nav slot you came in through reads "Doing…" while the mode is up, the
-  // way it reads "Processing…" during a run (implementation.md, "Navigation").
-  // The mode has no entry of its own and wants none: it borrows the one that
-  // already answers "where am I", and the view's name is not news while you
-  // are in the middle of one of its items. The markup is put back exactly as
-  // it was taken, badge and all — unless the page it came from is gone, in
-  // which case the nav on the new page is already right.
-  let navHeld = null;
-
-  function takeNavSlot() {
-    const on = document.querySelector("nav a.on");
-    if (!on) return;
-    navHeld = { el: on, html: on.innerHTML };
-    on.textContent = "Doing…";
-  }
-
-  function releaseNavSlot() {
-    if (navHeld && navHeld.el.isConnected) navHeld.el.innerHTML = navHeld.html;
-    navHeld = null;
-  }
-
-  function enterDoing(row) {
-    if (!canDo(row) || doingBox()) return;
-    const title = row.querySelector(".title");
-    const pane = document.querySelector(".pane");
-    const bar = document.getElementById("keybar");
-    if (!title || !pane) return;
-    const box = document.createElement("section");
-    box.id = "doing";
-    const p = document.createElement("p");
-    p.textContent = title.textContent;
-    box.appendChild(p);
-    box.appendChild(startTimer(pane));
-    pane.insertBefore(box, bar);
-    // what the settings file said, read off the pane. The classes go on the
-    // body because the rail is not inside the pane, and they come off again
-    // in exitDoing — no other state is kept anywhere. The classes hide, the
-    // settings show, so an absent attribute is what turns one on
-    document.body.classList.add("doing");
-    if (!pane.hasAttribute("data-doing-shows-nav")) document.body.classList.add("doing-no-nav");
-    if (!pane.hasAttribute("data-doing-shows-keybar")) document.body.classList.add("doing-no-keybar");
-    takeNavSlot();
-    renderKeybar();
+  // d carries the view it was pressed in on the URL. The screen has to know
+  // where "back" goes after a reload, and the URL is the only part of how you
+  // got there that survives one.
+  function doingHref(row) {
+    return row.dataset.doing + "?from=" + encodeURIComponent(location.pathname);
   }
 
   // The timer: the minutes since this action went on the screen. It is never
   // written down and never sent anywhere — it exists to give a feel for how
-  // long things take, and a second `d` on the same action starts it again from
-  // zero (design.md, "Doing one action").
+  // long things take, and opening the screen again starts it at zero
+  // (design.md, "Doing one action").
   //
-  // It is always built, whatever the settings file said: that decides whether
-  // it starts visible, and `ctrl-t` decides after that. A timer that only
-  // existed when it was on would start counting from the moment it was asked
-  // for, which is not the number anyone means.
+  // It is always ticking, whatever the settings file said: that decides
+  // whether it starts visible, and `ctrl-t` decides after that. A timer that
+  // only existed when it was on would start counting from the moment it was
+  // asked for, which is not the number anyone means.
   let doingTick = null;
-  let timerOn = null; // null until the settings file has been read once
+  let timerOn = null; // null until a doing screen has shown what the file said
 
   function pad2(n) { return String(n).padStart(2, "0"); }
 
@@ -396,13 +392,20 @@
     });
   }
 
-  function startTimer(pane) {
-    const started = Date.now();
-    const format = pane.dataset.doingTimerFormat || "auto";
-    if (timerOn === null) timerOn = pane.hasAttribute("data-doing-shows-timer");
-    const el = document.createElement("span");
-    el.className = "timer";
+  function timerEl() { return document.querySelector("#doing .timer"); }
+
+  function startTimer() {
+    stopTimer();
+    const el = timerEl();
+    if (!el) return;
+    const pane = document.querySelector(".pane");
+    const format = (pane && pane.dataset.zenTimerFormat) || "auto";
+    // the server renders the settings file's answer; the key's answer, once
+    // given, outlives every boosted navigation and is gone on a reload
+    if (timerOn === null) timerOn = !el.hidden;
     el.hidden = !timerOn;
+    labelTimer();
+    const started = Date.now();
     el.textContent = elapsed(0, format);
     // once a second, written only when the minute has actually turned: the
     // clock has to be right the moment it is looked at, and a redraw that
@@ -411,33 +414,36 @@
       const now = elapsed(Date.now() - started, format);
       if (now !== el.textContent) el.textContent = now;
     }, 1000);
-    return el;
   }
 
   function stopTimer() {
     if (doingTick !== null) { clearInterval(doingTick); doingTick = null; }
   }
 
+  // the bar reads the flag off the control, the way it reads the ages flag off
+  // the layout's form — so the label is written where the key is declared and
+  // nothing in the bar knows what a timer is
+  function labelTimer() {
+    const btn = document.querySelector("[data-timer]");
+    const el = timerEl();
+    if (btn && el) btn.dataset.keyLabel = "timer " + (el.hidden ? "hidden" : "shown");
+  }
+
   // ctrl-t means "show me the time" wherever it is pressed: the ages on a list
-  // (see the layout's own toggle), the timer in here. The choice outlives the
-  // mode but not the page — the settings file says how doing mode opens, and
-  // the key says how it is going to be for the rest of this sitting.
+  // (see the layout's own toggle), the timer here. The screen with a timer on
+  // it renders no ages control at all, so the key has exactly one meaning
+  // wherever it is pressed.
   function toggleTimer() {
-    const el = document.querySelector("#doing .timer");
+    const el = timerEl();
     if (!el) return;
     timerOn = el.hidden;
     el.hidden = !timerOn;
+    labelTimer();
     renderKeybar();
   }
 
-  function exitDoing() {
-    stopTimer();
-    const box = doingBox();
-    if (box) box.remove();
-    document.body.classList.remove("doing", "doing-no-nav", "doing-no-keybar");
-    releaseNavSlot();
-    renderKeybar();
-  }
+  // The panel chooser: ctrl-v, four forms, each one both a key and a click.
+  function panelsDialog() { return document.getElementById("panels-dialog"); }
 
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
@@ -470,10 +476,78 @@
     select(all[i]);
   }
 
+  // Acting on a row must not cost the selection. Every row key posts a form
+  // and the answer is a whole new page — boosted or not, the list is rebuilt
+  // and the class marking the selection goes with the old one — so the row is
+  // handed to the next page and claimed once, on arrival. Without this, `t`
+  // and `c` each ended by dropping the cursor, and working down a list from
+  // the keyboard meant pressing j back to where you already were.
+  const HANDOVER = "kb-row-handover";
+
+  // Which screen this is, read off the page rather than off the address bar:
+  // on a boosted post the new page is in the DOM before htmx has finished with
+  // the URL, and the answer has to be about the page that is actually on
+  // screen. The pane carries it, and not the nav, because the nav is a panel
+  // and can be off (implementation.md, "Panels").
+  function viewKey() {
+    const pane = document.querySelector(".pane[data-view]");
+    return pane ? pane.dataset.view || location.pathname : location.pathname;
+  }
+
+  function handSelectionOn(row) {
+    if (!row) return;
+    try {
+      sessionStorage.setItem(HANDOVER, JSON.stringify({
+        view: viewKey(),
+        href: row.dataset.href || "",
+        i: rows().indexOf(row),
+      }));
+    } catch (err) { /* no session storage: the selection is lost, nothing else is */ }
+  }
+
+  function claimSelection() {
+    let raw = null;
+    try { raw = sessionStorage.getItem(HANDOVER); } catch (err) { return; }
+    if (!raw || selected()) return;
+    // a page with no rows cannot claim it, and must not swallow it either:
+    // doing is a screen you go to from a row and come straight back to it, and
+    // the row is expected to be where it was (design.md, "Doing one action")
+    if (!rows().length) return;
+    try { sessionStorage.removeItem(HANDOVER); } catch (err) { /* nothing to undo */ }
+    let want;
+    try { want = JSON.parse(raw); } catch (err) { return; }
+    // only on the screen it was handed from. Completing an action can answer
+    // with the project page instead of the list, and a row position means
+    // nothing there — a selection restored onto a different screen would be
+    // the app choosing an item nobody pointed at
+    if (!want || want.view !== viewKey()) return;
+    const all = rows();
+    let row = want.href && all.find(function (r) { return r.dataset.href === want.href; });
+    // the row can be gone, which is what completing one does. Then the
+    // selection belongs where it stood: the item that took its place is under
+    // the cursor and the list can be worked straight down without touching j
+    if (!row && typeof want.i === "number" && want.i >= 0) row = all[Math.min(want.i, all.length - 1)];
+    if (row) select(row);
+  }
+
   function submitIn(row, cls) {
     const form = row.querySelector("form." + cls);
-    if (form) form.submit();
+    if (!form) return;
+    handSelectionOn(row);
+    form.submit();
   }
+
+  // the same for the mouse: the pick dot and the checkbox are buttons inside
+  // the row, and pressing one of them is the same operation the key performs.
+  // Only for the row that is already selected, though — clicking the dot on
+  // some other row is not a way of pointing at it, and handing it the cursor
+  // would be the app selecting something nobody selected. A native
+  // form.submit() fires no submit event, which is why submitIn hands the row
+  // on itself rather than relying on this
+  document.addEventListener("submit", function (e) {
+    const row = e.target.closest && e.target.closest("[data-kb-row]");
+    if (row && row === selected()) handSelectionOn(row);
+  }, true);
 
   // Only a field you can put text into counts as typing. A radio or a
   // checkbox is an <input> too, and treating those as typing meant that
@@ -488,27 +562,18 @@
   }
 
   document.addEventListener("keydown", function (e) {
-    // Doing mode answers to two keys and swallows the rest — including the
-    // ctrl ones below and the global ones further down. A mode whose whole
-    // point is that there is nothing else on the screen cannot leave the rest
-    // of the app pressable behind it.
-    if (doingBox()) {
-      if (e.key === "c") {
-        e.preventDefault();
-        const row = selected();
-        exitDoing();
-        if (row) submitIn(row, "kb-complete");
-        return;
-      }
-      if (e.key === "Escape") { e.preventDefault(); exitDoing(); return; }
-      if (e.key === "t" && e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault();
-        toggleTimer();
-        return;
-      }
-      // modified keys are the browser's (reload, address bar, a new tab), and
-      // taking those would be taking more than this mode is entitled to
-      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+    // ctrl-v is the panels, from anywhere: the chooser if it is shut, and zen
+    // if it is already up — the second press is the answer wanted most often,
+    // and the dialog is a list of four keys rather than a place to be. Ctrl
+    // and not cmd, because cmd-v is paste in every box on this machine and a
+    // key of the app's must not take that away.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "v") {
+      const d = panelsDialog();
+      if (!d) return;
+      e.preventDefault();
+      if (!d.open) { d.showModal(); renderKeybar(); return; }
+      const zen = d.querySelector('[data-key="z"]');
+      if (zen) press(zen);
       return;
     }
 
@@ -531,6 +596,16 @@
       // whole interaction.
       if (e.key === "Escape") { e.preventDefault(); closeCapture(dlg); }
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
+      return;
+    }
+    const panels = panelsDialog();
+    if (panels && panels.open) {
+      // the four keys are the dialog's own declared controls, so pressing one
+      // is pressing it; everything else is swallowed while it is up
+      if (e.key === "Escape") { e.preventDefault(); panels.close(); renderKeybar(); return; }
+      const choice = branchFor(e);
+      if (choice) { e.preventDefault(); press(choice); return; }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
       return;
     }
     if (typing(e)) {
@@ -617,7 +692,12 @@
       // a draft is an action that does not exist yet, so it has nothing to do
       case "d":
         if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, 1); break; }
-        if (canDo(row)) { e.preventDefault(); enterDoing(row); }
+        if (canDo(row)) {
+          e.preventDefault();
+          // leaving doing puts you back on this row, because you were on it
+          handSelectionOn(row);
+          window.location.href = doingHref(row);
+        }
         break;
       case "r": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); removeDraft(row); } break;
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
@@ -677,6 +757,7 @@
   document.addEventListener("click", function (e) {
     setPending(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
+    if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
     if (e.target.closest("[data-draft-add]")) { e.preventDefault(); openDraft(null); return; }
     const row = rowFromEvent(e);
     if (row) select(row);
@@ -1010,10 +1091,10 @@
 
   // hx-boost swaps the body, taking the rendered bar with it
   document.addEventListener("htmx:afterSwap", function () {
-    // whatever was being done is gone with the old page: the mode is the row
-    // and the row has just been replaced
-    exitDoing();
+    // the old page's timer is counting for a screen that is no longer here
+    startTimer();
     renderKeybar(); setupPickers(); gateAll();
+    claimSelection();
   });
 
   // A field that opens focused with the caret at position 0 means the first
@@ -1034,7 +1115,9 @@
   document.addEventListener("htmx:afterSettle", caretToEnd);
   caretToEnd();
 
+  startTimer();
   renderKeybar();
+  claimSelection();
 
   // filter forms apply themselves on any change
   document.addEventListener("change", function (e) {

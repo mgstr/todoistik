@@ -3,6 +3,7 @@ package conf
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -21,49 +22,61 @@ func TestMissingFileIsTheDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("missing file: %v", err)
 	}
-	if c != Defaults() {
+	if !reflect.DeepEqual(c, Defaults()) {
 		t.Errorf("missing file gave %+v, want the defaults %+v", c, Defaults())
 	}
 }
 
 func TestReadsOverTheDefaults(t *testing.T) {
 	c, err := Load(write(t, `
-# the rail stays put while doing
-doing.show_nav = true
+# the timer is up from the first second
+zen.show_timer = true
 
-  doing.show_keybar=FALSE   # a comment can trail a value too
+  zen.views = doing , someday   # a comment can trail a value too
 `))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if !c.DoingShowsNav {
-		t.Error("doing.show_nav = true was not read")
+	if !c.ZenShowsTimer {
+		t.Error("zen.show_timer = true was not read")
 	}
-	if c.DoingShowsKeybar {
-		t.Error("doing.show_keybar = FALSE was not read (values are case-insensitive)")
+	if !reflect.DeepEqual(c.ZenViews, []string{"doing", "someday"}) {
+		t.Errorf("zen.views = %q, want the two names with the spaces off", c.ZenViews)
 	}
 }
 
 func TestOmittedKeyKeepsItsDefault(t *testing.T) {
-	c, err := Load(write(t, "doing.show_keybar = true\n"))
+	c, err := Load(write(t, "zen.show_timer = true\n"))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if c.DoingShowsNav != Defaults().DoingShowsNav {
+	if !reflect.DeepEqual(c.ZenViews, Defaults().ZenViews) {
 		t.Error("a key left out of the file did not keep its default")
 	}
 }
 
-func TestTimerFormat(t *testing.T) {
-	c, err := Load(write(t, "doing.timer_format = H:MM\n"))
+// An empty list is an answer and not an omission: it is how the file says that
+// no screen opens in zen mode, which the defaults cannot say.
+func TestEmptyListIsNone(t *testing.T) {
+	c, err := Load(write(t, "zen.views =\n"))
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if c.DoingTimerFormat != "H:MM" {
-		t.Errorf("format = %q, want %q", c.DoingTimerFormat, "H:MM")
+	if len(c.ZenViews) != 0 {
+		t.Errorf("zen.views = %q, want none", c.ZenViews)
 	}
-	if Defaults().DoingTimerFormat != TimerAuto {
-		t.Errorf("default format = %q, want %q", Defaults().DoingTimerFormat, TimerAuto)
+}
+
+func TestTimerFormat(t *testing.T) {
+	c, err := Load(write(t, "zen.timer_format = H:MM\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.ZenTimerFormat != "H:MM" {
+		t.Errorf("format = %q, want %q", c.ZenTimerFormat, "H:MM")
+	}
+	if Defaults().ZenTimerFormat != TimerAuto {
+		t.Errorf("default format = %q, want %q", Defaults().ZenTimerFormat, TimerAuto)
 	}
 	for _, ok := range []string{"auto", "AUTO", "M", "MM", "HH:MM", "H h MM"} {
 		if err := checkTimerFormat(ok); err != nil {
@@ -81,10 +94,11 @@ func TestTimerFormat(t *testing.T) {
 // the file is read once and a quietly-ignored line looks set forever.
 func TestBadLinesAreRefused(t *testing.T) {
 	for _, tc := range []struct{ name, body, want string }{
-		{"unknown key", "doing.show_everything = true\n", "unknown setting"},
-		{"no equals", "doing.show_nav true\n", "not a key = value line"},
-		{"not a bool", "doing.show_nav = sometimes\n", "wants true or false"},
-		{"bad format", "doing.timer_format = HH:NN\n", "is not a field"},
+		{"unknown key", "zen.show_everything = true\n", "unknown setting"},
+		{"no equals", "zen.show_timer true\n", "not a key = value line"},
+		{"not a bool", "zen.show_timer = sometimes\n", "wants true or false"},
+		{"bad format", "zen.timer_format = HH:NN\n", "is not a field"},
+		{"bad screen name", "zen.views = Doing\n", "is not a screen name"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Load(write(t, tc.body))

@@ -105,6 +105,9 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := checkZenViews(c); err != nil {
+		return nil, err
+	}
 	s.tmpl = t
 	s.routes()
 	return s, nil
@@ -250,8 +253,14 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /review/{step}", s.reviewStepPage)
 	m.HandleFunc("POST /review/{type}/{id}/done", s.reviewDone)
 
+	// doing: one action, alone on the screen
+	m.HandleFunc("GET /doing/{id}", s.doingPage)
+
 	// the one display flag, toggled from anywhere by ctrl-t
 	m.HandleFunc("POST /ages", s.agesToggle)
+
+	// the panels around a view, toggled from the ctrl-v dialog
+	m.HandleFunc("POST /panels/{which}", s.panelsToggle)
 
 	// settings: tag / context list management
 	m.HandleFunc("GET /settings", s.settingsPage)
@@ -293,7 +302,21 @@ func parseFilters(q url.Values) app.Filters {
 	return f
 }
 
+// render fills in the one thing no handler sets: which panels this screen is
+// wearing. It happens here rather than in newPage because a handler adds its
+// steps to the trail after that, and the trail is what says whether this is a
+// screen the settings file opens in zen mode (see "Panels").
 func (s *Server) render(w http.ResponseWriter, name string, data any) {
+	if p, ok := data.(*page); ok {
+		st := s.panelState()
+		if next, changed := st.forScreen(zenScreen(p.Trail, s.conf)); changed {
+			st = next
+			if err := s.savePanels(st); err != nil {
+				log.Printf("panels: %v", err)
+			}
+		}
+		p.Panels = st.shown()
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, name, data); err != nil {
 		log.Printf("render %s: %v", name, err)
@@ -309,11 +332,42 @@ func idParam(r *http.Request) int64 {
 	return id
 }
 
-// back redirects to the page the request came from, defaulting home.
+// back redirects to the page the request came from, defaulting home. A form
+// may say where that is with a "back" field, and then it wins: a screen you
+// leave by acting on it — doing, where completing the action is the way out —
+// knows where it came from, and the header only knows where the press was.
 func back(w http.ResponseWriter, r *http.Request) {
+	if to := localPath(r.FormValue("back"), ""); to != "" {
+		http.Redirect(w, r, to, http.StatusSeeOther)
+		return
+	}
 	ref := r.Header.Get("Referer")
 	if ref == "" {
 		ref = "/next"
 	}
 	http.Redirect(w, r, ref, http.StatusSeeOther)
+}
+
+// localPath keeps a destination that came in on a request to this app: one
+// leading slash and nothing that could turn into another host. Anything else
+// falls back, so a hand-edited URL cannot make a link off the site.
+func localPath(v, fallback string) string {
+	if strings.HasPrefix(v, "/") && !strings.HasPrefix(v, "//") && !strings.Contains(v, ":") {
+		return v
+	}
+	return fallback
+}
+
+// viewOf names the view a local path belongs to, for the screens that sit
+// under one without being it. The first segment is the view's own slug
+// everywhere it is a view at all, so there is no table to keep in step.
+func viewOf(path string) string {
+	seg := strings.TrimPrefix(path, "/")
+	if i := strings.IndexAny(seg, "/?"); i >= 0 {
+		seg = seg[:i]
+	}
+	if _, ok := viewHelp[seg]; ok {
+		return seg
+	}
+	return ""
 }

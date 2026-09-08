@@ -22,7 +22,10 @@
   </form>
 </div>
 
-<dialog id="newproject-dialog" aria-labelledby="np-title-label">
+{{/* data-crumb: this dialog is a step and not a question, so the title bar
+     says so while it is up — "… / Action / Create project" (implementation.md,
+     "Panels"). */}}
+<dialog id="newproject-dialog" aria-labelledby="np-title-label" data-crumb="Create project">
   <h2 id="np-title-label">New project</h2>
   <div class="stack">
     <label>Title <input id="np-title" required autocomplete="off"></label>

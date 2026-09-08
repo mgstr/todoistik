@@ -94,6 +94,59 @@ nav a.on.alert .badge.navcount { border-color: var(--danger); color: #fff; }
 
 h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
 h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
+/* The title bar: the third panel, and the one that says where you are. A strip
+   at the top of the pane rather than inside main, so it keeps its place the
+   way the rail and the key bar keep theirs and nothing scrolls it away. The
+   trail reads as a path: the view leads, every step inside it follows, and the
+   separators are drawn by the rule rather than written into the markup — so a
+   step the page adds while you are on it (a dialog you are in) is punctuated
+   like the ones the server wrote. See implementation.md, "Panels".
+
+   Centred, tinted like the key bar, and a size up from it: it names the screen
+   rather than anything in the column under it, so it is a caption over the
+   pane and not the first line of the list. "safe center" keeps a trail too
+   long for the window scrollable from its start — plain centring would put the
+   first steps out of reach on the wrong side of the overflow. */
+#titlebar {
+  display: flex; flex-wrap: nowrap; gap: .4rem; align-items: baseline;
+  justify-content: center;
+  justify-content: safe center;
+  padding: .45rem max(.75rem, calc(50% - 31rem)) .4rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted);
+  font-size: 1.05rem; overflow-x: auto; scrollbar-width: none;
+}
+#titlebar::-webkit-scrollbar { display: none; }
+#titlebar .crumb { display: flex; align-items: baseline; gap: .35rem; white-space: nowrap; }
+#titlebar .crumb + .crumb::before { content: "/"; color: var(--line); margin-right: .05rem; }
+/* where you are is the last step; the ones before it are the way there */
+#titlebar .crumb:last-child { color: var(--fg); font-weight: 600; }
+/* the one count the app says loudly, said here the way the rail says it —
+   with the rail off, this is the only place left that can */
+#titlebar .badge.navcount { border: 1px solid var(--line); background: transparent; }
+#titlebar .badge.navcount.alert { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* The panels dialog: four answers, each one a form, each one closing the
+   dialog by going back to the page. Laid out as a short list rather than a
+   row of buttons — it is read down, and the state of each panel is what is
+   being read. See implementation.md, "Panels". */
+#panels-dialog {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg);
+  width: min(20rem, 90vw); padding: .85rem 1rem;
+}
+#panels-dialog::backdrop { background: rgba(0,0,0,.45); }
+#panels-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+#panels-dialog form { margin: 0; }
+#panels-dialog button {
+  display: flex; width: 100%; justify-content: space-between; align-items: baseline;
+  gap: 1rem; padding: .35rem .5rem; margin: .1rem 0;
+  border: none; border-radius: 6px; background: transparent;
+  color: var(--fg); font: inherit; text-align: left; cursor: pointer;
+}
+#panels-dialog button:hover { background: var(--row-hover); }
+#panels-dialog .state { color: var(--muted); font-size: .85rem; }
+
 /* the view's own title line stays put as well, so scrolling never hides which
    view you are in or its primary action. A sticky child offsets from the
    scrollport's content edge, so top has to cancel main's own top padding for
@@ -136,18 +189,14 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
   background: var(--badge-bg); color: var(--muted); white-space: nowrap;
 }
 
-/* Doing mode: one action, in the middle of an empty screen. It replaces the
-   list rather than covering it, so the rail and the bar keep their places in
-   the layout and the settings file's answers are two plain display rules
-   rather than a stack of z-indexes — see implementation.md, "Doing mode" */
-body.doing main { display: none; }
-body.doing.doing-no-nav nav { display: none; }
-body.doing.doing-no-keybar #keybar { display: none; }
+/* Doing: one action, in the middle of an empty screen. It is a page like any
+   other now, so it is the content of main rather than a box put in main's
+   place — what takes the furniture away is zen mode, which every view can
+   have (see implementation.md, "Doing"). It fills the height it is given so
+   that the title sits in the middle of the screen and not at the top of it. */
 #doing {
-  position: relative;
-  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  position: relative; min-height: 100%;
   display: flex; align-items: center; justify-content: center;
-  padding: 2rem max(1.25rem, calc(50% - 31rem));
 }
 /* The timer keeps the corner the eye visits last, and is held back by opacity
    alone — the title's size, so it never becomes a second, quieter kind of
@@ -156,7 +205,7 @@ body.doing.doing-no-keybar #keybar { display: none; }
    it sits with no timer at all, and nothing moves when the digits change
    width. See research/doing-timer-study.html for the six placements. */
 #doing .timer {
-  position: absolute; right: max(1.25rem, calc(50% - 31rem)); bottom: 2rem;
+  position: absolute; right: 0; bottom: 0;
   font-size: clamp(2rem, 7vw, 5rem); font-weight: 600; line-height: 1.1;
   letter-spacing: -0.01em; opacity: .15;
   font-variant-numeric: tabular-nums;

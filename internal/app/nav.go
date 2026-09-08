@@ -18,6 +18,36 @@ type NavCounts struct {
 	Review    int // OutstandingTotal: the 7-day-aged steps only, not the inbox
 }
 
+// For is the same count by the view's own name, for the callers that have a
+// slug rather than a field — the title bar reads it this way, so the number it
+// shows cannot come to differ from the badge's (see implementation.md,
+// "Panels"). A view with no badge answers zero, which is how nothing is shown.
+func (c *NavCounts) For(view string) int {
+	switch view {
+	case "inbox":
+		return c.Inbox
+	case "today":
+		return c.Today
+	case "next":
+		return c.Next
+	case "projects":
+		return c.Projects
+	case "tasks":
+		return c.Tasks
+	case "waiting":
+		return c.Waiting
+	case "calendar":
+		return c.Calendar
+	case "someday":
+		return c.Someday
+	case "scheduler":
+		return c.Scheduler
+	case "review":
+		return c.Review
+	}
+	return 0
+}
+
 func (a *App) NavCounts() (*NavCounts, error) {
 	c := &NavCounts{}
 
