@@ -769,9 +769,23 @@ one flag for the whole app.
 - **one CSS rule against `.age` settles every list at once**, the "Archive" and
   the "Audit" included, where the age is closer to the record than to
   decoration. One flag with one meaning beats a flag with a list of exceptions
-  nobody can remember, and it is one keypress back. The dates written into prose
-  on a detail page — `captured 3 days ago`, `created … · next for …` — are not
-  chips and are not touched: you went there to look
+  nobody can remember, and it is one keypress back
+- **a second rule, against `.agetext`, settles the detail pages the same way.**
+  The dates written into prose there — `created … · next for …`, `captured 3
+  days ago` — used to be left alone, on the argument that you went to that
+  screen to look. That argument was wrong twice over: it is not why an action
+  is opened (you go there for the title and the meta line, design.md, "Editing
+  items"), and it made "ages hidden" a claim with a footnote, which is the one
+  thing the bullet above says the flag must never become. Two selectors rather
+  than one class on both, because they are two different things wearing the
+  same flag: `.age` is a chip beside a title, `.agetext` is a run of words
+  inside a sentence, and giving the prose the chip's padding and background
+  would put a badge in the middle of a line
+- **only the ages go, not the line they sit in.** `.agetext` wraps the dates
+  and nothing else, so the crumb still says `Someday/Maybe`, a schedule still
+  says `never fired` and `next 2026-09-09`, and a completed action still says
+  `completed`. A rule that has never fired is not an age, and the date it fires
+  next is the one thing on that line worth coming for
 - **it is stored in `app_state` beside the per-view filter sets**, which is
   where this app already keeps remembered screen state, and the toggle writes
   the flip of what is stored rather than a value sent by the page — two presses
@@ -1426,6 +1440,20 @@ which (`Fixed`), or the screen has answered it elsewhere.
   thing on the page already, and the crumb answers "where am I". The item's
   own name is still the browser tab's title, which is where a name belongs
   when the app is not the thing on screen
+- **the dates sit under the form, over the buttons.** `created … · next for …`
+  opened the page for a long time, which put the one line on the screen that
+  cannot be edited where the eye lands first and pushed the Title field down
+  a row for it. They are read, not written, and nothing on the form is decided
+  by them — so they go where reading them pays: directly above Complete,
+  Delete and Back, which are the buttons that want to know how long this has
+  been sitting there before they are pressed
+- **`completed` moved with them and is not an age.** It leads the line rather
+  than trailing it, because it says what this action *is* and the dates only
+  say how long it has been that way — and it stays on the screen when `^t`
+  takes the dates off (see "Ages are hidden by default")
+- **the line is a flex row, so it disappears rather than emptying.** With the
+  ages hidden the `<p>` has no flex items left and takes no height, and the
+  form sits straight on top of the buttons with no gap where a line used to be
 
 ## Writing a project
 
