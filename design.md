@@ -74,7 +74,8 @@ A schedule is not a commitment and never becomes one by itself. What it produces
 
 Fields:
 - Text: (required) free-form, what will land in the inbox. It is a capture, so it stays raw - not a title, not an action, not a project
-- When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and no times. Nothing in this app has an hour, so neither does this. The three fields are the calendar fields of standard cron, with standard syntax and semantics - `*`, lists, ranges, steps, and the standard rule that when both day-of-month and day-of-week are restricted, either one matching fires. Standard and not invented, so that the behaviour of any expression can be looked up rather than guessed. The expression is validated when the schedule is saved, and the "Scheduler" shows it in readable form
+- When: (required) either a single **date**, or a **cron expression** at day granularity - day of month, month, day of week, and an optional fourth field, the year. No times: nothing in this app has an hour, so neither does this. The first three are the calendar fields of standard cron, with standard syntax and semantics - `*`, lists, ranges, steps, and the standard rule that when both day-of-month and day-of-week are restricted, either one matching fires. Standard where it can be, so that the behaviour of an expression can be looked up rather than guessed. The expression is validated when the schedule is saved, and the "Scheduler" shows it in readable form - the way it was written, so that a run reads as a run: `9-23 9 *` comes back as "the 9th-23rd of September", not as a fortnight of ordinals
+- **the year field is deliberately not standard cron.** Standard cron has no year, because it describes a machine's recurring work and machines are not told when to stop. A person's is: "chase this every day until the 23rd of September" is a real thing to want, and without a year the only two shapes on offer were a single day and forever. `9-23 9 * 2026` is the fortnight; `9-23 9 *` is that fortnight every year, which is what leaving the field off still means - so every rule written before the field existed goes on meaning exactly what it meant. The syntax of the field is the same syntax the other three use, and the years it may name run 2000-2099: a schedule is something you will actually be reminded of, so outside that range a four-digit number is a typo and being told so is worth more than being able to schedule 2317
 - Suffix: (optional, empty by default) appended to the text when the capture is made. `YYYY`, `MM` and `DD` are replaced with the date of the occurrence being fired; everything else is literal, including any leading space. An empty suffix makes every occurrence produce the same string, which is what collapses a repeated chore to a single inbox item; ` YYYY-MM` on the rent makes each month produce its own
 - Creation date: (required)
 - lastFiredAt: (optional) when it last put something in the inbox, empty until it first does. It is what shows at review time that a schedule is actually working
@@ -82,10 +83,11 @@ Fields:
 
 Rules:
 - **it fires lazily**, on the first use of the app on a day whose occurrence has passed. This is the rule `#today` clearing already uses, for the same reason: a scheduler that works only while a process happens to be running is one that cannot be trusted, and a firing that did not happen is invisible
-- **a single date fires once, and the schedule then deletes itself.** A one-shot left in the list forever would turn the "Scheduler" into a graveyard of things that already happened. The deletion is audited like any other
-- **a cron schedule persists** and keeps firing
+- **a schedule with nothing left to fire deletes itself.** A single date is the ordinary case - it fires once and goes - but it is not a special case: a rule that named its years does the same the day after its last occurrence, and so does one that can never fire at all. Anything left in the list forever would turn the "Scheduler" into a graveyard of things that already happened. The deletion is audited like any other, so what fired and when is still answerable from the "Audit log"
+- **a cron schedule with no year persists** and keeps firing
 - **every missed occurrence fires**, oldest first. After an absence a schedule does not have to be careful about how many went by: without a suffix the captures are identical and collapse in the inbox to one item, and with one they stay distinct, because a suffix is how you said the instances count - see "Duplicate captures"
 - **an occurrence only counts if the rule was in force when it fell.** Occurrences are counted from the creation date, so a schedule created today does not back-fire for dates before it existed, and editing "When" restarts the count from the edit: past occurrences of a rule that was not yet in place were never missed
+- **a rule the app cannot read is refused, and the form comes back saying why.** Nothing is written, and a schedule being edited keeps the rule it had. "When" is the one field in this app you can get wrong by typing something entirely reasonable - a date written in the wrong order, or three cron fields that mean something other than what they look like - so a refusal that said nothing would read as a Create button that does not work, which is exactly how this was found
 - it is edited and deleted like anything else - see "Editing items"
 
 The three parts compose deliberately, and each stays dumb on its own. The schedule fires per occurrence and knows nothing else. The inbox drops a capture identical to one already waiting. The suffix is the one place where you declare that instances are distinct, and it is visible in the text that arrives, so two rent items say which month each is for. Nothing anywhere tracks instances.
@@ -273,6 +275,7 @@ The point is that the form asks for nothing that has to be decided. A row of con
 
 - **the meta line and the description are two fields because they are read for two different reasons.** The description is read to remember what an action is about; the meta line is read to see what the app thinks it is. They shared one box until it became clear that neither could be looked at without the other in the way: the notation had to be found again at the bottom of the prose on every edit, and the prose could not be rewritten without editing notation by accident.
 - **a name is notation only if it is already known.** `@name` and `#name` are read as metadata when the name is on the remembered list (see "Contexts" and "Tags"). This is the same rule that already said names are never typed fresh - without it a written field is the widest possible door for `@home` and `@Home` to walk through separately.
+- **the meta line and the filter line are the same box.** They are the same notation asking two different questions - what is this, and which of these do I want - so they behave the same way: the app completes the names it knows as they are typed, marks the ones it does not where they are written, and asks about each of those before anything is saved or applied (see "The filter line"). What each box accepts differs, because an action carries things a project does not and a filter can ask for things neither carries; being told which is which is the box's job, not something to remember.
 - **the meta line refuses what it cannot read.** Whatever is left on it once the notation has been taken out is reported and nothing is saved, whether that is an unknown name, a typo or a sentence. While the two shared a box this question did not arise - anything unknown stayed prose, which is what kept `marju@gmail.com` from becoming a context and `invoice #12345` from becoming a tag. On a line that holds nothing but names there is no prose left for it to stay as, so the choice is between saying so and swallowing it silently, and being told that `#hobbies` is not `#hobby` is worth more than a tag that quietly did not apply.
 - **the description is prose, and nothing is read out of it.** `@home` written there is a word like any other. Nothing an action carries can be changed by editing it, which is what makes it safe to write in freely - and it is why it, not the meta line, is where a sentence that happens to mention a context belongs.
 - **the fields are still fields.** What is written on the meta line is read into them when the action is saved, and written back out of them when it is opened. Every view, filter and sort works on the fields exactly as before - nothing queries text. This is also why the app can still change them on its own: picking for today, a detach stamping a parked action, a delegation restamping the clock all move a field, and the box simply shows the new truth next time it is opened.
@@ -325,16 +328,17 @@ Filtering is one line, typed, and there is nothing on the screen until it is ask
 The bar holds three things and no labels: **how many items are on the screen**, the **line**, and **apply**.
 
 - **the count is the first thing, and it is one number when nothing is filtered.** Filtered, it reads `3 of 41` - what you are looking at, out of what the view holds. That is the loudness "Views" asks for, said in the place you are already looking rather than in a sentence underneath
-- **the line is written in the notation an item is written in** (see "Writing an action"): `@home` for the context, `#car` for a tag, `#short` and `#focus` for the fields that wear a tag's notation, and everything else is words to match the name by. One notation for describing a thing and for asking for it, so there is nothing extra to learn and no second set of names
+- **the line is written in the notation an item is written in** (see "Writing an action"): `@home` for the context, `#car` for a tag, `#short` and `#focus` for the fields that wear a tag's notation, `due:thisweek` for a window of time, and everything else is words to match the name by. One notation for describing a thing and for asking for it, so there is nothing extra to learn and no second set of names
+- **a line may only say what its view filters by.** Each view offers a subset (see the view's own section), and the line offers exactly that subset: `@home` on "Tasks" is a question rather than a token quietly ignored, because a filter that silently did nothing would be a list you cannot trust for the same reason a hidden filter is
 - **apply is dead until the line has changed.** A button that can always be pressed says nothing about whether pressing it would do anything; this one says whether what you see is what you asked for
 - **the app completes the names it knows**, because they are the names it will accept - see "Contexts" and "Tags", where the rule that a name comes off a remembered list rather than being typed fresh comes from
-- **a name it does not know stops the line**, marked where it is written. It is either a name that is new or a name that is mistyped, and only the person typing knows which, so the app asks: create it, use one of at most three near ones, or take it out. Nothing is filtered until it is answered, because a filter with a name in it that means nothing is a list you cannot trust
+- **a name it does not know stops the line**, marked where it is written. It is either a name that is new or a name that is mistyped, and only the person typing knows which, so the app asks: create it, use one of at most three near ones, or take it out. Nothing is filtered until it is answered, because a filter with a name in it that means nothing is a list you cannot trust. The same question is asked of the meta line an item is written in (see "Writing an action"), because it is the same box asking about the same names - and answering it does not cost the thing that was interrupted: what you pressed happens as soon as the line is clean
 - **closing the bar clears the filters.** A view narrowed by a box that is not on the screen is the quiet, untrustworthy filtering this document exists to avoid, and it is the reason the bar is the *only* thing that can hide filters - a view that is filtered opens with its bar up, whatever you left it as
 
 The filter set is still remembered per view (see "Views"), so coming back to a view finds it as you left it, filtered and saying so. What is remembered is the filters, not the line: the line is written back out of them, in one fixed order, so the same filter set always reads the same way whatever order it was typed in.
 
 ### Filtering by name
-Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive**.
+Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Scheduler** and the **Archive**.
 
 Matching is case insensitive. Several words may be given and **all** of them have to be present, in any order and anywhere in the name - `call bank` finds "Call the bank about the mortgage". Each word matches as a substring and not as a whole word, so `mortg` still finds it. Substrings and not fuzzy matching, so that it is always obvious why something matched. Every word of the line that is not a name is part of it, and emptying the line is how it resets.
 
@@ -372,12 +376,14 @@ The someday/maybe items - raw ideas worth revisiting some time, but not now.
 
 - it is reviewed during the weekly review, skipping items that are still snoozed
 - the age shown is the age of the idea, from its creation date
-- it carries the name filter, matching the text of the item - see "Filtering by name"
+- it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about names only: a someday/maybe item is a raw capture with nothing on it to narrow by
 
 ### Projects
-The active projects, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. Actions inside a project are shown with their project. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
+The active projects, one to a line, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
 
-It carries the name filter, which matches a project by its title or by the title of any action under it - see "Filtering by name" - and the tag cloud, which matches the project's own tags - see "Filtering by tag".
+**A line says what a project is, not what is in it.** The actions under each one used to be listed here, which made this view a page per project: the question it answers is "what am I running, and is any of it stuck", and that is a list you read down. What a project holds is on the project's own page, which is a keystroke away and where a project is worked on anyway (see "Editing items"). The line carries what the question needs - the title, whether it is stalled, whether it is snoozed, how many actions are open, and what it is about - and nothing else.
+
+It carries the filter line, which matches a project by its title or by the title of any action under it - see "Filtering by name" - and by the project's own tags - see "Filtering by tag". It cannot ask for a context, a size or a focus: a project has none of them, and being told so is the box's job (see "The filter line").
 
 ### Tasks
 The standalone actions: `completedAt` is empty and no project is set. Together with "Projects" this covers every commitment in the app.
@@ -390,7 +396,7 @@ Tasks is deliberately unremarkable, and each of its properties falls out of it b
 
 Snoozed standalone actions appear here, shown differently to mark them as not yet ready. Standalone waiting for actions appear here too: Tasks answers "where does this action live", not "is it mine to act on".
 
-It carries the name filter, matching the action title - see "Filtering by name" - and the tag cloud - see "Filtering by tag".
+It is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about tags and names only: a context or a size answers "what can I do now", and that is the question the "Next actions" view exists for.
 
 Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 4 of the weekly review. Tasks needs no review step of its own.
 
@@ -452,8 +458,8 @@ Rules:
 - its age comes from `becameNextActionAt`, which for these items is the delegation date
 - there is no automatic chasing. If a waiting for item has to be chased at a specific moment, the existing due date / `snoozeUntil` are used
 - it is reviewed during the weekly review
-- it carries the name filter, matching the action title - see "Filtering by name". The filter is on the title and not on "assigned to": the field is free text, so filtering by it would be filtering by however the name happened to be typed that day
-- it carries the tag cloud as well - see "Filtering by tag"
+- it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about tags and names only - what is here is not yours to act on, so a context or a size has nothing to narrow
+- the name filter is on the title and not on "assigned to": the field is free text, so filtering by it would be filtering by however the name happened to be typed that day
 
 ### Calendar
 Everything with a real deadline, soonest first: the actions whose due date is set and whose `completedAt` is empty. It answers "what is coming at me", which is a question no other view asks - "Next actions" is ordered by how long something has been available, not by when it runs out of time.
@@ -467,11 +473,11 @@ Snoozed items appear here too, shown differently to mark them as not yet ready. 
 Projects are never here, and neither are inbox or someday/maybe items, because none of them carries a due date - see "Deliberate omissions".
 
 #### Filters
-The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
+Written on the same line every long view is filtered by (see "The filter line"), combining with **AND**:
 
-- **name** - the shared name filter, matching the action title - see "Filtering by name"
-- **due** - when it falls due, picked from a fixed list: **anytime** (the default), **today**, **tomorrow**, **this week**, **next week**. As in the "Archive" these are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "next week" the one after it, not the next seven days. Anytime is how this filter resets.
-- **tags** - the shared tag cloud - see "Filtering by tag"
+- **name** - every word of the line that is not notation, matching the action title - see "Filtering by name"
+- **due** - `due:today`, `due:tomorrow`, `due:thisweek`, `due:nextweek`; leaving it out is anytime, which is how it resets. A word rather than a date, because the question is what is coming at me and the answer moves with the day. As in the "Archive" these are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "next week" the one after it, not the next seven days.
+- **tags** - `#car`, as many as you like - see "Filtering by tag"
 
 The Calendar carries neither context, nor duration, nor needs focus. Those three ask whether something can be done right now, which is not the question this view asks.
 
@@ -505,8 +511,8 @@ The schedules, ordered by when they next fire.
 
 It is the only view holding something you have not committed to, and the only one showing what is going to arrive rather than what already has. A one-shot leaves it the moment it fires; a cron schedule stays.
 
-- it shows the text, the rule in readable form, when it next fires and when it last did
-- it carries the name filter, matching the text of the schedule - see "Filtering by name"
+- it shows the text, the rule in readable form, when it next fires and when it last did. A rule with nothing ahead of it says so rather than leaving the space blank - it is a schedule on its last day in the list, and a blank would read as a missing value rather than as an answer
+- it carries the filter line, matching the text of the schedule - see "Filtering by name" and "The filter line". By text and by nothing else: a schedule has no context and no tag to narrow it by, so its line is words, and the box says so rather than ignoring a name quietly
 - it carries no tag cloud. A schedule has no tags: it is not a commitment and belongs to no area of responsibility. What it produces does, once accepted
 - it is reviewed during the weekly review, at step 6
 
@@ -602,6 +608,10 @@ Editing happens in two places:
 **In the item itself.** Opening a project or an action shows every field it has, editable, and for a project the full list of actions under it: add one, delete one, rename one, detach one (see "Reshaping items"). This is where a project is actually worked on. The DOD is prose and it is the field step 3 of the weekly review asks about, so it needs the room a list does not have.
 
 A project is reachable this way from everywhere it appears - "Projects", the "Calendar", the "Archive" - and from any of its actions, wherever that action is seen.
+
+**One form per kind of item.** An action is written in the same form wherever it is written - decided out of the inbox, added to a project, or opened from a list - and so is a project. The same fields in the same order, the same buttons in the same places. What differs between the screens is only what has already been answered: deciding an inbox item is where an action's project is *chosen*, and an action opened from a list shows its project without offering to change it, because moving an action between projects is Detach and Attach and not an edit (see "Reshaping items"). A form that looked different in each place would be four forms to keep true, and the fourth would be the one missing a field.
+
+**Leaving without saving is always offered.** Nothing is written until it is saved, the way out is the same key that leaves any screen, and it costs nothing - an item sat with and left alone is exactly the state it was in. Saving is offered only when there is something to save, so a screen that has not been changed cannot be "saved" into an audit entry that records nothing.
 
 Rules:
 
