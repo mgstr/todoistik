@@ -45,8 +45,11 @@ func main() {
 		log.Fatalf("web: %v", err)
 	}
 
-	fmt.Printf("todoistik listening on http://%s (db %s, tz %s, auth %s, config %s)\n",
-		*addr, *dbPath, loc, onOff(*token != ""), *cfgPath)
+	// one snapshot now and one on every hour, for as long as this runs
+	go a.BackupHourly(cfg.BackupDays)
+
+	fmt.Printf("todoistik listening on http://%s (db %s, tz %s, auth %s, config %s, backups %s)\n",
+		*addr, *dbPath, loc, onOff(*token != ""), *cfgPath, backupsSay(cfg.BackupDays, *dbPath))
 	log.Fatal(http.ListenAndServe(*addr, s.Handler()))
 }
 
@@ -55,6 +58,16 @@ func env(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// backupsSay is the startup line's word on backups: where they are and how
+// many, or that there are none. A directory the app writes to unasked is a
+// thing it should say out loud once.
+func backupsSay(days int, dbPath string) string {
+	if days <= 0 {
+		return "off"
+	}
+	return fmt.Sprintf("%d days hourly in %s", days, app.BackupDir(dbPath))
 }
 
 func onOff(b bool) string {

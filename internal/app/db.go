@@ -10,9 +10,10 @@ import (
 )
 
 type App struct {
-	db  *sql.DB
-	loc *time.Location // the one configured timezone that defines "today"
-	now func() time.Time
+	db   *sql.DB
+	path string         // the database file, for the snapshots kept beside it
+	loc  *time.Location // the one configured timezone that defines "today"
+	now  func() time.Time
 }
 
 func Open(path string, loc *time.Location) (*App, error) {
@@ -23,7 +24,7 @@ func Open(path string, loc *time.Location) (*App, error) {
 	// modernc/sqlite serializes writes poorly across many conns; one is plenty
 	// for a single-user app and removes SQLITE_BUSY from the picture.
 	db.SetMaxOpenConns(1)
-	a := &App{db: db, loc: loc, now: time.Now}
+	a := &App{db: db, path: path, loc: loc, now: time.Now}
 	if err := a.migrate(); err != nil {
 		db.Close()
 		return nil, err

@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -31,6 +32,11 @@ type Config struct {
 	// them, and the panels come back on the way out (see implementation.md,
 	// "Zen mode").
 	ZenViews []string
+	// BackupDays: how many days of hourly database snapshots to keep. The
+	// count of files is this times 24, and the oldest goes when a new one
+	// takes it past that. Zero keeps none, which is how the file turns
+	// backups off (see implementation.md, "Backups").
+	BackupDays int
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -52,8 +58,15 @@ func Defaults() Config {
 		ZenShowsTimer:  false,
 		ZenTimerFormat: TimerAuto,
 		ZenViews:       []string{"doing", "processing"},
+		BackupDays:     2,
 	}
 }
+
+// MaxBackupDays is the ceiling on backup.days. A year of hourly snapshots is
+// 8760 files beside the database, which is past the point where this is a
+// backup scheme rather than a hoard — at that scale the answer is something
+// that copies the directory off this machine, not a bigger number here.
+const MaxBackupDays = 365
 
 // bools maps a key in the file to the field it sets. Adding a setting is
 // adding a line here (or to strs below); nothing else in this file knows any
@@ -61,6 +74,15 @@ func Defaults() Config {
 func (c *Config) bools() map[string]*bool {
 	return map[string]*bool{
 		"zen.show_timer": &c.ZenShowsTimer,
+	}
+}
+
+// ints are the settings that take a number. Like the strings below they bring
+// their own check, since "backup.days = two" is a typo that would otherwise
+// read as zero and quietly keep nothing.
+func (c *Config) ints() map[string]*int {
+	return map[string]*int{
+		"backup.days": &c.BackupDays,
 	}
 }
 
@@ -167,7 +189,7 @@ func Load(path string) (Config, error) {
 	}
 	defer f.Close()
 
-	bools, strs, lists := c.bools(), c.strs(), c.lists()
+	bools, ints, strs, lists := c.bools(), c.ints(), c.strs(), c.lists()
 	sc := bufio.NewScanner(f)
 	for n := 1; sc.Scan(); n++ {
 		// a comment runs to the end of the line, and there is nothing a value
@@ -188,6 +210,17 @@ func Load(path string) (Config, error) {
 				return c, fmt.Errorf("%s:%d: %s: %v", path, n, key, err)
 			}
 			*field = Split(val)
+			continue
+		}
+		if field, ok := ints[key]; ok {
+			days, err := strconv.Atoi(val)
+			if err != nil {
+				return c, fmt.Errorf("%s:%d: %s wants a whole number of days, got %q", path, n, key, val)
+			}
+			if days < 0 || days > MaxBackupDays {
+				return c, fmt.Errorf("%s:%d: %s is %d, and the range is 0 (keep none) to %d", path, n, key, days, MaxBackupDays)
+			}
+			*field = days
 			continue
 		}
 		if field, ok := strs[key]; ok {
@@ -216,8 +249,11 @@ func Load(path string) (Config, error) {
 // Keys lists every setting name, sorted, for the message a wrong one gets.
 func Keys() []string {
 	var c Config
-	out := make([]string, 0, len(c.bools())+len(c.strs())+len(c.lists()))
+	out := make([]string, 0, len(c.bools())+len(c.ints())+len(c.strs())+len(c.lists()))
 	for k := range c.bools() {
+		out = append(out, k)
+	}
+	for k := range c.ints() {
 		out = append(out, k)
 	}
 	for k := range c.strs() {

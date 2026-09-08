@@ -90,6 +90,27 @@ func TestTimerFormat(t *testing.T) {
 	}
 }
 
+func TestBackupDays(t *testing.T) {
+	if got := Defaults().BackupDays; got != 2 {
+		t.Errorf("default backup.days = %d, want 2 — two days of hourly snapshots", got)
+	}
+	c, err := Load(write(t, "backup.days = 5\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.BackupDays != 5 {
+		t.Errorf("backup.days = %d, want 5", c.BackupDays)
+	}
+	// zero is an answer: it is how the file says "keep none"
+	c, err = Load(write(t, "backup.days = 0\n"))
+	if err != nil {
+		t.Fatalf("zero was refused: %v", err)
+	}
+	if c.BackupDays != 0 {
+		t.Errorf("backup.days = %d, want 0", c.BackupDays)
+	}
+}
+
 // The three ways a settings file can be wrong all have to stop startup, since
 // the file is read once and a quietly-ignored line looks set forever.
 func TestBadLinesAreRefused(t *testing.T) {
@@ -99,6 +120,9 @@ func TestBadLinesAreRefused(t *testing.T) {
 		{"not a bool", "zen.show_timer = sometimes\n", "wants true or false"},
 		{"bad format", "zen.timer_format = HH:NN\n", "is not a field"},
 		{"bad screen name", "zen.views = Doing\n", "is not a screen name"},
+		{"days not a number", "backup.days = two\n", "whole number of days"},
+		{"days negative", "backup.days = -1\n", "the range is 0"},
+		{"days too many", "backup.days = 400\n", "the range is 0"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := Load(write(t, tc.body))
