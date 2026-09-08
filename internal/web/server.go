@@ -272,6 +272,26 @@ func (s *Server) routes() {
 
 // parseFilters reads the shared filter set from query parameters; used
 // identically by the UI views and the read API.
+//
+// `q` is the filter line (design.md, "Filtering"), and it answers for every
+// filter it can say: given one, the discrete parameters are not also read, or
+// a caller would have two ways to ask one question and a rule about which
+// wins. Sort and order are not in the line and are read either way. What the
+// line cannot name — a name that is on no remembered list — is dropped here;
+// the screen asks about those before it ever submits (see "The filter box").
+func (s *Server) parseFilters(q url.Values) app.Filters {
+	if line := q.Get("q"); strings.TrimSpace(line) != "" {
+		v, err := s.app.Vocabulary()
+		if err != nil {
+			v = &app.Vocabulary{}
+		}
+		f, _ := app.ParseQuery(line, v)
+		f.Sort, f.Desc = q.Get("sort"), q.Get("desc") == "1"
+		return f
+	}
+	return parseFilters(q)
+}
+
 func parseFilters(q url.Values) app.Filters {
 	f := app.Filters{
 		Name:      strings.TrimSpace(q.Get("name")),

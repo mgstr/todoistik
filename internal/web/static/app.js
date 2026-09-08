@@ -104,6 +104,10 @@
     if (pd && pd.open) {
       return { view: declaredKeys("[data-key]").concat([["esc", "close"]]), global: [] };
     }
+    const unknown = unknownDialog();
+    if (unknown && unknown.open) {
+      return { view: declaredKeys("[data-key]").concat([["esc", "cancel"]]), global: [] };
+    }
     const dlg = captureDialog();
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
     const help = document.getElementById("help");
@@ -116,6 +120,13 @@
     if (picker) {
       return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
         ["type", "filter"], ["esc", "back"]], global: [] };
+    }
+    const sug = suggestList();
+    if (sug && !sug.hidden) {
+      return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
+    }
+    if (filterBox() && document.activeElement === filterBox()) {
+      return { view: [["\u21b5", "apply"], ["^f", "no filter"], ["esc", "leave the box"]], global: globalKeys() };
     }
     const closed = document.querySelector("[data-picker] .pickerbox");
     if (closed && closed === document.activeElement) {
@@ -157,6 +168,8 @@
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
+    const bar = filterBar();
+    if (bar) view.push(["^f", bar.hidden ? "filter" : "no filter"]);
     return { view: view, global: globalKeys() };
   }
 
@@ -337,9 +350,17 @@
     renderKeybar();
   }
   document.addEventListener("input", function (e) {
+    if (e.target === filterBox()) { paintFilter(); showSuggest(); return; }
     const scope = e.target.closest && e.target.closest("form, dialog");
     if (scope) { gate(scope); renderKeybar(); }
   });
+  // the mirror is only right while it is scrolled exactly as far as the box
+  document.addEventListener("scroll", function (e) {
+    if (e.target === filterBox()) {
+      const mirror = filterBar().querySelector(".fmirror");
+      mirror.scrollLeft = e.target.scrollLeft;
+    }
+  }, true);
 
   // Doing is a view of its own now — /doing/<id>, opened from a row with d —
   // so nothing here builds it. What is left is the timer, because the timer is
@@ -445,6 +466,314 @@
   // The panel chooser: ctrl-v, four forms, each one both a key and a click.
   function panelsDialog() { return document.getElementById("panels-dialog"); }
 
+  // --- the filter box ----------------------------------------------------
+  //
+  // One line that says what you want to see, in the notation an action is
+  // already written in: `@home #car #short milk`. The line is parsed properly
+  // in Go (internal/app, ParseQuery) and the filter set is what the server
+  // keeps; what happens in here is the two things that have to happen before
+  // it is submitted — asking about a name the app does not know, and saving
+  // you from typing the ones it does. The rules are therefore stated twice,
+  // and deliberately: here as questions, there as answers.
+  const FILTER_OPEN = "kb-filter-open";
+  const FIELD_TAGS = ["short", "medium", "long", "focus"];
+  const TOKEN_RE = /(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?/gu;
+  // what is being typed right now, which is a token that may still be empty
+  const TYPING_RE = /(^|\s)([@#])([\p{L}\p{N}_-]*)$/u;
+
+  function filterBar() { return document.querySelector("[data-filterbar]"); }
+  function filterBox() { const bar = filterBar(); return bar && bar.querySelector("[data-fquery]"); }
+  function suggestList() { const bar = filterBar(); return bar && bar.querySelector(".fsuggest"); }
+
+  function vocabNames(which) {
+    const bar = filterBar();
+    if (!bar) return [];
+    return (bar.dataset[which] || "").trim().split(/\s+/).filter(Boolean);
+  }
+
+  function tokensIn(text) {
+    const out = [];
+    TOKEN_RE.lastIndex = 0;
+    let m;
+    while ((m = TOKEN_RE.exec(text)) !== null) {
+      const start = m.index + m[1].length;
+      out.push({
+        start: start, end: m.index + m[0].length,
+        sigil: m[2], name: m[3], param: m[5] || "",
+        text: text.slice(start, m.index + m[0].length),
+      });
+    }
+    return out;
+  }
+
+  // The same three things ParseQuery refuses, found here so they can be asked
+  // about: a name on no remembered list, a second context (an action has one),
+  // and a field that is not a filter.
+  function problemsIn(text) {
+    const contexts = vocabNames("contexts").concat(["waitingFor"]);
+    const tags = vocabNames("tags").concat(FIELD_TAGS, ["today"]);
+    const out = [];
+    let haveContext = false;
+    tokensIn(text).forEach(function (t) {
+      if (t.sigil === "@") {
+        if (contexts.indexOf(t.name) < 0) out.push(Object.assign({ kind: "context" }, t));
+        else if (haveContext) out.push(Object.assign({ kind: "second-context" }, t));
+        else haveContext = true;
+        return;
+      }
+      if (t.name === "parked") { out.push(Object.assign({ kind: "not-a-filter" }, t)); return; }
+      if (tags.indexOf(t.name) < 0) out.push(Object.assign({ kind: "tag" }, t));
+    });
+    return out;
+  }
+
+  // The mirror carries the marks: the same text in the same place, behind the
+  // input, with its own text invisible so that only the wavy lines show. It is
+  // redrawn on every keystroke, which is cheap — the line is one line.
+  function paintFilter() {
+    const bar = filterBar();
+    if (!bar) return;
+    const box = filterBox(), mirror = bar.querySelector(".fmirror");
+    const text = box.value;
+    mirror.textContent = "";
+    let at = 0;
+    problemsIn(text).forEach(function (p) {
+      mirror.appendChild(document.createTextNode(text.slice(at, p.start)));
+      const mark = document.createElement("span");
+      mark.className = "bad";
+      mark.textContent = p.text;
+      mirror.appendChild(mark);
+      at = p.end;
+    });
+    mirror.appendChild(document.createTextNode(text.slice(at)));
+    mirror.scrollLeft = box.scrollLeft;
+    // Apply is dead until the line differs from the one that is applied. The
+    // input's own default value is that line, straight from the server, so
+    // there is nothing to remember here
+    const apply = bar.querySelector(".apply");
+    if (apply) apply.disabled = text === box.defaultValue;
+  }
+
+  function typingToken() {
+    const box = filterBox();
+    if (!box || document.activeElement !== box) return null;
+    const before = box.value.slice(0, box.selectionStart);
+    const m = TYPING_RE.exec(before);
+    if (!m) return null;
+    return { sigil: m[2], prefix: m[3], start: before.length - m[2].length - m[3].length };
+  }
+
+  function suggestionsFor(t) {
+    const pool = t.sigil === "@" ? vocabNames("contexts")
+      : vocabNames("tags").concat(FIELD_TAGS).sort();
+    const p = t.prefix.toLowerCase();
+    const starts = pool.filter(function (n) { return n.toLowerCase().indexOf(p) === 0; });
+    const holds = pool.filter(function (n) {
+      return n.toLowerCase().indexOf(p) > 0;
+    });
+    return starts.concat(holds).slice(0, 8);
+  }
+
+  function showSuggest() {
+    const list = suggestList();
+    if (!list) return;
+    const t = typingToken();
+    const names = t ? suggestionsFor(t) : [];
+    if (!names.length) { hideSuggest(); return; }
+    list.textContent = "";
+    names.forEach(function (n, i) {
+      const li = document.createElement("li");
+      li.textContent = t.sigil + n;
+      li.dataset.name = n;
+      if (i === 0) li.className = "on";
+      list.appendChild(li);
+    });
+    list.hidden = false;
+    renderKeybar();
+  }
+
+  function hideSuggest() {
+    const list = suggestList();
+    if (!list || list.hidden) return;
+    list.hidden = true;
+    renderKeybar();
+  }
+
+  function moveSuggest(delta) {
+    const list = suggestList();
+    if (!list || list.hidden) return;
+    const all = Array.from(list.children);
+    const at = all.findIndex(function (li) { return li.classList.contains("on"); });
+    const next = Math.max(0, Math.min(all.length - 1, (at < 0 ? 0 : at) + delta));
+    all.forEach(function (li) { li.classList.remove("on"); });
+    all[next].classList.add("on");
+    all[next].scrollIntoView({ block: "nearest" });
+  }
+
+  // taking a name writes it where the half-typed one was, and leaves a space:
+  // a filter line is a list of names and the next one is usually coming
+  function takeSuggest(name) {
+    const t = typingToken(), box = filterBox();
+    if (!t || !box) return;
+    const head = box.value.slice(0, t.start) + t.sigil + name + " ";
+    box.value = head + box.value.slice(box.selectionStart);
+    box.setSelectionRange(head.length, head.length);
+    hideSuggest();
+    paintFilter();
+  }
+
+  function openFilter() {
+    const bar = filterBar();
+    if (!bar) return;
+    bar.hidden = false;
+    try { sessionStorage.setItem(FILTER_OPEN, viewKey()); } catch (err) { /* fine */ }
+    const box = filterBox();
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+    paintFilter();
+    renderKeybar();
+  }
+
+  // Closing takes the filters with it, because a box you cannot see must not
+  // be narrowing the list behind it. Nothing to clear is no round trip.
+  function closeFilter() {
+    const bar = filterBar();
+    if (!bar) return;
+    try { sessionStorage.removeItem(FILTER_OPEN); } catch (err) { /* fine */ }
+    hideSuggest();
+    if (filterBox().defaultValue === "") {
+      bar.hidden = true;
+      renderKeybar();
+      return;
+    }
+    window.location.href = bar.getAttribute("action") + "?f=1";
+  }
+
+  function restoreFilter() {
+    const bar = filterBar();
+    if (!bar) return;
+    let open = null;
+    try { open = sessionStorage.getItem(FILTER_OPEN); } catch (err) { /* fine */ }
+    if (open && open === viewKey()) bar.hidden = false;
+    paintFilter();
+  }
+
+  function applyFilter() {
+    const bar = filterBar();
+    if (!bar) return;
+    hideSuggest();
+    const bad = problemsIn(filterBox().value);
+    if (bad.length) { askAbout(bad[0]); return; }
+    bar.submit();
+  }
+
+  // How near two names are, for "did you mean". Plain edit distance, because
+  // what it is up against is a typo — a letter dropped, doubled or swapped.
+  function editDistance(a, b) {
+    const prev = [];
+    for (let j = 0; j <= b.length; j++) prev[j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      let last = prev[0];
+      prev[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const keep = prev[j];
+        prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, last + (a[i - 1] === b[j - 1] ? 0 : 1));
+        last = keep;
+      }
+    }
+    return prev[b.length];
+  }
+
+  // At most three, and only ones near enough to be worth offering: a list of
+  // every name would be the remembered list, which is not what was asked
+  function nearest(name, pool) {
+    const limit = Math.max(2, Math.floor(name.length / 2));
+    return pool.map(function (n) { return [n, editDistance(name.toLowerCase(), n.toLowerCase())]; })
+      .filter(function (p) { return p[1] <= limit; })
+      .sort(function (x, y) { return x[1] - y[1]; })
+      .slice(0, 3)
+      .map(function (p) { return p[0]; });
+  }
+
+  function unknownDialog() { return document.getElementById("unknown-dialog"); }
+
+  // Rewrites the offending token — to another name, or to nothing — and picks
+  // up where it left off: the next problem, or the apply that was interrupted.
+  function resolveToken(problem, text) {
+    const box = filterBox();
+    const v = box.value;
+    let out = v.slice(0, problem.start) + text + v.slice(problem.end);
+    out = out.replace(/[ \t]{2,}/g, " ").replace(/^\s+/, "");
+    box.value = out;
+    paintFilter();
+    const dlg = unknownDialog();
+    if (dlg && dlg.open) dlg.close();
+    applyFilter();
+  }
+
+  const PROBLEM_TEXT = {
+    "context": function (p) { return p.token + " is not a context the app knows"; },
+    "tag": function (p) { return p.token + " is not a tag the app knows"; },
+    "second-context": function (p) { return "an action has one context, and " + p.token + " is the second one asked for"; },
+    "not-a-filter": function (p) { return p.token + " is a field, not something to filter by"; },
+  };
+
+  function askAbout(problem) {
+    const dlg = unknownDialog();
+    if (!dlg) return;
+    problem.token = problem.text;
+    dlg.querySelector("#unknown-title").textContent = PROBLEM_TEXT[problem.kind](problem);
+    const choices = dlg.querySelector(".choices");
+    choices.textContent = "";
+
+    const pool = problem.sigil === "@" ? vocabNames("contexts") : vocabNames("tags").concat(FIELD_TAGS);
+    const near = problem.kind === "context" || problem.kind === "tag" ? nearest(problem.name, pool) : [];
+    near.forEach(function (name, i) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.dataset.key = String(i + 1);
+      b.dataset.keyLabel = problem.sigil + name;
+      b.textContent = problem.sigil + name;
+      const why = document.createElement("span");
+      why.className = "why";
+      why.textContent = "use this one";
+      b.appendChild(why);
+      b.addEventListener("click", function () {
+        resolveToken(problem, problem.sigil + name + (problem.param ? "(" + problem.param + ")" : ""));
+      });
+      choices.appendChild(b);
+    });
+
+    const drop = document.createElement("button");
+    drop.type = "button";
+    drop.dataset.key = "r";
+    drop.dataset.keyLabel = "remove it";
+    drop.textContent = "Take " + problem.token + " out of the line";
+    drop.addEventListener("click", function () { resolveToken(problem, ""); });
+    choices.appendChild(drop);
+
+    // Creating is only ever offered for a name that is simply not there yet,
+    // and it goes through the same endpoint the Settings screen uses — one
+    // place learns a name (see implementation.md, "The remembered lists").
+    // Coming back means coming back here, with the line still in the box and
+    // the name in it now known, so creating and applying are one press.
+    const known = problem.kind === "context" || problem.kind === "tag";
+    dlg.querySelectorAll(".createname").forEach(function (make) {
+      const mine = known && make.dataset.kind === problem.sigil;
+      make.hidden = !mine;
+      const btn = make.querySelector("[data-create-name]");
+      if (!mine) { delete btn.dataset.key; return; }
+      make.querySelector("[name=name]").value = problem.name;
+      make.querySelector("[name=back]").value =
+        filterBar().getAttribute("action") + "?f=1&q=" + encodeURIComponent(filterBox().value);
+      btn.textContent = "Create " + problem.token;
+      btn.dataset.key = "n";
+      btn.dataset.keyLabel = "create it";
+    });
+    dlg.showModal();
+    renderKeybar();
+  }
+
   function rows() {
     return Array.from(document.querySelectorAll("[data-kb-row]"));
   }
@@ -545,6 +874,15 @@
   // form.submit() fires no submit event, which is why submitIn hands the row
   // on itself rather than relying on this
   document.addEventListener("submit", function (e) {
+    // the filter line is asked about however it is submitted — the button is
+    // the mouse's Enter, and both have to stop at a name the app cannot use
+    if (e.target === filterBar()) {
+      const bad = problemsIn(filterBox().value);
+      // stopped in the capture phase, or htmx's own submit handler would send
+      // the line anyway: preventDefault stops the browser, not another listener
+      if (bad.length) { e.preventDefault(); e.stopPropagation(); askAbout(bad[0]); }
+      return;
+    }
     const row = e.target.closest && e.target.closest("[data-kb-row]");
     if (row && row === selected()) handSelectionOn(row);
   }, true);
@@ -577,6 +915,18 @@
       return;
     }
 
+    // ctrl-f is the filter line, on the views that have one: it is the search
+    // key every other program uses, and what this app has to search is its own
+    // list rather than the page. Pressed again it closes the box and takes the
+    // filters with it — a filter you cannot see is one you cannot undo.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "f") {
+      const bar = filterBar();
+      if (!bar) return; // a view with no box leaves ctrl-f to the browser
+      e.preventDefault();
+      if (bar.hidden) openFilter(); else closeFilter();
+      return;
+    }
+
     // A screen key that asks for ctrl is live wherever the screen is, text
     // boxes included — reaching it without leaving the field is the whole
     // point of the modifier, and the reason a screen would choose one. Not
@@ -598,6 +948,14 @@
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
       return;
     }
+    const unknown = unknownDialog();
+    if (unknown && unknown.open) {
+      if (e.key === "Escape") { e.preventDefault(); unknown.close(); renderKeybar(); return; }
+      const pick = branchFor(e);
+      if (pick) { e.preventDefault(); press(pick); return; }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+      return;
+    }
     const panels = panelsDialog();
     if (panels && panels.open) {
       // the four keys are the dialog's own declared controls, so pressing one
@@ -607,6 +965,24 @@
       if (choice) { e.preventDefault(); press(choice); return; }
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
       return;
+    }
+    if (e.target === filterBox()) {
+      const list = suggestList();
+      const open = list && !list.hidden;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (!open) showSuggest(); else moveSuggest(e.key === "ArrowDown" ? 1 : -1);
+        return;
+      }
+      if (open && (e.key === "Enter" || e.key === "Tab")) {
+        const on = list.querySelector("li.on");
+        if (on) { e.preventDefault(); takeSuggest(on.dataset.name); return; }
+      }
+      if (e.key === "Enter") { e.preventDefault(); applyFilter(); return; }
+      // esc unwinds one step at a time, the way the project picker does: the
+      // list first, then the box. It never closes the box — that is ctrl-f,
+      // and it would take the filters with it
+      if (e.key === "Escape" && open) { e.preventDefault(); hideSuggest(); return; }
     }
     if (typing(e)) {
       // ctrl-enter (cmd on a mac) submits the form being typed in. Plain Enter
@@ -758,6 +1134,9 @@
     setPending(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
     if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
+    const pick = e.target.closest(".fsuggest li");
+    if (pick) { e.preventDefault(); takeSuggest(pick.dataset.name); filterBox().focus(); return; }
+    if (filterBox() && !e.target.closest(".filterbar")) hideSuggest();
     // clearing a whole filter at once: unchecking them one at a time is one
     // page load each, and the form's own change handler does not fire for a
     // box unchecked from here, so the submit is explicit
@@ -1105,6 +1484,7 @@
   document.addEventListener("htmx:afterSwap", function () {
     // the old page's timer is counting for a screen that is no longer here
     startTimer();
+    restoreFilter();
     renderKeybar(); setupPickers(); gateAll();
     claimSelection();
   });
@@ -1128,6 +1508,7 @@
   caretToEnd();
 
   startTimer();
+  restoreFilter();
   renderKeybar();
   claimSelection();
 

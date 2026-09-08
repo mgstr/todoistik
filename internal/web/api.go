@@ -57,7 +57,7 @@ func (s *Server) apiCapture(w http.ResponseWriter, r *http.Request) {
 // apiView is the read API: one endpoint per view, the caller's own filters
 // as query parameters, independent of the screen's filter state. Read only.
 func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
-	f := parseFilters(r.URL.Query())
+	f := s.parseFilters(r.URL.Query())
 	name := r.PathValue("name")
 	var (
 		data any

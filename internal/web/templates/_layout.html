@@ -124,6 +124,59 @@
 {{if .Filters.Active}}<p class="filtered">Filtered — {{.Hidden}} item(s) hidden. <a href="?f=1">Reset all filters</a></p>{{end}}
 {{end}}
 
+{{/* The filter box: one line that says what you want to see, summoned with
+     ctrl-f and gone otherwise (design.md, "Filtering"). It is a partial rather
+     than part of one page because it is meant to be the way every long view
+     filters — adding it to another is this one line, once that view's handler
+     fills in the same fields.
+
+     Rendered whatever its state, and shown by the key layer: it carries the
+     counts, which only the server knows, and the remembered lists, which the
+     completion reads off the form rather than fetching (implementation.md,
+     "The filter box"). A view that is filtered opens with it up, because a
+     filtered view has to say so and this is what says it. */}}
+{{define "filterbar"}}
+<form method="get" action="/{{.View}}" class="filterbar" data-filterbar
+      data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
+      data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
+      {{if not .Filters.Active}}hidden{{end}}>
+  <input type="hidden" name="f" value="1">
+  <span class="fcount" title="on screen, of what this view holds">
+    {{if lt .Shown .Total}}{{.Shown}} <span class="of">of</span> {{.Total}}{{else}}{{.Shown}}{{end}}
+  </span>
+  <span class="fbox">
+    <span class="fmirror" aria-hidden="true"></span>
+    <input name="q" value="{{.Query}}" data-fquery autocomplete="off" spellcheck="false"
+           aria-label="filter">
+  </span>
+  <button class="apply" disabled>Apply</button>
+  <ul class="fsuggest" hidden></ul>
+</form>
+{{/* A name that is on no remembered list is either new or mistyped, and only
+     the person typing knows which — so the line is not applied until it has
+     been asked. The dialog is filled in by the key layer, one problem at a
+     time; creating goes through the same endpoint the Settings screen uses,
+     and comes back here with the line still in the box. */}}
+<dialog id="unknown-dialog" aria-labelledby="unknown-title">
+  <h2 id="unknown-title"></h2>
+  <div class="choices"></div>
+  {{/* One form per list rather than one form whose action is written by the
+       key layer: hx-boost reads a form when the page is processed, so an
+       action filled in later is an action it never sees. The one that does
+       not apply is hidden, and only the shown one carries the key. */}}
+  <form method="post" class="createname" data-kind="@" action="/settings/contexts/add" hidden>
+    <input type="hidden" name="name" value="">
+    <input type="hidden" name="back" value="">
+    <button class="primary" data-create-name></button>
+  </form>
+  <form method="post" class="createname" data-kind="#" action="/settings/tags/add" hidden>
+    <input type="hidden" name="name" value="">
+    <input type="hidden" name="back" value="">
+    <button class="primary" data-create-name></button>
+  </form>
+</dialog>
+{{end}}
+
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"

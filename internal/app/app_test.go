@@ -343,14 +343,6 @@ func TestNextActionsFilters(t *testing.T) {
 	if acts, _ = a.NextActions(Filters{}); len(acts) != 4 {
 		t.Fatalf("no context filter: got %d, want all 4: %v", len(acts), titles(acts))
 	}
-	// the clouds offer what this view actually holds, alphabetically
-	want := []string{"grocery", "grocery(Selver)", "home"}
-	if got := ContextsOf(acts); !reflect.DeepEqual(got, want) {
-		t.Errorf("context cloud = %v, want %v", got, want)
-	}
-	if got := TagsOf(acts); !reflect.DeepEqual(got, []string{"house"}) {
-		t.Errorf("tag cloud = %v, want the one tag in use here", got)
-	}
 	acts, _ = a.NextActions(Filters{Focus: "only"})
 	if len(acts) != 1 || acts[0].Title != "Fix the tap" {
 		t.Fatalf("focus only: %v", titles(acts))
@@ -555,5 +547,58 @@ func TestProjectCandidates(t *testing.T) {
 	}
 	if hits[0].OpenCount != 2 {
 		t.Fatalf("open count: got %d, want 2", hits[0].OpenCount)
+	}
+}
+
+// The filter line is the only way filters are written now, so what it means
+// is pinned here: which tokens are fields, which are names off the remembered
+// lists, and what counts as something to ask about before it can be applied.
+func TestParseQuery(t *testing.T) {
+	v := &Vocabulary{
+		Contexts: map[string]bool{"home": true, "grocery": true},
+		Tags:     map[string]bool{"car": true, "house": true},
+	}
+
+	f, problems := ParseQuery("@grocery(Selver) #car #house #short #focus buy milk", v)
+	if len(problems) != 0 {
+		t.Fatalf("a line of known names had problems: %+v", problems)
+	}
+	if !reflect.DeepEqual(f.Contexts, []string{"grocery(Selver)"}) {
+		t.Errorf("contexts = %v", f.Contexts)
+	}
+	if !reflect.DeepEqual(f.Tags, []string{"car", "house"}) {
+		t.Errorf("tags = %v", f.Tags)
+	}
+	if !reflect.DeepEqual(f.Durations, []Duration{DurShort}) {
+		t.Errorf("durations = %v", f.Durations)
+	}
+	if f.Focus != "only" {
+		t.Errorf("focus = %q, want only", f.Focus)
+	}
+	if f.Name != "buy milk" { // the words left over, in the order they were typed
+		t.Errorf("name = %q, want the leftover words", f.Name)
+	}
+
+	// the line is written back out of the filters, in one fixed order
+	if got := f.Query(); got != "@grocery(Selver) #car #house #short #focus buy milk" {
+		t.Errorf("round trip = %q", got)
+	}
+
+	for _, tc := range []struct{ q, kind string }{
+		{"@hoem", ProblemContext},
+		{"#kar", ProblemTag},
+		{"@home @grocery", ProblemSecondContext},
+		{"#parked", ProblemNotAFilter},
+	} {
+		_, problems := ParseQuery(tc.q, v)
+		if len(problems) != 1 || problems[0].Kind != tc.kind {
+			t.Errorf("%q gave %+v, want one %s problem", tc.q, problems, tc.kind)
+		}
+	}
+
+	// what is right about a line still parses while the rest is asked about
+	f, problems = ParseQuery("@home #kar milk", v)
+	if len(problems) != 1 || f.Name != "milk" || len(f.Contexts) != 1 {
+		t.Errorf("a line with one bad token lost the good ones: %+v %+v", f, problems)
 	}
 }

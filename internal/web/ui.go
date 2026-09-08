@@ -59,6 +59,16 @@ func (p *page) notation(s *Server) *page {
 	return p
 }
 
+// vocab hands the remembered lists to the page, for a screen that has to
+// offer them rather than explain them — the filter box completing a name as
+// it is typed. notation() is the other caller's version of this, and it also
+// turns on the panel that explains the notation.
+func (p *page) vocab(s *Server) *page {
+	p.Vocab.Contexts, _ = s.app.Contexts()
+	p.Vocab.Tags, _ = s.app.Tags()
+	return p
+}
+
 // help overrides the entry newPage picked from the view slug, for a screen
 // that sits under a view in the nav but is not that view.
 func (p *page) help(key string) *page {
@@ -93,29 +103,30 @@ func (p *page) step(name, slug string) *page {
 
 // page is the data every template gets.
 type page struct {
-	Title          string
-	View           string // active nav entry
-	Trail          []crumb
-	Panels         panels
-	Timer          bool   // this screen counts its own minutes, so ^t is the timer here
-	HelpName       string // the view's full name, for the ? panel
-	HelpText       string // what this view is for, for the ? panel
-	Processing     bool   // the nav slot named by View reads "Processing…" instead
-	Notation       bool   // the ? panel also explains how an action is written
-	Vocab          struct{ Contexts, Tags []string }
-	Filters        app.Filters
-	FilterQuery    string   // current filter query string (for sort/order links)
-	Hidden         int      // how many items the filters hide
-	TagCloud       []string // every tag in use, for the views whose filter panel is still the old one
-	TagsInView     []string // the tags this view actually holds, for the rebuilt controls
-	ContextsInView []string
-	Durations      []app.Duration
-	Nav            *app.NavCounts
-	Today          string
-	Ages           bool // the ages on rows are shown rather than hidden
-	Conf           conf.Config
-	Error          string
-	Data           any
+	Title       string
+	View        string // active nav entry
+	Trail       []crumb
+	Panels      panels
+	Timer       bool   // this screen counts its own minutes, so ^t is the timer here
+	HelpName    string // the view's full name, for the ? panel
+	HelpText    string // what this view is for, for the ? panel
+	Processing  bool   // the nav slot named by View reads "Processing…" instead
+	Notation    bool   // the ? panel also explains how an action is written
+	Vocab       struct{ Contexts, Tags []string }
+	Filters     app.Filters
+	FilterQuery string   // current filter query string (for sort/order links)
+	Hidden      int      // how many items the filters hide
+	TagCloud    []string // every tag in use, for the views whose filter panel is still the old one
+	Query       string   // the filter set as a line, for the filter box
+	Shown       int      // items on the screen
+	Total       int      // items the view holds with no filters at all
+	Durations   []app.Duration
+	Nav         *app.NavCounts
+	Today       string
+	Ages        bool // the ages on rows are shown rather than hidden
+	Conf        conf.Config
+	Error       string
+	Data        any
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
@@ -159,7 +170,7 @@ func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
 			}
 		}
 	}
-	return parseFilters(q)
+	return s.parseFilters(q)
 }
 
 // agesState is the one display flag the app carries, kept where the per-view
@@ -246,27 +257,6 @@ func (s *Server) doingPage(w http.ResponseWriter, r *http.Request) {
 	p.Timer = true
 	p.Data = doingData{Action: act, Back: home}
 	s.render(w, "doing.html", p)
-}
-
-// withSelected keeps a chosen filter on its row even when nothing under the
-// other filters carries it any more. A filter you cannot see is a filter you
-// cannot turn off.
-func withSelected(have, selected []string) []string {
-	out := append([]string(nil), have...)
-	for _, s := range selected {
-		found := false
-		for _, h := range out {
-			if h == s {
-				found = true
-				break
-			}
-		}
-		if !found {
-			out = append(out, s)
-		}
-	}
-	sort.Strings(out)
-	return out
 }
 
 func filterQuery(f app.Filters) string {
@@ -383,37 +373,18 @@ func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, v
 		httpError(w, err)
 		return
 	}
-	p := s.newPage(title, view, r)
+	p := s.newPage(title, view, r).vocab(s)
 	p.Filters, p.FilterQuery = f, filterQuery(f)
 	if f.Active() {
 		if all, err := load(app.Filters{Sort: f.Sort, Desc: f.Desc}); err == nil {
 			p.Hidden = len(all) - len(acts)
 		}
 	}
-	// Each cloud is what this view holds, built with its own filter set aside
-	// and the others still applied: choosing a context must not leave one
-	// context to choose from, and the tags on offer are the tags of the
-	// actions you can currently see. A tag that is selected stays on the row
-	// whatever the rest of the filters do to it, or the only way to see that
-	// it is on would be the list being short.
-	if len(f.Contexts) == 0 {
-		p.ContextsInView = app.ContextsOf(acts)
-	} else {
-		wider := f
-		wider.Contexts = nil
-		if all, err := load(wider); err == nil {
-			p.ContextsInView = app.ContextsOf(all)
-		}
-	}
-	if len(f.Tags) == 0 {
-		p.TagsInView = app.TagsOf(acts)
-	} else {
-		wider := f
-		wider.Tags = nil
-		if all, err := load(wider); err == nil {
-			p.TagsInView = withSelected(app.TagsOf(all), f.Tags)
-		}
-	}
+	// what the box says: how many are on the screen, out of how many there
+	// are. One number when nothing is filtered, because "6 of 6" is a sum
+	// nobody asked for (design.md, "Filtering")
+	p.Shown, p.Total = len(acts), len(acts)+p.Hidden
+	p.Query = f.Query()
 	p.Data = acts
 	s.render(w, tmpl, p)
 }
@@ -425,6 +396,12 @@ func (s *Server) tasksPage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) nextPage(w http.ResponseWriter, r *http.Request) {
 	s.actionListView(w, r, "Next actions", "next", "next.html", s.app.NextActions)
 }
+
+// filterVocab is what the filter box completes from: the remembered lists,
+// plus the names that stand for fields. It is put on the page rather than
+// fetched, the way the project picker is (see "Stage two") — the lists are a
+// few dozen short words, and a round trip per keystroke to filter them would
+// be slower than the typing.
 
 func (s *Server) waitingPage(w http.ResponseWriter, r *http.Request) {
 	s.actionListView(w, r, "Waiting for", "waiting", "waiting.html", s.app.WaitingFor)
@@ -1460,12 +1437,22 @@ func (s *Server) settingsAdd(w http.ResponseWriter, r *http.Request) {
 	s.backToSettings(w, r, err)
 }
 
+// backToSettings answers a change to the remembered lists. A form may say
+// where it came from with a "back" field and then it goes there instead: a
+// name is learned from the Settings screen most of the time, but also from the
+// filter box, which asks to create one in the middle of typing a filter and
+// has a line waiting to be applied when it comes back (see "The filter box").
 func (s *Server) backToSettings(w http.ResponseWriter, r *http.Request, err error) {
+	home := localPath(r.FormValue("back"), "/settings")
 	if err != nil {
-		http.Redirect(w, r, "/settings?err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		sep := "?"
+		if strings.Contains(home, "?") {
+			sep = "&"
+		}
+		http.Redirect(w, r, home+sep+"err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
 		return
 	}
-	http.Redirect(w, r, "/settings", http.StatusSeeOther)
+	http.Redirect(w, r, home, http.StatusSeeOther)
 }
 
 func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {
