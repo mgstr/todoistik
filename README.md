@@ -49,6 +49,7 @@ zen.views = doing, processing  # screens that open with every panel off (default
 zen.show_timer = false         # start the doing screen with the timer showing (default false; ctrl-t flips it)
 zen.timer_format = auto        # minutes, then H:MM past the hour. Or a pattern: H:MM, HH:MM, M
 backup.days = 2                # days of hourly database snapshots to keep (default 2; 0 keeps none)
+review.someday_days = 30       # days before a someday/maybe item is back on the weekly review (default 30)
 EOF
 ```
 

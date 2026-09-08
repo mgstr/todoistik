@@ -923,6 +923,7 @@ zen.views = doing, processing  # these screens open with every panel off
 zen.show_timer = false         # the timer starts hidden; ctrl-t shows it
 zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
 backup.days = 2                # days of hourly snapshots kept; 0 keeps none
+review.someday_days = 30       # days before a someday/maybe item is back on the review
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -964,13 +965,27 @@ backup.days = 2                # days of hourly snapshots kept; 0 keeps none
   so `H:MM`, `HH:MM`, `M` and `H h MM` all work. Any *other* capital is refused
   rather than printed: a capital in a pattern reads as a field, and `HH:NN`
   quietly rendering as `01:NN` is the failure this file cannot afford
-- **a setting that takes a number brings its own check too.** `backup.days`
-  is a whole number from 0 to 365, and `backup.days = two` stops startup rather
-  than reading as zero — which is the same failure the string settings have,
-  except that this one would quietly keep no backups at all. The ceiling is
-  there because a year of hourly snapshots is 8760 files beside the database,
-  which is a hoard rather than a backup scheme: past that the answer is
-  something that copies the directory off the machine
+- **a setting that takes a number brings its own check too.** `backup.days =
+  two` stops startup rather than reading as zero — the same failure the string
+  settings have, except that this one would quietly keep no backups at all.
+  Each number key also brings its own range, because the two disagree about
+  zero: `backup.days` runs 0 to 365, where 0 means keep none, and its ceiling
+  is there because a year of hourly snapshots is 8760 files beside the
+  database, which is a hoard rather than a backup scheme — past that the
+  answer is something that copies the directory off the machine.
+  `review.someday_days` runs 1 to 365: a review period of no days means
+  nothing, so its floor is 1, which means back on every review, and past a
+  year the number is not a cadence but a way of writing "never reviewed",
+  which is the failure the review exists to prevent
+- **`review.someday_days` is the one review period that is a setting.** The
+  weekly review counts an item as outstanding when its `lastReviewedAt` is
+  older than a week; someday/maybe items age against this number instead — a
+  month by default, per design.md, "Weekly review". The week is deliberately
+  not a key: it is the protocol, while how long an idea may sit parked
+  unasked-about is a choice about patience, which is exactly the kind of
+  choice this file holds. `main` hands the value to `internal/app` at
+  startup; `app.Open` seeds the same default, so tools and tests that read no
+  settings file still get the rule
 - **zero is an answer here as well.** `backup.days = 0` is how the file turns
   backups off, in the same shape `zen.views =` uses to say "no screen" — and
   like that one it says what you get rather than what is taken away
