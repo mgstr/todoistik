@@ -46,7 +46,10 @@ Nothing else. The read API is read only, and capture is the only way in.
 
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
-- `j` / `k` move through the current list, `Enter` opens the selected item
+- `j` / `k` move through the current list, `Enter` opens the selected item.
+  While a dialog is open its own rows are the current list — the answers in
+  the filter box's unknown-name dialog are moved through this way (see "The
+  filter box")
 - **the selection survives acting on the row.** A row key posts a form and the
   answer is a whole new page — boosted or not, the list is rebuilt and the
   class marking the selection goes with the old one, so pressing `t` used to
@@ -86,7 +89,7 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `ctrl-v` opens the panel chooser: title bar, navigation, key bar, zen mode,
   one letter each, and a second `ctrl-v` presses zen — see "Panels"
 - `ctrl-f` puts up the filter line on a view that has one, and takes it and
-  every filter away when pressed again — see "The filter box"
+  every filter away when pressed again — see "Token boxes"
 - `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
   are hidden by default"), and the timer on the doing screen (see "Doing"). The
   one key that sets a flag rather than doing something, which is why the bar
@@ -390,6 +393,30 @@ One rule, applied wherever something is made:
   so the bar and the button never disagree and neither has to be re-checked
   against the other
 
+### A refused post is never silent
+
+- **htmx does not swap a 4xx, so a plain 400 shows nothing at all.** The body
+  is boosted: a form posts over XHR and the page never navigates, so a handler
+  answering with `httpError` leaves the screen exactly as it was. This was the
+  bug — `9-23 9 2026` typed into a schedule's "When" is not a rule the app can
+  read, and pressing Create looked like a dead button. The `required` gate
+  above cannot catch this kind of refusal: the field was filled, and it was the
+  syntax that was wrong
+- **so a screen whose field can be typed wrong renders itself back.** The two
+  schedule forms answer a refusal with the form again, 200: the reason in the
+  page's error banner, every box still holding what was typed, and nothing
+  written — an edited schedule's heading goes on reading the rule it still has.
+  It is the processing screen's bounce in a second place, and the same
+  non-answer as leaving the screen
+- **every other refusal falls to a net in the keyboard layer.** An
+  `htmx:responseError` listener puts the first line of the server's own message
+  in an error banner at the top of the pane. It invents no wording and decides
+  nothing, which is what keeps it inside what a script here may do; what it
+  buys is that no press can ever mean nothing again. It is a net and not a
+  design: a screen that refuses on purpose still owes the form back, because a
+  banner over an unchanged screen says less than a form that came back with the
+  reason written above it
+
 ## The remembered lists
 
 The Settings page is where a name is learned and unlearned. Both lists are
@@ -435,11 +462,18 @@ key and gone otherwise — the progressive disclosure this section argues for,
 taken as far as it goes: not a collapsed panel but no panel at all. See "The
 filter box" for how it is built, and design.md, "The filter line" for why.
 
-- **the other views still have their panels**, open on every visit, until the
-  box reaches them. It is one template line to add (see "The filter box"), and
-  what each of them then needs is the two page fields the Next view's handler
-  fills in. Written down because the app is in two states about filtering
-  until that is done, and the half that has not moved is not the intended one
+- **one view still has its panel**, open on every visit: the Archive. It
+  filters by a completed window, which the line can already say
+  (`completed:lastweek` parses), so what is left there is the template.
+  Written down because the app is in two states about filtering until it
+  moves, and the half that has not moved is not the intended one
+- **the Scheduler was the cheap half of that**, and went the way the partial
+  promised: `{{template "filterbar" .}}` in place of the old form, four lines
+  in its handler for `Shown`, `Total`, `Query` and `FilterMode`. It takes
+  `filter-name`, the mode Someday already used — which is what turned that
+  mode's refusal from "these are raw captures with nothing on them yet" into
+  something true of both boxes, since a schedule is not a capture but carries
+  no names either
 - **an item row keeps its full information** — title, context, duration, tags,
   due date, project, focus, parked/waiting state — shown inline, all at once.
   This was considered and deliberately kept as-is: density on a row is not the
@@ -449,14 +483,49 @@ filter box" for how it is built, and design.md, "The filter line" for why.
   on every row whether or not it is about to be used. No direction chosen yet
   — noted here so it is not lost
 
-## The filter box
+## Token boxes
 
-design.md, "The filter line" asks for one line, summoned by a key, that says
-what you want to see and nothing on the screen when it is not wanted. It is
-built as a partial (`filterbar` in `_layout.html`) rather than as part of the
-Next view, because it is meant to be how every long view filters: adding it to
-another view is one `{{template "filterbar" .}}`, once that view's handler
-fills in the same fields.
+The filter line and the two meta lines are one control (`tokenbox` in
+`_layout.html`): a line of `@names` and `#names`, completed as it is typed and
+marked where the app does not know one. design.md, "The filter line" asks for
+the first and "Writing an action" for the second, and they are the same
+question asked twice — so they are the same box, and `data-tokenbox` says
+which notation this one accepts.
+
+- **three modes, one table.** `BOX_RULES` in `app.js` says how many contexts a
+  line may name, which `#names` stand for fields here, which date notations are
+  allowed, and whether a word that is not notation is a problem: the filter
+  line matches titles by its leftover words, a meta line refuses them
+  (design.md, "Writing an action"). Everything else in that section of the file
+  does not know which box it is looking at
+- **the remembered lists ride on the pane**, `data-contexts` and `data-tags`,
+  filled by `newPage` for every page. They used to sit on the filter form,
+  which was enough while one screen had a box; a meta line is on five screens
+  and two dialogs. Two short lists on every render is cheaper than an endpoint
+  and a round trip per keystroke — the argument the project picker already made
+- **the filter bar is still a partial of its own** (`filterbar`), because it is
+  more than the box: the count and Apply belong to it. Adding the line to
+  another view is one `{{template "filterbar" .}}`, once that view's handler
+  fills in the same fields — `Shown`, `Total`, `Query` and `FilterMode`. The
+  Projects view was the first to take it that way, and it took three lines
+- **a view says which notation its line may use**, `page.FilterMode`, because
+  the filters a view offers are not the same everywhere. Next actions asks
+  "what can I do now" and takes the lot; Projects, Tasks and Waiting for
+  filter by tag and by name and by nothing else (design.md gives each view its
+  subset), so `@home` on those three is a question rather than a token quietly
+  ignored. The server keeps its old rule — each view applies the subset it
+  offers, whether the filters arrived as a line or as parameters — and the box
+  is what says so out loud
+- **a `key:value` notation says what its value may be**, per mode: `"date"`
+  for the meta line's `due:` and `snooze:`, or a list of words for a filter's
+  window. `due:thisweek` is a word rather than a date because the question is
+  what is coming at me and the answer moves with the day — and `snooze:` is
+  recognised on a filter line only so that it can be refused, rather than
+  silently matched as a word by the name filter
+- **a box may put a problem in its own words.** "A project has no context" and
+  "this view filters by tag and by name" are the same refusal with different
+  reasons behind it, and the reason is the useful half. `BOX_SAYS` overrides
+  the general wording per mode, and falls back to it for everything else
 
 - **the line is parsed in Go** — `internal/app/query.go`, `ParseQuery` — and
   the filter set is what the server keeps. The box is a codec, the same way the
@@ -479,6 +548,9 @@ fills in the same fields.
   and "the newer, more specific one" is the only one worth remembering. Sort
   and order are outside the line and are read either way. The read API gets
   the same parameter for free, since both share `parseFilters`
+- **the box is monospace**, both layers of it. What is typed into it is
+  notation rather than prose, and a wavy line under three characters wants
+  them to be where they look like they are
 - **the line is one input with a mirror behind it.** A `contenteditable`
   would have given styled text directly and taken the caret, the undo stack
   and paste behaviour with it; instead the input keeps all of that and a
@@ -510,20 +582,43 @@ fills in the same fields.
   changed since it was applied. That is the server-rendered value, so there is
   no "last applied" to keep anywhere: the DOM already holds it
 - **the unknown-name dialog is filled in by the key layer**, one problem at a
-  time, and every route out of it ends in the same apply. Its choices carry
-  `data-key` (`1`–`3` for the near names, `r` to take the token out, `n` to
-  create it), so the key bar lists them without knowing what any of them mean
-  and the keyboard can answer the question the box asked. Near names are plain
+  time, and every route out of it ends in the same apply. Near names are plain
   edit distance over the remembered list, at most three and only close ones:
   what it is up against is a typo, and a longer list would just be the
   remembered list again
-- **creating goes through the Settings endpoint**, so one place learns a name
-  (see "The remembered lists"), and it carries a `back` field so that it comes
-  back here with the line still in the box — created and applied in one press.
-  There are two create forms, one per list, rather than one whose action the
-  key layer writes: `hx-boost` reads a form's action when the page is
-  processed, so an action filled in later is one it never sees, and the submit
-  goes nowhere. Found by pressing the button and watching nothing happen
+- **its answers are a list, moved through with `j`/`k` and taken with `↵`**,
+  and each one also has a letter of its own — `1`–`3` for the near names, `r`
+  to take the token out, `n` to create it. Both, because they are answers to
+  different questions: the letters are for when you already know which one you
+  want, and `j`/`k` are for reading them first. It is the same pair a row in
+  any list offers (see "Keyboard"), and it costs nothing to offer here since
+  nothing is being typed while the dialog is up
+- **a dialog's rows are the only rows while it is open**, which is what lets
+  `j`/`k` work in it at all: `rows()` and `selected()` are scoped the way
+  declared keys are (`keyLive`), so the list behind the dialog keeps its own
+  selection and does not move under it. Marked with the same `data-kb-row` and
+  the same `kb-selected` class as a list row, so it looks like what it is
+- **creating goes through the Settings endpoint and stays where it is.** One
+  place learns a name (see "The remembered lists"), but a meta line is usually
+  standing in a form full of unsaved edits, and navigating away to Settings and
+  back would throw them away. So it is a `fetch` that says `Accept:
+  application/json`, and the same handler answers `204` or `400` instead of a
+  redirect; on success the page's own copy of the list is extended and the line
+  is re-checked. The write is still the server's — this is the one request in
+  the app the browser makes on its own, and it makes it because the alternative
+  loses work
+- **answering the question resumes what it interrupted.** Apply and Save are
+  the same press either way: the dialog is opened with what to do next, and
+  that runs as soon as the line comes out clean, however many problems were in
+  it. Without it, being asked about a name would cost the press that asked
+- **every form holding a box is checked on the way out**, in the capture phase
+  of `submit` — so a bad meta line is a question rather than the 400 page it
+  used to be. The draft-action dialog checks itself, because it is confirmed by
+  a button rather than by a submit and there is no submit event to catch
+- **the dialog on top wins the keyboard.** The unknown-name dialog can open
+  over the draft dialog, so `keyLive` and `rowScope` take the *last* open
+  dialog in document order rather than the first: the dialogs that interrupt
+  another one live in the layout, after everything a page holds
 - **the count is server-rendered**, `Shown` and `Total` on the page, because
   only the server knows how many the view holds unfiltered — it is the same
   extra query the filtered line already made. One number when they are equal
@@ -631,6 +726,58 @@ one flag for the whole app.
   where this app already keeps remembered screen state, and the toggle writes
   the flip of what is stored rather than a value sent by the page — two presses
   in flight cannot leave the flag saying the opposite of what the last one meant
+
+### The year is the one field that is not cron
+
+`internal/cron` is standard cron's three calendar fields plus a fourth of its
+own. design.md, "Schedule" argues for the field; what it costs to have is
+here.
+
+- **it is optional, and absent means every year.** Every rule already stored
+  parses unchanged and goes on meaning what it meant, which is why the field
+  went on the end rather than anywhere it would read better. Quartz puts its
+  year last for the same reason
+- **the years are a list, not a bitmask.** The other three fields are `uint64`
+  bitmasks over values that fit in one; a century does not. Nothing here needs
+  the speed — a rule is matched once a day — so the year is a sorted `[]int`
+  and the syntax the other fields share is what fills it: `eachValue` walks
+  `*`, lists, ranges and steps in one place, and `parseField` is now a
+  bitmask-shaped caller of it. Stating the syntax twice was the alternative
+- **the search for the next occurrence is bounded by the rule, not by a
+  constant.** An open rule gets ~8 years, after which it is impossible rather
+  than distant (`31 2 *`). A rule that names its years is searched to the end
+  of the last one, so `1 1 * 2035` still finds its day — with the old fixed
+  window it would have reported no next fire and the Scheduler would have
+  shown nothing beside a rule that is perfectly fine
+- **"can it fire again" replaced "is it a one-shot".** `fireSchedules` used to
+  ask whether the rule was a single date and whether that date had passed;
+  it now asks `nextFire(rule, tomorrow) == ""`, which is the same answer for
+  a date and the right one for a rule whose years have run out. The
+  one-shot-shaped condition was the general rule wearing the only clothes it
+  had at the time. An unparseable rule is still never deleted — that path
+  bails out before this — so the only things that go are the ones that
+  genuinely have nothing ahead of them
+
+### A rule reads back as a phrase
+
+The Scheduler shows a cron rule in words, `Readable()` in `internal/cron`. It
+is the same argument the ages table makes one section up: the stored form is
+notation, and a list is read, not decoded.
+
+- **a run reads as a run.** `9-23 9 *` said "the 9th, 10th, 11th, 12th, 13th,
+  14th, 15th, 16th, 17th, 18th, 19th, 20th, 21st, 22nd, 23rd of every month in
+  September" — fifteen ordinals for a fortnight, which is a badge nobody reads
+  to the end of. It now says "the 9th-23rd of September". Two in a row stay a
+  list: "the 9th-10th" is longer to read than "the 9th, 10th" and no clearer
+- **named months replace "every month" rather than stacking onto it.** The old
+  phrasing hung the days off "every month" and then bolted the months on with
+  "in", so a rule restricted to September claimed both. The months are where
+  the days are hung — "of every month" with none named, "of September" with
+  one — and only one of those can be said at a time
+- **a rule restricting both day-of-month and day-of-week still shows raw.**
+  Those fire on either match (design.md, "Schedule"), and no short phrase says
+  that without lying about it. The expression itself is the honest answer, and
+  it is the one thing here that is not prose on purpose
 
 ## Doing
 
@@ -961,6 +1108,16 @@ redundant — and unlike the map, it says something the bar cannot.
   exception: one place per screen, reached by one key that is the same key
   everywhere. A second explanation somewhere on the page would compete with it
   and win, being nearer — and then the panel is furniture nobody opens
+- **the schedule syntax is the second thing carried that way** (`page.When`,
+  the `whennotation` partial): what "When" takes, what a field may say, three
+  worked examples, and what a suffix does. It is on the Scheduler and on both
+  schedule forms — the view because the rules are on every row there, the
+  forms because that is where the question is asked. Applying the rule cost
+  the screens their prose: the New-schedule form used to end in a paragraph
+  about one-shots and collapsing, and the edit form in a line about the
+  occurrence count restarting. Both said something true, both said it on every
+  visit forever, and both now live in the panel. What is left in front of the
+  boxes is one placeholder holding the two shapes a rule can take
 
 ## Navigation
 
@@ -1110,8 +1267,13 @@ its column exactly as typed and is never read.
   written.** The processing screen bounces: everything typed comes back with
   the reason above it, nothing is written and the item is untouched, which is
   the same non-answer as leaving. An action's own page returns the error as a
-  plain 400, which is what every parse error there has always done — the form
-  is one browser Back away, so it has never been worth a second render path
+  plain 400, which is what every parse error there has always done. The reason
+  given here used to be that the form is one browser Back away — that was
+  wrong, and the schedule form is where it showed: under `hx-boost` nothing
+  navigates, so there is no Back to press and a 400 is simply invisible. What
+  makes the plain 400 honest now is the net that renders it as a banner (see
+  "A refused post is never silent"); a second render path here is still not
+  worth it, because the line comes back untouched in the box you typed it in
 - **`ctrl-enter` (or `cmd-enter`) finishes whatever is being written.** Plain
   Enter cannot: in a textarea it makes a newline, and the description box is a
   textarea, so without this the one key that finishes a form is unreachable
@@ -1132,6 +1294,62 @@ its column exactly as typed and is never read.
   list is showing as chosen and then finishes, so what is submitted is what is
   on screen. Without the distinction the universal key meant something local
   on the one screen it is most wanted
+
+## Writing an action
+
+One form, wherever an action is written (design.md, "Editing items"): the
+fields live in the `actionfields` partial and every screen that writes one
+uses it — the processing screen, the add-action dialog on a project, the box
+under a project's action list, and the action's own page. The project control
+is the only difference between them, and it says which of the three answers
+this screen has: choose one (`Picker`), it is already decided and here is
+which (`Fixed`), or the screen has answered it elsewhere.
+
+- **an action opened from a list shows its project and cannot change it.**
+  `Fixed` with the project's title, or `<standalone>`. It is not a missing
+  control: moving an action between projects is Detach and Attach (design.md,
+  "Reshaping items"), and a picker here would be a second way to do it that
+  skips the rules those two carry
+- **Save stands in the same row as Complete and Delete**, though each of those
+  is a form of its own and Save belongs to the form above them. HTML's `form`
+  attribute is what allows it: a button outside a form can name the form it
+  submits. The alternative was nesting forms, which is not allowed, or a Save
+  button on its own somewhere else, which is the layout the row exists to
+  avoid. `submitButton` looks for the outside button by that attribute, so the
+  gate and `ctrl-enter` find it the way they find any other
+- **Save is dead until something has changed.** `data-dirty-save` on the form
+  and a comparison against each field's own `defaultValue` — which is what the
+  server rendered, so nothing has to be remembered. It composes with the
+  existing gate: a form that is both incomplete and unchanged is disabled for
+  both reasons, and the bar simply does not offer `^s` while the button is
+  disabled (a key on a control that cannot be pressed is not a key)
+- **`esc` leaves without saving**, through the `data-cancel` every abandonable
+  screen already carries, and the label beside it says `back` rather than
+  `cancel` because that is what it is here. The fields do not open focused, on
+  purpose: an action is opened to look at at least as often as to change, and
+  a focused box would cost a press on the way out and take `j`/`k` with it
+- **saving goes back where the screen was opened from**, the same place `esc`
+  goes — the difference between them is only whether the changes were kept.
+  Where that is comes from the URL if the screen was asked to carry it, and
+  from the Referer otherwise (`parentView`), which is what a list link leaves
+  behind. It rides on the form as a hidden `back` field so it survives the post
+- **delete says where to go.** This was the bug that started this: the delete
+  form posted and `back()` sent the browser to the Referer, which was the page
+  of the action that had just stopped existing — a 400 that htmx does not swap,
+  so the screen sat there looking untouched while the item was gone and the
+  nav badge stale. It carries `back` now, like every other form on the screen
+- **promoting is a screen, not a fold-out.** It was a `<details>` on the action
+  page holding a second, smaller project form — a fourth way to write a project
+  and the only one without the drafts list. It is the project form now
+  (`promote.html`), seeded with the action's title, its description on the
+  first draft and its tags on the project's meta line, and read by the same
+  `projectFromForm` the Project branch of processing uses. `promoteFromForm`
+  and its `paction` fields are gone
+- **the trail says which screen this is, not which item is on it.** "Next
+  actions / Edit action", not the action's title: the title is the biggest
+  thing on the page already, and the crumb answers "where am I". The item's
+  own name is still the browser tab's title, which is where a name belongs
+  when the app is not the thing on screen
 
 ## Writing a project
 
@@ -1159,6 +1377,15 @@ inside the form.
   project answered: `<this project>` in the same box the picker uses, read-only,
   because there is exactly one project it could belong to and a control that
   cannot change anything should still say what the answer is
+- **the project's own fields are a partial too** (`projectfields`), used by
+  this screen, by promoting an action and by the project's page, with one set
+  of names — `title`, `dod`, `meta` — read by one function. They were `ptitle`
+  and `pmeta` on two of the three screens and plain `title`/`meta` on the
+  third, with two readers doing the same job; the prefix was left over from a
+  form that once held both a project and its first action. `Required` is the
+  only difference the partial takes: a project cannot be *created* without a
+  DOD, and one that has lost its DOD is in design.md's error state and still
+  has to be saveable
 - **`#today` on one of them is applied after creation**, by index against the
   actions that came back. It is not an `ActionFields` value — the tag is the
   app's to manage (see "The meta line") — and there is no action to hang it on
