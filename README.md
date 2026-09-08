@@ -66,6 +66,11 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 (`exclude`/`only`), `due` (`today`/`tomorrow`/`thisweek`/`nextweek`),
 `completed` (`today`/`yesterday`/`thisweek`/`lastweek`), `sort` (`age`/`title`), `desc`.
 
+`q` is the same set written as one line, the way it is typed on the screen —
+`?q=@home %23car %23short milk` is `@home` and `#car` and `#short` and a title
+containing "milk". Given `q`, the parameters above are not also read (`sort`
+and `desc` are, since the line cannot say them).
+
 ## Source layout
 
 ```
@@ -89,6 +94,7 @@ internal/app/             the domain — everything design.md describes, indepen
   schedules.go            schedule CRUD, firing, DayStart (the lazy day boundary: #today clearing + firing)
   review.go               weekly review counts and MarkReviewed
   views.go                the read-side queries: NextActions, Tasks, WaitingFor, Calendar, Archive, Projects, plus the shared filter/sort helpers
+  query.go                the filter line: `@home #car milk` read into a filter set and written back out
   nav.go                  per-view item counts, for the nav badges
   meta.go                 the remembered tag/context lists
   app_test.go             behavior tests for the load-bearing rules — not CRUD plumbing

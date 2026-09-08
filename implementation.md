@@ -85,6 +85,8 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `d` opens the selected action alone on a screen of its own — see "Doing"
 - `ctrl-v` opens the panel chooser: title bar, navigation, key bar, zen mode,
   one letter each, and a second `ctrl-v` presses zen — see "Panels"
+- `ctrl-f` puts up the filter line on a view that has one, and takes it and
+  every filter away when pressed again — see "The filter box"
 - `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
   are hidden by default"), and the timer on the doing screen (see "Doing"). The
   one key that sets a flag rather than doing something, which is why the bar
@@ -416,71 +418,117 @@ short names in a column wastes a screen saying nothing.
 
 The first working version rendered every view's filter controls open, all the time, on every page — which meant scanning past a wall of checkboxes and selects to find the list itself. The fix is progressive disclosure on the filter controls, not on the item rows.
 
-- **filter panels are collapsed by default**, one per view, expanding only on demand. Toggled by the `/` key, or a small visible control for the mouse. A collapsed panel is not the same as no panel: the controls and the persisted filter state (design.md, "Filters") are unchanged, only their visibility is
-- **an item row keeps its full information** — title, context, duration, tags, due date, project, focus, parked/waiting state — shown inline, all at once. This was considered and deliberately kept as-is: density on a row is not the clutter problem, a permanently-open control panel above the list is
-- **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
-- **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
+- **the fix was not a collapsed panel but no panel**, which took two goes to
+  see. The first plan was to fold each view's controls away behind `/` and
+  leave them otherwise unchanged; the second replaced them on the Next view
+  with a line you type (see below). The open question the collapse left — how
+  a view says it is filtered while its controls are folded away — is answered
+  by the line rather than worked around: the bar carries the count, and a
+  filtered view cannot have its bar closed (design.md, "The filter line")
 
-### The Next view's controls, rebuilt one at a time
+### The Next view's controls are a line, not a panel
 
 The panel of checkboxes and selects that this section is about was widest on
 the one screen the app is actually used from, and it sat between the nav and
-the list on every visit. It came off that page whole, and what belongs there
-is going back one control at a time. The context filter is the first, and so
-far the only one.
+the list on every visit. What replaced it is a line you type, summoned by a
+key and gone otherwise — the progressive disclosure this section argues for,
+taken as far as it goes: not a collapsed panel but no panel at all. See "The
+filter box" for how it is built, and design.md, "The filter line" for why.
 
-- **taking the form off changed no filtering.** The per-view filter set still
-  persists in `app_state`, `/next?context=home&tag=car` still narrows the page,
-  and the read API never saw the screen's state anyway (design.md, "The read
-  API"). Nothing about what the view *returns* moved with the furniture
-- **contexts are radios and tags are checkboxes**, which is the difference
-  between the two filters made visible: an action has one context and any
-  number of tags (design.md, "Filtering by context" and "Filtering by tag").
-  Both live in one `<form method="get">` with `data-autosubmit`, so choosing
-  either keeps the other and there is no Apply, and the `f=1` marker on it is
-  what saves the pair as this view's filter set
-- **"all" is a radio with an empty value**, which `parseFilters` drops, so
-  turning the context filter off is the same act as turning it on and there is
-  no second control to find. Tags have no such answer — several can be on at
-  once, so "none of them" is not one of the choices — which is why they get a
-  clear button of their own
-- **the rows are a two-column grid**, label then chips, so "Context:" and
-  "Tags:" line up and the chips of both start at the same place. The labels are
-  the only words on these rows: a row of `@`s and a row of `#`s say what they
-  are, but which is which is worth one word each when they sit under one
-  another
-- **the clear button unchecks and submits**, rather than being a link to the
-  same page without the tag parameters. It is what it says it is — the boxes
-  are unchecked in front of you — and unchecking a box from script fires no
-  change event, so the submit is explicit. It is disabled while there is
-  nothing to clear, the same argument as the create buttons (see "Create
-  buttons"): it says what the control is for without promising something false
-- **both rows are built from the view's own items**, `ContextsOf` and `TagsOf`
-  over the actions the page has just loaded, each one with *its own* filter set
-  aside and the others still applied. Set aside, or picking one context would
-  leave one context to pick from; the others applied, because a tag with
-  nothing under the context you are in is an answer that leads nowhere. A
-  selected tag is added back to its row whatever the rest of the filters do to
-  it (`withSelected`), or the only sign that it is on would be the list being
-  short. This replaced `ContextsInUse`, which asked the database for every
-  context on an open action anywhere; the tag rows on the views whose panels
-  have not been rebuilt still use `TagsInUse`, which is the same wide answer —
-  `page.TagCloud` is that list and `page.TagsInView` is this one
-- **the other filters are still off the page**, so design.md's "every filter is
-  reachable and resettable from the keyboard" is not true of this screen yet:
-  the contexts answer to Tab and the arrow keys, which is the browser's doing
-  and not a key of the app's, and name, tags, duration, focus and order have no
-  control at all. Written down because the gap is otherwise invisible — a
-  filter set left on from before narrows the view with nothing on the page
-  offering to turn it off
-- **the filtered line stays**, and is load-bearing while that is true: it is
-  the confession design.md, "Views" requires, and its "Reset all filters" link
-  is the only way back from a filter the page cannot show
-- **the header holding the count went with the form**, on the same argument:
-  the working view is read by looking down it, not by being told how far it
-  goes. It was the first view to lose one and every other view has since
-  followed, because the title bar says the count now (see "Panels") — which is
-  where this note stops being about the Next view in particular
+- **the other views still have their panels**, open on every visit, until the
+  box reaches them. It is one template line to add (see "The filter box"), and
+  what each of them then needs is the two page fields the Next view's handler
+  fills in. Written down because the app is in two states about filtering
+  until that is done, and the half that has not moved is not the intended one
+- **an item row keeps its full information** — title, context, duration, tags,
+  due date, project, focus, parked/waiting state — shown inline, all at once.
+  This was considered and deliberately kept as-is: density on a row is not the
+  clutter problem, a permanently-open control panel above the list was
+- **open question, not yet decided:** the per-row controls (the
+  complete-checkbox, the today pick-dot) were also flagged as clutter, present
+  on every row whether or not it is about to be used. No direction chosen yet
+  — noted here so it is not lost
+
+## The filter box
+
+design.md, "The filter line" asks for one line, summoned by a key, that says
+what you want to see and nothing on the screen when it is not wanted. It is
+built as a partial (`filterbar` in `_layout.html`) rather than as part of the
+Next view, because it is meant to be how every long view filters: adding it to
+another view is one `{{template "filterbar" .}}`, once that view's handler
+fills in the same fields.
+
+- **the line is parsed in Go** — `internal/app/query.go`, `ParseQuery` — and
+  the filter set is what the server keeps. The box is a codec, the same way the
+  meta line is a codec for an action's columns (see `tokens.go`): the line is
+  read into `Filters` on apply and written back out of them on render, so what
+  the box shows is what the app is actually filtering by rather than what was
+  last typed. That is also why the applied line comes back in one fixed order —
+  it is not the text you sent, it is your filter set spelled out
+- **the same rules are stated twice, on purpose.** The browser has to know
+  which names are unknown before it submits, or it could not ask about them,
+  so `problemsIn` in `app.js` repeats the three refusals `ParseQuery` makes: a
+  name on no remembered list, a second `@context`, and `#parked`, which is a
+  field rather than a tag. The Go side is the one that decides; the JS side
+  only asks. The duplication is small and the alternative — a round trip per
+  keystroke to find out whether a word is a name — is the thing the project
+  picker was rebuilt to avoid (see "Stage two")
+- **`q` beats the discrete parameters.** `/next?q=@home #car` and
+  `/next?context=home&tag=car` mean the same thing; given both, the line wins
+  and the rest are ignored, because two ways to ask one question need a rule
+  and "the newer, more specific one" is the only one worth remembering. Sort
+  and order are outside the line and are read either way. The read API gets
+  the same parameter for free, since both share `parseFilters`
+- **the line is one input with a mirror behind it.** A `contenteditable`
+  would have given styled text directly and taken the caret, the undo stack
+  and paste behaviour with it; instead the input keeps all of that and a
+  `.fmirror` behind it holds the same text with the bad tokens wrapped, its own
+  text transparent so only the wavy underline shows. The two must agree on
+  every property that moves a glyph, so font, padding and border are set on
+  both in one rule, and the mirror's `scrollLeft` follows the input's
+- **completion is built from the page**, off `data-contexts` and `data-tags`
+  on the form. The remembered lists are a few dozen short words, so a round
+  trip per keystroke would be slower than the typing — the same argument the
+  project picker makes. It offers what the app *knows*, not what this view
+  happens to hold: the box's job is to help you write a name it will accept,
+  and a filter that matches nothing says so immediately in the count
+- **`↓`/`↑` move, `↵` or `tab` takes, `esc` closes the list**, and `esc` never
+  closes the box — that is `ctrl-f`, and it would take the filters with it.
+  One unwind at a time, the way the project picker's `esc` behaves
+- **`ctrl-f`, because it is the key every other program uses for finding
+  things**, and what this app has to find is its own list rather than the page.
+  Pressed again it closes the box and clears the filters in one act, which is
+  design.md's rule that a view cannot be quietly narrowed by a box that is not
+  on the screen. Nothing to clear is no round trip; a filter set to clear is
+  the same `?f=1` reset the old panels used
+- **whether the box is open is kept in the browser**, in `sessionStorage`
+  keyed by view, and a view that is filtered opens with the box up whatever
+  that says. Openness decides nothing and stores nothing — the filters are the
+  state, and they are the server's — which is the same test the selection
+  handover had to pass (see "Keyboard")
+- **Apply reads the input's own `defaultValue`** to know whether the line has
+  changed since it was applied. That is the server-rendered value, so there is
+  no "last applied" to keep anywhere: the DOM already holds it
+- **the unknown-name dialog is filled in by the key layer**, one problem at a
+  time, and every route out of it ends in the same apply. Its choices carry
+  `data-key` (`1`–`3` for the near names, `r` to take the token out, `n` to
+  create it), so the key bar lists them without knowing what any of them mean
+  and the keyboard can answer the question the box asked. Near names are plain
+  edit distance over the remembered list, at most three and only close ones:
+  what it is up against is a typo, and a longer list would just be the
+  remembered list again
+- **creating goes through the Settings endpoint**, so one place learns a name
+  (see "The remembered lists"), and it carries a `back` field so that it comes
+  back here with the line still in the box — created and applied in one press.
+  There are two create forms, one per list, rather than one whose action the
+  key layer writes: `hx-boost` reads a form's action when the page is
+  processed, so an action filled in later is one it never sees, and the submit
+  goes nowhere. Found by pressing the button and watching nothing happen
+- **the count is server-rendered**, `Shown` and `Total` on the page, because
+  only the server knows how many the view holds unfiltered — it is the same
+  extra query the filtered line already made. One number when they are equal
+  (design.md, "The filter line"), which is the rule the nav badges and the
+  title bar follow for zero, applied to a different pair of numbers
 
 ## Item lines
 
