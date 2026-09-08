@@ -44,6 +44,8 @@
      truth and it is the server's (implementation.md, "Stack"). */}}
 <div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}}"
   data-view="{{.View}}"
+  data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
+  data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
   {{if .Nav.Inbox}}data-inbox-full{{end}}
   {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
   data-zen-timer-format="{{.Conf.ZenTimerFormat}}">
@@ -83,6 +85,19 @@
      post writes the new state, and coming back to this page is what closes
      the dialog — no client-side state anywhere in it. Each label says which
      way its panel is set, the way the ages entry does in the bar. */}}
+{{/* A name that is on no remembered list is either new or mistyped, and only
+     the person typing knows which — so the line is not applied until it has
+     been asked. The dialog is filled in by the key layer, one problem at a
+     time; creating goes through the same endpoint the Settings screen uses,
+     and comes back here with the line still in the box. */}}
+<dialog id="unknown-dialog" aria-labelledby="unknown-title">
+  <h2 id="unknown-title"></h2>
+  <div class="choices"></div>
+  {{/* Creating asks the server and stays where it is: the line being typed
+       may be sitting in a form full of unsaved edits, and going to Settings
+       and back would throw them away (see "Token boxes"). */}}
+  <button type="button" class="primary" data-create-name hidden></button>
+</dialog>
 <dialog id="panels-dialog" aria-labelledby="panels-title">
   <h2 id="panels-title">Show</h2>
   <form method="post" action="/panels/title" data-key="t" data-key-label="title">
@@ -108,6 +123,7 @@
 <h2>{{.HelpName}}</h2>
 <p>{{.HelpText}}</p>
 {{if .Notation}}{{template "notation" .Vocab}}{{end}}
+{{if .When}}{{template "whennotation"}}{{end}}
 </div>{{end}}
 </body>
 </html>
@@ -133,48 +149,37 @@
      Rendered whatever its state, and shown by the key layer: it carries the
      counts, which only the server knows, and the remembered lists, which the
      completion reads off the form rather than fetching (implementation.md,
-     "The filter box"). A view that is filtered opens with it up, because a
+     "Token boxes"). A view that is filtered opens with it up, because a
      filtered view has to say so and this is what says it. */}}
+{{define "tokenbox"}}
+{{/* A line of names: `@home #car`, completed as it is typed and marked where
+     the app does not know one. The filter line and the two meta lines are the
+     same box with different notations allowed — Mode says which (see
+     implementation.md, "Token boxes").
+
+     Three layers in one wrapper: the input you type in, a mirror behind it
+     that carries the marks, and the list of completions under it. They have
+     to be one block, or the mirror could not sit exactly behind the text and
+     the list could not sit exactly under the box. */}}
+<span class="fbox">
+  <span class="fmirror" aria-hidden="true"></span>
+  <input name="{{.Name}}" value="{{.Value}}" data-tokenbox="{{.Mode}}"
+         autocomplete="off" spellcheck="false"
+         {{if .Label}}aria-label="{{.Label}}"{{end}}>
+  <ul class="fsuggest" hidden></ul>
+</span>
+{{end}}
+
 {{define "filterbar"}}
 <form method="get" action="/{{.View}}" class="filterbar" data-filterbar
-      data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
-      data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
       {{if not .Filters.Active}}hidden{{end}}>
   <input type="hidden" name="f" value="1">
   <span class="fcount" title="on screen, of what this view holds">
     {{if lt .Shown .Total}}{{.Shown}} <span class="of">of</span> {{.Total}}{{else}}{{.Shown}}{{end}}
   </span>
-  <span class="fbox">
-    <span class="fmirror" aria-hidden="true"></span>
-    <input name="q" value="{{.Query}}" data-fquery autocomplete="off" spellcheck="false"
-           aria-label="filter">
-  </span>
+  {{template "tokenbox" (dict "Name" "q" "Value" .Query "Mode" .FilterMode "Label" "filter")}}
   <button class="apply" disabled>Apply</button>
-  <ul class="fsuggest" hidden></ul>
 </form>
-{{/* A name that is on no remembered list is either new or mistyped, and only
-     the person typing knows which — so the line is not applied until it has
-     been asked. The dialog is filled in by the key layer, one problem at a
-     time; creating goes through the same endpoint the Settings screen uses,
-     and comes back here with the line still in the box. */}}
-<dialog id="unknown-dialog" aria-labelledby="unknown-title">
-  <h2 id="unknown-title"></h2>
-  <div class="choices"></div>
-  {{/* One form per list rather than one form whose action is written by the
-       key layer: hx-boost reads a form when the page is processed, so an
-       action filled in later is an action it never sees. The one that does
-       not apply is hidden, and only the shown one carries the key. */}}
-  <form method="post" class="createname" data-kind="@" action="/settings/contexts/add" hidden>
-    <input type="hidden" name="name" value="">
-    <input type="hidden" name="back" value="">
-    <button class="primary" data-create-name></button>
-  </form>
-  <form method="post" class="createname" data-kind="#" action="/settings/tags/add" hidden>
-    <input type="hidden" name="name" value="">
-    <input type="hidden" name="back" value="">
-    <button class="primary" data-create-name></button>
-  </form>
-</dialog>
 {{end}}
 
 {{define "actionrow"}}
@@ -244,8 +249,45 @@
 {{else if .Fixed}}
 <label>Project <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
-<label>Meta <input name="meta" value="{{.Meta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
+<label>Meta {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
 <label>Description <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
+{{end}}
+
+{{define "projectfields"}}
+{{/* The fields a project is written in, wherever it is being written: the
+     Project branch of processing, promoting an action into one, and the
+     project's own page. One definition and one set of names, for the reason
+     actionfields has one — three drifting copies is how a placeholder ends up
+     on two of them and the meta line on one.
+
+     Required is the difference between writing one and editing one: a project
+     with no definition of done cannot be created, but one that has lost its
+     DOD is in the error state design.md gives it and still has to be saveable
+     (see "Error state"). */}}
+<label>Title <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
+  placeholder="A reference to the outcome, not what to do"></label>
+<label>Definition of done <textarea name="dod" rows="2" {{if .Required}}required{{end}}
+  placeholder="How you will know it is done">{{.DOD}}</textarea></label>
+<label>Meta {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
+{{end}}
+
+{{define "projectrow"}}
+{{/* A project on one line, the way an action is: what it is called, whether it
+     is shouting, and what it is about. The actions under it used to be listed
+     here, which made the view a page per project and unreadable past a few —
+     they are one keystroke away on the project's own page, which is where a
+     project is worked on (design.md, "Projects"). */}}
+{{$p := .P}}{{$today := .Today}}
+<li class="row {{if $p.IsSnoozed $today}}snoozed{{end}} {{if $p.CompletedAt}}done{{end}}"
+    data-kb-row data-href="/project/{{$p.ID}}">
+  <a href="/project/{{$p.ID}}" class="title">{{$p.Title}}</a>
+  {{if $p.Stalled}}<span class="badge error">stalled</span>{{end}}
+  {{range $p.Errors}}<span class="badge error">{{.}}</span>{{end}}
+  {{if $p.IsSnoozed $today}}<span class="badge">zzz until {{$p.SnoozeUntil}}</span>{{end}}
+  {{$open := len $p.OpenActions}}{{if $open}}<span class="badge">{{$open}} open</span>{{end}}
+  {{range $p.Tags}}<span class="badge tag">#{{.}}</span>{{end}}
+  <span class="age" title="how long this project has been open">{{age $p.CreatedAt}}</span>
+</li>
 {{end}}
 
 {{define "draftrow"}}
@@ -292,6 +334,36 @@
   <p class="known"><b>tags</b>
     {{range .Tags}}<span class="badge tag">#{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>
   <p class="muted">Anything else on the line is refused — prose belongs in the description.</p>
+</div>
+{{end}}
+
+{{define "whennotation"}}
+{{/* What a schedule's "When" takes. Same argument as the meta line's panel:
+     it is read on the first few passes and never again, so it lives behind ?
+     rather than under the box — one place per screen, one key everywhere
+     (implementation.md, "View help"). */}}
+<div class="notation">
+  <h3>When</h3>
+  <dl>
+    <dt>2026-12-01</dt><dd>a single date: fires once, then the schedule deletes itself</dd>
+    <dt>dom month dow</dt><dd>a cron rule — day of month, month, day of week. No times: nothing here has an hour</dd>
+    <dt>dom month dow year</dt><dd>the same, in named years only. Left off means every year</dd>
+  </dl>
+  <dl>
+    <dt>*</dt><dd>every one</dd>
+    <dt>1,15</dt><dd>a list</dd>
+    <dt>9-23</dt><dd>a range</dd>
+    <dt>*/3</dt><dd>every third</dd>
+    <dt>sep, mon</dt><dd>names work where numbers do; 0 and 7 are both Sunday</dd>
+  </dl>
+  <dl>
+    <dt>1 * *</dt><dd>the 1st of every month</dd>
+    <dt>* * mon</dt><dd>every Monday</dd>
+    <dt>9-23 9 * 2026</dt><dd>the 9th-23rd of September 2026, and then never</dd>
+  </dl>
+  <p class="muted">Restricting day-of-month and day-of-week at once fires on either, as standard cron does. The year is the one field that is not standard cron, and it runs 2000-2099. Changing When restarts the occurrence count from today — occurrences of a rule that was not yet in place were never missed.</p>
+  <h3>Suffix</h3>
+  <p class="muted">Appended to the text as each occurrence fires, with <b>YYYY</b>, <b>MM</b> and <b>DD</b> replaced by that day. Without one every occurrence produces the same words, which is what collapses a fortnight away into a single inbox item; with one they stay distinct.</p>
 </div>
 {{end}}
 

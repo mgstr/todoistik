@@ -1,13 +1,13 @@
 {{template "top" .}}
+{{$s := .Data}}
 <div class="item">
   <p class="crumb"><a href="/scheduler">Scheduler</a></p>
   <h1>New schedule</h1>
   <form method="post" action="/schedule" class="stack">
-    <label>Text <input name="text" required placeholder="What will land in the inbox — raw, not an action"></label>
-    <label>When <input name="rule" required placeholder="2026-12-01, or cron: dom month dow — e.g. '1 * *' = 1st monthly"></label>
-    <label>Suffix <input name="suffix" placeholder="optional; ' YYYY-MM' makes each occurrence distinct"></label>
+    <label>Text <input name="text" value="{{$s.Text}}" required></label>
+    <label>When <input name="rule" value="{{$s.Rule}}" required placeholder="2026-12-01, or 1 * *"></label>
+    <label>Suffix <input name="suffix" value="{{$s.Suffix}}"></label>
     <button class="primary">Create</button>
   </form>
-  <p class="muted">A one-shot date fires once and deletes itself. A cron rule (day-of-month, month, day-of-week — standard syntax) keeps firing. Missed occurrences fire on the first use after an absence; without a suffix they collapse to one inbox item.</p>
 </div>
 {{template "bottom" .}}

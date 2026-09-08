@@ -1,12 +1,5 @@
 {{template "top" .}}
-{{$f := .Filters}}
-<form method="get" action="/someday" class="filters" data-autosubmit>
-  <input type="hidden" name="f" value="1">
-  <input name="name" value="{{$f.Name}}" placeholder="filter by name (/)" class="namebox">
-  <button>Apply</button>
-  <a href="/someday?f=1" class="reset">Reset</a>
-</form>
-{{template "filterloud" .}}
+{{template "filterbar" .}}
 {{if not .Data}}<p class="empty">No ideas incubating.</p>{{end}}
 <ul class="list">
 {{range .Data}}

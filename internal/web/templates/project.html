@@ -1,7 +1,6 @@
 {{template "top" .}}
 {{$d := .Data}}{{$p := $d.Project}}
-<div class="item">
-  <p class="crumb"><a href="/projects">Projects</a></p>
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
   {{if $p.Stalled}}<p class="error-banner">STALLED — this project has no next action.</p>{{end}}
   {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
@@ -18,11 +17,12 @@
   </div>
   {{end}}
 
-  <form method="post" action="/project/{{$p.ID}}" class="stack">
-    <label>Title <input name="title" value="{{$p.Title}}" required></label>
-    <label>Definition of done <textarea name="dod" rows="3" placeholder="Empty DOD = error state">{{$p.DOD}}</textarea></label>
-    <label>Meta <input name="meta" value="{{$p.Meta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
-    <button class="primary">Save</button>
+  {{/* the same fields, in the same order, as the screen a project is created
+       on — see the "projectfields" partial */}}
+  <form method="post" action="/project/{{$p.ID}}" id="itemform" class="stack" data-dirty-save>
+    <input type="hidden" name="back" value="{{$d.Back}}">
+    {{template "projectfields" (dict "Title" $p.Title "DOD" $p.DOD "Meta" $p.Meta
+      "Required" false "Focus" false)}}
   </form>
 
   <h2>Actions</h2>
@@ -35,18 +35,29 @@
   <details {{if $d.Ask}}open{{end}}>
     <summary>Add an action</summary>
     <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
-      {{template "actionfields" (dict "Title" "" "Meta" "" "Description" "" "Focus" false)}}
+      {{/* the project is answered here, so the control says which and cannot
+           be changed — the same form as everywhere else, with the one field
+           this screen already knows the answer to */}}
+      {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
+        "Fixed" $p.Title "Focus" false)}}
       <button class="primary">Add action</button>
     </form>
   </details>
 
+  {{/* the same row of buttons an action's page carries, in the same order:
+       save, the state changes, delete, and the way out */}}
   <div class="actionsbar">
+    <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
     {{if $p.CompletedAt}}
-    <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline"><button>Bring back (un-complete)</button></form>
+    <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline"><button>Bring back</button></form>
     {{else}}
-    <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button>Complete project</button></form>
+    <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button>Complete</button></form>
     {{end}}
-    <form method="post" action="/project/{{$p.ID}}/delete" class="inline"><button class="danger">Delete project</button></form>
+    <form method="post" action="/project/{{$p.ID}}/delete" class="inline">
+      <input type="hidden" name="back" value="{{$d.Back}}">
+      <button class="danger">Delete</button>
+    </form>
+    <a class="button" href="{{$d.Back}}">Back</a>
   </div>
 </div>
 {{template "bottom" .}}

@@ -237,8 +237,13 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
   background: var(--danger); color: #fff; padding: .5rem .75rem;
   border-radius: 8px; font-weight: 600;
 }
+/* The Archive's cards: a finished project with what was done in it, which is
+   one record and reads as one. The Projects view used to be built out of these
+   too — a box per project on a page of projects, which is the shape a list
+   should not have — and is a plain list of rows now (see the "projectrow"
+   partial). Stalled is said there by a badge, where an action says its errors,
+   rather than by a red border on a card. */
 section.project { border: 1px solid var(--line); border-radius: 10px; padding: .25rem .75rem .5rem; margin: .75rem 0; }
-section.project.stalled { border-color: var(--danger); border-width: 2px; }
 section.project h2 { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 section.project.done { opacity: .8; }
 
@@ -255,7 +260,7 @@ section.project.done { opacity: .8; }
 /* The filter box: a count, a line to type, and Apply. One row, no labels —
    what the box is for is the only thing on the screen that was not there a
    moment ago, and the count in front of it says what it is doing. See
-   implementation.md, "The filter box". */
+   implementation.md, "Token boxes". */
 .filterbar {
   position: relative;
   display: flex; align-items: center; gap: .5rem;
@@ -272,10 +277,14 @@ section.project.done { opacity: .8; }
 .filterbar .fcount .of { opacity: .65; }
 /* The box is two layers: the input you type in, and a mirror behind it that
    carries the marks. They must be the same text in the same place, so both
-   sides of every font and box property are set here and nowhere else. */
+   sides of every font and box property are set here and nowhere else. It is
+   monospace because what is typed into it is notation, and because a wavy
+   line under three characters wants them to be where they look like they are.
+   See implementation.md, "Token boxes". */
 .fbox { position: relative; flex: 1 1 auto; min-width: 0; }
 .fbox > input, .fmirror {
-  font: inherit; font-size: .95rem; line-height: 1.4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .88rem; line-height: 1.4;
   padding: .25rem .5rem; border: 1px solid var(--line); border-radius: 6px;
   letter-spacing: normal; white-space: pre;
 }
@@ -297,7 +306,7 @@ section.project.done { opacity: .8; }
 /* Completion: the same shape the project picker's list has, for the same
    reason — it is a list of names under the thing you are typing into. */
 .fsuggest {
-  position: absolute; z-index: 6; top: 100%; left: 4rem;
+  position: absolute; z-index: 6; top: 100%; left: 0;
   margin: .15rem 0 0; padding: .2rem; list-style: none;
   min-width: 12rem; max-height: 14rem; overflow-y: auto;
   background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
@@ -319,8 +328,13 @@ section.project.done { opacity: .8; }
   background: transparent; color: var(--fg); font: inherit; cursor: pointer;
 }
 #unknown-dialog .choices button:hover { background: var(--row-hover); }
-#unknown-dialog .choices .why { color: var(--muted); font-size: .82rem; margin-left: auto; }
+/* the answers are a list, and the one under the cursor is marked the way a
+   row in any list is — same class, same colours, so j and k look like they
+   do everywhere else */
+#unknown-dialog .kb-selected { background: var(--select); outline: 1px solid var(--accent); }
 #unknown-dialog .createname { margin: 0; }
+#unknown-dialog .createname button { width: 100%; justify-content: center; }
+#unknown-dialog .choices .why { color: var(--muted); font-size: .82rem; margin-left: auto; }
 .filtered { color: var(--danger); font-weight: 600; }
 .reset { margin-left: .25rem; }
 
@@ -380,10 +394,6 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    everywhere else, but nothing about it can be pressed or typed into */
 #draft-dialog .pickerbox[readonly] { cursor: default; color: var(--muted); }
 
-.metabox {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: .88rem;
-}
 .inline-label { flex-direction: row !important; align-items: center; }
 .actionsbar { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; align-items: center; }
 

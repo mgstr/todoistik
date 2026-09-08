@@ -1,22 +1,5 @@
 {{template "top" .}}
-{{$f := .Filters}}
-<form method="get" action="/calendar" class="filters" data-autosubmit>
-  <input type="hidden" name="f" value="1">
-  <input name="name" value="{{$f.Name}}" placeholder="filter by name (/)" class="namebox">
-  <select name="due">
-    <option value="">due: anytime</option>
-    <option value="today" {{if eq $f.Due "today"}}selected{{end}}>due: today</option>
-    <option value="tomorrow" {{if eq $f.Due "tomorrow"}}selected{{end}}>due: tomorrow</option>
-    <option value="thisweek" {{if eq $f.Due "thisweek"}}selected{{end}}>due: this week</option>
-    <option value="nextweek" {{if eq $f.Due "nextweek"}}selected{{end}}>due: next week</option>
-  </select>
-  <fieldset><legend>Tags</legend>
-    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
-  </fieldset>
-  <button>Apply</button>
-  <a href="/calendar?f=1" class="reset">Reset all</a>
-</form>
-{{template "filterloud" .}}
+{{template "filterbar" .}}
 {{if not .Data}}<p class="empty">Nothing is coming at you.</p>{{end}}
 <ul class="list">
 {{range .Data}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" true)}}{{end}}

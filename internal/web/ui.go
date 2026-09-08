@@ -54,18 +54,6 @@ var viewHelp = map[string]struct{ Name, Text string }{
 // place on every screen (implementation.md, "View help").
 func (p *page) notation(s *Server) *page {
 	p.Notation = true
-	p.Vocab.Contexts, _ = s.app.Contexts()
-	p.Vocab.Tags, _ = s.app.Tags()
-	return p
-}
-
-// vocab hands the remembered lists to the page, for a screen that has to
-// offer them rather than explain them — the filter box completing a name as
-// it is typed. notation() is the other caller's version of this, and it also
-// turns on the panel that explains the notation.
-func (p *page) vocab(s *Server) *page {
-	p.Vocab.Contexts, _ = s.app.Contexts()
-	p.Vocab.Tags, _ = s.app.Tags()
 	return p
 }
 
@@ -112,12 +100,14 @@ type page struct {
 	HelpText    string // what this view is for, for the ? panel
 	Processing  bool   // the nav slot named by View reads "Processing…" instead
 	Notation    bool   // the ? panel also explains how an action is written
+	When        bool   // the ? panel also explains what a schedule's When takes
 	Vocab       struct{ Contexts, Tags []string }
 	Filters     app.Filters
 	FilterQuery string   // current filter query string (for sort/order links)
 	Hidden      int      // how many items the filters hide
 	TagCloud    []string // every tag in use, for the views whose filter panel is still the old one
 	Query       string   // the filter set as a line, for the filter box
+	FilterMode  string   // which notation that line may use
 	Shown       int      // items on the screen
 	Total       int      // items the view holds with no filters at all
 	Durations   []app.Duration
@@ -131,6 +121,7 @@ type page struct {
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p := &page{Title: title, View: view, Today: s.app.Today(), Conf: s.conf, Error: r.URL.Query().Get("err")}
+	p.FilterMode = "filter"
 	if v, err := s.app.GetState(agesState); err == nil {
 		p.Ages = v == "1"
 	}
@@ -153,6 +144,11 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	}
 	p.TagCloud, _ = s.app.TagsInUse()
 	p.Durations = app.Durations
+	// the remembered lists ride on every page: any screen may hold a box that
+	// completes a name as it is typed (see implementation.md, "Token boxes"),
+	// and two short lists are cheaper to carry than to ask for
+	p.Vocab.Contexts, _ = s.app.Contexts()
+	p.Vocab.Tags, _ = s.app.Tags()
 	return p
 }
 
@@ -342,6 +338,11 @@ func (s *Server) somedayPage(w http.ResponseWriter, r *http.Request) {
 			p.Hidden = len(all) - len(items)
 		}
 	}
+	// a someday item is a raw capture with nothing on it, so its line has
+	// nothing to say but words (design.md, "Filtering by tag")
+	p.FilterMode = "filter-name"
+	p.Shown, p.Total = len(items), len(items)+p.Hidden
+	p.Query = f.Query()
 	p.Data = items
 	s.render(w, "someday.html", p)
 }
@@ -360,20 +361,25 @@ func (s *Server) projectsPage(w http.ResponseWriter, r *http.Request) {
 			p.Hidden = len(all) - len(projects)
 		}
 	}
+	// Projects filters by tag and by name and by nothing else (design.md,
+	// "Projects"), so its line may not say the rest (see "Token boxes")
+	p.FilterMode = "filter-tags"
+	p.Shown, p.Total = len(projects), len(projects)+p.Hidden
+	p.Query = f.Query()
 	p.Data = projects
 	s.render(w, "projects.html", p)
 }
 
 type actionListPage func(app.Filters) ([]*app.Action, error)
 
-func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, view, tmpl string, load actionListPage) {
+func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, view, tmpl string, load actionListPage, mode string) {
 	f := s.viewFilters(view, r)
 	acts, err := load(f)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
-	p := s.newPage(title, view, r).vocab(s)
+	p := s.newPage(title, view, r)
 	p.Filters, p.FilterQuery = f, filterQuery(f)
 	if f.Active() {
 		if all, err := load(app.Filters{Sort: f.Sort, Desc: f.Desc}); err == nil {
@@ -385,16 +391,20 @@ func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, v
 	// nobody asked for (design.md, "Filtering")
 	p.Shown, p.Total = len(acts), len(acts)+p.Hidden
 	p.Query = f.Query()
+	p.FilterMode = mode
 	p.Data = acts
 	s.render(w, tmpl, p)
 }
 
+// Tasks and Waiting for filter by tag and by name only — design.md gives each
+// view the subset it offers, and neither of these two asks "what can I do
+// now", which is the question a context or a size answers.
 func (s *Server) tasksPage(w http.ResponseWriter, r *http.Request) {
-	s.actionListView(w, r, "Tasks", "tasks", "tasks.html", s.app.Tasks)
+	s.actionListView(w, r, "Tasks", "tasks", "tasks.html", s.app.Tasks, "filter-tags")
 }
 
 func (s *Server) nextPage(w http.ResponseWriter, r *http.Request) {
-	s.actionListView(w, r, "Next actions", "next", "next.html", s.app.NextActions)
+	s.actionListView(w, r, "Next actions", "next", "next.html", s.app.NextActions, "filter")
 }
 
 // filterVocab is what the filter box completes from: the remembered lists,
@@ -404,11 +414,11 @@ func (s *Server) nextPage(w http.ResponseWriter, r *http.Request) {
 // be slower than the typing.
 
 func (s *Server) waitingPage(w http.ResponseWriter, r *http.Request) {
-	s.actionListView(w, r, "Waiting for", "waiting", "waiting.html", s.app.WaitingFor)
+	s.actionListView(w, r, "Waiting for", "waiting", "waiting.html", s.app.WaitingFor, "filter-tags")
 }
 
 func (s *Server) calendarPage(w http.ResponseWriter, r *http.Request) {
-	s.actionListView(w, r, "Calendar", "calendar", "calendar.html", s.app.Calendar)
+	s.actionListView(w, r, "Calendar", "calendar", "calendar.html", s.app.Calendar, "filter-due")
 }
 
 func (s *Server) todayPage(w http.ResponseWriter, r *http.Request) {
@@ -448,12 +458,19 @@ func (s *Server) schedulerPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p := s.newPage("Scheduler", "scheduler", r)
+	// the rules are on every row here, so this is where the question is asked
+	p.When = true
 	p.Filters, p.FilterQuery = f, filterQuery(f)
 	if f.Name != "" {
 		if all, err := s.app.Schedules(""); err == nil {
 			p.Hidden = len(all) - len(ss)
 		}
 	}
+	// a schedule carries no context and no tag — it is text and a rule — so
+	// its line has nothing to say but words (design.md, "Filtering by tag")
+	p.FilterMode = "filter-name"
+	p.Shown, p.Total = len(ss), len(ss)+p.Hidden
+	p.Query = f.Query()
 	p.Data = ss
 	s.render(w, "scheduler.html", p)
 }
@@ -609,8 +626,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	case "action":
 		d.Vals.Set("title", d.Text)
 	case "project":
-		d.Vals.Set("ptitle", d.Text)
-		d.Vals.Set("paction", "")
+		d.Vals.Set("title", d.Text)
 	default:
 		d.As = ""
 	}
@@ -789,14 +805,14 @@ func draftsFromForm(r *http.Request) []draftAction {
 // a title and a DOD, plus the meta line that carries its tags and its snooze.
 func (s *Server) projectMetaFromForm(r *http.Request) (app.ProjectFields, error) {
 	pf := app.ProjectFields{
-		Title: strings.TrimSpace(r.FormValue("ptitle")),
+		Title: strings.TrimSpace(r.FormValue("title")),
 		DOD:   strings.TrimSpace(r.FormValue("dod")),
 	}
 	v, err := s.app.Vocabulary()
 	if err != nil {
 		return pf, err
 	}
-	pm, err := app.ParseProjectMeta(r.FormValue("pmeta"), v)
+	pm, err := app.ParseProjectMeta(r.FormValue("meta"), v)
 	if err != nil {
 		return pf, err
 	}
@@ -843,32 +859,6 @@ func (s *Server) projectFromForm(r *http.Request) (app.ProjectFields, []app.Acti
 		todays = append(todays, m.Today)
 	}
 	return pf, actions, todays, nil
-}
-
-// promoteFromForm reads the promote form, which writes a project the same way
-// but still types its actions as plain titles: promoting is one screen away
-// from the action being promoted, and the actions it opens with are a list to
-// sketch rather than a set of items to write in full.
-func (s *Server) promoteFromForm(r *http.Request) (app.ProjectFields, []app.ActionFields, error) {
-	pf, err := s.projectMetaFromForm(r)
-	if err != nil {
-		return pf, nil, err
-	}
-	var actions []app.ActionFields
-	for i, t := range r.Form["paction"] {
-		if t = strings.TrimSpace(t); t == "" {
-			continue
-		}
-		af := app.ActionFields{Title: t}
-		// a project has no description of its own any more, so material that
-		// came with the item lands on the first action — the same commitment,
-		// and where design.md now says such material lives
-		if i == 0 {
-			af.Description = strings.TrimSpace(r.FormValue("adescription"))
-		}
-		actions = append(actions, af)
-	}
-	return pf, actions, nil
 }
 
 // processProjectBranch turns the project form into the project it describes,
@@ -1019,6 +1009,16 @@ type actionPageData struct {
 	Action   *app.Action
 	Contexts []string
 	Tags     []string
+	Back     string // the view this was opened from, for Back and esc
+}
+
+// homeOf is where an item lives when nothing said where you came from: its
+// project, or the pile of standalone ones.
+func homeOf(act *app.Action) string {
+	if act.ProjectID != 0 {
+		return "/project/" + itoa(act.ProjectID)
+	}
+	return "/tasks"
 }
 
 func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
@@ -1027,12 +1027,51 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	d := &actionPageData{Action: act}
+	d := &actionPageData{Action: act, Back: s.parentView(r, homeOf(act))}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
-	p := s.newPage(act.Title, "", r).help("action").notation(s)
+	// the title bar says which screen this is, not which item is on it: the
+	// item's name is the biggest thing on the page already, and the trail is
+	// the one place that answers "where am I" (design.md, "Panels")
+	p := s.newPage(act.Title, viewOf(d.Back), r).help("action").step("Edit action", "").notation(s)
 	p.Data = d
 	s.render(w, "action.html", p)
+}
+
+// promotePage is the project form, seeded from the action that is becoming
+// one. It is a screen of its own rather than a fold-out on the action page:
+// writing a project is writing a project, and design.md gives that one form
+// wherever it happens (see implementation.md, "Writing a project").
+func (s *Server) promotePage(w http.ResponseWriter, r *http.Request) {
+	act, err := s.app.Action(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	if act.ProjectID != 0 {
+		http.Redirect(w, r, "/action/"+itoa(act.ID), http.StatusSeeOther)
+		return
+	}
+	d := &promotePageData{
+		Action: act,
+		Back:   "/action/" + itoa(act.ID),
+		From:   s.parentView(r, homeOf(act)),
+		// title and description only: design.md, "Promoting an action" sends
+		// the tags to the project and leaves everything else with the action,
+		// since a context or a size describes doing something
+		Drafts: []draftAction{{Title: act.Title, Description: act.Description}},
+	}
+	p := s.newPage("Promote", viewOf(d.From), r).
+		help("action").step("Promote action to project", "").notation(s)
+	p.Data = d
+	s.render(w, "promote.html", p)
+}
+
+type promotePageData struct {
+	Action *app.Action
+	Back   string // the action, which is where this screen was opened from
+	From   string // the view under it, which is where the new project lands
+	Drafts []draftAction
 }
 
 func (s *Server) actionUpdate(w http.ResponseWriter, r *http.Request) {
@@ -1059,7 +1098,10 @@ func (s *Server) actionUpdate(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	http.Redirect(w, r, "/action/"+r.PathValue("id"), http.StatusSeeOther)
+	// saving finishes the edit, so it goes back where the screen was opened
+	// from — the same place Back and esc go, since the difference between
+	// them is only whether the changes were kept
+	back(w, r)
 }
 
 func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
@@ -1097,15 +1139,32 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 	case "pick":
 		err = s.app.ToggleTag("action", id, app.TodayTag)
 	case "promote":
-		var pf app.ProjectFields
-		var actions []app.ActionFields
-		if pf, actions, err = s.promoteFromForm(r); err != nil {
+		// the same form the Project branch of processing reads, because it is
+		// the same form (design.md, "Promoting an action")
+		pf, actions, todays, ferr := s.projectFromForm(r)
+		if err = ferr; err != nil {
 			break
 		}
+		// the action is gone once this succeeds, so the project has to be
+		// told where to go back to — the view, not the page that promoted it
+		from := localPath(r.FormValue("from"), "")
 		var p *app.Project
 		if p, err = s.app.Promote(id, pf, actions); err == nil {
-			http.Redirect(w, r, "/project/"+itoa(p.ID), http.StatusSeeOther)
-			return
+			for i, want := range todays {
+				if want && i < len(p.Actions) {
+					if err = s.applyToday(p.Actions[i].ID, true); err != nil {
+						break
+					}
+				}
+			}
+			if err == nil {
+				to := "/project/" + itoa(p.ID)
+				if from != "" {
+					to += "?from=" + url.QueryEscape(from)
+				}
+				http.Redirect(w, r, to, http.StatusSeeOther)
+				return
+			}
 		}
 	default:
 		http.NotFound(w, r)
@@ -1139,6 +1198,7 @@ type projectPageData struct {
 	Ask      bool // show the after-completion prompt
 	Contexts []string
 	Tags     []string
+	Back     string // the view this was opened from, for Back and esc
 }
 
 func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
@@ -1147,35 +1207,30 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	d := &projectPageData{Project: proj, Ask: r.URL.Query().Get("ask") == "1"}
+	d := &projectPageData{
+		Project: proj,
+		Ask:     r.URL.Query().Get("ask") == "1",
+		Back:    s.parentView(r, "/projects"),
+	}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
-	p := s.newPage(proj.Title, "projects", r).step(proj.Title, "")
+	// the trail says which screen this is, the way the action page does
+	p := s.newPage(proj.Title, viewOf(d.Back), r).step("Edit project", "")
 	p.Data = d
 	s.render(w, "project.html", p)
 }
 
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
-	f := app.ProjectFields{
-		Title: strings.TrimSpace(r.FormValue("title")),
-		DOD:   strings.TrimSpace(r.FormValue("dod")),
-	}
-	v, err := s.app.Vocabulary()
+	f, err := s.projectMetaFromForm(r)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
-	pm, err := app.ParseProjectMeta(r.FormValue("meta"), v)
-	if err != nil {
-		httpError(w, err)
-		return
-	}
-	f.Tags, f.SnoozeUntil = pm.Tags, pm.SnoozeUntil
 	if err := s.app.UpdateProject(idParam(r), f); err != nil {
 		httpError(w, err)
 		return
 	}
-	http.Redirect(w, r, "/project/"+r.PathValue("id"), http.StatusSeeOther)
+	back(w, r)
 }
 
 func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
@@ -1217,18 +1272,54 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 
 // --- schedules -----------------------------------------------------------
 
-func (s *Server) scheduleNewPage(w http.ResponseWriter, r *http.Request) {
+// typedSchedule reads the boxes of either schedule form. What comes back on a
+// refusal is what was typed, not what is stored.
+func typedSchedule(r *http.Request) *app.Schedule {
+	return &app.Schedule{
+		Text:   r.FormValue("text"),
+		Rule:   strings.TrimSpace(r.FormValue("rule")),
+		Suffix: r.FormValue("suffix"),
+	}
+}
+
+// renderScheduleNew draws the New-schedule form with the given values in its
+// boxes and, on a refusal, the reason above them. A refused schedule cannot
+// be a bare 400: When is the one field here you can get wrong by typing
+// something perfectly reasonable, and a 400 under hx-boost is not swapped, so
+// the screen would sit there looking untouched (implementation.md, "A refused
+// schedule comes back").
+func (s *Server) renderScheduleNew(w http.ResponseWriter, r *http.Request, sched *app.Schedule, note string) {
 	p := s.newPage("New schedule", "scheduler", r).step("New schedule", "")
+	p.When = true
+	if note != "" {
+		p.Error = note
+	}
+	p.Data = sched
 	s.render(w, "schedule_new.html", p)
 }
 
+func (s *Server) scheduleNewPage(w http.ResponseWriter, r *http.Request) {
+	s.renderScheduleNew(w, r, &app.Schedule{}, "")
+}
+
 func (s *Server) scheduleCreate(w http.ResponseWriter, r *http.Request) {
-	_, err := s.app.CreateSchedule(r.FormValue("text"), strings.TrimSpace(r.FormValue("rule")), r.FormValue("suffix"))
+	typed := typedSchedule(r)
+	_, err := s.app.CreateSchedule(typed.Text, typed.Rule, typed.Suffix)
 	if err != nil {
-		httpError(w, err)
+		s.renderScheduleNew(w, r, typed, err.Error())
 		return
 	}
 	http.Redirect(w, r, "/scheduler", http.StatusSeeOther)
+}
+
+func (s *Server) renderSchedule(w http.ResponseWriter, r *http.Request, sched *app.Schedule, note string) {
+	p := s.newPage("Schedule", "scheduler", r).step(sched.Text, "")
+	p.When = true
+	if note != "" {
+		p.Error = note
+	}
+	p.Data = sched
+	s.render(w, "schedule.html", p)
 }
 
 func (s *Server) schedulePage(w http.ResponseWriter, r *http.Request) {
@@ -1237,15 +1328,22 @@ func (s *Server) schedulePage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	p := s.newPage("Schedule", "scheduler", r).step(sched.Text, "")
-	p.Data = sched
-	s.render(w, "schedule.html", p)
+	s.renderSchedule(w, r, sched, "")
 }
 
 func (s *Server) scheduleUpdate(w http.ResponseWriter, r *http.Request) {
-	err := s.app.EditSchedule(idParam(r), r.FormValue("text"), strings.TrimSpace(r.FormValue("rule")), r.FormValue("suffix"))
+	typed := typedSchedule(r)
+	err := s.app.EditSchedule(idParam(r), typed.Text, typed.Rule, typed.Suffix)
 	if err != nil {
-		httpError(w, err)
+		sched, loadErr := s.app.Schedule(idParam(r))
+		if loadErr != nil {
+			httpError(w, loadErr)
+			return
+		}
+		// nothing was written, so the heading goes on reading the stored rule
+		// and only the boxes carry what was refused
+		sched.Text, sched.Rule, sched.Suffix = typed.Text, typed.Rule, typed.Suffix
+		s.renderSchedule(w, r, sched, err.Error())
 		return
 	}
 	http.Redirect(w, r, "/scheduler", http.StatusSeeOther)
@@ -1437,22 +1535,24 @@ func (s *Server) settingsAdd(w http.ResponseWriter, r *http.Request) {
 	s.backToSettings(w, r, err)
 }
 
-// backToSettings answers a change to the remembered lists. A form may say
-// where it came from with a "back" field and then it goes there instead: a
-// name is learned from the Settings screen most of the time, but also from the
-// filter box, which asks to create one in the middle of typing a filter and
-// has a line waiting to be applied when it comes back (see "The filter box").
+// backToSettings answers a change to the remembered lists. A caller that says
+// it wants JSON gets no page at all, only whether it worked: that is the token
+// box learning a name in the middle of a line being typed (see "Token boxes"),
+// where navigating away would throw away the form it is standing in.
 func (s *Server) backToSettings(w http.ResponseWriter, r *http.Request, err error) {
-	home := localPath(r.FormValue("back"), "/settings")
-	if err != nil {
-		sep := "?"
-		if strings.Contains(home, "?") {
-			sep = "&"
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
-		http.Redirect(w, r, home+sep+"err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	http.Redirect(w, r, home, http.StatusSeeOther)
+	if err != nil {
+		http.Redirect(w, r, "/settings?err="+url.QueryEscape(err.Error()), http.StatusSeeOther)
+		return
+	}
+	http.Redirect(w, r, "/settings", http.StatusSeeOther)
 }
 
 func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {

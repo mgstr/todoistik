@@ -51,7 +51,9 @@ func TestMatches(t *testing.T) {
 }
 
 func TestParseErrors(t *testing.T) {
-	for _, s := range []string{"", "* *", "* * * *", "32 * *", "* 13 *", "* * 8", "a * *", "1-0 * *"} {
+	// "* * * *" is four valid fields now — the year, unrestricted
+	for _, s := range []string{"", "* *", "* * * * *", "32 * *", "* 13 *", "* * 8", "a * *", "1-0 * *",
+		"* * * 1999", "* * * 2100", "* * * two-thousand"} {
 		if _, err := Parse(s); err == nil {
 			t.Errorf("Parse(%q) succeeded, want error", s)
 		}
@@ -67,6 +69,42 @@ func TestNextAfter(t *testing.T) {
 	if got := impossible.NextAfter(day("2026-01-01")); !got.IsZero() {
 		t.Errorf("impossible rule returned %v, want zero", got)
 	}
+	// a rule that names its years is searched to the end of the last one, so a
+	// day further off than the eight years an open rule is given is still found
+	far, _ := Parse("1 1 * 2035")
+	if got := far.NextAfter(day("2026-09-04")); !got.Equal(day("2035-01-01")) {
+		t.Errorf("far rule = %v, want 2035-01-01", got)
+	}
+	// and one whose years are all behind it can never fire again
+	spent, _ := Parse("9-23 9 * 2020")
+	if got := spent.NextAfter(day("2026-09-04")); !got.IsZero() {
+		t.Errorf("spent rule returned %v, want zero", got)
+	}
+}
+
+func TestYearField(t *testing.T) {
+	cases := []struct {
+		expr string
+		date string
+		want bool
+	}{
+		{"9-23 9 * 2026", "2026-09-09", true},
+		{"9-23 9 * 2026", "2026-09-23", true},
+		{"9-23 9 * 2026", "2026-09-24", false},
+		{"9-23 9 * 2026", "2027-09-09", false},
+		{"9-23 9 *", "2027-09-09", true}, // no year field: every year, as before
+		{"1 * * 2026-2028", "2028-05-01", true},
+		{"1 * * 2026,2028", "2027-05-01", false},
+	}
+	for _, c := range cases {
+		e, err := Parse(c.expr)
+		if err != nil {
+			t.Fatalf("Parse(%q): %v", c.expr, err)
+		}
+		if got := e.Matches(day(c.date)); got != c.want {
+			t.Errorf("%q on %s = %v, want %v", c.expr, c.date, got, c.want)
+		}
+	}
 }
 
 func TestReadable(t *testing.T) {
@@ -75,6 +113,23 @@ func TestReadable(t *testing.T) {
 		"* * 1":   "every Monday",
 		"1 * *":   "the 1st of every month",
 		"* * 1,5": "every Monday, Friday",
+		// a run reads as a run, and named months replace "every month"
+		// rather than stacking onto it — "of every month in September"
+		// was what saying both produced, and it means nothing
+		"9-23 9 *":    "the 9th-23rd of September",
+		"9-23 * *":    "the 9th-23rd of every month",
+		"1,15 9,10 *": "the 1st, 15th of September, October",
+		"9,10 * *":    "the 9th, 10th of every month",
+		"* * 1-5":     "every Monday-Friday",
+		"* 9 *":       "every day in September",
+		"1 9 *":       "the 1st of September",
+		// the year goes where a date says it, and needs an "in" of its own
+		// only when there is no month to hang it off
+		"9-23 9 * 2026":   "the 9th-23rd of September 2026",
+		"1 * * 2026":      "the 1st of every month in 2026",
+		"* * * 2026":      "every day in 2026",
+		"* * 1 2026-2028": "every Monday in 2026-2028",
+		"1 9 * 2026,2030": "the 1st of September 2026, 2030",
 	}
 	for expr, want := range cases {
 		e, _ := Parse(expr)

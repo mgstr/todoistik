@@ -93,6 +93,50 @@ func itemTexts(items []*InboxItem) []string {
 	return out
 }
 
+// A rule that names its years fires inside them and then has nothing left to
+// do, which is the same end a one-shot has always come to (design.md,
+// "Schedule").
+func TestScheduleWithYearRunsOutAndDeletesItself(t *testing.T) {
+	a, now := newTestApp(t)
+	if _, err := a.CreateSchedule("Chase the invoice", "9-23 9 * 2026", " DD"); err != nil {
+		t.Fatal(err)
+	}
+	*now = time.Date(2026, 9, 10, 9, 0, 0, 0, time.UTC)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	items, _ := a.Inbox()
+	if len(items) != 2 { // the 9th and the 10th, each distinct by its suffix
+		t.Fatalf("want the 9th and 10th fired, got: %v", itemTexts(items))
+	}
+	if ss, _ := a.Schedules(""); len(ss) != 1 {
+		t.Fatalf("schedule left mid-run, want 1 got %d", len(ss))
+	}
+	// past the last occurrence the rule can never fire again, so it goes
+	*now = time.Date(2026, 9, 24, 9, 0, 0, 0, time.UTC)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	ss, err := a.Schedules("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ss) != 0 {
+		t.Fatalf("spent schedule not deleted: %v", ss[0].Rule)
+	}
+	// and a rule with no year still stays, having always something ahead
+	if _, err := a.CreateSchedule("Pay the rent", "1 * *", ""); err != nil {
+		t.Fatal(err)
+	}
+	*now = time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	if ss, _ := a.Schedules(""); len(ss) != 1 {
+		t.Fatalf("open-ended schedule deleted itself, got %d", len(ss))
+	}
+}
+
 func TestScheduleNeverBackfires(t *testing.T) {
 	a, now := newTestApp(t)
 	// mark today as already opened, then create a monthly schedule mid-month
@@ -600,5 +644,34 @@ func TestParseQuery(t *testing.T) {
 	f, problems = ParseQuery("@home #kar milk", v)
 	if len(problems) != 1 || f.Name != "milk" || len(f.Contexts) != 1 {
 		t.Errorf("a line with one bad token lost the good ones: %+v %+v", f, problems)
+	}
+}
+
+// The windows are the one part of the filter line that is not a name: words
+// rather than dates, because "what is coming at me" moves with the day.
+func TestParseQueryWindows(t *testing.T) {
+	v := &Vocabulary{Tags: map[string]bool{"car": true}}
+
+	f, problems := ParseQuery("due:thisweek #car", v)
+	if len(problems) != 0 {
+		t.Fatalf("a good window had problems: %+v", problems)
+	}
+	if f.Due != "thisweek" || f.Name != "" {
+		t.Errorf("due = %q, name = %q — the window must not be left as a word", f.Due, f.Name)
+	}
+	if got := f.Query(); got != "#car due:thisweek" {
+		t.Errorf("round trip = %q", got)
+	}
+
+	if _, problems = ParseQuery("due:sometime", v); len(problems) != 1 || problems[0].Kind != ProblemWindow {
+		t.Errorf("a window that is not one gave %+v", problems)
+	}
+	// snooze is a meta-line notation, and is refused here rather than being
+	// quietly matched as a word
+	if _, problems = ParseQuery("snooze:2026-09-20", v); len(problems) != 1 || problems[0].Kind != ProblemNotAFilter {
+		t.Errorf("snooze: on a filter line gave %+v", problems)
+	}
+	if f, _ = ParseQuery("completed:lastweek", v); f.Completed != "lastweek" {
+		t.Errorf("completed = %q", f.Completed)
 	}
 }

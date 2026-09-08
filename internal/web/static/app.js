@@ -105,8 +105,11 @@
       return { view: declaredKeys("[data-key]").concat([["esc", "close"]]), global: [] };
     }
     const unknown = unknownDialog();
-    if (unknown && unknown.open) {
-      return { view: declaredKeys("[data-key]").concat([["esc", "cancel"]]), global: [] };
+    if (unknown && unknown.open && topDialog() === unknown) {
+      const keys = declaredKeys("[data-key]");
+      if (rows().length > 1) keys.push(["j k", "move"]);
+      keys.push(["\u21b5", "take"], ["esc", "cancel"]);
+      return { view: keys, global: [] };
     }
     const dlg = captureDialog();
     if (dlg && dlg.open) return { view: [["\u21b5", "add"], ["esc", "cancel"]], global: [] };
@@ -121,8 +124,7 @@
       return { view: [["\u2193\u2191", "move"], ["^j ^k", "move"], ["\u21b5", "take"],
         ["type", "filter"], ["esc", "back"]], global: [] };
     }
-    const sug = suggestList();
-    if (sug && !sug.hidden) {
+    if (openSuggest()) {
       return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
     }
     if (filterBox() && document.activeElement === filterBox()) {
@@ -184,7 +186,7 @@
   }
 
   function declaredKeys(sel) {
-    return Array.from(document.querySelectorAll(sel)).filter(keyLive).map(function (el) {
+    return Array.from(document.querySelectorAll(sel)).filter(keyUsable).map(function (el) {
       return [el.dataset.key, el.dataset.keyLabel || ""];
     });
   }
@@ -195,9 +197,24 @@
   // the chooser's t/n/k/z would mean its four panels on every screen in the
   // app, since the dialog is in the layout and therefore always on the page.
   function keyLive(el) {
-    const open = document.querySelector("dialog[open]");
+    const open = topDialog();
     const own = el.closest("dialog");
     return open ? own === open : !own;
+  }
+
+  // The dialog on top, when more than one is up: the unknown-name dialog can
+  // open over the one that is writing a draft action, and the keys belong to
+  // the newer question. Document order answers it, because the dialogs that
+  // interrupt another one live in the layout, after everything a page holds.
+  function topDialog() {
+    const all = document.querySelectorAll("dialog[open]");
+    return all.length ? all[all.length - 1] : null;
+  }
+
+  // and a key on a control that cannot be pressed is not a key: the bar must
+  // never offer one that does nothing (see implementation.md, "Keyboard")
+  function keyUsable(el) {
+    return keyLive(el) && !el.disabled;
   }
 
   // A declared key may ask for ctrl, written "^a" — the same notation the bar
@@ -208,7 +225,7 @@
     const want = (e.ctrlKey ? "^" : "") + e.key.toLowerCase();
     const all = document.querySelectorAll('[data-key="' + CSS.escape(want) + '"]');
     for (let i = 0; i < all.length; i++) {
-      if (keyLive(all[i])) return all[i];
+      if (keyUsable(all[i])) return all[i];
     }
     return null;
   }
@@ -306,9 +323,14 @@
     if (groups.global.length) bar.appendChild(keygroup("kb-global", groups.global));
   }
 
-  // the button a form would submit with, if it has one
+  // the button a form would submit with, if it has one. A button may sit
+  // outside the form and point at it with the form attribute — which is how
+  // Save gets to stand in one row with Complete and Delete, each of which is
+  // a form of its own (see implementation.md, "Writing an action")
   function submitButton(form) {
-    return form.querySelector("button[type=submit], button:not([type]):not([type=button])");
+    const inside = form.querySelector("button[type=submit], button:not([type]):not([type=button])");
+    if (inside) return inside;
+    return form.id ? document.querySelector('button[form="' + CSS.escape(form.id) + '"]') : null;
   }
 
   // The button that makes the thing, whether the thing is made by submitting a
@@ -340,9 +362,25 @@
   function gate(scope) {
     const btn = makeButton(scope);
     if (!btn) return;
-    if (!scope.querySelector("[required]")) return;
+    const needs = !!scope.querySelector("[required]");
+    const dirty = scope.hasAttribute && scope.hasAttribute("data-dirty-save");
+    if (!needs && !dirty) return;
     btn.hidden = false;
-    btn.disabled = missing(scope).length > 0;
+    btn.disabled = (needs && missing(scope).length > 0) || (dirty && !changed(scope));
+  }
+
+  // A form that says data-dirty-save has a button meaning "keep this", and
+  // there is nothing to keep until something differs from what the server
+  // sent. Each field's own defaultValue is that very thing, so nothing has to
+  // be remembered in here — the same trick the filter box's Apply uses.
+  function changed(scope) {
+    return Array.from(scope.querySelectorAll("input, textarea, select")).some(function (el) {
+      if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
+      if (el.tagName === "SELECT") {
+        return Array.from(el.options).some(function (o) { return o.selected !== o.defaultSelected; });
+      }
+      return el.value !== el.defaultValue;
+    });
   }
 
   function gateAll() {
@@ -350,15 +388,21 @@
     renderKeybar();
   }
   document.addEventListener("input", function (e) {
-    if (e.target === filterBox()) { paintFilter(); showSuggest(); return; }
+    // a token box paints itself and offers what you may be typing — and then
+    // falls through, because it is a field in a form like any other and the
+    // form's own button has to know that something changed
+    if (e.target.matches && e.target.matches("[data-tokenbox]")) {
+      paintBox(e.target);
+      showSuggest(e.target);
+    }
     const scope = e.target.closest && e.target.closest("form, dialog");
     if (scope) { gate(scope); renderKeybar(); }
   });
   // the mirror is only right while it is scrolled exactly as far as the box
   document.addEventListener("scroll", function (e) {
-    if (e.target === filterBox()) {
-      const mirror = filterBar().querySelector(".fmirror");
-      mirror.scrollLeft = e.target.scrollLeft;
+    if (e.target.matches && e.target.matches("[data-tokenbox]")) {
+      const wrap = boxWrap(e.target);
+      if (wrap) wrap.querySelector(".fmirror").scrollLeft = e.target.scrollLeft;
     }
   }, true);
 
@@ -466,29 +510,70 @@
   // The panel chooser: ctrl-v, four forms, each one both a key and a click.
   function panelsDialog() { return document.getElementById("panels-dialog"); }
 
-  // --- the filter box ----------------------------------------------------
+  // --- token boxes --------------------------------------------------------
   //
-  // One line that says what you want to see, in the notation an action is
-  // already written in: `@home #car #short milk`. The line is parsed properly
-  // in Go (internal/app, ParseQuery) and the filter set is what the server
-  // keeps; what happens in here is the two things that have to happen before
-  // it is submitted — asking about a name the app does not know, and saving
-  // you from typing the ones it does. The rules are therefore stated twice,
-  // and deliberately: here as questions, there as answers.
+  // The filter line and the two meta lines are the same box: a line of @names
+  // and #names, completed as it is typed and marked where the app does not
+  // know one. What differs is which notation each accepts, and that is the
+  // whole of `BOX_RULES` — the rest of this section does not know which box it
+  // is looking at.
+  //
+  // The lines are parsed properly in Go (ParseQuery, ParseMeta). What happens
+  // here is the two things that have to happen before a line is submitted:
+  // asking about a name the app cannot use, and saving you from typing the
+  // ones it can. The rules are therefore stated twice, and deliberately —
+  // here as questions, there as answers.
   const FILTER_OPEN = "kb-filter-open";
-  const FIELD_TAGS = ["short", "medium", "long", "focus"];
   const TOKEN_RE = /(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?/gu;
+  const DATE_RE = /(^|\s)([a-z]+):(\S+)/g;
   // what is being typed right now, which is a token that may still be empty
   const TYPING_RE = /(^|\s)([@#])([\p{L}\p{N}_-]*)$/u;
+  const DATE_OK = /^\d{4}-\d{2}-\d{2}$/;
+
+  // Each box says what it takes. contexts is how many an item can have, fields
+  // are the #names that stand for fields rather than tags, dates are the two
+  // date notations, and prose says whether a word that is not notation is
+  // allowed — the filter line matches titles by its leftover words, a meta
+  // line refuses them (design.md, "Writing an action").
+  // `dates` says which `key:value` notations this line takes and what the value
+  // may be: a date, or one of a fixed set of words. The windows are words
+  // because "what is coming at me" moves with the day (design.md, "Calendar").
+  const DUE_WINDOWS = ["today", "tomorrow", "thisweek", "nextweek"];
+  const BOX_RULES = {
+    filter: { contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: {}, prose: true },
+    // some views filter by tag and by name and by nothing else — design.md
+    // gives each view the subset it offers, and a line that quietly ignored
+    // the rest would be the app pretending to have narrowed something
+    "filter-tags": { contexts: 0, fields: [], dates: {}, prose: true },
+    "filter-due": { contexts: 0, fields: [], dates: { due: DUE_WINDOWS }, prose: true },
+    "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
+    action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: "date", snooze: "date" }, prose: false, waiting: true },
+    project: { contexts: 0, fields: [], dates: { snooze: "date" }, prose: false },
+  };
+
+  function tokenBoxes() { return Array.from(document.querySelectorAll("[data-tokenbox]")); }
+  function rulesFor(box) { return BOX_RULES[box.dataset.tokenbox] || BOX_RULES.filter; }
+  function boxWrap(box) { return box.closest(".fbox"); }
+  function suggestList(box) { const w = boxWrap(box); return w && w.querySelector(".fsuggest"); }
+  function openSuggest() { return document.querySelector(".fsuggest:not([hidden])"); }
 
   function filterBar() { return document.querySelector("[data-filterbar]"); }
-  function filterBox() { const bar = filterBar(); return bar && bar.querySelector("[data-fquery]"); }
-  function suggestList() { const bar = filterBar(); return bar && bar.querySelector(".fsuggest"); }
+  function filterBox() { const bar = filterBar(); return bar && bar.querySelector("[data-tokenbox]"); }
 
+  // the remembered lists, off the pane: every page carries them because any
+  // page may hold a box (implementation.md, "Token boxes")
   function vocabNames(which) {
-    const bar = filterBar();
-    if (!bar) return [];
-    return (bar.dataset[which] || "").trim().split(/\s+/).filter(Boolean);
+    const pane = document.querySelector(".pane");
+    if (!pane) return [];
+    return (pane.dataset[which] || "").trim().split(/\s+/).filter(Boolean);
+  }
+
+  function knownNames(box, sigil) {
+    const rules = rulesFor(box);
+    if (sigil === "@") {
+      return vocabNames("contexts").concat(rules.waiting ? ["waitingFor"] : []);
+    }
+    return vocabNames("tags").concat(rules.fields);
   }
 
   function tokensIn(text) {
@@ -506,38 +591,82 @@
     return out;
   }
 
-  // The same three things ParseQuery refuses, found here so they can be asked
-  // about: a name on no remembered list, a second context (an action has one),
-  // and a field that is not a filter.
-  function problemsIn(text) {
-    const contexts = vocabNames("contexts").concat(["waitingFor"]);
-    const tags = vocabNames("tags").concat(FIELD_TAGS, ["today"]);
+  // Everything wrong with a line, in the order it is written. A problem is a
+  // span of the text and what to do about it; only the ones that are simply
+  // names the app has never been told about can be answered by creating one.
+  function problemsIn(box) {
+    const text = box.value, rules = rulesFor(box);
     const out = [];
-    let haveContext = false;
+    const taken = [];
+    let contexts = 0;
+
     tokensIn(text).forEach(function (t) {
+      taken.push(t);
+      const pool = knownNames(box, t.sigil);
       if (t.sigil === "@") {
-        if (contexts.indexOf(t.name) < 0) out.push(Object.assign({ kind: "context" }, t));
-        else if (haveContext) out.push(Object.assign({ kind: "second-context" }, t));
-        else haveContext = true;
+        if (pool.indexOf(t.name) < 0) { out.push(Object.assign({ kind: "context" }, t)); return; }
+        if (t.name === "waitingFor") return; // its own field, not the context
+        if (!rules.contexts) { out.push(Object.assign({ kind: "no-context" }, t)); return; }
+        if (++contexts > rules.contexts) out.push(Object.assign({ kind: "second-context" }, t));
         return;
       }
-      if (t.name === "parked") { out.push(Object.assign({ kind: "not-a-filter" }, t)); return; }
-      if (tags.indexOf(t.name) < 0) out.push(Object.assign({ kind: "tag" }, t));
+      if (rules.tags === false) { out.push(Object.assign({ kind: "not-here" }, t)); return; }
+      const field = BOX_RULES.action.fields.concat("today").indexOf(t.name) >= 0;
+      if (field && rules.fields.indexOf(t.name) < 0) {
+        out.push(Object.assign({ kind: "not-here" }, t));
+        return;
+      }
+      if (pool.indexOf(t.name) < 0) out.push(Object.assign({ kind: "tag" }, t));
     });
-    return out;
+
+    // dates and prose are read from what the tokens left behind, so that a
+    // name is never also a word
+    let rest = text.split("");
+    taken.forEach(function (t) { for (let i = t.start; i < t.end; i++) rest[i] = " "; });
+    const left = rest.join("");
+
+    DATE_RE.lastIndex = 0;
+    let m;
+    const dated = [];
+    while ((m = DATE_RE.exec(left)) !== null) {
+      const start = m.index + m[1].length;
+      const t = { start: start, end: m.index + m[0].length, name: m[2], param: m[3], sigil: "" };
+      t.text = text.slice(t.start, t.end);
+      dated.push(t);
+      const spec = rules.dates[m[2]];
+      if (!spec) { out.push(Object.assign({ kind: "not-here" }, t)); continue; }
+      if (spec === "date") {
+        if (!DATE_OK.test(m[3])) out.push(Object.assign({ kind: "bad-date" }, t));
+        continue;
+      }
+      if (spec.indexOf(m[3]) < 0) {
+        out.push(Object.assign({ kind: "bad-window", words: spec }, t));
+      }
+    }
+
+    if (!rules.prose) {
+      dated.forEach(function (t) { for (let i = t.start; i < t.end; i++) rest[i] = " "; });
+      const words = rest.join("");
+      const wordRe = /\S+/g;
+      let w;
+      while ((w = wordRe.exec(words)) !== null) {
+        out.push({ kind: "prose", start: w.index, end: w.index + w[0].length, text: w[0], name: w[0], sigil: "" });
+      }
+    }
+    return out.sort(function (a, b) { return a.start - b.start; });
   }
 
   // The mirror carries the marks: the same text in the same place, behind the
-  // input, with its own text invisible so that only the wavy lines show. It is
-  // redrawn on every keystroke, which is cheap — the line is one line.
-  function paintFilter() {
-    const bar = filterBar();
-    if (!bar) return;
-    const box = filterBox(), mirror = bar.querySelector(".fmirror");
+  // input, with its own text invisible so that only the wavy lines show.
+  function paintBox(box) {
+    const wrap = boxWrap(box);
+    if (!wrap) return;
+    const mirror = wrap.querySelector(".fmirror");
     const text = box.value;
     mirror.textContent = "";
     let at = 0;
-    problemsIn(text).forEach(function (p) {
+    problemsIn(box).forEach(function (p) {
+      if (p.start < at) return;
       mirror.appendChild(document.createTextNode(text.slice(at, p.start)));
       const mark = document.createElement("span");
       mark.className = "bad";
@@ -547,15 +676,23 @@
     });
     mirror.appendChild(document.createTextNode(text.slice(at)));
     mirror.scrollLeft = box.scrollLeft;
-    // Apply is dead until the line differs from the one that is applied. The
-    // input's own default value is that line, straight from the server, so
-    // there is nothing to remember here
-    const apply = bar.querySelector(".apply");
-    if (apply) apply.disabled = text === box.defaultValue;
+    gateApply(box);
   }
 
-  function typingToken() {
-    const box = filterBox();
+  function paintAll() { tokenBoxes().forEach(paintBox); }
+
+  // Apply is dead until the line differs from the one that is applied. The
+  // input's own default value is that line, straight from the server, so
+  // there is nothing to remember here. A meta box has no button of its own —
+  // its form's Save is gated the same way, by gate()
+  function gateApply(box) {
+    const bar = filterBar();
+    if (!bar || !bar.contains(box)) return;
+    const apply = bar.querySelector(".apply");
+    if (apply) apply.disabled = box.value === box.defaultValue;
+  }
+
+  function typingToken(box) {
     if (!box || document.activeElement !== box) return null;
     const before = box.value.slice(0, box.selectionStart);
     const m = TYPING_RE.exec(before);
@@ -563,22 +700,19 @@
     return { sigil: m[2], prefix: m[3], start: before.length - m[2].length - m[3].length };
   }
 
-  function suggestionsFor(t) {
-    const pool = t.sigil === "@" ? vocabNames("contexts")
-      : vocabNames("tags").concat(FIELD_TAGS).sort();
+  function suggestionsFor(box, t) {
+    const pool = knownNames(box, t.sigil).slice().sort();
     const p = t.prefix.toLowerCase();
     const starts = pool.filter(function (n) { return n.toLowerCase().indexOf(p) === 0; });
-    const holds = pool.filter(function (n) {
-      return n.toLowerCase().indexOf(p) > 0;
-    });
+    const holds = pool.filter(function (n) { return n.toLowerCase().indexOf(p) > 0; });
     return starts.concat(holds).slice(0, 8);
   }
 
-  function showSuggest() {
-    const list = suggestList();
+  function showSuggest(box) {
+    const list = suggestList(box);
     if (!list) return;
-    const t = typingToken();
-    const names = t ? suggestionsFor(t) : [];
+    const t = typingToken(box);
+    const names = t ? suggestionsFor(box, t) : [];
     if (!names.length) { hideSuggest(); return; }
     list.textContent = "";
     names.forEach(function (n, i) {
@@ -593,15 +727,15 @@
   }
 
   function hideSuggest() {
-    const list = suggestList();
-    if (!list || list.hidden) return;
+    const list = openSuggest();
+    if (!list) return;
     list.hidden = true;
     renderKeybar();
   }
 
   function moveSuggest(delta) {
-    const list = suggestList();
-    if (!list || list.hidden) return;
+    const list = openSuggest();
+    if (!list) return;
     const all = Array.from(list.children);
     const at = all.findIndex(function (li) { return li.classList.contains("on"); });
     const next = Math.max(0, Math.min(all.length - 1, (at < 0 ? 0 : at) + delta));
@@ -611,15 +745,15 @@
   }
 
   // taking a name writes it where the half-typed one was, and leaves a space:
-  // a filter line is a list of names and the next one is usually coming
-  function takeSuggest(name) {
-    const t = typingToken(), box = filterBox();
+  // a line is a list of names and the next one is usually coming
+  function takeSuggest(box, name) {
+    const t = typingToken(box);
     if (!t || !box) return;
     const head = box.value.slice(0, t.start) + t.sigil + name + " ";
     box.value = head + box.value.slice(box.selectionStart);
     box.setSelectionRange(head.length, head.length);
     hideSuggest();
-    paintFilter();
+    paintBox(box);
   }
 
   function openFilter() {
@@ -630,7 +764,7 @@
     const box = filterBox();
     box.focus();
     box.setSelectionRange(box.value.length, box.value.length);
-    paintFilter();
+    paintBox(box);
     renderKeybar();
   }
 
@@ -655,15 +789,14 @@
     let open = null;
     try { open = sessionStorage.getItem(FILTER_OPEN); } catch (err) { /* fine */ }
     if (open && open === viewKey()) bar.hidden = false;
-    paintFilter();
   }
 
   function applyFilter() {
     const bar = filterBar();
     if (!bar) return;
     hideSuggest();
-    const bad = problemsIn(filterBox().value);
-    if (bad.length) { askAbout(bad[0]); return; }
+    const bad = problemsIn(filterBox());
+    if (bad.length) { askAbout(filterBox(), bad[0], applyFilter); return; }
     bar.submit();
   }
 
@@ -697,49 +830,121 @@
 
   function unknownDialog() { return document.getElementById("unknown-dialog"); }
 
+  // what the question interrupted, to be picked up again once it is answered
+  let askContinue = null;
+
   // Rewrites the offending token — to another name, or to nothing — and picks
-  // up where it left off: the next problem, or the apply that was interrupted.
-  function resolveToken(problem, text) {
-    const box = filterBox();
+  // up where it left off: the next problem, or the thing that was interrupted.
+  function resolveToken(box, problem, text) {
     const v = box.value;
     let out = v.slice(0, problem.start) + text + v.slice(problem.end);
     out = out.replace(/[ \t]{2,}/g, " ").replace(/^\s+/, "");
     box.value = out;
-    paintFilter();
+    paintBox(box);
+    const form = box.closest("form");
+    if (form) gate(form);
     const dlg = unknownDialog();
     if (dlg && dlg.open) dlg.close();
-    applyFilter();
+    const left = problemsIn(box);
+    if (left.length) { askAbout(box, left[0], askContinue); return; }
+    // whatever the question interrupted happens now that it is answered:
+    // pressing Apply or Save once should not have to be done twice
+    const go = askContinue;
+    askContinue = null;
+    box.focus();
+    renderKeybar();
+    if (go) go();
+  }
+
+  // Learning a name asks the server and stays where it is: the line may be
+  // sitting in a form full of unsaved edits, and going to Settings and back
+  // would throw them away. The write is still the server's, and the page's
+  // copy of the list is updated from what it accepted.
+  function createName(box, problem) {
+    const kind = problem.sigil === "@" ? "contexts" : "tags";
+    const body = new URLSearchParams({ name: problem.name });
+    if (problem.param) body.set("param", problem.param);
+    fetch("/settings/" + kind + "/add", {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    }).then(function (res) {
+      if (!res.ok) return res.text().then(function (t) { throw new Error(t.trim()); });
+      const pane = document.querySelector(".pane");
+      const key = kind === "contexts" ? "contexts" : "tags";
+      pane.dataset[key] = (pane.dataset[key] || "") + problem.name + " ";
+      resolveToken(box, problem, problem.text);
+    }).catch(function (err) {
+      const title = unknownDialog().querySelector("#unknown-title");
+      title.textContent = String(err.message || err);
+    });
+  }
+
+  // A box may say a problem in its own words where the general ones would be
+  // wrong or unhelpful: what is missing on a project is not what is missing on
+  // a view that simply does not filter by it.
+  const BOX_SAYS = {
+    project: {
+      "no-context": function (p) { return "a project has no context; " + p.text + " belongs on an action under it"; },
+    },
+    "filter-tags": {
+      "no-context": function (p) { return "this view filters by tag and by name; " + p.text + " has nothing to narrow here"; },
+      "not-here": function (p) { return "this view filters by tag and by name; " + p.text + " has nothing to narrow here"; },
+    },
+    "filter-due": {
+      "no-context": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
+      "not-here": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
+    },
+    // said for two views now, so it says what is true of both: a someday item
+    // is a raw capture and a schedule is text and a rule, and neither carries
+    // a name of any kind
+    "filter-name": {
+      "no-context": function (p) { return "nothing here carries a context or a tag; this view filters by text only"; },
+      "not-here": function (p) { return "nothing here carries a context or a tag; this view filters by text only"; },
+      "tag": function (p) { return "nothing here carries a context or a tag; this view filters by text only"; },
+    },
+  };
+
+  function problemText(box, problem) {
+    const mine = BOX_SAYS[box.dataset.tokenbox];
+    const say = (mine && mine[problem.kind]) || PROBLEM_TEXT[problem.kind];
+    return say(problem);
   }
 
   const PROBLEM_TEXT = {
-    "context": function (p) { return p.token + " is not a context the app knows"; },
-    "tag": function (p) { return p.token + " is not a tag the app knows"; },
-    "second-context": function (p) { return "an action has one context, and " + p.token + " is the second one asked for"; },
-    "not-a-filter": function (p) { return p.token + " is a field, not something to filter by"; },
+    "context": function (p) { return p.text + " is not a context the app knows"; },
+    "tag": function (p) { return p.text + " is not a tag the app knows"; },
+    "second-context": function (p) { return "an action has one context, and " + p.text + " is the second one asked for"; },
+    "no-context": function (p) { return p.text + " is not something this line can say"; },
+    "not-here": function (p) { return p.text + " is not something this line can say"; },
+    "bad-date": function (p) { return p.text + " is not a date — write it as " + p.name + ":2026-09-20"; },
+    "bad-window": function (p) { return p.text + " is not one of " + p.words.join(", "); },
+    "prose": function (p) { return "\u201c" + p.text + "\u201d is not notation — a name, or prose that belongs in the description"; },
   };
 
-  function askAbout(problem) {
+  function askAbout(box, problem, then) {
     const dlg = unknownDialog();
     if (!dlg) return;
-    problem.token = problem.text;
-    dlg.querySelector("#unknown-title").textContent = PROBLEM_TEXT[problem.kind](problem);
+    askContinue = then || null;
+    dlg.querySelector("#unknown-title").textContent = problemText(box, problem);
     const choices = dlg.querySelector(".choices");
     choices.textContent = "";
 
-    const pool = problem.sigil === "@" ? vocabNames("contexts") : vocabNames("tags").concat(FIELD_TAGS);
-    const near = problem.kind === "context" || problem.kind === "tag" ? nearest(problem.name, pool) : [];
+    const known = problem.kind === "context" || problem.kind === "tag";
+    const near = known ? nearest(problem.name, knownNames(box, problem.sigil)) : [];
     near.forEach(function (name, i) {
       const b = document.createElement("button");
       b.type = "button";
       b.dataset.key = String(i + 1);
       b.dataset.keyLabel = problem.sigil + name;
+      b.setAttribute("data-kb-row", "");
       b.textContent = problem.sigil + name;
       const why = document.createElement("span");
       why.className = "why";
       why.textContent = "use this one";
       b.appendChild(why);
       b.addEventListener("click", function () {
-        resolveToken(problem, problem.sigil + name + (problem.param ? "(" + problem.param + ")" : ""));
+        resolveToken(box, problem, problem.sigil + name + (problem.param ? "(" + problem.param + ")" : ""));
       });
       choices.appendChild(b);
     });
@@ -748,38 +953,43 @@
     drop.type = "button";
     drop.dataset.key = "r";
     drop.dataset.keyLabel = "remove it";
-    drop.textContent = "Take " + problem.token + " out of the line";
-    drop.addEventListener("click", function () { resolveToken(problem, ""); });
+    drop.setAttribute("data-kb-row", "");
+    drop.textContent = "Take " + problem.text + " out of the line";
+    drop.addEventListener("click", function () { resolveToken(box, problem, ""); });
     choices.appendChild(drop);
 
     // Creating is only ever offered for a name that is simply not there yet,
     // and it goes through the same endpoint the Settings screen uses — one
     // place learns a name (see implementation.md, "The remembered lists").
-    // Coming back means coming back here, with the line still in the box and
-    // the name in it now known, so creating and applying are one press.
-    const known = problem.kind === "context" || problem.kind === "tag";
-    dlg.querySelectorAll(".createname").forEach(function (make) {
-      const mine = known && make.dataset.kind === problem.sigil;
-      make.hidden = !mine;
-      const btn = make.querySelector("[data-create-name]");
-      if (!mine) { delete btn.dataset.key; return; }
-      make.querySelector("[name=name]").value = problem.name;
-      make.querySelector("[name=back]").value =
-        filterBar().getAttribute("action") + "?f=1&q=" + encodeURIComponent(filterBox().value);
-      btn.textContent = "Create " + problem.token;
-      btn.dataset.key = "n";
-      btn.dataset.keyLabel = "create it";
-    });
+    const make = dlg.querySelector("[data-create-name]");
+    make.hidden = !known;
+    if (!known) { delete make.dataset.key; make.removeAttribute("data-kb-row"); }
+    else {
+      make.textContent = "Create " + problem.text;
+      make.dataset.key = "n";
+      make.dataset.keyLabel = "create it";
+      make.setAttribute("data-kb-row", "");
+      make.onclick = function () { createName(box, problem); };
+    }
     dlg.showModal();
+    select(rows()[0]);
     renderKeybar();
   }
 
+  // While a dialog is open its rows are the only rows, for the same reason its
+  // keys are the only keys (see keyLive): j and k move through what is in
+  // front of you, and the list behind a dialog is not that. The list keeps its
+  // own selection while the dialog is up, because nothing here touches it.
+  function rowScope() {
+    return topDialog() || document;
+  }
+
   function rows() {
-    return Array.from(document.querySelectorAll("[data-kb-row]"));
+    return Array.from(rowScope().querySelectorAll("[data-kb-row]"));
   }
 
   function selected() {
-    return document.querySelector("[data-kb-row].kb-selected");
+    return rowScope().querySelector("[data-kb-row].kb-selected");
   }
 
   function select(row) {
@@ -876,13 +1086,22 @@
   document.addEventListener("submit", function (e) {
     // the filter line is asked about however it is submitted — the button is
     // the mouse's Enter, and both have to stop at a name the app cannot use
-    if (e.target === filterBar()) {
-      const bad = problemsIn(filterBox().value);
+    const boxes = e.target.querySelectorAll ? e.target.querySelectorAll("[data-tokenbox]") : [];
+    for (let i = 0; i < boxes.length; i++) {
+      const bad = problemsIn(boxes[i]);
       // stopped in the capture phase, or htmx's own submit handler would send
       // the line anyway: preventDefault stops the browser, not another listener
-      if (bad.length) { e.preventDefault(); e.stopPropagation(); askAbout(bad[0]); }
-      return;
+      if (bad.length) {
+        e.preventDefault();
+        e.stopPropagation();
+        const form = e.target;
+        askAbout(boxes[i], bad[0], function () {
+          if (form.requestSubmit) form.requestSubmit(); else form.submit();
+        });
+        return;
+      }
     }
+    if (e.target === filterBar()) return;
     const row = e.target.closest && e.target.closest("[data-kb-row]");
     if (row && row === selected()) handSelectionOn(row);
   }, true);
@@ -949,8 +1168,17 @@
       return;
     }
     const unknown = unknownDialog();
-    if (unknown && unknown.open) {
+    if (unknown && unknown.open && topDialog() === unknown) {
       if (e.key === "Escape") { e.preventDefault(); unknown.close(); renderKeybar(); return; }
+      // the answers are a list, and a list is moved through with j and k. The
+      // letters on them stay: a key that goes straight to an answer is worth
+      // having on a question asked this often, and neither costs the other
+      if (e.key === "j" || e.key === "k") { e.preventDefault(); move(e.key === "j" ? 1 : -1); return; }
+      if (e.key === "Enter") {
+        const row = selected();
+        if (row) { e.preventDefault(); row.click(); }
+        return;
+      }
       const pick = branchFor(e);
       if (pick) { e.preventDefault(); press(pick); return; }
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
@@ -966,22 +1194,26 @@
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
       return;
     }
-    if (e.target === filterBox()) {
-      const list = suggestList();
+    if (e.target.matches && e.target.matches("[data-tokenbox]")) {
+      const box = e.target;
+      const list = suggestList(box);
       const open = list && !list.hidden;
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
         e.preventDefault();
-        if (!open) showSuggest(); else moveSuggest(e.key === "ArrowDown" ? 1 : -1);
+        if (!open) showSuggest(box); else moveSuggest(e.key === "ArrowDown" ? 1 : -1);
         return;
       }
       if (open && (e.key === "Enter" || e.key === "Tab")) {
         const on = list.querySelector("li.on");
-        if (on) { e.preventDefault(); takeSuggest(on.dataset.name); return; }
+        if (on) { e.preventDefault(); takeSuggest(box, on.dataset.name); return; }
       }
-      if (e.key === "Enter") { e.preventDefault(); applyFilter(); return; }
+      // enter applies the filter line; on a meta line it submits the form it
+      // is in, which is the browser's own answer and is checked on the way
+      // out like any other submit
+      if (e.key === "Enter" && box === filterBox()) { e.preventDefault(); applyFilter(); return; }
       // esc unwinds one step at a time, the way the project picker does: the
-      // list first, then the box. It never closes the box — that is ctrl-f,
-      // and it would take the filters with it
+      // list first, then the box. It never closes the filter box — that is
+      // ctrl-f, and it would take the filters with it
       if (e.key === "Escape" && open) { e.preventDefault(); hideSuggest(); return; }
     }
     if (typing(e)) {
@@ -1135,8 +1367,14 @@
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
     if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
     const pick = e.target.closest(".fsuggest li");
-    if (pick) { e.preventDefault(); takeSuggest(pick.dataset.name); filterBox().focus(); return; }
-    if (filterBox() && !e.target.closest(".filterbar")) hideSuggest();
+    if (pick) {
+      e.preventDefault();
+      const box = pick.closest(".fbox").querySelector("[data-tokenbox]");
+      box.focus();
+      takeSuggest(box, pick.dataset.name);
+      return;
+    }
+    if (!e.target.closest(".fbox")) hideSuggest();
     // clearing a whole filter at once: unchecking them one at a time is one
     // page load each, and the form's own change handler does not fire for a
     // box unchecked from here, so the submit is explicit
@@ -1241,6 +1479,10 @@
     function done(confirmed) {
       if (confirmed) {
         if (ok.disabled) { title.focus(); return; }
+        // the meta line is asked about here too: this dialog is confirmed by a
+        // button and not by a submit, so it has to make the check itself
+        const bad = problemsIn(meta);
+        if (bad.length) { askAbout(meta, bad[0], function () { done(true); }); return; }
         let target = row;
         if (!target) {
           target = tpl.content.firstElementChild.cloneNode(true);
@@ -1485,8 +1727,30 @@
     // the old page's timer is counting for a screen that is no longer here
     startTimer();
     restoreFilter();
+    paintAll();
     renderKeybar(); setupPickers(); gateAll();
     claimSelection();
+  });
+
+  // A refused post must never be silent. htmx does not swap a 4xx, so a
+  // handler that answers with a plain 400 leaves the screen exactly as it was
+  // — the press looks like it did nothing at all, which is how an invalid
+  // schedule rule read as a broken Create button. A screen that refuses on
+  // purpose renders itself back with the reason (see the schedule forms);
+  // this is the net under everything that has not been given that treatment,
+  // and it says the server's own words rather than inventing any.
+  document.addEventListener("htmx:responseError", function (e) {
+    const pane = document.querySelector(".pane");
+    if (!pane) return;
+    const xhr = e.detail && e.detail.xhr;
+    const said = xhr && xhr.responseText ? xhr.responseText.trim() : "";
+    const p = document.createElement("p");
+    p.className = "error-banner";
+    p.dataset.transient = "";
+    p.textContent = said.split("\n")[0] || "That was refused.";
+    const old = pane.querySelector(".error-banner[data-transient]");
+    if (old) old.remove();
+    pane.insertBefore(p, pane.firstChild);
   });
 
   // A field that opens focused with the caret at position 0 means the first
@@ -1509,6 +1773,7 @@
 
   startTimer();
   restoreFilter();
+  paintAll();
   renderKeybar();
   claimSelection();
 

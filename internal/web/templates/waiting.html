@@ -1,15 +1,5 @@
 {{template "top" .}}
-{{$f := .Filters}}
-<form method="get" action="/waiting" class="filters" data-autosubmit>
-  <input type="hidden" name="f" value="1">
-  <input name="name" value="{{$f.Name}}" placeholder="filter by name (/)" class="namebox">
-  <fieldset><legend>Tags</legend>
-    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
-  </fieldset>
-  <button>Apply</button>
-  <a href="/waiting?f=1" class="reset">Reset all</a>
-</form>
-{{template "filterloud" .}}
+{{template "filterbar" .}}
 {{if not .Data}}<p class="empty">Waiting on nobody.</p>{{end}}
 <ul class="list">
 {{range .Data}}{{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" true)}}{{end}}

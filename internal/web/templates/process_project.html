@@ -14,14 +14,9 @@
        and an action is written in the same form it is written in everywhere
        else — see the add-action dialog below. */}}
   <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack" data-drafts>
-    <label>Title <input name="ptitle" value="{{$d.Vals.Get "ptitle"}}" required autofocus
-      placeholder="A reference to the outcome, not what to do"></label>
-
-    <label>Definition of done <textarea name="dod" rows="2" required
-      placeholder="How you will know it is done">{{$d.Vals.Get "dod"}}</textarea></label>
-
-    <label>Meta <input name="pmeta" value="{{$d.Vals.Get "pmeta"}}" autocomplete="off"
-      spellcheck="false" class="metabox"></label>
+    {{template "projectfields" (dict
+      "Title" ($d.Vals.Get "title") "DOD" ($d.Vals.Get "dod") "Meta" ($d.Vals.Get "meta")
+      "Required" true "Focus" true)}}
 
     {{/* design.md will not make a project without an action, so the create
          button is gated on there being one. It is a required field with no

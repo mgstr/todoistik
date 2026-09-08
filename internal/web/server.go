@@ -228,6 +228,7 @@ func (s *Server) routes() {
 
 	// actions
 	m.HandleFunc("GET /action/{id}", s.actionPage)
+	m.HandleFunc("GET /action/{id}/promote", s.promotePage)
 	m.HandleFunc("POST /action/{id}", s.actionUpdate)
 	m.HandleFunc("POST /action/{id}/{verb}", s.actionVerb)
 
@@ -278,7 +279,7 @@ func (s *Server) routes() {
 // a caller would have two ways to ask one question and a rule about which
 // wins. Sort and order are not in the line and are read either way. What the
 // line cannot name — a name that is on no remembered list — is dropped here;
-// the screen asks about those before it ever submits (see "The filter box").
+// the screen asks about those before it ever submits (see "Token boxes").
 func (s *Server) parseFilters(q url.Values) app.Filters {
 	if line := q.Get("q"); strings.TrimSpace(line) != "" {
 		v, err := s.app.Vocabulary()
@@ -380,14 +381,46 @@ func localPath(v, fallback string) string {
 
 // viewOf names the view a local path belongs to, for the screens that sit
 // under one without being it. The first segment is the view's own slug
-// everywhere it is a view at all, so there is no table to keep in step.
+// wherever it is a view at all; the few singular paths that hang under a
+// plural view are the only table, and it is short because a detail page is
+// named after the item and a view after the pile of them.
 func viewOf(path string) string {
 	seg := strings.TrimPrefix(path, "/")
 	if i := strings.IndexAny(seg, "/?"); i >= 0 {
 		seg = seg[:i]
 	}
+	switch seg {
+	case "project":
+		seg = "projects"
+	case "schedule":
+		seg = "scheduler"
+	case "somedayitem":
+		seg = "someday"
+	}
 	if _, ok := viewHelp[seg]; ok {
 		return seg
 	}
 	return ""
+}
+
+// parentView is where a screen about one item goes back to. It is the view it
+// was opened from: said on the URL if the screen was asked to carry it (doing
+// does, because it has to survive a reload), and read off the Referer
+// otherwise, which is what a list link and a boosted navigation both leave
+// behind. A page reached with neither — a reload, a bookmark — falls back to
+// where the item lives.
+func (s *Server) parentView(r *http.Request, fallback string) string {
+	if from := localPath(r.URL.Query().Get("from"), ""); from != "" {
+		return from
+	}
+	if ref := r.Header.Get("Referer"); ref != "" {
+		if u, err := url.Parse(ref); err == nil && u.Path != r.URL.Path {
+			// the path only: the view remembers its own filters, and carrying
+			// a query back would be a second copy of them
+			if p := localPath(u.Path, ""); p != "" && viewOf(p) != "" {
+				return p
+			}
+		}
+	}
+	return fallback
 }

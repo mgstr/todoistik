@@ -1,50 +1,56 @@
 {{template "top" .}}
 {{$d := .Data}}{{$a := $d.Action}}
-<div class="item">
+{{/* One action, in the same form it is written in everywhere else: the same
+     fields in the same order, and one row of buttons under them. The project
+     is shown and not chosen — an action opened from a list is being edited,
+     not filed, and moving it between projects is what Detach and Attach are
+     for (design.md, "Reshaping items"). */}}
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
   <p class="crumb">
-    {{if $a.ProjectID}}<a href="/project/{{$a.ProjectID}}">{{$a.ProjectTitle}}</a>{{else}}<a href="/tasks">Tasks</a> · standalone{{end}}
-    · created {{age $a.CreatedAt}}
+    created {{age $a.CreatedAt}}
     {{if $a.BecameNextAt}} · next for {{age $a.BecameNextAt}}{{end}}
     {{if $a.CompletedAt}} · <b>completed</b>{{end}}
   </p>
   {{range $a.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
-  <form method="post" action="/action/{{$a.ID}}" class="stack">
-    {{template "actionfields" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description "Focus" true)}}
-    <button class="primary">Save</button>
+  <form method="post" action="/action/{{$a.ID}}" id="itemform" class="stack" data-dirty-save>
+    <input type="hidden" name="back" value="{{$d.Back}}">
+    {{template "actionfields" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description
+      "Fixed" (or $a.ProjectTitle "<standalone>") "Focus" false)}}
   </form>
 
+  {{/* Save is in the bar with the rest, though it belongs to the form above:
+       one row of everything this screen can do, in one order, wherever the
+       control happens to live. */}}
   <div class="actionsbar">
+    <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
     {{if $a.CompletedAt}}
-    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline"><button>Bring back (un-complete)</button></form>
+    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline"><button>Bring back</button></form>
     {{else}}
-    <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button class="primary">Complete</button></form>
+    <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button>Complete</button></form>
     {{end}}
+    <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
     {{if $a.ProjectID}}
       {{if $a.BecameNextAt}}
       <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button>Park</button></form>
       {{else}}
       <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button>Mark as next</button></form>
       {{end}}
-      <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button>Detach — make standalone</button></form>
+      <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button>Detach</button></form>
+    {{else}}
+      {{/* the view this action was opened from goes with it, so the trail on
+           the next screen still says where you are rather than restarting at
+           the action */}}
+      <a class="button" href="/action/{{$a.ID}}/promote?from={{$d.Back}}">Promote to project</a>
     {{end}}
-    <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
-    <form method="post" action="/action/{{$a.ID}}/delete" class="inline"><button class="danger">Delete</button></form>
-  </div>
-
-  {{if not $a.ProjectID}}
-  <details>
-    <summary>Promote to a project (it needs more than one step)</summary>
-    <form method="post" action="/action/{{$a.ID}}/promote" class="stack">
-      <label>Project title <input name="ptitle" value="{{$a.Title}}" required placeholder="Edit into a reference to the outcome"></label>
-      <label>Definition of done <textarea name="dod" rows="2" required></textarea></label>
-      <label>Meta <input name="pmeta" value="{{$a.PromotedMeta}}" autocomplete="off" spellcheck="false" class="metabox"></label>
-      <label>First action <input name="paction" value="{{$a.Title}}" required></label>
-      <label>Its description <textarea name="adescription" rows="2">{{$a.Description}}</textarea></label>
-      <label>More actions <input name="paction"></label>
-      <button class="primary">Promote</button>
+    {{/* delete says where to go afterwards, because the page it was pressed
+         on is about to stop existing — see implementation.md, "Writing an
+         action" */}}
+    <form method="post" action="/action/{{$a.ID}}/delete" class="inline">
+      <input type="hidden" name="back" value="{{$d.Back}}">
+      <button class="danger">Delete</button>
     </form>
-  </details>
-  {{end}}
+    <a class="button" href="{{$d.Back}}">Back</a>
+  </div>
 </div>
 {{template "bottom" .}}

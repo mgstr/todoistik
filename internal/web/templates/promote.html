@@ -1,0 +1,43 @@
+{{template "top" .}}
+{{$d := .Data}}{{$a := $d.Action}}
+{{/* Promoting is writing a project, so it is the project form — the same
+     fields, the same drafts, the same create button as the Project branch of
+     processing (design.md, "Promoting an action"). What is different is only
+     what it starts with: the action's title, its description on the first
+     action, and its tags on the project. */}}
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
+  <form method="post" action="/action/{{$a.ID}}/promote" class="stack" data-drafts>
+    <input type="hidden" name="from" value="{{$d.From}}">
+    {{template "projectfields" (dict "Title" $a.Title "DOD" "" "Meta" $a.PromotedMeta
+      "Required" true "Focus" true)}}
+
+    <input type="hidden" name="hasaction" data-label="an action" required value="1">
+
+    <div class="actionsbar">
+      <button type="button" data-draft-add data-key="^a" data-key-label="add action">Add action</button>
+    </div>
+    <ul class="list drafts" data-draft-list>
+      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
+    </ul>
+
+    <div class="actionsbar">
+      <button class="primary">Promote</button>
+      <a class="button" href="{{$d.Back}}">Back</a>
+    </div>
+  </form>
+</div>
+
+{{/* the same dialog the Project branch writes its actions in */}}
+<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
+  <h2 id="draft-dialog-title">Add an action</h2>
+  <div class="stack">
+    {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
+      "Fixed" "<this project>" "Focus" false)}}
+    <div class="branches">
+      <button type="button" class="primary" data-draft-ok>Create action</button>
+      <button type="button" data-draft-cancel>Cancel</button>
+    </div>
+  </div>
+</dialog>
+<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "")}}</template>
+{{template "bottom" .}}

@@ -1,8 +1,14 @@
 package app
 
 import (
+	"regexp"
 	"strings"
 )
+
+// The two windows a filter line can ask for, plus the one it cannot: `snooze:`
+// is written the same way on a meta line, so it is recognised here in order to
+// be refused rather than swallowed as a word.
+var windowRe = regexp.MustCompile(`(^|\s)(due|completed|snooze):(\S+)`)
 
 // The filter query: one line that says what you want to see, in the notation
 // an action is already written in (see tokens.go). `@home #car #short milk`
@@ -17,7 +23,7 @@ import (
 // QueryProblem is one thing wrong with a query, attached to the token it is
 // about. Problems are collected rather than returned as an error because the
 // screen resolves them one at a time — create the name, pick a near one, or
-// take the token out (implementation.md, "The filter box").
+// take the token out (implementation.md, "Token boxes").
 type QueryProblem struct {
 	Token string // exactly as written, "@hoem"
 	Name  string // the name inside it, "hoem"
@@ -36,7 +42,28 @@ const (
 	// can ask for — `#parked`, which is a field and not a tag, and no view
 	// this line filters shows parked actions anyway.
 	ProblemNotAFilter = "not-a-filter"
+	// ProblemWindow: `due:` or `completed:` given something that is not one of
+	// the windows those filters have. The windows are words rather than dates
+	// because the question is "what is coming at me", and the answer moves
+	// with the day (design.md, "Calendar").
+	ProblemWindow = "window"
 )
+
+// DueWindows and CompletedWindows are what those two filters accept, in the
+// order a person would say them.
+var (
+	DueWindows       = []string{"today", "tomorrow", "thisweek", "nextweek"}
+	CompletedWindows = []string{"today", "yesterday", "thisweek", "lastweek"}
+)
+
+func hasWord(list []string, w string) bool {
+	for _, s := range list {
+		if s == w {
+			return true
+		}
+	}
+	return false
+}
 
 // ParseQuery reads a filter line into the filter set it spells, and lists what
 // is wrong with it. A line with problems still parses: everything it got right
@@ -46,6 +73,36 @@ func ParseQuery(q string, v *Vocabulary) (Filters, []QueryProblem) {
 	var f Filters
 	var problems []QueryProblem
 	rest := []byte(q)
+
+	// the two windows first, so that `due:today` is one thing and not the word
+	// "due:today" left over for the name filter
+	for _, m := range windowRe.FindAllStringSubmatchIndex(q, -1) {
+		key, val := q[m[4]:m[5]], q[m[6]:m[7]]
+		token := strings.TrimSpace(q[m[0]:m[1]])
+		for i := m[2]; i < m[1]; i++ {
+			rest[i] = ' '
+		}
+		if key == "snooze" {
+			// a snooze is not a filter: nothing asks "show me what is asleep
+			// until Tuesday", and whether a snoozed item is shown at all is
+			// the view's own answer (design.md, "Time fields")
+			problems = append(problems, QueryProblem{Token: token, Name: key, Kind: ProblemNotAFilter})
+			continue
+		}
+		windows := DueWindows
+		if key == "completed" {
+			windows = CompletedWindows
+		}
+		if !hasWord(windows, val) {
+			problems = append(problems, QueryProblem{Token: token, Name: val, Kind: ProblemWindow})
+			continue
+		}
+		if key == "due" {
+			f.Due = val
+		} else {
+			f.Completed = val
+		}
+	}
 
 	for _, m := range tokenRe.FindAllStringSubmatchIndex(q, -1) {
 		sigil := q[m[4]:m[5]]
@@ -115,6 +172,12 @@ func (f Filters) Query() string {
 	}
 	if f.Focus == "only" {
 		parts = append(parts, "#"+FocusTag)
+	}
+	if f.Due != "" {
+		parts = append(parts, "due:"+f.Due)
+	}
+	if f.Completed != "" {
+		parts = append(parts, "completed:"+f.Completed)
 	}
 	if f.Name != "" {
 		parts = append(parts, f.Name)

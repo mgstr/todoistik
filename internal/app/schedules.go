@@ -252,8 +252,19 @@ func occurrencesUpTo(s *Schedule, today string) ([]string, error) {
 	return occ, nil
 }
 
+// dayAfter is the day following a "YYYY-MM-DD".
+func dayAfter(day string) string {
+	d, err := time.Parse(DateFormat, day)
+	if err != nil {
+		return day
+	}
+	return d.AddDate(0, 0, 1).Format(DateFormat)
+}
+
 // fireSchedules fires every missed occurrence of every schedule, oldest
-// first, as part of day start. A one-shot deletes itself after firing.
+// first, as part of day start. A schedule with nothing left to fire then
+// deletes itself — the rule a one-shot always followed, said once for every
+// kind of rule now that a rule can name its years (design.md, "Schedule").
 func (a *App) fireSchedules(tx *sql.Tx) error {
 	rows, err := tx.Query(`SELECT id, text, rule, suffix, created_at, counted_from, last_fired_at, last_reviewed_at FROM schedules ORDER BY id`)
 	if err != nil {
@@ -295,8 +306,8 @@ func (a *App) fireSchedules(tx *sql.Tx) error {
 				return err
 			}
 		}
-		if s.IsOneShot() && (fired || s.Rule < s.CountedFrom) {
-			// fired, or can never fire: a one-shot deletes itself, audited.
+		if nextFire(s.Rule, dayAfter(today)) == "" {
+			// nothing left for it to do: it deletes itself, audited.
 			if _, err := tx.Exec(`DELETE FROM schedules WHERE id=?`, s.ID); err != nil {
 				return err
 			}
