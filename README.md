@@ -24,6 +24,19 @@ Flags (each also readable from the environment):
 
 Open the address in a browser and enter the token once. Press `?` for the key map.
 
+## Backups
+
+The app takes a snapshot of the database every hour, into a `<database>.backups`
+directory beside it — `~/todoistik.db.backups/todoistik-2026-09-09T15.db`, one
+file per hour, named for the hour in the configured timezone. It keeps
+`backup.days` × 24 of them (2 days, 48 files, by default) and deletes the
+oldest as new ones arrive. `backup.days = 0` turns them off.
+
+A snapshot is a complete database written with `VACUUM INTO`, not a copy of
+the file: in WAL mode the newest writes live in the `-wal` file beside the
+database, so copying the database alone copies an older moment. Opening a
+snapshot, or putting it back in place of the database, needs nothing else.
+
 ## Settings
 
 Everything else is a screen or an item. The settings file holds only the
@@ -35,6 +48,7 @@ cat > todoistik.conf <<'EOF'
 zen.views = doing, processing  # screens that open with every panel off (default: these two)
 zen.show_timer = false         # start the doing screen with the timer showing (default false; ctrl-t flips it)
 zen.timer_format = auto        # minutes, then H:MM past the hour. Or a pattern: H:MM, HH:MM, M
+backup.days = 2                # days of hourly database snapshots to keep (default 2; 0 keeps none)
 EOF
 ```
 

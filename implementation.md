@@ -14,9 +14,59 @@ A **self-hosted web app**: one server process serving the UI, the capture API an
 
 **SQLite**, one database file, WAL mode.
 
-- a transactional store is what the audit log and the capture API need, and single-file is what a single-user app deserves: backup is copying one file
+- a transactional store is what the audit log and the capture API need, and single-file is what a single-user app deserves: a backup is one file, and the app takes its own every hour (see "Backups")
 - the views are queries by design (see design.md, "Views"), and SQL is the natural home for queries. Stalled, next, overdue — all derived at read time, never stored
 - the audit log is a table like any other. Recoverability means an audit entry carries a snapshot of the item as it was, not just the fact that something happened
+
+## Backups
+
+One snapshot of the database an hour, kept in a `<database>.backups` directory
+beside it, oldest first out. `backup.days` says how many days of them to keep;
+the default is 2, which is 48 files.
+
+- **the app takes them itself rather than leaving it to the machine.** This is
+  a single binary you copy to a server and run (see "Stack"), so anything that
+  needs a second thing installed and configured is a thing that will not be
+  there when it is needed. The one job it cannot do for itself is getting a
+  copy off this machine, which is what the directory is for
+- **`VACUUM INTO`, not a copy of the file.** In WAL mode the newest writes are
+  in the `-wal` file, so copying the database alone copies some older moment —
+  and a three-file copy taken while the app is writing is not a moment at all.
+  What this writes is one consistent file with nothing to replay: it opens on
+  its own, and putting it back means renaming it over the database
+- **the name is the hour**, `todoistik-2026-09-09T15.db`, in the app's
+  timezone — the same one that decides what "today" means. No colon, because a
+  colon in a filename is an argument with some filesystem eventually, and the
+  names sort lexicographically into chronological order, which is what makes
+  "the oldest" a matter of sorting names rather than trusting an mtime a
+  restore would have rewritten
+- **one name per hour means an hour is backed up over, not twice.** A restart
+  mid-hour writes the same file again with the newer data in it, which is the
+  answer that loses nothing. `VACUUM INTO` refuses an existing file, so it
+  writes `.part` beside it and renames over — which also means a snapshot
+  interrupted halfway is never left looking like a good one
+- **pruning is by count and only of this database's snapshots.** Anything else
+  in that directory is left where it is: it sits next to someone's data, and
+  deleting what it did not write is not its business. `backup.days = 0` keeps
+  none, and takes the existing ones with it — turning backups off has to tidy
+  up, or it leaves a pile nothing will ever come back for
+- **hourly on the clock, not an hour from whenever the process started.** The
+  file is named for its hour, so a loop drifting past one would leave that hour
+  with no snapshot. The goroutine sleeps to the next hour boundary each time
+- **it shares the one connection the app uses.** `SetMaxOpenConns(1)` is what
+  keeps SQLITE_BUSY out of this app (see "Storage"), so a snapshot and a
+  request take turns rather than overlap — on a database this size that is a
+  few milliseconds once an hour, and a second connection to avoid it would be
+  buying back the problem that setting exists to remove
+- **an error is a line in the log and nothing more.** A backup that fails must
+  not stop the app: the thing it is protecting is still running, and losing
+  that is the failure that matters
+- **it does not follow the lazy-on-use rule the day boundary follows**
+  (design.md, "Schedule"), and does not need to: that rule exists because a
+  reminder missed while nothing was running is invisible, and a backup missed
+  while nothing was running has nothing in it that the last one does not. What
+  it does mean is that a machine left asleep for a day comes back with
+  yesterday's snapshots and takes a new one at once, on startup
 
 ## Stack
 
@@ -872,6 +922,7 @@ once at startup from a `key = value` file (`internal/conf`).
 zen.views = doing, processing  # these screens open with every panel off
 zen.show_timer = false         # the timer starts hidden; ctrl-t shows it
 zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
+backup.days = 2                # days of hourly snapshots kept; 0 keeps none
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -913,6 +964,16 @@ zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
   so `H:MM`, `HH:MM`, `M` and `H h MM` all work. Any *other* capital is refused
   rather than printed: a capital in a pattern reads as a field, and `HH:NN`
   quietly rendering as `01:NN` is the failure this file cannot afford
+- **a setting that takes a number brings its own check too.** `backup.days`
+  is a whole number from 0 to 365, and `backup.days = two` stops startup rather
+  than reading as zero — which is the same failure the string settings have,
+  except that this one would quietly keep no backups at all. The ceiling is
+  there because a year of hourly snapshots is 8760 files beside the database,
+  which is a hoard rather than a backup scheme: past that the answer is
+  something that copies the directory off the machine
+- **zero is an answer here as well.** `backup.days = 0` is how the file turns
+  backups off, in the same shape `zen.views =` uses to say "no screen" — and
+  like that one it says what you get rather than what is taken away
 - **`-config`, or `TODOISTIK_CONFIG`, defaulting to `todoistik.conf` in the
   working directory**, like every other setting the app takes. The file is
   git-ignored: it is one machine's answer, the same way the database is
