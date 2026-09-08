@@ -58,14 +58,19 @@ func matchTags(selected, own []string) bool {
 	return false
 }
 
-// matchContexts: the question is "is this action's context among the ones I
-// currently satisfy". An action with no context is always shown. Selecting
-// "grocery(Selver)" satisfies @grocery(Selver) and bare @grocery; selecting
-// bare "grocery" satisfies only bare @grocery (the parameterised form is
-// narrower and needs the specific place).
+// matchContexts: the question is "is this action's context among the ones I am
+// asking for". Asking for none is asking for all of them, and asking for one
+// is asking for the actions that carry it — an action with no context is not
+// one of those, and is found under "all" (design.md, "Filtering by context").
+// Selecting "grocery(Selver)" satisfies @grocery(Selver) and bare @grocery;
+// selecting bare "grocery" satisfies only bare @grocery (the parameterised
+// form is narrower and needs the specific place).
 func matchContexts(selected []string, ctx, param string) bool {
-	if len(selected) == 0 || ctx == "" {
+	if len(selected) == 0 {
 		return true
+	}
+	if ctx == "" {
+		return false
 	}
 	for _, s := range selected {
 		sName, sParam := splitContext(s)
@@ -563,9 +568,53 @@ func (a *App) TagsInUse() ([]string, error) {
 	return a.stringList(`SELECT DISTINCT tag FROM item_tags WHERE tag != '` + TodayTag + `' ORDER BY tag`)
 }
 
-// ContextsInUse returns every context label in use, parameterised ones as
-// "name(param)" — the context cloud.
-func (a *App) ContextsInUse() ([]string, error) {
-	return a.stringList(`SELECT DISTINCT CASE WHEN context_param='' THEN context ELSE context || '(' || context_param || ')' END
-		FROM actions WHERE context != '' AND completed_at IS NULL ORDER BY 1`)
+// TagsOf is the tag cloud a view offers: every tag carried by at least one of
+// the actions it is holding, alphabetically, and never #today — that one is a
+// pick and not an area of work (design.md, "#today").
+//
+// Built from the view's own items for the same reason ContextsOf is: a tag
+// with nothing under it here is an answer that leads to an empty list.
+func TagsOf(acts []*Action) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, act := range acts {
+		for _, t := range act.Tags {
+			if t == TodayTag || seen[t] {
+				continue
+			}
+			seen[t] = true
+			out = append(out, t)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// ContextsOf is the context cloud a view offers: every context carried by at
+// least one of the actions it is holding, alphabetically, parameterised ones
+// written in full ("grocery(Selver)") because that is what selecting one means.
+//
+// Built from the view's own items rather than from every action in the
+// database, so a context that would show nothing here is not offered at all —
+// see design.md, "Filtering by context". It takes the actions rather than
+// querying because the view has just loaded them, and a second query could
+// disagree with the list on the screen.
+func ContextsOf(acts []*Action) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, act := range acts {
+		if act.Context == "" {
+			continue
+		}
+		label := act.Context
+		if act.ContextParam != "" {
+			label += "(" + act.ContextParam + ")"
+		}
+		if !seen[label] {
+			seen[label] = true
+			out = append(out, label)
+		}
+	}
+	sort.Strings(out)
+	return out
 }

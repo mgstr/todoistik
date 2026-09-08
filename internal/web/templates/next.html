@@ -1,4 +1,37 @@
 {{template "top" .}}
+{{$f := .Filters}}
+{{/* The filters this screen carries so far: where I am, and what it is about.
+     One form, so choosing either keeps the other; it submits on change, so
+     there is no Apply. Contexts are exclusive and tags are not, because an
+     action has one context and any number of tags — see design.md,
+     "Filtering by context" and "Filtering by tag". */}}
+{{if or .ContextsInView .TagsInView}}
+<form method="get" action="/next" class="viewfilters" data-autosubmit>
+  <input type="hidden" name="f" value="1">
+  {{if .ContextsInView}}
+  <span class="flabel">Context:</span>
+  <div class="chips">
+    <label class="chip"><input type="radio" name="context" value="" {{if not $f.Contexts}}checked{{end}}>all</label>
+    {{range .ContextsInView}}
+      <label class="chip"><input type="radio" name="context" value="{{.}}" {{if has $f.Contexts .}}checked{{end}}>@{{.}}</label>
+    {{end}}
+  </div>
+  {{end}}
+  {{if .TagsInView}}
+  <span class="flabel">Tags:</span>
+  <div class="chips">
+    {{range .TagsInView}}
+      <label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>
+    {{end}}
+    {{/* Clearing is its own control because unchecking them one at a time is
+         one page load each. Disabled while there is nothing to clear: it says
+         what this button is for without promising something false. */}}
+    <button type="button" class="chipclear" data-clear-tags title="clear the tags"
+            {{if not $f.Tags}}disabled{{end}}>✕</button>
+  </div>
+  {{end}}
+</form>
+{{end}}
 {{template "filterloud" .}}
 {{if not .Data}}<p class="empty">Nothing here. Either everything is done, or the filters are hiding it.</p>{{end}}
 <ul class="list">

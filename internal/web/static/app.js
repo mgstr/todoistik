@@ -758,6 +758,18 @@
     setPending(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
     if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
+    // clearing a whole filter at once: unchecking them one at a time is one
+    // page load each, and the form's own change handler does not fire for a
+    // box unchecked from here, so the submit is explicit
+    const clear = e.target.closest("[data-clear-tags]");
+    if (clear) {
+      e.preventDefault();
+      const form = clear.closest("form");
+      if (!form) return;
+      form.querySelectorAll("input[name=tag]:checked").forEach(function (box) { box.checked = false; });
+      if (form.requestSubmit) form.requestSubmit(); else form.submit();
+      return;
+    }
     if (e.target.closest("[data-draft-add]")) { e.preventDefault(); openDraft(null); return; }
     const row = rowFromEvent(e);
     if (row) select(row);

@@ -2,6 +2,7 @@ package app
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -328,15 +329,27 @@ func TestNextActionsFilters(t *testing.T) {
 	mk(ActionFields{Title: "Buy milk", Context: "grocery"})
 	mk(ActionFields{Title: "Buy the special cheese", Context: "grocery", ContextParam: "Selver"})
 	mk(ActionFields{Title: "Fix the tap", Context: "home", NeedsFocus: true, Tags: []string{"house"}})
-	mk(ActionFields{Title: "Think of a gift"}) // no context: always shown
+	mk(ActionFields{Title: "Think of a gift"}) // no context: found under "all"
 
 	acts, _ := a.NextActions(Filters{Contexts: []string{"grocery(Selver)"}})
-	if len(acts) != 3 { // milk (bare grocery), cheese (exact), gift (no context)
-		t.Fatalf("Selver filter: got %d actions, want 3", len(acts))
+	if len(acts) != 2 { // milk (bare grocery) and cheese (exact); not the gift
+		t.Fatalf("Selver filter: got %d actions, want 2: %v", len(acts), titles(acts))
 	}
 	acts, _ = a.NextActions(Filters{Contexts: []string{"grocery"}})
-	if len(acts) != 2 { // milk + gift; the parameterised form is narrower
-		t.Fatalf("bare grocery filter: got %d, want 2: %v", len(acts), titles(acts))
+	if len(acts) != 1 { // milk only; the parameterised form is narrower
+		t.Fatalf("bare grocery filter: got %d, want 1: %v", len(acts), titles(acts))
+	}
+	// asking for nothing is asking for all of them, the gift included
+	if acts, _ = a.NextActions(Filters{}); len(acts) != 4 {
+		t.Fatalf("no context filter: got %d, want all 4: %v", len(acts), titles(acts))
+	}
+	// the clouds offer what this view actually holds, alphabetically
+	want := []string{"grocery", "grocery(Selver)", "home"}
+	if got := ContextsOf(acts); !reflect.DeepEqual(got, want) {
+		t.Errorf("context cloud = %v, want %v", got, want)
+	}
+	if got := TagsOf(acts); !reflect.DeepEqual(got, []string{"house"}) {
+		t.Errorf("tag cloud = %v, want the one tag in use here", got)
 	}
 	acts, _ = a.NextActions(Filters{Focus: "only"})
 	if len(acts) != 1 || acts[0].Title != "Fix the tap" {

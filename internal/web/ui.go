@@ -93,28 +93,29 @@ func (p *page) step(name, slug string) *page {
 
 // page is the data every template gets.
 type page struct {
-	Title        string
-	View         string // active nav entry
-	Trail        []crumb
-	Panels       panels
-	Timer        bool   // this screen counts its own minutes, so ^t is the timer here
-	HelpName     string // the view's full name, for the ? panel
-	HelpText     string // what this view is for, for the ? panel
-	Processing   bool   // the nav slot named by View reads "Processing…" instead
-	Notation     bool   // the ? panel also explains how an action is written
-	Vocab        struct{ Contexts, Tags []string }
-	Filters      app.Filters
-	FilterQuery  string // current filter query string (for sort/order links)
-	Hidden       int    // how many items the filters hide
-	TagCloud     []string
-	ContextCloud []string
-	Durations    []app.Duration
-	Nav          *app.NavCounts
-	Today        string
-	Ages         bool // the ages on rows are shown rather than hidden
-	Conf         conf.Config
-	Error        string
-	Data         any
+	Title          string
+	View           string // active nav entry
+	Trail          []crumb
+	Panels         panels
+	Timer          bool   // this screen counts its own minutes, so ^t is the timer here
+	HelpName       string // the view's full name, for the ? panel
+	HelpText       string // what this view is for, for the ? panel
+	Processing     bool   // the nav slot named by View reads "Processing…" instead
+	Notation       bool   // the ? panel also explains how an action is written
+	Vocab          struct{ Contexts, Tags []string }
+	Filters        app.Filters
+	FilterQuery    string   // current filter query string (for sort/order links)
+	Hidden         int      // how many items the filters hide
+	TagCloud       []string // every tag in use, for the views whose filter panel is still the old one
+	TagsInView     []string // the tags this view actually holds, for the rebuilt controls
+	ContextsInView []string
+	Durations      []app.Duration
+	Nav            *app.NavCounts
+	Today          string
+	Ages           bool // the ages on rows are shown rather than hidden
+	Conf           conf.Config
+	Error          string
+	Data           any
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
@@ -140,7 +141,6 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 		p.Trail = []crumb{{Name: title}}
 	}
 	p.TagCloud, _ = s.app.TagsInUse()
-	p.ContextCloud, _ = s.app.ContextsInUse()
 	p.Durations = app.Durations
 	return p
 }
@@ -246,6 +246,27 @@ func (s *Server) doingPage(w http.ResponseWriter, r *http.Request) {
 	p.Timer = true
 	p.Data = doingData{Action: act, Back: home}
 	s.render(w, "doing.html", p)
+}
+
+// withSelected keeps a chosen filter on its row even when nothing under the
+// other filters carries it any more. A filter you cannot see is a filter you
+// cannot turn off.
+func withSelected(have, selected []string) []string {
+	out := append([]string(nil), have...)
+	for _, s := range selected {
+		found := false
+		for _, h := range out {
+			if h == s {
+				found = true
+				break
+			}
+		}
+		if !found {
+			out = append(out, s)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 func filterQuery(f app.Filters) string {
@@ -367,6 +388,30 @@ func (s *Server) actionListView(w http.ResponseWriter, r *http.Request, title, v
 	if f.Active() {
 		if all, err := load(app.Filters{Sort: f.Sort, Desc: f.Desc}); err == nil {
 			p.Hidden = len(all) - len(acts)
+		}
+	}
+	// Each cloud is what this view holds, built with its own filter set aside
+	// and the others still applied: choosing a context must not leave one
+	// context to choose from, and the tags on offer are the tags of the
+	// actions you can currently see. A tag that is selected stays on the row
+	// whatever the rest of the filters do to it, or the only way to see that
+	// it is on would be the list being short.
+	if len(f.Contexts) == 0 {
+		p.ContextsInView = app.ContextsOf(acts)
+	} else {
+		wider := f
+		wider.Contexts = nil
+		if all, err := load(wider); err == nil {
+			p.ContextsInView = app.ContextsOf(all)
+		}
+	}
+	if len(f.Tags) == 0 {
+		p.TagsInView = app.TagsOf(acts)
+	} else {
+		wider := f
+		wider.Tags = nil
+		if all, err := load(wider); err == nil {
+			p.TagsInView = withSelected(app.TagsOf(all), f.Tags)
 		}
 	}
 	p.Data = acts

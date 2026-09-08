@@ -252,6 +252,25 @@ section.project.done { opacity: .8; }
 .chip { display: inline-flex; align-items: center; gap: .2rem; background: var(--badge-bg); border-radius: 8px; padding: .1rem .45rem; cursor: pointer; }
 .chip:has(input:checked) { background: var(--select); outline: 1px solid var(--accent); }
 .namebox { min-width: 14rem; }
+/* The filter rows on Next actions: a label column and a row of chips per
+   filter, so the two rows line up under each other and the eye reads down the
+   labels rather than hunting along a line. A grid and not two flex rows,
+   because the labels are different lengths and the chips must still start at
+   the same place. See implementation.md, "Interface density". */
+.viewfilters {
+  display: grid; grid-template-columns: auto 1fr;
+  gap: .3rem .6rem; align-items: baseline; margin: 0 0 .7rem;
+}
+.viewfilters .flabel { color: var(--muted); font-size: .85rem; white-space: nowrap; }
+.viewfilters .chips { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+/* the one control on these rows that is not a chip: it clears rather than
+   chooses, so it is not shaped like a choice */
+.chipclear {
+  border: none; background: transparent; color: var(--muted);
+  padding: .1rem .35rem; border-radius: 8px; cursor: pointer; line-height: 1;
+}
+.chipclear:hover:not(:disabled) { background: var(--badge-bg); color: var(--danger); }
+.chipclear:disabled { opacity: .3; cursor: default; }
 .filtered { color: var(--danger); font-weight: 600; }
 .reset { margin-left: .25rem; }
 
