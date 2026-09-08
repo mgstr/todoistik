@@ -421,27 +421,61 @@ The first working version rendered every view's filter controls open, all the ti
 - **open question, not yet decided:** how a view signals it is filtered while the panel is collapsed. Design.md requires a filtered view to say so loudly and show how many items are hidden ("Views"); collapsing the panel must not quietly weaken that. To be settled in a follow-up before or alongside the collapse is implemented
 - **open question, not yet decided:** the per-row controls (the complete-checkbox, the today pick-dot) were also flagged as clutter, present on every row whether or not it is about to be used. No direction chosen yet — noted here so it is not lost
 
-### Next actions carries no filter controls, for now
+### The Next view's controls, rebuilt one at a time
 
 The panel of checkboxes and selects that this section is about was widest on
 the one screen the app is actually used from, and it sat between the nav and
-the list on every visit. It has been taken off that page while the controls
-that replace it are worked out. What went is the page furniture only:
+the list on every visit. It came off that page whole, and what belongs there
+is going back one control at a time. The context filter is the first, and so
+far the only one.
 
-- **the filter form is gone, the filtering is not.** The per-view filter set
-  still persists in `app_state`, `/next?context=home&tag=car` still narrows the
-  page exactly as before, and the read API never saw the screen's state anyway
-  (design.md, "The read API"). Nothing about what the view *returns* moved —
-  which is why design.md is unchanged and this note lives here
-- **while the controls are off, design.md's "every filter is reachable and
-  resettable from the keyboard" is not true of this screen.** That is a debt
-  the replacement has to pay, not a rule being reversed. It is written down
-  because the gap is otherwise invisible: a filter set left on from before
-  keeps narrowing the view with nothing on the page offering to turn it off
-- **the filtered line stays**, and is now load-bearing rather than merely loud:
-  it is still the confession design.md, "Views" requires, and its "Reset all
-  filters" link is the only way back to the complete list until the new
-  controls land
+- **taking the form off changed no filtering.** The per-view filter set still
+  persists in `app_state`, `/next?context=home&tag=car` still narrows the page,
+  and the read API never saw the screen's state anyway (design.md, "The read
+  API"). Nothing about what the view *returns* moved with the furniture
+- **contexts are radios and tags are checkboxes**, which is the difference
+  between the two filters made visible: an action has one context and any
+  number of tags (design.md, "Filtering by context" and "Filtering by tag").
+  Both live in one `<form method="get">` with `data-autosubmit`, so choosing
+  either keeps the other and there is no Apply, and the `f=1` marker on it is
+  what saves the pair as this view's filter set
+- **"all" is a radio with an empty value**, which `parseFilters` drops, so
+  turning the context filter off is the same act as turning it on and there is
+  no second control to find. Tags have no such answer — several can be on at
+  once, so "none of them" is not one of the choices — which is why they get a
+  clear button of their own
+- **the rows are a two-column grid**, label then chips, so "Context:" and
+  "Tags:" line up and the chips of both start at the same place. The labels are
+  the only words on these rows: a row of `@`s and a row of `#`s say what they
+  are, but which is which is worth one word each when they sit under one
+  another
+- **the clear button unchecks and submits**, rather than being a link to the
+  same page without the tag parameters. It is what it says it is — the boxes
+  are unchecked in front of you — and unchecking a box from script fires no
+  change event, so the submit is explicit. It is disabled while there is
+  nothing to clear, the same argument as the create buttons (see "Create
+  buttons"): it says what the control is for without promising something false
+- **both rows are built from the view's own items**, `ContextsOf` and `TagsOf`
+  over the actions the page has just loaded, each one with *its own* filter set
+  aside and the others still applied. Set aside, or picking one context would
+  leave one context to pick from; the others applied, because a tag with
+  nothing under the context you are in is an answer that leads nowhere. A
+  selected tag is added back to its row whatever the rest of the filters do to
+  it (`withSelected`), or the only sign that it is on would be the list being
+  short. This replaced `ContextsInUse`, which asked the database for every
+  context on an open action anywhere; the tag rows on the views whose panels
+  have not been rebuilt still use `TagsInUse`, which is the same wide answer —
+  `page.TagCloud` is that list and `page.TagsInView` is this one
+- **the other filters are still off the page**, so design.md's "every filter is
+  reachable and resettable from the keyboard" is not true of this screen yet:
+  the contexts answer to Tab and the arrow keys, which is the browser's doing
+  and not a key of the app's, and name, tags, duration, focus and order have no
+  control at all. Written down because the gap is otherwise invisible — a
+  filter set left on from before narrows the view with nothing on the page
+  offering to turn it off
+- **the filtered line stays**, and is load-bearing while that is true: it is
+  the confession design.md, "Views" requires, and its "Reset all filters" link
+  is the only way back from a filter the page cannot show
 - **the header holding the count went with the form**, on the same argument:
   the working view is read by looking down it, not by being told how far it
   goes. It was the first view to lose one and every other view has since
