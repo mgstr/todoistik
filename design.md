@@ -199,9 +199,9 @@ A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This kee
 - that set of values has to be editable, so that values that are no longer used can be removed
 
 #### Filtering
-The "Next actions" view filters by one or several contexts, combined with **OR**: at home, with a computer and an internet connection means `@home OR @computer OR @online`.
+The "Next actions" view filters by context, one at a time - see "Filtering by context" for the control and what it hides. An action carries a single context, so "where am I" has a single answer, and the question the filter asks is "which actions can be done here".
 
-OR is the correct combination precisely because an action carries a single context - the question being asked is "is this action's context among the ones I currently satisfy". The cost of the single context is that an action needing two prerequisites at once has to name the scarcer one; this is accepted.
+The filter itself takes several and combines them with **OR** - at home, with a computer and an internet connection is `@home OR @computer OR @online` - but that is now only reachable through the read API, where the caller states its own situation and may well be in more than one of them at once. The screen offers one, because a row of exclusive answers is read at a glance and a set of checkboxes has to be interpreted. The cost of the single context on an action is that one needing two prerequisites at once has to name the scarcer one; this is accepted.
 
 ### Tags
 A tag is a label used to filter and categorise. Unlike a context it is not a precondition - it says nothing about whether an item can be done, only about what it is about.
@@ -332,11 +332,21 @@ The **Inbox** deliberately has no name filter. It is worked through one item at 
 The **tag cloud** is the other shared filter: every tag in use, each one toggled in or out of the filter. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
 
 - selected tags combine with **OR**: `#car` and `#finance` selected means everything about either
-- an item with **no** tags is excluded as soon as any tag is selected. The asymmetry with the context filter is deliberate: the context filter asks "can I do this here", which "nothing required" always answers yes to, while the tag filter asks "is this about #car", which "about nothing in particular" answers no to
-- clearing the selection is how it resets, and means all tags again, never none
+- an item with **no** tags is excluded as soon as any tag is selected: the filter asks "is this about #car", and "about nothing in particular" answers no. The context filter behaves the same way and for the same reason - see "Filtering by context", where the opposite was tried first
+- clearing the selection is how it resets, and means all tags again, never none. Clearing the whole selection is **one control**, not one press per tag: a filter you take off in four presses is one you leave on, and unchecking them one at a time asks the same question four times before it can be answered
+- **only tags with something under them are offered**, the same rule the context filter follows and for the same reason - see "Filtering by context". A tag with nothing in this view is an answer that leads to an empty list. What is offered is therefore the tags of the items the *other* filters have left visible, so the cloud narrows as the view does; a tag that is selected stays on the cloud whatever the rest of the filters do to it, because a filter you cannot see is a filter you cannot turn off
 - it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
 
 The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by. **Today** carries no filters at all - see "Today".
+
+### Filtering by context
+Only **Next actions** carries it, because it is the only view that asks "what can I do now" - see "Contexts" for what a context is and "Next actions" for the rest of that screen's filters.
+
+It is a row of **exclusive** answers, **all** first and then every context in use, alphabetically. One at a time, because an action carries one context and standing somewhere is one answer; a set of checkboxes would ask you to describe your situation, and this row asks you to name it.
+
+- **only contexts with something under them are offered.** A context you have defined but have nothing waiting in is an answer that leads to an empty list, and offering it is the app inviting you to prove there is nothing there. The row is therefore a property of the view and not of the remembered list of contexts (see "Contexts") - what is on it changes as the work does, and as the other filters do: with `#car` selected, the contexts on offer are the contexts of the car actions
+- **an action with no context appears under "all" and nowhere else.** The opposite was tried first, on the argument that "nothing required" is doable everywhere and a filter about prerequisites has nothing to exclude it by. In use it read as a leak: picking `@home` and being shown four things that are not about being at home makes the answer to "what can I do here" longer than it should be, and the actions with no context are exactly the ones that are never *not* available, so they are never the ones you are looking for by asking. "All" is where the whole list lives, and it is one press away
+- **turning it off is picking "all"**, which is the same act as picking a context rather than a second control to find. That is what makes it safe for the filter to be remembered when you leave the view, the way every other filter is (see "Views")
 
 The views:
 
@@ -386,8 +396,8 @@ There is no separate "what can I do right now" screen. It was this same query wi
 #### Filters
 The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
-- **contexts** - the context cloud: every context in use, each one toggled in or out of the filter. Selected contexts combine with **OR** (see "Contexts"). An action with **no** context is always shown, whatever is selected: it has no prerequisite, so there is no moment at which it is not doable, and a filter about prerequisites has nothing to exclude it by.
-- **tags** - the shared tag cloud, selected tags combining with **OR** - see "Filtering by tag"
+- **context** - one at a time, "all" or a context in use, and only the contexts that have something under them - see "Filtering by context". An action with no context is found under "all".
+- **tags** - the shared tag cloud, several at a time, combining with **OR**, and one control that clears the whole selection - see "Filtering by tag"
 - **name** - the shared name filter, matching the action title - see "Filtering by name"
 - **duration** - one or several buckets, combined with OR: what fits in the time available.
 - **needs focus** - three states: **all**, **exclude** (drop the actions that can not be done while tired) and **only** (keep nothing else). Default is all. Exclude is the tired question, and only is its opposite - an hour of real attention is worth spending on the actions that need one, and nothing is more wasteful than spending it on things that could have been done half asleep.
@@ -453,7 +463,7 @@ The filters combine with **AND**, and reset the way they do everywhere else: eac
 
 The Calendar carries neither context, nor duration, nor needs focus. Those three ask whether something can be done right now, which is not the question this view asks.
 
-**Overdue items are shown whatever the due filter says.** They are not what the filter is about: it asks what is coming, and something already late is not coming, it has arrived. Letting "today" hide an item that was due yesterday would be the app helping you look away from the one thing it exists to shout about - the same reason an action with no context survives the context filter in "Next actions".
+**Overdue items are shown whatever the due filter says.** They are not what the filter is about: it asks what is coming, and something already late is not coming, it has arrived. Letting "today" hide an item that was due yesterday would be the app helping you look away from the one thing it exists to shout about.
 
 The Calendar has no review step. Everything in it is walked through already, as part of a project, as a next action or as a waiting for item; having a deadline does not make it a second open loop.
 
