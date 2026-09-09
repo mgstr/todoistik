@@ -86,6 +86,12 @@ type crumb struct {
 // zen.views can name it; a step that is an item's own title gives none.
 func (p *page) step(name, slug string) *page {
 	p.Trail = append(p.Trail, crumb{Slug: slug, Name: name})
+	// A step inside a view is a form or a screen of a process, never a plain
+	// list — that is what having a second crumb means. It is also the whole
+	// set of screens a background refresh must keep its hands off, so the
+	// answer is taken from the trail rather than from a second list of names
+	// that could fall out of step with it.
+	p.Live = false
 	return p
 }
 
@@ -116,12 +122,45 @@ type page struct {
 	Ages        bool // the ages on rows are shown rather than hidden
 	Conf        conf.Config
 	Error       string
-	Data        any
+	// SelfURL is this page's own address, filters and all, so the background
+	// refresh can ask for exactly the page it is standing on rather than for a
+	// fragment endpoint that would have to be kept in step with it (see
+	// implementation.md, "Keeping an open page current").
+	SelfURL string
+	// Live says this screen is a plain list, and so may be replaced wholesale
+	// by that refresh. Every screen that is a step inside a view clears it in
+	// step(): a form holds half-written words, and a refresh that threw them
+	// away would be a worse bug than the stale list it fixed.
+	Live bool
+	Data any
+}
+
+// liveViews are the screens the background refresh may replace: the plain
+// lists, where every row on screen is server state and nothing is half-typed.
+// Review, Settings and every detail screen are left out — Review is a stepper
+// and Settings is a form, and neither gains a row because something arrived.
+// A screen that is a step inside one of these clears the flag anyway (see
+// step()), which is what keeps Processing off the list while it borrows the
+// Inbox's slot.
+var liveViews = map[string]bool{
+	"inbox":     true,
+	"today":     true,
+	"next":      true,
+	"projects":  true,
+	"tasks":     true,
+	"waiting":   true,
+	"calendar":  true,
+	"someday":   true,
+	"scheduler": true,
+	"archive":   true,
+	"audit":     true,
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
 	p := &page{Title: title, View: view, Today: s.app.Today(), Conf: s.conf, Error: r.URL.Query().Get("err")}
 	p.FilterMode = "filter"
+	p.SelfURL = r.URL.RequestURI()
+	p.Live = liveViews[view]
 	if v, err := s.app.GetState(agesState); err == nil {
 		p.Ages = v == "1"
 	}

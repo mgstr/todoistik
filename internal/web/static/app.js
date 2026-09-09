@@ -1996,8 +1996,64 @@
   gateAll();
   growAll();
 
+  // Whether a background refresh may replace the list under you. The poll in
+  // the layout is filtered on this, and it is deliberately generous about
+  // what counts as busy: a refresh that is skipped costs 30 seconds of a
+  // number being stale, and one that is not costs the row you were on.
+  //
+  // On window, and not in this closure, because htmx compiles a trigger
+  // filter into a bare Function and resolves an unqualified name against the
+  // event first and window second. It answers a strict boolean for the same
+  // reason: htmx fires the request only when the filter returns exactly true.
+  window.tkIdle = function () {
+    // a dialog is a question waiting for an answer
+    if (document.querySelector("dialog[open]")) return false;
+    // the cursor is a claim on a row, and only esc gives it back
+    if (document.querySelector("[data-kb-row].kb-selected")) return false;
+    const el = document.activeElement;
+    if (!el) return true;
+    if (el.isContentEditable) return false;
+    // a focused button is not work in progress — it is where the last click
+    // left the focus, and treating it as busy would switch the refresh off
+    // for the rest of the page's life
+    return !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName);
+  };
+
+  // A poll that arrives at the login page — the session gone, the redirect
+  // followed — carries no <main> at all, and a select that matches nothing
+  // swaps in nothing. Blanking the screen is a far worse answer than leaving
+  // it as it was, so a poll only swaps a response that is a page.
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    const el = e.detail && e.detail.elt;
+    if (!el || !el.hasAttribute("data-poll")) return;
+    const said = e.detail.serverResponse || "";
+    if (said.indexOf("<main>") < 0) e.detail.shouldSwap = false;
+  });
+
   // hx-boost swaps the body, taking the rendered bar with it
-  document.addEventListener("htmx:afterSwap", function () {
+  document.addEventListener("htmx:afterSwap", function (e) {
+    // The rail refresh replaces the rail and nothing else. None of what
+    // follows is about the rail, and some of it must not be redone on a
+    // timer: startTimer() restarts from zero, so a doing screen left open
+    // would count the same half-minute over and over. Two things do have to
+    // follow the new count, and they are exactly the two the count is read
+    // through elsewhere.
+    const target = e && e.detail && e.detail.target;
+    if (target && target.tagName === "NAV") {
+      // "the inbox needs emptying" is read off the pane and not off the rail,
+      // because the rail is a panel and can be off — so the fresh count has
+      // to be carried the last step by hand. The rail is where the server
+      // just said it; the pane stays the one place anything asks.
+      const pane = document.querySelector(".pane");
+      const said = target.dataset.inbox;
+      if (pane && said !== undefined) {
+        if (said === "0") pane.removeAttribute("data-inbox-full");
+        else pane.setAttribute("data-inbox-full", "");
+      }
+      // the bar offers "z inbox zero" on that flag, so it is re-read now
+      renderKeybar();
+      return;
+    }
     // the old page's timer is counting for a screen that is no longer here
     startTimer();
     restoreFilter();
