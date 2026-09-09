@@ -566,12 +566,18 @@ which notation this one accepts.
   ignored. The server keeps its old rule — each view applies the subset it
   offers, whether the filters arrived as a line or as parameters — and the box
   is what says so out loud
-- **a `key:value` notation says what its value may be**, per mode: `"date"`
-  for the meta line's `due:` and `snooze:`, or a list of words for a filter's
-  window. `due:thisweek` is a word rather than a date because the question is
-  what is coming at me and the answer moves with the day — and `snooze:` is
-  recognised on a filter line only so that it can be refused, rather than
-  silently matched as a word by the name filter
+- **a `key:value` notation says what its value may be**, per mode: one small
+  object per key saying whether an ISO date is allowed, whether a count of days
+  is, and which words are — `WHEN_DUE`, `WHEN_SNOOZE` and `WHEN_WINDOW`.
+  `due:thisweek` is a word rather than a date because the question is what is
+  coming at me and the answer moves with the day — and `snooze:` is recognised
+  on a filter line only so that it can be refused, rather than silently matched
+  as a word by the name filter. The two meta-line lists differ by one word:
+  `WHEN_SNOOZE` is marked `ahead`, which is what turns `snooze:today` into its
+  own refusal ("names today, which is not a snooze") instead of the generic
+  unreadable-date one. The browser does not resolve any of these — it has no
+  business knowing which day the app is on — so it checks the shape and lets
+  the server say what date the word came to
 - **a box may put a problem in its own words.** "A project has no context" and
   "this view filters by tag and by name" are the same refusal with different
   reasons behind it, and the reason is the useful half. `BOX_SAYS` overrides
@@ -614,6 +620,18 @@ which notation this one accepts.
   project picker makes. It offers what the app *knows*, not what this view
   happens to hold: the box's job is to help you write a name it will accept,
   and a filter that matches nothing says so immediately in the count
+- **a date key completes like a name does.** `due:` and `snooze:` open the same
+  list, offering the words that key takes — the two differ by `today`, and a
+  filter's `due:` offers its windows instead. A date word is exactly as hard to
+  remember as a context is, and the panel it is written down in is folded away
+  behind `?`, so the box says the list rather than making you go and read it.
+  A half-typed key is a token like any other to `typingToken`; its sigil is
+  `due:` rather than one character, which is the only thing `takeSuggest` and
+  the list would have had to care about, and neither does. Typing a number
+  offers `3days`, since the unit is all that is left to say — and not on a
+  snooze when the number is zero, because that is the one count a snooze
+  refuses. The list holds nine rather than eight now, because the date list is
+  nine long and cutting Sunday off the end costs more than one more row
 - **`↓`/`↑` move, `↵` or `tab` takes, `esc` closes the list**, and `esc` never
   closes the box — that is `ctrl-f`, and it would take the filters with it.
   One unwind at a time, the way the project picker's `esc` behaves
@@ -1321,6 +1339,23 @@ its column exactly as typed and is never read.
 - **dates use a third notation**, `due:2026-09-20` and `snooze:2026-09-20`.
   Neither is a name off a list, so neither is an `@` or a `#`; spelling the key
   out keeps them readable without a fourth sigil to learn
+- **a date may also be written as a word**, and `resolveDate` turns it into the
+  date it names before anything is stored: `tomorrow`, the seven day names, and
+  a count of days spelled `3days` — with `3d`, `1day` and `3day` accepted
+  alongside it, because refusing a number followed by the word "day" is being
+  pedantic about grammar the app understood perfectly well. Resolving on the
+  way in rather than keeping the word is what stops the field having two
+  answers (design.md, "Time fields"), and it is why `WriteMeta` needs no say in
+  this at all — it has only ever had a date to write. A day name counts
+  forward 1–7 days, never 0; `snooze:today` and `snooze:0days` are refused by
+  name, while `due:today` is not
+- **the day the line is read on rides on the `Vocabulary`.** A relative word is
+  a word whose meaning is a day, so it belongs where everything else a name
+  means right now already lives, rather than as a fourth parameter threaded
+  through `ParseMeta`, `ParseProjectMeta` and `parseTokens`. `App.Vocabulary()`
+  fills it in from `App.Today()`, so the words resolve against the app's single
+  clock and not the browser's — and because the vocabulary is rebuilt per
+  request, a page left open overnight cannot resolve yesterday's Friday
 - **a project's line goes through the same codec, narrowed.** `ParseProjectMeta`
   runs the same parser and then refuses, by name, everything a project does not
   have — a context, a size, a due date, `@waitingFor`, `#focus`, `#today`,
