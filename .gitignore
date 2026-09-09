@@ -4,3 +4,4 @@ todoistik
 *.db-wal
 *.db.backups/
 todoistik.conf
+remindersync
