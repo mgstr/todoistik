@@ -1627,6 +1627,62 @@ Two `g` sequences do not jump to a view:
   with nothing to do. That state is read off the nav's own alert, which is on
   every page
 
+## Keeping an open page current
+
+A rendered page is a snapshot of the moment it was asked for, and two things
+put items in without asking it again: `fireSchedules` at the day boundary, run
+lazily from the request middleware, and `POST /api/capture` — remindersync, a
+phone shortcut, or any other caller. Both used to leave the badge and the list
+saying the number from before until something was navigated, which is the one
+thing a count in the corner of the screen must never do.
+
+- **two polls, each asking for the page's own URL and taking one piece of the
+  answer.** `hx-select` lifts the rail out of one response and `<main>` out of
+  the other, so there is no fragment endpoint rendering the same counts a
+  second time and no second thing to keep in step with the page it summarises.
+  It costs one extra render every 30 seconds, which on a single-user app is a
+  handful of SQLite reads
+- **the rail refreshes unconditionally; the list only while the screen is
+  idle.** A badge is a number in a corner and replacing it can interrupt
+  nothing. Rows are the thing being worked through, and the keyboard cursor is
+  a class on one of them — a refresh mid-processing would drop it and move what
+  was under it. `tkIdle()` is the whole condition: nothing selected, nothing
+  being typed into, no dialog up
+- **a cursor therefore holds the list still, and `esc` lets it go.** That is
+  the rule design.md states, and it is deliberate rather than a side effect of
+  where the condition landed: it is a way to say "leave this alone" without a
+  setting, and the badge climbing beside a held list still says something
+  arrived. A focused *button* is pointedly not busy — it is where the last
+  click left the focus, and counting it would switch the refresh off for the
+  rest of the page's life
+- **the title bar rides on the rail's poll, out of band.** Its leading crumb
+  carries the same unfiltered count the badge does (see "Panels", and
+  design.md, "Panels"), and it sits outside both `<nav>` and `<main>` — a
+  refresh that left it alone would have the two panels disagreeing about one
+  fact, which is a worse state than the staleness this exists to fix
+- **the rail carries `data-inbox`, so the pane's flag can follow it.** "The
+  inbox needs emptying" is read off the pane and not off the rail, because the
+  rail is a panel and can be off (see "Navigation"); the fresh count arrives on
+  the rail and the swap hands it across the last step. Without it the badge
+  would go red while the key bar went on not offering `z`
+- **`htmx:afterSwap` returns early on a rail swap.** That handler was written
+  for `hx-boost`, which replaces the whole body, and it restarts the doing
+  timer from zero — left to run on a timer, a doing screen would count the same
+  half-minute over and over. A rail swap re-reads the two things above and
+  nothing else
+- **a poll only swaps a response that is a page.** A session that has gone
+  follows the redirect to the login screen, which has no `<main>` at all, and a
+  select that matches nothing swaps in nothing. Leaving the screen as it was
+  beats blanking it
+- **a screen that is a step inside a view never refreshes its `<main>`**, and
+  the answer comes off the trail rather than off a second list of view names: a
+  second crumb *is* what "this is a step, not a list" means, so the two cannot
+  drift apart. That is what keeps the processing screen out of it while it is
+  borrowing the Inbox's slot
+- **30 seconds**, and no push. SSE would make it instant and would add a
+  connection to hold open, reconnect and reason about behind a proxy, for a
+  delay nobody in a one-person app is sitting and waiting on
+
 ## The meta line
 
 An action's form is a title, a project, a meta line and a description

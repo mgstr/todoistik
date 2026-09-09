@@ -330,6 +330,10 @@ The flag covers an item opened in full as well as the lists, because an item sho
 
 **An item's dates are the last thing on its page, not the first.** They sit under the fields and directly above the buttons that operate on it. An item is opened to change what it says, and the dates are the one part of it that cannot be changed there - putting them first spends the top of the screen on the line that answers the question you did not come with. Above the buttons they are still read before the item is completed or deleted, which is the moment "next for three weeks" is worth knowing.
 
+**A view that is open keeps itself current.** Items arrive without the app being asked for them: a schedule fires at the day boundary, and anything holding the capture API can put a line in the inbox from outside - a phone, a script, the Reminders import. A screen that went on showing the number it was rendered with would be answering "how much is waiting there" with how much *was* waiting, which is the one thing the navigation's counts exist to say. So the counts come current on their own, and the list under them with them.
+
+**Except while you are working in it.** A list that reordered itself under a cursor, or replaced a row halfway through a decision about it, costs more than a stale number ever does - so the list holds still for as long as something is selected, being typed into, or being asked about in a dialog, and only the counts move. Letting the cursor go is what lets the list catch up, which makes holding it still something you can choose rather than something that happens to you.
+
 ### Panels
 Around every view sit three pieces of the app's own furniture, and each one answers a different question:
 

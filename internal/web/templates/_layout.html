@@ -15,7 +15,7 @@
      It is one of the three panels, and a panel that is off is not on the page
      at all rather than hidden by a rule — see implementation.md, "Panels". */}}
 {{if .Panels.Nav}}
-<nav>
+<nav data-inbox="{{.Nav.Inbox}}">
   <button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (q)">+</button>
   <div class="grp">Capture</div>
   <a href="/inbox" class="{{if eq .View "inbox"}}on{{end}} {{if and .Nav.Inbox (not .Processing)}}alert{{end}}" title="g i">{{if and .Processing (eq .View "inbox")}}Processing…{{else}}Inbox{{if .Nav.Inbox}}<span class="badge navcount">{{.Nav.Inbox}}</span>{{end}}{{end}}</a>
@@ -79,6 +79,42 @@
 </form>
 {{end}}
 {{if .Panels.Keybar}}<footer id="keybar" aria-hidden="true"></footer>{{end}}
+{{/* Keeping an open page current. A rendered page is a snapshot of the moment
+     it was asked for, and items arrive without it being asked again: a
+     schedule fires at the day boundary, and remindersync — or any other
+     caller of the capture API — posts straight into the inbox. Both left the
+     badge and the list saying the number from before until something was
+     navigated. See implementation.md, "Keeping an open page current".
+
+     Two polls and not one, because they answer to different rules. Both ask
+     for this same page again and take one piece of the answer, so there is no
+     fragment endpoint to keep in step with the page it summarises. */}}
+{{if .Panels.Nav}}
+{{/* The rail, always: a badge is a number in a corner, and replacing it can
+     interrupt nothing.
+
+     The title bar rides along, out of band. Its leading crumb carries the
+     same unfiltered count the badge does — design.md, "Views" asks for one
+     number and "Panels" says why both panels must read it the same way — and
+     it sits outside both <nav> and <main>, so a refresh that left it alone
+     would have the two panels disagreeing about the same fact. That is a
+     worse state than the stale one this whole thing exists to fix. */}}
+<div data-poll hidden
+     hx-get="{{.SelfURL}}" hx-trigger="every 30s"
+     hx-select="nav" hx-target="nav" hx-swap="outerHTML"
+     {{if .Panels.Title}}hx-select-oob="#titlebar"{{end}}></div>
+{{end}}
+{{if .Live}}
+{{/* The list, only while the screen is idle. Rows are what is being worked
+     through, and the keyboard cursor is a class on one of them — a refresh
+     mid-processing would drop it and shuffle what is under it. tkIdle() is
+     the whole condition: nothing selected, nothing being typed into, no
+     dialog up. A cursor left on a row therefore holds the list still, which
+     is the point: esc drops it and the next tick catches up. */}}
+<div data-poll hidden
+     hx-get="{{.SelfURL}}" hx-trigger="every 30s[tkIdle()]"
+     hx-select="main" hx-target="main" hx-swap="outerHTML"></div>
+{{end}}
 </div>
 {{/* The panels, and the one answer that takes all of them off at once. Four
      real forms in a dialog: pressing a key here does what clicking does, the
