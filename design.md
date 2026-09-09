@@ -101,15 +101,20 @@ A schedule can not express "again three days after I last did it". Cron describe
 ### Someday/maybe item
 A raw idea that is worth looking at some time, but that you are not ready to work on now.
 
-A someday/maybe item is not a project and not an action - it is the same raw, unclarified capture as an inbox item. Clarifying it would mean defining an outcome and a next action for something you have deliberately decided not to commit to, which is wasted work and is exactly the friction that makes a someday/maybe go unused. It therefore stays raw until you decide to move on it.
+A someday/maybe item is not a project and not an action - it is the same unclarified capture as an inbox item, carrying the area of responsibility it belongs to and nothing more. Clarifying it would mean defining an outcome and a next action for something you have deliberately decided not to commit to, which is wasted work and is exactly the friction that makes a someday/maybe go unused. It therefore stays unclarified until you decide to move on it, and a tag does not clarify anything: it says what an idea is *about*, never what you have undertaken to do about it. What it buys is the only thing a list of parked ideas is ever read for - which part of your life this pile is quietly filling up with (see "Tags").
 
 Fields:
 - Text: (required) free-form, the idea as captured, editable
+- Tags: (optional) the areas of responsibility the idea belongs to
 - Creation date: (required) it shows the age of the idea
 - lastReviewedAt, snoozeUntil - see "Time fields"
 
+Nothing else an action carries is here - no context, no size, no deadline, nobody it is waiting on. Every one of those describes doing something, and this is precisely the thing you have decided not to do yet; the item takes them on when it becomes an action, and not before.
+
 Rules:
-- items become someday/maybe items from the inbox, as one of the outcomes of Inbox Zero
+- items become someday/maybe items from the inbox, as one of the outcomes of Inbox Zero, and the wording and the tags are settled there, as part of that answer (see Inbox Zero)
+- both stay editable afterwards, on the item's own page. Rewording an idea and moving it to the area it turns out to belong to are things noticed while reading the list it sits in, and neither is a commitment being made
+- an item can go back to the inbox, when it stops being something for later and becomes something to decide about - see "Reshaping items"
 - when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
 - someday/maybe items are reviewed on their own, longer cadence - a month by default rather than the week everything else gets (see "Weekly review"). A `snoozeUntil` does not exclude an item from that walk: the date is itself a claim - "this becomes worth looking at then" - and the review is the only place a stale one is caught
 
@@ -218,7 +223,7 @@ A tag is a label used to filter and categorise. Unlike a context it is not a pre
 
 Notation is `#name`: `#car`, `#finance`, `#hobby`, `#programming`.
 
-- tags apply to **both projects and actions**
+- tags apply to **projects, actions and someday/maybe items**. The first two are commitments and the third is not, and it carries them anyway: an area you have parked six ideas about and committed to none of is exactly the kind of thing the review is there to notice, and a someday list that can only be read whole is a list that ends up not being read
 - an item can have zero, one or several tags
 - in practice these are not arbitrary keywords but the standing areas of responsibility that work belongs to. That makes them the thing that answers the review question "which part of my life am I starving?". The single exception is `#today`
 - tags follow the same rule context names do: from a remembered list, never typed fresh, added deliberately, and removable from the list only while no item carries them - see "Contexts". Writing `#car` on a meta line makes it a tag only if `car` is on the list. Areas of responsibility are few and stable, so a list that is deliberate to grow costs nothing here
@@ -362,14 +367,14 @@ What counts as the name is whatever names the item on that screen: the title of 
 The **Inbox** deliberately has no name filter. It is worked through one item at a time, oldest first, until it is empty, and a filter there would only be a way to look away from something. Processing a single item ahead of the queue is a different thing and is allowed - it takes nothing out of sight - see "Inbox Zero". Neither does **Today**, for a related reason - see "Today".
 
 ### Filtering by tag
-Tags are the other shared filter, written `#car` in the line, as many as you like. It is carried by every view that holds a commitment - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar** and the **Archive** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
+Tags are the other shared filter, written `#car` in the line, as many as you like. It is carried by every view whose items have tags on them - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Archive** and **Someday/Maybe** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
 
 - selected tags combine with **OR**: `#car` and `#finance` selected means everything about either
 - an item with **no** tags is excluded as soon as any tag is selected: the filter asks "is this about #car", and "about nothing in particular" answers no. The context filter behaves the same way and for the same reason - see "Filtering by context", where the opposite was tried first
 - taking a tag out of the line is how it resets, and no tag in the line means all tags again, never none
 - it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
 
-The **Inbox** and **Someday/Maybe** do not carry it, for the same reason they carry so little else: their items are raw, unclarified captures, with no tags to filter by. **Today** carries no filters at all - see "Today".
+The **Inbox** does not carry it, for the same reason it carries so little else: its items are raw captures, decided about one at a time in the order they arrived, and nothing on them has been answered yet - the tag included. **Today** carries no filters at all - see "Today".
 
 ### Filtering by context
 Only **Next actions** carries it, because it is the only view that asks "what can I do now" - see "Contexts" for what a context is and "Next actions" for the rest of that screen's filters.
@@ -391,7 +396,8 @@ The someday/maybe items - raw ideas worth revisiting some time, but not now.
 
 - it is reviewed during the weekly review, snoozed items included, on its own, longer cadence - see "Weekly review"
 - the age shown is the age of the idea, from its creation date
-- it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about names only: a someday/maybe item is a raw capture with nothing on it to narrow by
+- it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about names and tags: those are the two things a someday/maybe item has to be narrowed by, and asking about a context or a size here would be asking about fields it deliberately does not carry
+- each line shows the tags the idea carries, the way every other list shows them. It is the one thing on the line that is not the idea itself, and it is what turns a list of forty parked ideas into an answer about one area
 
 ### Projects
 The active projects, one to a line, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
@@ -559,7 +565,9 @@ For each item the only question asked is: what is it? The answer is one of:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action. Actions are added one at a time, each written in the same form an action is written in anywhere else (see "Writing a project"), and the list can be reordered and pruned before the project is made - what is being decided here is the shape of the plan, and a plan is not written in the order it occurs to you. Every one of them becomes a next action, so none can be parked: a project created already stalled is a contradiction. Delegation is carried by each action's own meta line, because a delegated action belongs to a project exactly as validly as one you will do yourself
-- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, staying raw. The text may be edited to formulate the idea more clearly, and a `snoozeUntil` date may be set to say when it becomes worth looking at - both optional, and both done on the item itself once it has landed rather than as a condition of filing it. Answering "what is it?" is the decision being asked for here; wording an idea better is a separate act, and one that reads differently once the idea is sitting among the others it will be reviewed with.
+- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, still unclarified, and the answer is written on a form of its own: the **text**, which may be reworded to formulate the idea more clearly; the **tags** that say which areas of responsibility it belongs to; and an optional **`snoozeUntil`** saying when it becomes worth looking at. It is the same form the item is edited on afterwards, so nothing asked here is asked in a shape it has nowhere else (see "Editing items").
+  - **filing it was one click before, and the tags are what changed that.** The old rule was that answering "what is it?" is the decision being asked for and that wording an idea better is a separate act, done later on the item itself - which was right about the wording and wrong about the area, because an idea filed without one is an idea the monthly walk can neither group nor narrow, and the tag is not extra thinking: it is the thinking that just produced this answer. It is therefore asked for once, at the moment it is cheapest, and never asked for again
+  - **none of the three is required.** An idea with no area yet is filed with no tags, exactly as it was before, and the form costs one `Enter` in that case. What the step buys is the chance to say it while you are still holding the thought - not an obligation to have one
 - **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
@@ -624,6 +632,8 @@ Editing happens in two places:
 
 **In the item itself.** Opening a project or an action shows every field it has, editable, and for a project the full list of actions under it: add one, delete one, rename one, detach one (see "Reshaping items"). This is where a project is actually worked on. The DOD is prose and it is the field step 3 of the weekly review asks about, so it needs the room a list does not have.
 
+**A someday/maybe item has a page of the same kind**, holding the three fields it has: the idea, its tags and its snooze. It is where an idea is reworded, moved to the area it turns out to belong to, sent back to the inbox or trashed - and it is the same form the Someday/Maybe branch of Inbox Zero files it on, because an item is written in one form wherever it is written (see the rule below).
+
 **Adding an action to a project opens the action form as its own screen**, from a control under the project's action list. The project is already answered there, the way it is for an action opened from a list. It is a screen and not a box on the project's page because of the rule below: an action is written in one form wherever it is written, and a form that had to be unfolded first was that form in a shape it has nowhere else - on the screen where actions are added most often. What a project's page holds is the project and its list; writing a new action is a step away from it, and coming back is where the new action already is.
 
 A project is reachable this way from everywhere it appears - "Projects", the "Calendar", the "Archive" - and from any of its actions, wherever that action is seen.
@@ -653,6 +663,10 @@ Nothing is ever retyped. When an item turns out to be the wrong shape it is conv
 - at least one action is required, which becomes the next action
 
 An action that belongs to a project and should become a project of its own is first detached, then promoted.
+
+**Back to the inbox** - a someday/maybe item becomes an inbox item again. Used when an idea stops being something for later: the money is there, the boat is finally for sale, the thing you were waiting on has happened - and the honest next step is to decide about it rather than to snooze it again. The inbox is where an undecided thing belongs, and putting it there is what gets it answered: the inbox has to be emptied, and a someday/maybe list does not.
+
+It keeps its text and nothing else. An inbox item has no tags and no `snoozeUntil` (see "Time fields"), so both are dropped rather than carried invisibly, and the audit entry is where what was dropped is kept. A text that is already sitting in the inbox collapses into the item that is there, by the rule every other way in obeys (see "Duplicate captures") - the idea is in the inbox either way, which is what was asked for.
 
 ## Out of scope
 
