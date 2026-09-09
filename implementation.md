@@ -565,11 +565,12 @@ untouched. See `research/action-page-study.html` for the five layouts this was
 measured against, and for the ledger of where the height actually goes.
 
 - **the gutter is one width for the whole app**, 7.5rem, rather than sized per
-  form. `project.html` shows a project's fields and its add-action box on one
-  screen, and two forms whose boxes start in different places read as a mistake
-  rather than as two forms. 7.5rem is what the longest field name in the app
-  needs — "Definition of done" — so no name wraps anywhere and every box on
-  every screen starts in the same place
+  form. A project, one of its actions and the screen that writes a new one are
+  three screens read one after another, and a per-form width would give each of
+  them a different indent — it would also tie that indent to which fields a form
+  happens to have, so adding one could move every box on the screen. 7.5rem is
+  what the longest field name in the app needs — "Definition of done" — so no
+  name wraps anywhere and every box everywhere starts in the same place
 - **the stack keeps its 34rem**, so the trade is 7.5rem of box width for four
   lines of height. It is the same trade the rail makes and it is made for the
   same reason: height is the axis these screens are short of ("Screen layout")
@@ -582,10 +583,10 @@ measured against, and for the ledger of where the height actually goes.
   not, because the forms below have not moved
 - **it reaches every screen that writes an action or a project**, because both
   are written through one partial each and both partials moved: the action's
-  page, the project's page and its add-action box, both branches of the
-  processing screen, promoting, and the two dialogs — the add-action dialog and
-  the new-project dialog, whose two fields are the one hand-written copy of
-  `projectfields` in the app
+  page, the project's page, the screen a project adds an action on, both
+  branches of the processing screen, promoting, and the two dialogs — the
+  add-action dialog and the new-project dialog, whose two fields are the one
+  hand-written copy of `projectfields` in the app
 - **the schedule forms and the someday item still stack their names.** They are
   neither an action nor a project, so they were outside what this change was
   for; their names all fit the same 7.5rem, so joining them is one class each
@@ -1426,8 +1427,8 @@ its column exactly as typed and is never read.
   reason
 - **one definition of the fields an action is written in.** The `actionfields`
   template is used by an action's own page, the processing screen, the
-  add-action dialog on a project form and the box under a project's action
-  list. The project control is the only difference between them — a picker, a
+  add-action dialog on a project form and the screen a project adds an action
+  on. The project control is the only difference between them — a picker, a
   fixed name, or nothing where the screen has already answered it — because
   four copies of a form is exactly how the meta line would have ended up on
   three of them
@@ -1485,11 +1486,40 @@ its column exactly as typed and is never read.
 
 One form, wherever an action is written (design.md, "Editing items"): the
 fields live in the `actionfields` partial and every screen that writes one
-uses it — the processing screen, the add-action dialog on a project, the box
-under a project's action list, and the action's own page. The project control
-is the only difference between them, and it says which of the three answers
-this screen has: choose one (`Picker`), it is already decided and here is
-which (`Fixed`), or the screen has answered it elsewhere.
+uses it — the processing screen, the add-action dialog on a project being
+made, the screen a project that already exists adds one on, and the action's
+own page. The project control is the only difference between them, and it says
+which of the three answers this screen has: choose one (`Picker`), it is
+already decided and here is which (`Fixed`), or the screen has answered it
+elsewhere.
+
+- **adding an action to a project is a screen, not a fold on the project's
+  page.** It used to be a `<details>` under the action list, opened by its own
+  summary and opened for you when the project had no next action left — the
+  same four fields as everywhere else, in the one shape that had to be opened
+  before it could be written in, on the screen where actions are added most.
+  `action_new.html` is that form as a page — `GET /project/{id}/addaction`,
+  posting to the `addaction` verb that was already there and unchanged — and
+  what is left on the project's page is a button under the list it adds to,
+  carrying `^a`, the same key the project branch of processing gives the same
+  act. The project's page is down to one form and one Save with it, which is
+  what every other item page has
+- **the button is a link, and that is all it is.** The key layer's `press`
+  already follows an `href`, and the key bar advertises a control only if the
+  control is on the page, so nothing had to be added for `^a` to appear under
+  a project and nowhere else (see "Keyboard")
+- **the new screen's create button is gated like every other**, by the title
+  being required — so it opens dead and the bar offers `ctrl-enter` only once
+  there is something to create, with no rule of its own (see "Create buttons")
+- **the "no next action left" ask no longer opens anything.** It used to
+  unfold the box; it now says the same sentence over the same button, one
+  press away. A screen that opens with a form already open is a screen that
+  has decided what you came to do, and the ask is a question, not an
+  instruction
+- **a refused meta line is a plain 400 here**, the way it is on an action's own
+  page rather than the way it is on the processing screen: nothing is written,
+  the reason arrives as a banner (see "A refused post is never silent"), and
+  the line comes back in the box you typed it in
 
 - **each field's name sits beside its box**, in the app-wide gutter rather than
   on a line of its own — see "A field's name sits beside its box, not above it".

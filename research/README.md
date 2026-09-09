@@ -272,11 +272,15 @@ Delete") to do it.
 Settled while implementing B, and not visible on the page:
 
 - **the gutter is one width for the whole app**, 7.5rem, rather than sized per
-  form. `project.html` shows a project's fields and its add-action box on one
-  screen, and two forms whose boxes start in different places read as a
-  mistake. 7.5rem is what the longest field name in the app needs —
-  "Definition of done" — so no name wraps anywhere and every box on every
-  screen starts at the same place
+  form. The argument made at the time was that `project.html` showed a
+  project's fields and its add-action box on one screen, and two forms whose
+  boxes start in different places read as a mistake. **That case went away the
+  same day**, when adding an action became a screen of its own — the rule
+  stands on the cross-screen argument instead, which is the one
+  implementation.md now carries: a project, one of its actions and the screen
+  that writes a new one are read one after another, and a per-form width would
+  give each a different indent. 7.5rem is what the longest field name in the
+  app needs — "Definition of done" — so no name wraps anywhere
 - **the stack keeps its 34rem**, so the trade is 7.5rem of box width for four
   lines of height. That is the same trade the rail made and for the same
   reason: height is the axis these screens are short of
