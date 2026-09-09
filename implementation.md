@@ -17,6 +17,7 @@ A **self-hosted web app**: one server process serving the UI, the capture API an
 - a transactional store is what the audit log and the capture API need, and single-file is what a single-user app deserves: a backup is one file, and the app takes its own every hour (see "Backups")
 - the views are queries by design (see design.md, "Views"), and SQL is the natural home for queries. Stalled, next, overdue — all derived at read time, never stored
 - the audit log is a table like any other. Recoverability means an audit entry carries a snapshot of the item as it was, not just the fact that something happened
+- **tags are their own table, keyed by item type and id** (`item_tags`), not a column on each item. It was built that way for actions and projects, and it is why giving someday/maybe items tags (design.md, "Tags") needed no schema change at all: a new item type is a new string in a column that already exists. The one thing that does not come free is deletion — a row that outlives its item would keep a tag name in use forever, so every delete takes its tag rows with it
 
 ## Backups
 
@@ -350,10 +351,13 @@ and all eight branches on screen at once — three buttons and five forms in
   - **nothing changes but the audit log** — Trash, Reference material,
     Two-minute rule. The item leaves and no new object is created; the record
     that it existed is the audit entry
-  - **it moves to a list, still raw** — Someday/Maybe from the inbox, Keep
-    incubating for an item already there
-  - **it is actionable** — Action and Project, the only two answers in the row
-    and the only two that open a second stage (see "Stage two"). They carried
+  - **it moves to a list, still unclarified** — Someday/Maybe from the inbox,
+    Keep incubating for an item already there. Someday/Maybe opens a stage two
+    of its own now (see below); the grouping is about what becomes of the item,
+    not about what the answer costs to give, and what becomes of it here is
+    that it moves and stays unclarified
+  - **it is actionable** — Action and Project, the only two answers in this row
+    and the only two that create a commitment (see "Stage two"). They carried
     *"— a step"* and *"— an outcome"* while the row was new; the gloss was
     removed once it had been read, on the same argument as the rest of the
     screen's prose. The distinction they name is in the `?` panel, which is
@@ -363,17 +367,28 @@ and all eight branches on screen at once — three buttons and five forms in
   these six answers navigate rather than post, and that is an implementation
   detail no one should be able to see. The class carries the same fill, hover
   and metrics as the element
-- **Someday/Maybe is one click and carries the text as it stands.** design.md
-  allows the text to be reworded and a `snoozeUntil` to be set at this point,
-  and both were fields on the old form. Both are still reachable, on the
-  someday item's own page (`/somedayitem/{id}`) — which is where you are sent
-  by the item you just filed, and where you would edit it anyway a week later.
-  Making them optional fields *here* charged every filing for a rewording that
-  is usually not wanted
-- **Keep incubating keeps its date box**, and is the one branch that is not a
-  bare button. The branch *is* the new date (design.md, "Inbox Zero"), so a
-  one-click version would either set nothing or silently clear the snooze the
-  item already had. It is a candidate for stage two once stage two exists
+- **Someday/Maybe opens a stage two, and the tags are why.** It was one click
+  for a while, carrying the text as it stood: design.md allowed a rewording and
+  a `snoozeUntil` here, both were reachable on the item's own page afterwards,
+  and making them fields *here* charged every filing for a rewording that is
+  usually not wanted. Then an idea started carrying the area of responsibility
+  it belongs to (design.md, "Someday/maybe item"), and that argument stopped
+  holding: the area is not a rewording done later on second thoughts, it is
+  what the answer just decided, and an idea filed without one is one the
+  monthly walk can neither group nor narrow. So the branch behaves like the
+  other two that produce an object — one click to answer, a form to say what
+  the object is — and the form is `somedayfields`, the same partial the item's
+  own page uses (`/somedayitem/{id}`)
+- **the form is three fields and none of them is required.** The idea, the meta
+  line, and the snooze as a date box. An idea with no area yet costs one
+  `Enter`, exactly as the one-click version did — what the step adds is the
+  chance to say the area while the thought is still in your hand, never the
+  obligation to have one
+- **Keep incubating keeps its date box**, and is the one branch that is neither
+  a bare button nor a stage. The branch *is* the new date (design.md, "Inbox
+  Zero"), so a one-click version would either set nothing or silently clear the
+  snooze the item already had — and a stage of its own would be a screen for
+  one date box. It stays inline until it has a second thing to ask
 
 ### The keys
 
@@ -382,7 +397,10 @@ Six, one per answer, listed in the bar in the order the rows present them:
 then `esc`. Each is the branch's own first letter except the two-minute rule,
 which is the rule's own number — `c` would have matched "done" elsewhere in the
 app, but there `c` completes an action that exists, and this branch records
-something done that never became one.
+something done that never became one. Three of the six now open a stage rather
+than posting an answer: `s` went from a form's submit to a link the moment
+Someday/Maybe grew a stage two, and the key layer never noticed — `data-key` on
+a link is a link being followed, the way `a` and `p` already were.
 
 - **`t` is trash here and "pick for today" on the list views that offer the
   mark** (every one but "Out of time" — see "Item lines"), and that was
@@ -423,14 +441,21 @@ something done that never became one.
 
 ## Stage two
 
-Answering Action or Project opens a form on the same screen, at
-`/process?src=&item=&as=action|project`. Server-rendered as its own page rather
-than revealed in place: the second stage has to survive a reload and a back
-button — it is where the typing happens — and a URL that names the stage is what
-gives it that for free. It also keeps the rule that the server is the single
+Answering Action, Project or Someday/Maybe opens a form on the same screen, at
+`/process?src=&item=&as=action|project|someday`. Server-rendered as its own
+page rather than revealed in place: the second stage has to survive a reload
+and a back button — it is where the typing happens — and a URL that names the
+stage is what gives it that for free. It also keeps the rule that the server is the single
 source of truth (see "Stack"), which a stage that only exists in the DOM would
 quietly break.
 
+- **the Someday/Maybe form is the small one**, and it is a stage for one
+  reason: the meta line. Its three fields are `somedayfields` in
+  `_layout.html`, shared with `/somedayitem/{id}` so that filing an idea and
+  editing it a month later are the same three boxes in the same order
+  (design.md, "Editing items"). The idea box takes the focus, the way the title
+  box does on the other two forms — it is the one field that arrives pre-filled
+  and might be retyped
 - **`esc` and "back" both go to stage one**, not out of the screen. Leaving is
   still one press away from there, so abandoning costs at most two — and each
   press undoes exactly the last decision, which is what a stage-two `esc`
@@ -495,6 +520,28 @@ quietly break.
   is being created, where every action written becomes a next action (see
   "Writing a project"), and accepted everywhere an action is written into a
   project that already exists
+
+## The someday item's page
+
+`/somedayitem/{id}` — one screen, three fields and three controls. It is where
+an idea is read a month after it was filed, which is why the form it is filed
+on is this one (`somedayfields`, see "Stage two").
+
+- **the three controls are the three ways out**: *Move on it — process*, which
+  opens the processing screen with this item as its subject; *Inbox*, which
+  sends it back to be decided about; and *Trash*. Save is the form's own
+  button, above them — editing an idea is not leaving it
+- **Inbox is a plain button, not the danger one.** Nothing is lost that the app
+  holds: the text is captured again and the entry keeps the tags and the snooze
+  that did not survive (design.md, "Reshaping items"). What it costs is that
+  the inbox now has to be emptied, which is the point of pressing it
+- **it has no key of its own**, and neither does Trash here. This is a screen
+  you arrive at to read and edit one idea, not one you work down a list on, and
+  a letter that files or deletes the thing you are reading is a keystroke away
+  from the box you are typing in
+- **the redirect goes to the Inbox, not back to the list.** The item is not on
+  the someday list any more, and the honest answer to "then what?" is the place
+  it went — which is also the place that now has one more thing to answer
 
 ## Create buttons
 
@@ -598,10 +645,13 @@ filter box" for how it is built, and design.md, "The filter line" for why.
 - **the Scheduler was the cheap half of that**, and went the way the partial
   promised: `{{template "filterbar" .}}` in place of the old form, four lines
   in its handler for `Shown`, `Total`, `Query` and `FilterMode`. It takes
-  `filter-name`, the mode Someday already used — which is what turned that
+  `filter-name`, the mode Someday used at the time — which is what turned that
   mode's refusal from "these are raw captures with nothing on them yet" into
   something true of both boxes, since a schedule is not a capture but carries
-  no names either
+  no names either. Someday has since moved to `filter-tags`, its items having
+  grown one kind of name to narrow by (design.md, "Filtering by tag"), and
+  `filter-name` is the Scheduler's alone — the wording it was widened into is
+  still the right one, and is now simply the truth about schedules
 - **an item row keeps its full information** — title, context, duration, tags,
   due date, project, focus, parked/waiting state — shown inline, all at once.
   This was considered and deliberately kept as-is: density on a row is not the
@@ -665,10 +715,13 @@ measured against, and for the ledger of where the height actually goes.
   branches of the processing screen, promoting, and the two dialogs — the
   add-action dialog and the new-project dialog, whose two fields are the one
   hand-written copy of `projectfields` in the app
-- **the schedule forms and the someday item still stack their names.** They are
-  neither an action nor a project, so they were outside what this change was
-  for; their names all fit the same 7.5rem, so joining them is one class each
-  whenever that is wanted
+- **the schedule forms still stack their names.** They are neither an action
+  nor a project, so they were outside what this change was for; their names all
+  fit the same 7.5rem, so joining them is one class each whenever that is
+  wanted. **The someday item joined**, and it joined because it stopped being a
+  form of its own: its fields are a partial now, shared with a processing stage
+  that sits beside the action and project forms, and three screens read one
+  after another cannot each indent their boxes differently
 - **nothing about the fields moved** — not which they are, not their order, not
   their validation, not what they mean. This is presentation, so design.md says
   nothing new about it
@@ -707,20 +760,24 @@ Two things the gutter left behind, and one it did not.
   the two dialogs that fill their fields by hand call `growAll(dlg)` right
   after `showModal`, which is also where a draft being edited gets its note
   sized to what is in it
-- **the someday item's text box still opens at three rows.** It is neither an
-  action nor a project, the same line the gutter drew
+- **the someday item's idea box grows like every other note box now.** It
+  opened at a fixed three rows while it was a form of its own — the same line
+  the gutter drew — which was the wrong height twice for the same reason every
+  other fixed box was: a hole under the one-line ideas, too small for the few
+  that run long. `rows="1"` with `data-grow` is the honest starting size, and
+  it is what the shared partial gives both screens that write an idea
 
 ## Token boxes
 
-The filter line and the two meta lines are one control (`tokenbox` in
+The filter line and the three meta lines are one control (`tokenbox` in
 `_layout.html`): a line of `@names` and `#names`, completed as it is typed and
 marked where the app does not know one. design.md, "The filter line" asks for
 the first and "Writing an action" for the second, and they are the same
 question asked twice — so they are the same box, and `data-tokenbox` says
 which notation this one accepts.
 
-- **three modes, one table.** `BOX_RULES` in `app.js` says how many contexts a
-  line may name, which `#names` stand for fields here, which date notations are
+- **one mode per line, one table.** `BOX_RULES` in `app.js` says how many
+  contexts a line may name, which `#names` stand for fields here, which date notations are
   allowed, and whether a word that is not notation is a problem: the filter
   line matches titles by its leftover words, a meta line refuses them
   (design.md, "Writing an action"). Everything else in that section of the file
