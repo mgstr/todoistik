@@ -86,10 +86,44 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 containing "milk". Given `q`, the parameters above are not also read (`sort`
 and `desc` are, since the line cannot say them).
 
+## Importing from Reminders
+
+`remindersync` empties a macOS Reminders list into the inbox — one capture per
+reminder, and the reminder deleted once the app has said it has the text. It is
+a separate binary, and it goes in through the capture API like anything else.
+
+```sh
+go build -o remindersync ./cmd/remindersync
+./remindersync -list "Inbox" -url http://127.0.0.1:8390 -token "$TOK" -dry-run
+./remindersync -list "Inbox" -url http://127.0.0.1:8390 -token "$TOK"
+```
+
+| flag       | env               | default                 |                                                    |
+|------------|-------------------|-------------------------|----------------------------------------------------|
+| `-list`    |                   | *(required)*            | the Reminders list to empty                        |
+| `-url`     | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                    |
+| `-token`   | `TODOISTIK_TOKEN` | *(empty)*               | bearer token; empty for a server started without one |
+| `-dry-run` |                   | *(off)*                 | print the lines that would be captured; change nothing |
+
+Each reminder becomes one line carrying everything it held — title, due date,
+note — because the reminder is deleted straight after. Completed reminders are
+left alone, nothing is written as a `#tag` or an `@context`, and a reminder the
+app calls a duplicate is deleted too, since the identical line is already in
+the inbox. The run prints a line per reminder and exits non-zero if it had to
+leave any behind. See implementation.md, "Importing from Reminders".
+
+The first run asks macOS for permission to control Reminders; without it every
+run fails with `-1743`, granted back under System Settings → Privacy & Security
+→ Automation.
+
 ## Source layout
 
 ```
 main.go                   entrypoint: flags, opens the DB, starts the server
+
+cmd/remindersync/
+  main.go                 empties a macOS Reminders list into the inbox, through the capture API
+  main_test.go
 
 internal/conf/
   conf.go                 the settings file: key = value, read once at startup

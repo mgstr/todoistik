@@ -92,6 +92,58 @@ The endpoints, matching design.md exactly:
 
 Nothing else. The read API is read only, and capture is the only way in.
 
+## Importing from Reminders
+
+`cmd/remindersync` empties a macOS Reminders list into the inbox: one capture
+per reminder, and the reminder deleted once the app has said it has the text.
+It is a separate command, not part of the server — it is one person's way in
+from one other program, and nothing about it belongs in a process that serves
+every request.
+
+- **it goes in through `POST /api/capture`**, like anything else outside the
+  app, rather than opening the database beside the server. Capture is the only
+  way in by design (design.md, "Capture"); a second writer would skip the
+  duplicate collapse and the audit entry, and would have to be trusted to keep
+  the schema
+- **a reminder becomes one line, carrying everything it held** — title, due
+  date, note. The reminder is deleted immediately after, so anything left out
+  here is lost, and the inbox is raw text with no field to put a date in
+  instead. The note joins on one line: the inbox is a list of lines, and a
+  note's own line breaks are not worth breaking that
+- **nothing is written as a token.** No `#tag`, no `@context`, however
+  obviously a list called "дом" maps to one. A captured line is prose until
+  someone processes it, and deciding what an item means at capture time is the
+  one thing capture must never require (design.md, "Capture costs nothing")
+- **a reminder is deleted only after the app answered for it**, and
+  **duplicate counts as delivered**: the identical line is already in the
+  inbox, so the reminder has nothing left to carry. It is still printed, or a
+  reminder that vanished would look the same as one that moved
+- **everything is captured first, and the deletions follow in one pass.** Each
+  round trip to Reminders costs about five seconds whatever it carries, so
+  deleting one at a time would make a twenty-item list take minutes. Nothing is
+  lost by the order: a run cut short between the two leaves the reminder in
+  place, and the next run re-captures it, is told it is a duplicate, and
+  deletes it then
+- **`osascript` and JavaScript for Automation, not EventKit.** EventKit is the
+  better interface and would mean a second language in the tree and a signed
+  bundle of its own for the privacy prompt, for the same five fields
+
+What that interface can and cannot answer shaped the rest:
+
+- **every property is read for the whole list at once and the open reminders
+  picked out here**, rather than asked for with a `whose` filter. A filtered
+  collection re-runs its filter on every property read — the difference between
+  a read that takes five seconds and one that never finishes
+- **a due date falling exactly on local midnight is written as a day alone**,
+  without a time, which is how Reminders stores a reminder set for a date
+  rather than a moment. Its `allDayDueDate` says so directly and cannot be read
+  over this interface at all, in bulk or one at a time
+- **completed reminders are left where they are.** The list is being emptied of
+  what is still outstanding; a finished reminder is a record, not an inbox item
+- **the list name and the reminder ids are spliced into the script as JSON
+  literals**, which are also JavaScript string literals, so a list named with a
+  quote in it cannot become script
+
 ## Keyboard
 
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
