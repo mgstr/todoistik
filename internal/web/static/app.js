@@ -1526,6 +1526,7 @@
 
     gate(dlg);
     dlg.showModal();
+    growAll(dlg);
     title.focus();
     renderKeybar();
 
@@ -1723,6 +1724,7 @@
     gate(dlg);
 
     dlg.showModal();
+    growAll(dlg);
     title.focus();
     renderKeybar();
 
@@ -1774,6 +1776,7 @@
   }
   setupPickers();
   gateAll();
+  growAll();
 
   // hx-boost swaps the body, taking the rendered bar with it
   document.addEventListener("htmx:afterSwap", function () {
@@ -1782,6 +1785,7 @@
     restoreFilter();
     paintAll();
     renderKeybar(); setupPickers(); gateAll();
+    growAll();
     claimSelection();
   });
 
@@ -1804,6 +1808,33 @@
     const old = pane.querySelector(".error-banner[data-transient]");
     if (old) old.remove();
     pane.insertBefore(p, pane.firstChild);
+  });
+
+  // A box that says data-grow is exactly as tall as what is in it: one line
+  // when it is empty, one more for every line written into it. The height is
+  // read off the content rather than counted in newlines, so a line that wraps
+  // grows the box the same way a line that was typed does — which is what the
+  // eye means by "another line" whichever way it arrived.
+  //
+  // It is the same shape as the caret rule below: it decides nothing and
+  // stores nothing, and the server neither knows nor cares how tall the box
+  // was (see implementation.md, "Stack").
+  function growBox(el) {
+    // height:auto first, or scrollHeight can only ever report the height the
+    // box already has — a box that has grown could never shrink back
+    el.style.height = "auto";
+    // scrollHeight is the content box; the borders are what is left over
+    el.style.height = (el.scrollHeight + el.offsetHeight - el.clientHeight) + "px";
+  }
+
+  // A box inside a dialog measures 0 while the dialog is closed, so growing
+  // is done again when one opens rather than only when the page loads.
+  function growAll(scope) {
+    (scope || document).querySelectorAll("textarea[data-grow]").forEach(growBox);
+  }
+
+  document.addEventListener("input", function (e) {
+    if (e.target.matches && e.target.matches("textarea[data-grow]")) growBox(e.target);
   });
 
   // A field that opens focused with the caret at position 0 means the first

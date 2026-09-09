@@ -4,6 +4,12 @@
   --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff;
   --bar-bg: #eceef3;
   --main-pad-top: 1rem;
+  /* How wide a form is, everywhere one is written. It was 34rem, which was a
+     comfortable measure for the label-above-the-box layout it was chosen for
+     — but the names moved into a 7.5rem gutter, and that came off the boxes
+     rather than off the page, leaving them a third narrower than the column
+     they sit in has room for. One number, because a form is one shape. */
+  --form-width: 48rem;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -370,7 +376,7 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .pick { border: none; background: transparent; color: var(--line); padding: 0 .15rem; }
 .pick.picked { color: #c88a00; }
 
-.stack { display: flex; flex-direction: column; gap: .5rem; max-width: 34rem; margin: .75rem 0; }
+.stack { display: flex; flex-direction: column; gap: .5rem; max-width: var(--form-width); margin: .75rem 0; }
 .stack label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
 .stack input, .stack textarea, .stack select { color: var(--fg); }
 /* A field's name beside its box rather than on a line of its own. Four fields
@@ -388,6 +394,16 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    done" — so no name ever wraps and every box everywhere starts in the same
    place. The stack keeps its 34rem, so the trade is 7.5rem of box width for
    four lines of height. */
+/* A box that is one line high and grows as it is written in. Every textarea
+   here opened at a fixed several rows, which is the wrong height twice: it is
+   a hole on the many items that carry no note, and still too small on the few
+   that carry a real one. `rows="1"` is the honest starting size and `app.js`
+   sets the height from the content — so the box is exactly as tall as what is
+   in it, and the page under it does not move for a note that was never
+   written. No resize handle, because the height is not a thing to set any
+   more; no scrollbar, because it never has more than it shows. */
+textarea[data-grow] { resize: none; overflow-y: hidden; }
+
 .stack label.gutter { flex-direction: row; align-items: baseline; gap: .6rem; }
 .stack label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
 /* every kind of control the two forms put in a label: the plain boxes, the
@@ -449,7 +465,7 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    has somewhere to put what is worth knowing before filing into one — whether
    it is stalled, how much is open there — and because rows are what j/k move
    through everywhere else in the app. */
-.cands { display: flex; flex-direction: column; margin: -.2rem 0 .2rem; max-width: 34rem; }
+.cands { display: flex; flex-direction: column; margin: -.2rem 0 .2rem; max-width: var(--form-width); }
 /* two classes deep on purpose: these rows sit inside .stack, whose label rule
    would otherwise stand them on end and grey them out */
 .cands .cand {
@@ -576,7 +592,7 @@ body.login form { display: flex; flex-direction: column; gap: .75rem; width: 18r
    is a filter box over a list. Eight rows tall, then it scrolls — the list is
    ordered by recent activity, so what you want is usually already at the top,
    and typing is what reaches the rest. */
-.picker { position: relative; max-width: 34rem; }
+.picker { position: relative; }
 .pickerbox { width: 100%; }
 .pickerbox[readonly] { cursor: pointer; color: var(--fg); }
 .pickerlist {

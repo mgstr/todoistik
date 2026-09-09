@@ -250,7 +250,7 @@
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
-<label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
+<label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="1" data-grow spellcheck="false">{{.Description}}</textarea></label>
 {{end}}
 
 {{define "projectfields"}}
@@ -266,7 +266,7 @@
      (see "Error state"). */}}
 <label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="A reference to the outcome, not what to do"></label>
-<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="2" {{if .Required}}required{{end}}
+<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{end}}
   placeholder="How you will know it is done">{{.DOD}}</textarea></label>
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
 {{end}}
