@@ -51,6 +51,8 @@ Inbox item has following fields:
 
 An inbox item can not be snoozed - see "Time fields".
 
+**The text may be written with notation in it** - `Book the tyre change @garage #car #short` - and it stays text: the item has no context, no tags and no size, and nothing reads the line until it is processed. This is not a second way to create things, it is the shortest way to write down what you already knew at the moment of capture. Stopping to open a form is exactly what capture must never require, and a thought that arrives with its area and its size attached loses both if the only place to put them is a screen you are not on. What the notation is worth is claimed in Inbox Zero, where the branches that create something read the line and start their form from it (see "Inbox Zero").
+
 #### External capture
 Adding items to the inbox must be possible from outside the app.
 The app exposes a simple consuming API for this - a single endpoint accepting a text payload - so that captures can arrive from scripts, CLI, a mobile share sheet, email or any other tool without opening the app.
@@ -554,6 +556,12 @@ The views are readable from outside the app, so that an AI can analyse what is g
 A dedicated mode that processes captured items one at a time, oldest first. It processes the inbox and nothing else: an idea that has become worth deciding about is sent back to the inbox first (see "Reshaping items"), so there is one screen where things are decided and one kind of item it decides about. A second entry point, from a list of things deliberately not being decided about, was tried and removed - it offered a branch or two that only made sense there, and it meant the app had two answers to "where do decisions happen".
 While the process runs everything else is hidden from view - only the current item is shown.
 For each item the only question asked is: what is it? The answer is one of:
+
+The three branches that create something - Action, Project and Someday/Maybe - **read the captured line as notation on the way into their form**: whatever that item's meta line can hold moves into it, and the words that are left become the title. An action's line holds all of it; a project's and a someday item's hold the tags, and a context or a size written on such a capture stays in the title, where it is seen and dealt with by hand (see "Writing a project", "Someday/maybe item"). A name that is not on a remembered list is prose and stays put, which is the same rule the meta line itself obeys and what keeps `marju@gmail.com` out of the context box (see "Contexts").
+
+Nothing is decided by this. It fills in a form that is still answered by hand, and a line the notation cannot account for - two contexts, an unreadable date - is left alone entirely rather than half moved: what was dropped would be invisible, and this is the one moment the item is being looked at deliberately.
+
+**Trash, Send to reference materials and the two-minute rule ignore it**, and there is nothing to fix there: those three create no object, so the line has nowhere to be read into. The item leaves exactly as it was captured, notation and all, and that is what the audit entry keeps.
 
 - **Trash**: the item is deleted. Recorded in the audit log.
 - **Send to reference materials**: the item is not actionable, but is worth keeping - a manual, an account number, an article to come back to. It is sent out of the app, to wherever reference material is kept. This is an external action: the app itself stores no reference material. The branch exists so that such captures have a correct answer, instead of being trashed or parked in someday/maybe forever.
