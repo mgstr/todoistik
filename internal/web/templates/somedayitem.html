@@ -5,12 +5,15 @@
      you can leave with the same key everywhere, and a Save that only offers
      itself when there is something to save (design.md, "Editing items"). */}}
 <div class="item" data-cancel="/someday" data-cancel-label="back">
-  {{/* the age hides with every other age (^t): the view it names does not, so
-       the crumb still says where this is. */}}
-  <p class="crumb"><a href="/someday">Someday/Maybe</a><span class="agetext"> · captured {{age $it.CreatedAt}}</span></p>
   <form method="post" action="/somedayitem/{{$it.ID}}" id="itemform" class="stack" data-dirty-save>
     {{template "somedayfields" (dict "Text" $it.Text "Meta" $it.Meta)}}
   </form>
+
+  {{/* the one thing this screen says rather than asks, in the place an
+       action's page says its dates: over the buttons, where it is the last
+       thing read before Inbox is pressed. It hides with every other age
+       (^t), being one. */}}
+  <p class="stamps"><span class="agetext">captured {{age $it.CreatedAt}}</span></p>
   <div class="actionsbar">
     <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
     {{/* the only way out that changes anything: the idea goes back to be
