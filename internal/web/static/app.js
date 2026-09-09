@@ -189,8 +189,14 @@
     const kind = jumpKind(el);
     if (kind === "press") { press(el); return; }
     if (kind === "list") {
+      // whatever had the focus gives it up first — arriving at a list with the
+      // caret still in the filter box means j and k are typed into the box
+      // rather than moving the selection, which is the jump not having
+      // happened at all
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       const row = el.querySelector("[data-kb-row]");
       if (row) select(row);
+      renderKeybar();
       return;
     }
     el.focus();
