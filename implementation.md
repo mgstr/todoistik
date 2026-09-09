@@ -197,6 +197,13 @@ line from the description meant the mouse, or tabbing past everything between.
   hands the screen to `j`/`k`, `enter`, `c` and `t` — the keys that were always
   the way through a list. An empty list is not a destination: there is no row
   to land on
+- **arriving at a list takes the focus off whatever had it**, which is the one
+  thing "arriving" had to be told to do. A jump made from inside a box left the
+  caret in that box, so the row keys that had just been put in reach were typed
+  into it instead — `ctrl-j` out of an open filter line selected a row and then
+  `j` wrote a `j` into the filter. Nothing else needs this: a box takes the
+  focus by being focused and a button takes it by being pressed, and a list is
+  the one destination that is neither
 - **what nothing names is numbered.** A control with no name to take a letter
   from — the Archive's search box, its completed-when dropdown — gets `0`, `1`
   and so on in reading order, and so does one whose every letter is already
@@ -296,9 +303,9 @@ they apply.
   exactly where it was, so abandoning a run costs only the run. It is the same
   principle as processing out of order — an answer forced out of someone who
   does not have one yet is a wrong answer, not a decided item (design.md, "The
-  protocol is followed, not enforced"). Processing a
-  someday/maybe item leaves to `/someday` instead — the screen says where it
-  came from with `data-cancel`, rather than the key layer knowing
+  protocol is followed, not enforced"). The screen says where leaving goes with
+  `data-cancel`, rather than the key layer knowing — it is always the inbox
+  now, and the attribute stays because that is how every screen answers `esc`
 - **an `item` that is no longer in the inbox redirects to the list** rather than
   erroring. It means the item was processed already — in another tab, or by a
   back button — and the list is the honest answer to "then what?"
@@ -351,11 +358,12 @@ and all eight branches on screen at once — three buttons and five forms in
   - **nothing changes but the audit log** — Trash, Reference material,
     Two-minute rule. The item leaves and no new object is created; the record
     that it existed is the audit entry
-  - **it moves to a list, still unclarified** — Someday/Maybe from the inbox,
-    Keep incubating for an item already there. Someday/Maybe opens a stage two
-    of its own now (see below); the grouping is about what becomes of the item,
-    not about what the answer costs to give, and what becomes of it here is
-    that it moves and stays unclarified
+  - **it moves to a list, still unclarified** — Someday/Maybe, alone in its row
+    since Keep incubating went with the someday snooze (design.md,
+    "Someday/maybe item"). It opens a stage two of its own (see below); the
+    grouping is about what becomes of the item, not about what the answer costs
+    to give, and what becomes of it here is that it moves and stays
+    unclarified
   - **it is actionable** — Action and Project, the only two answers in this row
     and the only two that create a commitment (see "Stage two"). They carried
     *"— a step"* and *"— an outcome"* while the row was new; the gloss was
@@ -384,11 +392,14 @@ and all eight branches on screen at once — three buttons and five forms in
   `Enter`, exactly as the one-click version did — what the step adds is the
   chance to say the area while the thought is still in your hand, never the
   obligation to have one
-- **Keep incubating keeps its date box**, and is the one branch that is neither
-  a bare button nor a stage. The branch *is* the new date (design.md, "Inbox
-  Zero"), so a one-click version would either set nothing or silently clear the
-  snooze the item already had — and a stage of its own would be a screen for
-  one date box. It stays inline until it has a second thing to ask
+- **the screen has one source now.** It processed a someday/maybe item too,
+  which is where "Keep incubating" and the `src` in every one of these URLs
+  came from. Both are gone: an idea that has become worth deciding about goes
+  back to the inbox first (design.md, "Reshaping items"), so the screen is
+  about an inbox item, the branch forms post to `/process/{id}/{branch}`, and
+  the one branch that only ever made sense for the other source went with it.
+  A parameter that can hold one value is a question the code keeps asking and
+  answering by itself
 
 ### The keys
 
@@ -413,10 +424,6 @@ a link is a link being followed, the way `a` and `p` already were.
   anywhere else — see design.md, "The protocol is followed, not enforced". The
   answer is recorded and recoverable, and a modal on the one screen worked
   hardest would be paid on every pass to protect against a rare slip
-- **Keep incubating has no key**, alone among the branches. That branch *is*
-  the new snooze date it carries, so a keystroke would submit whatever the date
-  box happens to hold — empty, unless touched, which silently clears a snooze
-  the item already had. It waits for a stage two that can ask for the date
 - **stage two's action form takes no keys of its own.** Your hands are in a
   text field there and the key layer stands down while you are typing, which is
   correct. What the browser already gives is enough: `Enter` submits, `esc`
@@ -442,7 +449,7 @@ a link is a link being followed, the way `a` and `p` already were.
 ## Stage two
 
 Answering Action, Project or Someday/Maybe opens a form on the same screen, at
-`/process?src=&item=&as=action|project|someday`. Server-rendered as its own
+`/process?item=&as=action|project|someday`. Server-rendered as its own
 page rather than revealed in place: the second stage has to survive a reload
 and a back button — it is where the typing happens — and a URL that names the
 stage is what gives it that for free. It also keeps the rule that the server is the single
@@ -450,12 +457,11 @@ source of truth (see "Stack"), which a stage that only exists in the DOM would
 quietly break.
 
 - **the Someday/Maybe form is the small one**, and it is a stage for one
-  reason: the meta line. Its three fields are `somedayfields` in
-  `_layout.html`, shared with `/somedayitem/{id}` so that filing an idea and
-  editing it a month later are the same three boxes in the same order
-  (design.md, "Editing items"). The idea box takes the focus, the way the title
-  box does on the other two forms — it is the one field that arrives pre-filled
-  and might be retyped
+  reason: the meta line. Its two fields are `somedayfields` in `_layout.html`,
+  shared with `/somedayitem/{id}` so that filing an idea and editing it a month
+  later are the same two boxes in the same order (design.md, "Editing items").
+  The idea box takes the focus, the way the title box does on the other two
+  forms — it is the one field that arrives pre-filled and might be retyped
 - **`esc` and "back" both go to stage one**, not out of the screen. Leaving is
   still one press away from there, so abandoning costs at most two — and each
   press undoes exactly the last decision, which is what a stage-two `esc`
@@ -523,25 +529,41 @@ quietly break.
 
 ## The someday item's page
 
-`/somedayitem/{id}` — one screen, three fields and three controls. It is where
-an idea is read a month after it was filed, which is why the form it is filed
-on is this one (`somedayfields`, see "Stage two").
+`/somedayitem/{id}` — two fields and three buttons, and it is the only screen
+that acts on an idea. The list it sits in carries no controls at all: a row is
+opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
 
-- **the three controls are the three ways out**: *Move on it — process*, which
-  opens the processing screen with this item as its subject; *Inbox*, which
-  sends it back to be decided about; and *Trash*. Save is the form's own
-  button, above them — editing an idea is not leaving it
-- **Inbox is a plain button, not the danger one.** Nothing is lost that the app
-  holds: the text is captured again and the entry keeps the tags and the snooze
-  that did not survive (design.md, "Reshaping items"). What it costs is that
-  the inbox now has to be emptied, which is the point of pressing it
-- **it has no key of its own**, and neither does Trash here. This is a screen
-  you arrive at to read and edit one idea, not one you work down a list on, and
-  a letter that files or deletes the thing you are reading is a keystroke away
-  from the box you are typing in
-- **the redirect goes to the Inbox, not back to the list.** The item is not on
-  the someday list any more, and the honest answer to "then what?" is the place
-  it went — which is also the place that now has one more thing to answer
+- **it is shaped like an action's page**, because it is the same screen with
+  fewer fields: the form is `somedayfields` (see "Stage two"), the buttons are
+  one `.actionsbar` row under it, and Save belongs to the form above while
+  sitting in that row with the rest. One row of everything this screen can do,
+  in one order, is worth more than putting each control next to what it acts on
+- **Save is `data-dirty-save`**, so it is dead until something differs from
+  what the server sent — design.md, "Editing items" asks for exactly that
+  ("saving is offered only when there is something to save"), and the mechanism
+  was already there for actions. It costs nothing per screen: the gate compares
+  each field with its own `defaultValue`
+- **the buttons are one size because they are one row.** Save was inside the
+  `.stack` form before, where a form's button is full width, so the screen had
+  a page-wide primary above two small ones. In the bar they are three buttons
+  with the same padding and the same metrics, and the link among them wears
+  `.button` and is one to the pixel
+- **Inbox is the only control that changes anything else**, and it is a plain
+  button rather than the danger one. Nothing is lost that the app holds: the
+  text is captured again with the tags written into it (design.md, "Reshaping
+  items"). What it costs is that the inbox now has to be emptied, which is the
+  point of pressing it
+- **there is no Trash here.** An idea is trashed where everything else is
+  trashed — in the inbox, by the branch that does that — so this screen does
+  not carry a second, quieter copy of a decision the app makes in one place
+- **Back is a link and `esc` is the same door.** `data-cancel="/someday"` on
+  the item, `data-cancel-label="back"`, exactly as an action's page does it, so
+  the key bar reads `esc back` and the mouse has a button that goes where the
+  key goes
+- **the redirect after Inbox goes to the Inbox, not back to the list.** The
+  item is not on the someday list any more, and the honest answer to "then
+  what?" is the place it went — which is also the place that now has one more
+  thing to answer
 
 ## Create buttons
 
@@ -1480,7 +1502,7 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 13 v
 - **where a row is both the current view and the alert, the alert wins the badge.** Standing on the Inbox is not the same as having emptied it, so its count stays red-on-white rather than turning accent — the label already resolves this way, and a badge disagreeing with the label beside it would be saying two things at once
 - **a badge is omitted entirely when its count is 0**, never shown as a bare "0". A wall of empty badges is exactly the noise a badge exists to cut through
 - **Inbox is the one exception to how the signal is carried**: when its count is non-zero, the nav *label itself* changes color, not just its badge. Design.md treats a non-empty inbox as the one state with a non-negotiable response ("Inbox Zero" run "regularly, and always as part of the weekly review"), so it gets a stronger signal than a small badge can give it
-- **while the processing screen is up, the slot it was reached from reads "Processing…"** — the Inbox's for an Inbox Zero run or for a single picked item, the Someday/Maybe one for an item you decided to move on (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen, and marked the Inbox even when the item being processed came from Someday/Maybe. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I"
+- **while the processing screen is up, the Inbox slot reads "Processing…"** — for an Inbox Zero run or for a single picked item (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I". Someday/Maybe borrowed the same label for a while, for items processed from that list; it stopped needing it when the inbox became the only source
 - **that slot drops its badge and its red for as long as it reads "Processing…"**. The count means the inbox needs emptying and the red says it loudly (see the exception above); both are answered by the fact that you are emptying it at that moment, and an alarm about the thing you are currently doing is noise. Nothing else carries the number at the moment either: the line that read *"Inbox Zero · N left"* was removed with the rest of the screen's prose (see "The processing screen"), so a run currently counts down invisibly. Whether it comes back, and where, is the open question in `research/process-subject-study.html` — and "nowhere" is a live answer, because a count you cannot see is also a count you cannot be discouraged by. The slot stays a link with its `g i` intact: `esc` is the way out (see "Processing from the Inbox") and the nav must not be the one route that quietly stops working
 
 - **doing does not borrow the slot; it highlights the view it was opened
@@ -1883,7 +1905,10 @@ still reports it, a value rewritten only where the old value is still there.
   written while it existed — which is the same property design.md relies on for
   recovering a trashed item, applied to a dropped field. Migrating out the
   project description did not destroy a single one; they are all still readable
-  in `audit_log.snapshot`
+  in `audit_log.snapshot`. The same goes for the someday/maybe snooze, dropped
+  when an idea stopped having one (design.md, "Someday/maybe item"): the dates
+  that were live at the time are still in the entries that recorded them, which
+  is the only place a dropped column can honestly be kept
 - **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
   rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
   current
