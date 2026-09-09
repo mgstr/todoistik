@@ -107,16 +107,17 @@ Fields:
 - Text: (required) free-form, the idea as captured, editable
 - Tags: (optional) the areas of responsibility the idea belongs to
 - Creation date: (required) it shows the age of the idea
-- lastReviewedAt, snoozeUntil - see "Time fields"
+- lastReviewedAt - see "Time fields"
 
 Nothing else an action carries is here - no context, no size, no deadline, nobody it is waiting on. Every one of those describes doing something, and this is precisely the thing you have decided not to do yet; the item takes them on when it becomes an action, and not before.
+
+**There is no `snoozeUntil` either**, and that is the one omission worth arguing for, since projects and actions both have one. A snooze says "this is already a commitment, do not bother me about it until then" - and a someday/maybe item is the opposite of a commitment, so there is nothing here to be shelved. What a date on one would actually do is hide an idea from the walk that exists to look at ideas, on a list nobody is bothered by in the first place: this view is opened deliberately and never nags. The date also asked a question the item cannot answer honestly - "when does this become worth looking at" is exactly what you do not know about something you have not committed to. So the list is walked whole, on its own cadence, and an idea that is not worth a second of that walk is trashed instead of postponed.
 
 Rules:
 - items become someday/maybe items from the inbox, as one of the outcomes of Inbox Zero, and the wording and the tags are settled there, as part of that answer (see Inbox Zero)
 - both stay editable afterwards, on the item's own page. Rewording an idea and moving it to the area it turns out to belong to are things noticed while reading the list it sits in, and neither is a commitment being made
-- an item can go back to the inbox, when it stops being something for later and becomes something to decide about - see "Reshaping items"
-- when you decide to move on an item, it is processed exactly the same way as an inbox item (see Inbox Zero)
-- someday/maybe items are reviewed on their own, longer cadence - a month by default rather than the week everything else gets (see "Weekly review"). A `snoozeUntil` does not exclude an item from that walk: the date is itself a claim - "this becomes worth looking at then" - and the review is the only place a stale one is caught
+- **there is one way out, and it is the inbox.** When an idea stops being something for later - because you have decided to move on it, or decided it is worthless - it goes back to the inbox and is answered there, by the same branches every other capture is answered by, trash included (see "Reshaping items"). Deciding about it *here* would be a second processing screen, reached from a list of things explicitly not being decided about, offering answers that only make sense for one kind of item. One place where decisions are made is worth more than a shortcut
+- someday/maybe items are reviewed on their own, longer cadence - a month by default rather than the week everything else gets (see "Weekly review")
 
 ### Action
 An action is a single (non-breakable into smaller parts) task, that should be done in order to move to the desired goal.
@@ -170,7 +171,7 @@ Time related fields, and the items each one applies to:
 - due date: (optional, **actions only**) a real, externally imposed deadline, after which there are consequences outside your control. It is not a way to hide an item until a date and not a self-imposed target - invented deadlines are what makes the real ones stop working. Deferring something to a date is what `snoozeUntil` is for. It is what the "Calendar" view is built on, and it is shown wherever the item appears
 - lastReviewedAt: (required, projects, actions, someday/maybe items and schedules) when the item was last reviewed. Stamped with the creation date when the item is created - creating an item is always a conscious act, so creation counts as its first review, and the field is never empty. It drives the weekly review: it shows what has already been walked through and what is still outstanding, which is what makes an interrupted review resumable
 - becameNextActionAt: (optional, actions only) when the action became a next action. An empty field means the action is not a next action - it is parked, written down in advance during planning. Only an action inside a project can be parked; a standalone action always has this field set - see "Standalone actions". A **real** next action is one where `becameNextActionAt` is set and `completedAt` is still empty. The field doubles as the age of the next action, which is what shows an action that has been next for a long time without moving, and for actions with "assigned to" set it is also the delegation date. Because it is also the delegation date, changing "assigned to" restamps it: delegating an action starts a new clock - you stopped waiting on yourself and started waiting on them - and taking an action back restamps it again for the same reason in reverse. Without the restamp, an action that had been next for three weeks and was then delegated would look three weeks stale in the "Waiting for" view on day one.
-- snoozeUntil: (optional, projects, actions and someday/maybe items) marks the item as not yet ready to be worked on, until that date passes
+- snoozeUntil: (optional, projects and actions) marks the item as not yet ready to be worked on, until that date passes
 - completedAt: (optional, projects and actions) when the item was completed. Being set is what makes the item done - there is no separate status flag
 
 Every one of these is a date and never a time of day, and they are all read against a single clock: the timezone the app is configured with. "Today" therefore means the same day everywhere it is asked - the `#today` clearing, lazy schedule firing, "due today" and overdue all share the one boundary, and a capture sent from a phone in another timezone lands on the app's day, not the phone's. Two clocks would mean two opinions about whether something is overdue, which is the kind of disagreement that makes a view stop being trusted.
@@ -181,11 +182,11 @@ A due date and a `snoozeUntil` may be **written as a word** rather than as a dat
 - **`today` is a real answer to a deadline and no answer at all to a snooze.** A snooze is a claim that this is not worth looking at yet, so it names a day that is still ahead; `snooze:today` is refused by name rather than stored as a date that has already arrived and means nothing.
 - **an explicit date in the past is not refused**, on either field. That is a claim that went stale rather than one that was never meant, and catching a stale claim is what the weekly review is for - see "Weekly review".
 
-`snoozeUntil` is a universal field and means the same thing everywhere it appears - on projects, actions and someday/maybe items: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it.
+`snoozeUntil` means the same thing everywhere it appears - on projects and on actions: do not bother me about this until that date. It is how an already clarified commitment is shelved for a while without losing its DOD, its actions and the material collected in it. It belongs to commitments only: a someday/maybe item has none, for the reason given in "Someday/maybe item", and an inbox item has none, for the reason given below.
 
 `snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date.
 
-A snoozed item is **not hidden** where what it belongs to is read. A snoozed action stays in its project's action list, shown differently to say that it is not yet ready to be worked on: that list is the project's plan, and an action missing from it would make the plan look like something it is not - a project whose only action had become invisible would look stalled while the app insists it is not. The same holds for a snoozed project in the projects list, and for a snoozed someday/maybe item.
+A snoozed item is **not hidden** where what it belongs to is read. A snoozed action stays in its project's action list, shown differently to say that it is not yet ready to be worked on: that list is the project's plan, and an action missing from it would make the plan look like something it is not - a project whose only action had become invisible would look stalled while the app insists it is not. The same holds for a snoozed project in the projects list.
 
 What a snooze actually does:
 - a snoozed **project** is exempt from the stalled project check
@@ -194,7 +195,7 @@ What a snooze actually does:
 
 What a snooze does **not** do is exempt the item from the weekly review. The snooze date is a claim about the future, and claims go stale like everything else: a wrong one either wakes the item at a moment that no longer means anything or keeps it asleep past the moment that did. The review is the only place that can be noticed, so a snoozed item is walked like any other - and checking its date is part of what walking it means.
 
-The single exception is the inbox: an inbox item has no `snoozeUntil`. Snoozing an inbox item is the same thing as making it a someday/maybe item. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
+An inbox item has no `snoozeUntil` at all: snoozing one is the same thing as making it a someday/maybe item. Emptying the inbox is a non-negotiable rule and must not be avoidable by snoozing.
 
 ### Contexts
 A context is a physical prerequisite for doing an action: something that has to be true before the action is possible at all. If the action could be done without it, it is not a context.
@@ -394,10 +395,11 @@ This is the only view with a rule attached to being non-empty: it must be emptie
 ### Someday/Maybe
 The someday/maybe items - raw ideas worth revisiting some time, but not now.
 
-- it is reviewed during the weekly review, snoozed items included, on its own, longer cadence - see "Weekly review"
+- it is reviewed during the weekly review, on its own, longer cadence - see "Weekly review"
 - the age shown is the age of the idea, from its creation date
 - it is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about names and tags: those are the two things a someday/maybe item has to be narrowed by, and asking about a context or a size here would be asking about fields it deliberately does not carry
 - each line shows the tags the idea carries, the way every other list shows them. It is the one thing on the line that is not the idea itself, and it is what turns a list of forty parked ideas into an answer about one area
+- **a line carries no controls.** Everything that can be done to an idea - rewording it, changing the area, sending it back to the inbox - happens on its own page, one keystroke away. A list of ideas is read to think, not to act: the one row control this view had ("move on it") was a second, faster route into a decision that deserves the screen it now takes, and it sat on every row for the one occasion a year each is used
 
 ### Projects
 The active projects, one to a line, with stalled ones loudly marked and snoozed ones shown differently to mark them as not yet ready. A project leaves this view the moment its `completedAt` is set, and is found in the "Archive" from then on.
@@ -549,7 +551,7 @@ The views are readable from outside the app, so that an AI can analyse what is g
 ## Processes
 
 ### Inbox Zero
-A dedicated mode that processes captured items one at a time, oldest first. It is used to empty the inbox, and also to process a someday/maybe item once you decide to move on it.
+A dedicated mode that processes captured items one at a time, oldest first. It processes the inbox and nothing else: an idea that has become worth deciding about is sent back to the inbox first (see "Reshaping items"), so there is one screen where things are decided and one kind of item it decides about. A second entry point, from a list of things deliberately not being decided about, was tried and removed - it offered a branch or two that only made sense there, and it meant the app had two answers to "where do decisions happen".
 While the process runs everything else is hidden from view - only the current item is shown.
 For each item the only question asked is: what is it? The answer is one of:
 
@@ -565,10 +567,9 @@ For each item the only question asked is: what is it? The answer is one of:
   - a title that is a reference to the outcome, not a description of what to do (validated)
   - a DOD
   - at least one action. Actions are added one at a time, each written in the same form an action is written in anywhere else (see "Writing a project"), and the list can be reordered and pruned before the project is made - what is being decided here is the shape of the plan, and a plan is not written in the order it occurs to you. Every one of them becomes a next action, so none can be parked: a project created already stalled is a contradiction. Delegation is carried by each action's own meta line, because a delegated action belongs to a project exactly as validly as one you will do yourself
-- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, still unclarified, and the answer is written on a form of its own: the **text**, which may be reworded to formulate the idea more clearly; the **tags** that say which areas of responsibility it belongs to; and an optional **`snoozeUntil`** saying when it becomes worth looking at. It is the same form the item is edited on afterwards, so nothing asked here is asked in a shape it has nowhere else (see "Editing items").
+- **Someday/Maybe**: worth looking at some time, but not now. The item becomes a someday/maybe item, still unclarified, and the answer is written on a form of its own: the **text**, which may be reworded to formulate the idea more clearly, and the **tags** that say which areas of responsibility it belongs to. It is the same form the item is edited on afterwards, so nothing asked here is asked in a shape it has nowhere else (see "Editing items").
   - **filing it was one click before, and the tags are what changed that.** The old rule was that answering "what is it?" is the decision being asked for and that wording an idea better is a separate act, done later on the item itself - which was right about the wording and wrong about the area, because an idea filed without one is an idea the monthly walk can neither group nor narrow, and the tag is not extra thinking: it is the thinking that just produced this answer. It is therefore asked for once, at the moment it is cheapest, and never asked for again
-  - **none of the three is required.** An idea with no area yet is filed with no tags, exactly as it was before, and the form costs one `Enter` in that case. What the step buys is the chance to say it while you are still holding the thought - not an obligation to have one
-- **Keep incubating** (only when processing a someday/maybe item): still interesting, still not now. The item stays as it is, with a new `snoozeUntil`.
+  - **neither field is required.** An idea with no area yet is filed with no tags, exactly as it was before, and the form costs one `Enter` in that case. What the step buys is the chance to say it while you are still holding the thought - not an obligation to have one
 
 The process ends when the inbox is empty. The inbox should be emptied regularly, and always as part of the weekly review.
 
@@ -614,14 +615,14 @@ The review is guided, and runs in a fixed order:
 2. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
 3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are walked too - the snooze date is one of the things being asked about.
 4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
-5. **Someday/Maybe** - promote, re-snooze or trash, snoozed items included. This step runs on its own, longer cadence - see below.
+5. **Someday/Maybe** - is this still worth keeping, and is it still about what it says? An idea that has become live, and one that is dead, leave the same way: back to the inbox, to be answered there. This step runs on its own, longer cadence - see below.
 6. **Scheduler** - walk the schedules: is this still wanted, and is the rule still right? A schedule set eight months ago goes on firing whether or not the reason for it still exists, and this is the only place that can be noticed before it lands in the inbox again.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
 Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item whose `lastReviewedAt` is older than its review period is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
 
-The review period is a week for everything except someday/maybe items, which get a month by default (a setting - one number, in days). A parked idea does not change from week to week, and being asked every single review about a list that mostly answers "still parked" is the kind of chore that gets the whole review skipped - which would cost the views their trustworthiness, the one thing the review exists to protect. Snoozing does not stretch the period either way: a snoozed item is still walked when its period runs out, because its snooze date is one of the claims being reviewed.
+The review period is a week for everything except someday/maybe items, which get a month by default (a setting - one number, in days). A parked idea does not change from week to week, and being asked every single review about a list that mostly answers "still parked" is the kind of chore that gets the whole review skipped - which would cost the views their trustworthiness, the one thing the review exists to protect. Snoozing does not stretch the period for the items that have one: a snoozed project or action is still walked when its period runs out, because its snooze date is one of the claims being reviewed.
 
 ### Editing items
 Every item stays editable after it is created, and every edit is recorded in the audit log (see "Audit entry"). Nothing in the app is written once.
@@ -632,7 +633,7 @@ Editing happens in two places:
 
 **In the item itself.** Opening a project or an action shows every field it has, editable, and for a project the full list of actions under it: add one, delete one, rename one, detach one (see "Reshaping items"). This is where a project is actually worked on. The DOD is prose and it is the field step 3 of the weekly review asks about, so it needs the room a list does not have.
 
-**A someday/maybe item has a page of the same kind**, holding the three fields it has: the idea, its tags and its snooze. It is where an idea is reworded, moved to the area it turns out to belong to, sent back to the inbox or trashed - and it is the same form the Someday/Maybe branch of Inbox Zero files it on, because an item is written in one form wherever it is written (see the rule below).
+**A someday/maybe item has a page of the same kind**, holding the two fields it has: the idea and its tags. It is where an idea is reworded, moved to the area it turns out to belong to, or sent back to the inbox - and it is the same form the Someday/Maybe branch of Inbox Zero files it on, because an item is written in one form wherever it is written (see the rule below). It is also the only screen that acts on an idea: the list it sits in carries no controls at all.
 
 **Adding an action to a project opens the action form as its own screen**, from a control under the project's action list. The project is already answered there, the way it is for an action opened from a list. It is a screen and not a box on the project's page because of the rule below: an action is written in one form wherever it is written, and a form that had to be unfolded first was that form in a shape it has nowhere else - on the screen where actions are added most often. What a project's page holds is the project and its list; writing a new action is a step away from it, and coming back is where the new action already is.
 
@@ -664,9 +665,11 @@ Nothing is ever retyped. When an item turns out to be the wrong shape it is conv
 
 An action that belongs to a project and should become a project of its own is first detached, then promoted.
 
-**Back to the inbox** - a someday/maybe item becomes an inbox item again. Used when an idea stops being something for later: the money is there, the boat is finally for sale, the thing you were waiting on has happened - and the honest next step is to decide about it rather than to snooze it again. The inbox is where an undecided thing belongs, and putting it there is what gets it answered: the inbox has to be emptied, and a someday/maybe list does not.
+**Back to the inbox** - a someday/maybe item becomes an inbox item again. It is the only way out of the someday/maybe list, and it covers both reasons for leaving: the idea has become live - the money is there, the boat is finally for sale - or it has died and should be trashed. Either way the answer is a decision, decisions are made in Inbox Zero, and the inbox is the one list that has to be emptied, so an idea put there gets answered rather than settling back among the parked ones.
 
-It keeps its text and nothing else. An inbox item has no tags and no `snoozeUntil` (see "Time fields"), so both are dropped rather than carried invisibly, and the audit entry is where what was dropped is kept. A text that is already sitting in the inbox collapses into the item that is there, by the rule every other way in obeys (see "Duplicate captures") - the idea is in the inbox either way, which is what was asked for.
+**The tags go with it, written into the text**: "Restore the bicycle #hobby". An inbox item has no tags of its own (see "Someday/maybe item"), and dropping them would make the trip back cost something - you would arrive at the processing screen having lost a decision already made about this idea, and be asked to make it again. Written into the line they are still there to read, and still there to retype into the meta line of whatever the item becomes.
+
+A text that is already sitting in the inbox collapses into the item that is there, by the rule every other way in obeys (see "Duplicate captures") - the idea is in the inbox either way, which is what was asked for.
 
 ## Out of scope
 
