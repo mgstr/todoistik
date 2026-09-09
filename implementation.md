@@ -533,6 +533,26 @@ filter box" for how it is built, and design.md, "The filter line" for why.
   on every row whether or not it is about to be used. No direction chosen yet
   — noted here so it is not lost
 
+### The Next view drops snoozed actions in the query
+
+- **the filter lives in `NextActions`, not in the handler or the template.**
+  The view, the nav badge and the read API's `next` all read that one
+  function, so filtering any further out would leave a count disagreeing with
+  the list it counts — which is the disagreement design.md's "there is no
+  separate what-can-I-do-now screen" argument exists to prevent. It tests with
+  `Action.IsSnoozed`, the same one the row styling uses, so "snoozed" keeps a
+  single definition
+- **the weekly review calls `NextActionsWithSnoozed` instead.** Step 4 has to
+  walk the snoozed ones — their date is one of the claims being checked
+  (design.md, "Weekly review") — and a step built on the view's query would
+  have quietly stopped asking about exactly the items whose dates go stale
+  unnoticed. The step's count was never built on that query: `ReviewCounts` is
+  its own SQL and already counts them, so the count and the list still agree
+- **nothing else moved.** The stalled project check has its own opinion of
+  what a next action is (design.md: a snoozed action still counts as one),
+  Tasks and the project page still list them, and the `zzz until` badge and
+  the dimmed row stay exactly as they are for every view that still shows one
+
 ## Token boxes
 
 The filter line and the two meta lines are one control (`tokenbox` in
