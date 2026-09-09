@@ -235,3 +235,58 @@ the job the corner started: the digits do not change width either.
 Known trade-off, accepted: with `doing.show_keybar = true` the timer sits
 directly above the bar's right-hand end. Rendered on the page so the collision
 was chosen rather than discovered.
+
+---
+
+## action-page-study.html — the edit-action screen, and where a field's name sits
+
+**2026-09-09 · decided: B, the name in a gutter beside its box.** Implemented in
+`internal/web/templates/_layout.html` (the `actionfields` and `projectfields`
+partials), `internal/web/templates/process_action.html` (the new-project
+dialog), `internal/web/static/style.css` (`.stack label.gutter`) and
+`internal/web/static/app.js` (`missing`).
+
+An action's page was too tall for what it holds. Five layouts were rendered as
+whole screens in both themes, each carrying the same 4 fields, 2 dates and 7
+buttons — nothing was removed from any of them — and the page measures its own
+specimens on load rather than asserting heights:
+
+| | Variant | Height | Outcome |
+|---|---|---|---|
+| A | As built | 429 px | The starting point |
+| **B** | **The name in a gutter** | **341 px** | **Chosen.** Four label lines that were nothing but a word, gone, with every field, name and reading order untouched |
+| C | The project joins the dates line | 329 px | Not taken, though the page recommends it: it turns a `readonly` box into a chip, which is a change to what the screen *contains* and not just to how it is laid out |
+| D | Two columns | 337 px | Rejected by its own measurement — see below |
+| E | No labels at all | 242 px | Not taken. It is B plus C plus deleting the four field names; the shortest, and the only one that removes words from the screen. Still open if B turns out not to be enough |
+
+The page's real finding is the ledger of where the height actually goes: the
+description box 110 px, the four label words 88 px, the button row 65 px, the
+project field 61 px, the two boxes you came to edit 61 px. **D was built
+expecting to win and lost.** The form caps at 34rem inside a 62rem column, so
+half the page is empty for its whole height and filling it looks like the
+obvious fix — but a rail holding seven buttons is itself as tall as the form
+beside it, so the two columns come out level. It buys less than C and spends a
+decision that is written down ("Save stands in the same row as Complete and
+Delete") to do it.
+
+Settled while implementing B, and not visible on the page:
+
+- **the gutter is one width for the whole app**, 7.5rem, rather than sized per
+  form. `project.html` shows a project's fields and its add-action box on one
+  screen, and two forms whose boxes start in different places read as a
+  mistake. 7.5rem is what the longest field name in the app needs —
+  "Definition of done" — so no name wraps anywhere and every box on every
+  screen starts at the same place
+- **the stack keeps its 34rem**, so the trade is 7.5rem of box width for four
+  lines of height. That is the same trade the rail made and for the same
+  reason: height is the axis these screens are short of
+- **the schedule forms and the someday item still stack their labels.** They
+  were outside what was asked for, and their names all fit the same gutter, so
+  joining them is one class each
+
+One thing noticed and not acted on: the title box still carries
+`placeholder="Starts with a verb, fully self-descriptive"` and a project's
+title box `"A reference to the outcome, not what to do"`. implementation.md's
+"neither box carries a placeholder" is about the meta and description boxes, so
+these are not a contradiction — but they are the same sentence that rule was
+written against. They cost no height, so they were no part of this.

@@ -1,0 +1,621 @@
+<title>Action Page Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* -- the study page's own chrome &mdash; the same system the other research/ pages use -- */
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-win:     #1a7f37;
+  --page-warn:    #a2571b;
+  --page-warn-bg: #fdf4e7;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --page-win:     #5fc07a;
+    --page-warn:    #e0a760;
+    --page-warn-bg: #241d12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --page-win:     #5fc07a;
+  --page-warn:    #e0a760;
+  --page-warn-bg: #241d12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 74rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+.dek { margin: .6rem 0 0; max-width: 40rem; color: var(--page-muted); }
+.dek + .dek { margin-top: .5rem; }
+.dek code, p code, li code { font: 400 .88em/1 "IBM Plex Mono", ui-monospace, monospace; }
+
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  margin-top: 1.35rem; padding-top: 1.35rem; border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg); background: var(--page-card);
+  border: 1px solid var(--page-line); border-radius: 8px;
+  padding: .55rem .8rem; cursor: pointer;
+}
+.toggle:hover { border-color: var(--page-accent); color: var(--page-accent); }
+.toggle:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.toggle[aria-pressed="true"] { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+.controls .note { font-size: .85rem; color: var(--page-muted); }
+
+h2.part {
+  margin: 1rem 0 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -.015em;
+  padding-bottom: .5rem; border-bottom: 2px solid var(--page-fg);
+}
+
+/* the measured summary */
+.summary { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.summary th, .summary td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--page-line); vertical-align: baseline; }
+.summary th { font: 600 .72rem/1.4 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); }
+.summary td.num { font-variant-numeric: tabular-nums; font-family: "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; }
+.summary td.win { color: var(--page-win); font-weight: 600; }
+.summary tr.base td { color: var(--page-muted); }
+.summary .k { font: 600 .8rem/1 "IBM Plex Mono", ui-monospace, monospace; color: var(--page-accent); }
+.scroller { overflow-x: auto; }
+
+.card { background: var(--page-card); border: 1px solid var(--page-line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.card > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem .85rem; padding: 1.1rem 1.35rem .85rem; }
+.tag {
+  font: 600 .78rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-accent); border: 1px solid currentColor; border-radius: 5px; padding: .28rem .45rem;
+}
+.card h3 { margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: -.01em; }
+.card .metric {
+  margin-left: auto; font: 600 .85rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums; color: var(--page-muted); white-space: nowrap;
+}
+.card .metric .delta { color: var(--page-win); }
+.card .body { padding: 0 1.35rem 1.25rem; display: flex; flex-direction: column; gap: .8rem; }
+.card p.take { margin: 0; font-size: .93rem; color: var(--page-muted); max-width: 46rem; }
+.card p.take b { color: var(--page-fg); font-weight: 600; }
+.card ul.notes { margin: 0; padding-left: 1.1rem; font-size: .9rem; color: var(--page-muted); max-width: 46rem; display: flex; flex-direction: column; gap: .3rem; }
+.card ul.notes b { color: var(--page-fg); font-weight: 600; }
+.cost {
+  display: inline-flex; align-items: baseline; gap: .4rem;
+  font: 400 .78rem/1.5 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-warn); background: var(--page-warn-bg);
+  border: 1px solid color-mix(in srgb, var(--page-warn) 35%, transparent);
+  border-radius: 6px; padding: .3rem .5rem; align-self: flex-start;
+}
+
+.rail { display: flex; align-items: flex-start; gap: .6rem; }
+.rail .lbl {
+  flex: 0 0 auto; width: 2.6rem; padding-top: .55rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted);
+}
+.frame {
+  flex: 1 1 auto; min-width: 0; container-type: inline-size;
+  border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden;
+}
+body.narrow .frame { max-width: 40rem; }
+
+/* -------------------------------------------------------------------------
+   the specimen: todoistik's own stylesheet, the rules an action's page uses,
+   lifted verbatim from internal/web/static/style.css and scoped under .app
+   ------------------------------------------------------------------------- */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--fg);
+  padding: 1rem max(1.25rem, calc(50% - 31rem)) 2rem;
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
+  --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff; --bar-bg: #eceef3;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
+  --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d; --bar-bg: #1f232b;
+}
+.app form { margin: 0; }
+.app p { margin: 0; }
+.app input, .app textarea, .app button {
+  font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem;
+}
+.app button { cursor: pointer; background: var(--badge-bg); }
+.app button:hover { border-color: var(--accent); }
+.app button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.app button.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.app button.small, .app .button.small { font-size: .8rem; padding: .1rem .45rem; }
+.app .button {
+  display: inline-block; font: inherit; padding: .3rem .5rem;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--badge-bg); color: var(--fg); cursor: pointer; text-decoration: none;
+}
+.app .stack { display: flex; flex-direction: column; gap: .5rem; max-width: 34rem; margin: .75rem 0; }
+.app .stack label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
+.app .stack input, .app .stack textarea { color: var(--fg); }
+.app .fbox { position: relative; flex: 1 1 auto; min-width: 0; }
+.app .fbox > input, .app .fmirror {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .88rem; line-height: 1.4;
+  padding: .25rem .5rem; border: 1px solid var(--line); border-radius: 6px;
+  letter-spacing: normal; white-space: pre;
+}
+.app .fbox > input { position: relative; width: 100%; background: transparent; color: var(--fg); }
+.app .fmirror {
+  position: absolute; inset: 0; overflow: hidden;
+  color: transparent; border-color: transparent; pointer-events: none;
+}
+.app .pickerbox { width: 100%; }
+.app .pickerbox[readonly] { cursor: pointer; color: var(--fg); }
+.app .badge {
+  font-size: .76rem; padding: .05rem .4rem; border-radius: 8px;
+  background: var(--badge-bg); color: var(--muted); white-space: nowrap;
+}
+.app .badge.proj { background: transparent; border: 1px solid var(--line); }
+.app .stamps {
+  display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap;
+  color: var(--muted); font-size: .9rem; margin: 1rem 0 0;
+}
+.app .actionsbar { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; align-items: center; }
+/* ^t, the ages flag: the line is gone, not blanked */
+.app:not(.ages) .agetext { display: none; }
+
+/* --- B --- labels in a gutter. Needs the label word wrapped in a span,
+   which actionfields does not do today. Lifts into style.css as `.stack.gutter`. */
+.v-B .stack label { flex-direction: row; align-items: baseline; gap: .6rem; }
+.v-B .stack label > .lb { flex: 0 0 4.75rem; text-align: right; }
+.v-B .stack label > input,
+.v-B .stack label > textarea,
+.v-B .stack label > .fbox { flex: 1 1 auto; min-width: 0; }
+
+/* --- C --- no new CSS at all: the project moves out of the form into the
+   stamps line, which is already a flex row of muted facts. */
+
+/* --- D --- two columns. Lifts into style.css as `.item.split`. */
+.v-D { display: grid; grid-template-columns: minmax(0, 34rem) minmax(13rem, 1fr); gap: 1.75rem; align-items: start; }
+.v-D .stack { margin: .75rem 0 0; }
+.v-D .side { display: flex; flex-direction: column; margin: .75rem 0 0; }
+.v-D .side .stamps { margin: .45rem 0 0; display: block; }
+.v-D .side .projline { font-size: .9rem; }
+.v-D .actionsbar { flex-direction: column; align-items: stretch; gap: .35rem; margin: .75rem 0 0; }
+.v-D .actionsbar > button, .v-D .actionsbar > .button { width: 100%; text-align: center; }
+@container (max-width: 52rem) {
+  .v-D { grid-template-columns: 1fr; gap: .5rem; }
+  .v-D .actionsbar { flex-direction: row; align-items: center; }
+  .v-D .actionsbar > button, .v-D .actionsbar > .button { width: auto; }
+}
+
+/* --- E --- no labels, tight rows. Lifts into style.css as `.stack.bare`. */
+.v-E .stack { gap: .4rem; }
+.v-E .etitle { font-size: 1.05rem; }
+.v-E .actionsbar { gap: .4rem; margin: .85rem 0 0; }
+
+footer.close { color: var(--page-muted); font-size: .9rem; border-top: 1px solid var(--page-line); padding-top: 1.25rem; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">research &middot; the action's own page</p>
+  <h1>Five ways to shorten the edit-action screen</h1>
+  <p class="dek">The same four fields, the same two dates and the same seven buttons, laid out five
+    ways. Nothing is removed: every variant below carries <b>4 fields &middot; 2 dates &middot; 7 buttons</b>,
+    and each is rendered with <code>style.css</code> itself rather than a mockup of it, in both themes.</p>
+  <p class="dek">The heights in the table are measured off this page after it loads, not estimated.
+    They are the height of <code>main</code>'s content &mdash; the rail, the title bar and the key bar are
+    constant chrome and are left out of every frame.</p>
+
+  <div class="controls">
+    <button class="toggle" id="t-standalone" type="button" aria-pressed="false">standalone action</button>
+    <button class="toggle" id="t-ages" type="button" aria-pressed="true">ages shown (^t)</button>
+    <button class="toggle" id="t-narrow" type="button" aria-pressed="false">narrow window</button>
+    <span class="note">Ages off is the deciding test for C, D and E &mdash; it is the moment their merged line has to survive on its own.</span>
+  </div>
+</header>
+
+<section class="scroller">
+  <table class="summary">
+    <thead>
+      <tr><th>&nbsp;</th><th>Variant</th><th>Height</th><th>Saved</th><th>What it changes</th></tr>
+    </thead>
+    <tbody id="summary-body"></tbody>
+  </table>
+</section>
+
+<h2 class="part">The constraints every variant keeps</h2>
+<section class="card">
+  <div class="body" style="padding-top:1.1rem">
+    <ul class="notes">
+      <li><b>The dates read last, over the buttons.</b> Decided two commits ago &mdash; an action is opened
+        to change its title, and a screen that opens with two timestamps has put its least useful line
+        where the eye lands first. No variant moves the button row to the top.</li>
+      <li><b>Save stands in the row with Complete and Delete</b>, via the <code>form</code> attribute
+        (implementation.md, "Writing an action"). One row of everything the screen can do. Only <b>D</b>
+        argues with this, and says so.</li>
+      <li><b>The project is shown, not chosen.</b> Moving an action between projects is Detach and
+        Attach. The box is <code>readonly</code> &mdash; which is why C, D and E are free to draw it as the
+        chip it already is on every list row.</li>
+      <li><b>Four screens share <code>actionfields</code></b> &mdash; the action's page, the processing screen,
+        the add-action dialog, the box under a project's action list. A variant that edits the partial
+        changes all four; a variant that only edits <code>action.html</code> changes one. Each card says which.</li>
+      <li><b>No labels that instruct.</b> Nothing below adds a word of explanation; two variants remove some.</li>
+    </ul>
+  </div>
+</section>
+
+<h2 class="part">Where the height actually goes</h2>
+<section class="card">
+  <div class="body" style="padding-top:1.1rem">
+    <p class="take">Measured off A on this page, so it moves when the stylesheet does. Two thirds of the
+      screen is four label words, one box that is five rows whether or not there is anything in it, and
+      one field that cannot be typed into. That is what decides which variants below are worth their
+      cost &mdash; and it is why the empty half of the column turns out not to be the problem.</p>
+    <div class="scroller">
+      <table class="summary"><thead>
+        <tr><th>What</th><th>Height</th><th>Share</th><th>&nbsp;</th></tr>
+      </thead><tbody id="ledger-body"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<h2 class="part">The variants</h2>
+<div id="cards" style="display:flex; flex-direction:column; gap:2.25rem"></div>
+
+<h2 class="part">What I would take</h2>
+<section class="card">
+  <div class="body" style="padding-top:1.1rem">
+    <p class="take"><b>C, then B if it is still too tall.</b> C is the only one that pays for itself
+      without touching a shared partial or a written decision: the project box was never a control, and
+      the dates line was already a row of muted facts about this action, so the chip goes where it
+      belongs rather than where there was room. B is the honest second course &mdash; it is four lines of
+      pure margin, and its whole cost is one <code>&lt;span&gt;</code> in a partial four screens read.</p>
+    <p class="take"><b>D is the variant I expected to win, and it does not.</b> The form is capped at
+      34rem inside a 62rem column, so nearly half the page sits empty for its whole height, and filling
+      that half looks like the obvious fix. The ledger above says it is not: the height is in the four
+      label words and the description box, not in the empty column, and a rail holding seven buttons is
+      itself nearly as tall as the form beside it. It buys less than C and spends a written decision to
+      do it. Take D if the two-column reading is what you want &mdash; not for the height.</p>
+    <p class="take"><b>E is a question, not a proposal.</b> It is B and C together with the four field
+      labels deleted. On a screen its only user specified and opens several times a day, "Title" over
+      the title box is the same kind of sentence as the placeholder inside it. If that reads as right,
+      E is the answer; if a bare box is one ambiguity too many, C stands.</p>
+  </div>
+</section>
+
+<h2 class="part">One thing noticed on the way past</h2>
+<section class="card">
+  <div class="body" style="padding-top:1.1rem">
+    <p class="take">The title box carries <code>placeholder="Starts with a verb, fully self-descriptive"</code>,
+      and the project form carries <code>"A reference to the outcome, not what to do"</code>.
+      implementation.md's "neither box carries a placeholder" is about the meta and description boxes,
+      so these two are not strictly a contradiction &mdash; but they are the same sentence the rule was written
+      against, read for the hundredth time by the person who wrote the rule. It costs no height, so it is
+      not part of any variant above; it is a one-line deletion whenever you want it.</p>
+  </div>
+</section>
+
+<footer class="close">
+  Built from <code>internal/web/templates/action.html</code>, the <code>actionfields</code> partial in
+  <code>_layout.html</code>, and <code>internal/web/static/style.css</code> as they stand on
+  <code>develop</code>. Every variant's CSS is a single block in this page's stylesheet, ready to lift.
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+const DATA = {
+  title:   "Book the winter tyre change at Tammiste",
+  project: "Car ready for winter",
+  meta:    "@errand #car #short due:2026-10-15",
+  desc:    "Nokian Hakkapeliitta, already on rims in the cellar.\nAsk what they charge for keeping the summer set over the winter.",
+  ages:    "created 3 weeks ago \u00b7 next for 9 days"
+};
+
+const state = { standalone: false, ages: true, narrow: false };
+
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/* the seven buttons, in the order action.html puts them in */
+function bar(small) {
+  const c = small ? " small" : "";
+  const out = [];
+  out.push(`<button type="button" class="primary${c}">Save</button>`);
+  out.push(`<button type="button" class="${c.trim()}">Complete</button>`);
+  out.push(`<button type="button" class="${c.trim()}">Pick for today</button>`);
+  if (state.standalone) {
+    out.push(`<a class="button${c}" href="#">Promote to project</a>`);
+  } else {
+    out.push(`<button type="button" class="${c.trim()}">Park</button>`);
+    out.push(`<button type="button" class="${c.trim()}">Detach</button>`);
+  }
+  out.push(`<button type="button" class="danger${c}">Delete</button>`);
+  out.push(`<a class="button${c}" href="#">Back</a>`);
+  return `<div class="actionsbar">${out.join("")}</div>`;
+}
+
+const projectName = () => state.standalone ? "&lt;standalone&gt;" : esc(DATA.project);
+
+const titleInput  = cls => `<input class="${cls}" value="${esc(DATA.title)}">`;
+const metaBox     = ()  => `<span class="fbox"><span class="fmirror" aria-hidden="true"></span><input value="${esc(DATA.meta)}"></span>`;
+const descBox     = r   => `<textarea rows="${r}" spellcheck="false">${esc(DATA.desc)}</textarea>`;
+const projBox     = ()  => `<input class="pickerbox" readonly tabindex="-1" value="${state.standalone ? "<standalone>" : esc(DATA.project)}">`;
+const agesText    = ()  => `<span class="agetext">${DATA.ages}</span>`;
+
+/* -- A - as built -------------------------------------------------------- */
+function vA() {
+  return `<div class="item">
+    <form class="stack">
+      <label>Title ${titleInput("")}</label>
+      <label>Project ${projBox()}</label>
+      <label>Meta ${metaBox()}</label>
+      <label>Description ${descBox(5)}</label>
+    </form>
+    <p class="stamps">${agesText()}</p>
+    ${bar(false)}
+  </div>`;
+}
+
+/* -- B - labels in a gutter ---------------------------------------------- */
+function vB() {
+  return `<div class="item v-B">
+    <form class="stack">
+      <label><span class="lb">Title</span>${titleInput("")}</label>
+      <label><span class="lb">Project</span>${projBox()}</label>
+      <label><span class="lb">Meta</span>${metaBox()}</label>
+      <label><span class="lb">Description</span>${descBox(5)}</label>
+    </form>
+    <p class="stamps">${agesText()}</p>
+    ${bar(false)}
+  </div>`;
+}
+
+/* -- C - the project joins the dates line -------------------------------- */
+function vC() {
+  return `<div class="item v-C">
+    <form class="stack">
+      <label>Title ${titleInput("")}</label>
+      <label>Meta ${metaBox()}</label>
+      <label>Description ${descBox(3)}</label>
+    </form>
+    <p class="stamps">
+      <span class="badge proj">${projectName()}</span>
+      ${agesText()}
+    </p>
+    ${bar(false)}
+  </div>`;
+}
+
+/* -- D - two columns ----------------------------------------------------- */
+function vD() {
+  return `<div class="item v-D">
+    <form class="stack">
+      <label>Title ${titleInput("")}</label>
+      <label>Meta ${metaBox()}</label>
+      <label>Description ${descBox(5)}</label>
+    </form>
+    <aside class="side">
+      <p class="projline"><span class="badge proj">${projectName()}</span></p>
+      <p class="stamps">${agesText()}</p>
+      ${bar(false)}
+    </aside>
+  </div>`;
+}
+
+/* -- E - no labels ------------------------------------------------------- */
+function vE() {
+  return `<div class="item v-E">
+    <form class="stack">
+      ${titleInput("etitle")}
+      ${metaBox()}
+      ${descBox(3)}
+    </form>
+    <p class="stamps">
+      <span class="badge proj">${projectName()}</span>
+      ${agesText()}
+    </p>
+    ${bar(true)}
+  </div>`;
+}
+
+const VARIANTS = [
+  {
+    key: "A", name: "As built",
+    render: vA,
+    touches: "\u2014",
+    take: "The starting point. Four labelled boxes stacked at 34rem, each label its own line; a five-row description; then the dates and the row of seven. Two of the four boxes hold one short line, and one of those cannot be typed into at all.",
+    notes: [
+      "<b>The project box is the odd one out.</b> It is <code>readonly</code> with <code>tabindex=\"-1\"</code> \u2014 a full-width labelled field that exists to say one name.",
+      "<b>Half the column is empty.</b> <code>.stack</code> caps at 34rem inside a 62rem column, for the whole height of the form. Only the button row uses the rest.",
+      "<b>Five rows of description</b> whether or not there is a description."
+    ]
+  },
+  {
+    key: "B", name: "Labels in a gutter",
+    render: vB,
+    touches: "<code>actionfields</code> \u2014 so all four screens that write an action",
+    take: "Nothing moves except the four label words, from above their control to a right-aligned gutter beside it. The form loses four lines and keeps every field, every name and the reading order exactly as it was.",
+    notes: [
+      "<b>Costs one span.</b> <code>&lt;label&gt;Title &lt;input&gt;</code> is a bare text node, which flex cannot size \u2014 the word has to be wrapped before it can sit in a gutter.",
+      "<b>Changes the processing screen too</b>, and the add-action dialog, and the box under a project's action list. That is either a bonus or the reason not to do it.",
+      "<b>The gutter is 4.75rem</b>, set by \"Description\", the longest of the four words."
+    ]
+  },
+  {
+    key: "C", name: "The project joins the dates",
+    render: vC,
+    touches: "<code>action.html</code> only \u2014 no new CSS",
+    take: "The project stops being a field and becomes the chip it already is on every list row, sitting on the dates line above the buttons; the description drops from five rows to three. The form is left with the three things you can actually type into.",
+    notes: [
+      "<b>Nothing new in the stylesheet.</b> <code>.stamps</code> is already a flex row of muted facts and <code>.badge.proj</code> already exists \u2014 this is markup only.",
+      "<b><code>actionfields</code> is untouched.</b> The page simply stops passing <code>Fixed</code> and draws the chip itself; the <code>Fixed</code> branch stays for the project page and the promote dialog.",
+      "<b>Press ^t.</b> The dates go, the chip stays \u2014 so the line no longer vanishes the way <code>.stamps</code> was built to. It becomes a facts line that sometimes has dates on it, which is a rule worth writing down before shipping it."
+    ]
+  },
+  {
+    key: "D", name: "Two columns",
+    render: vD,
+    touches: "<code>action.html</code> + one CSS block \u2014 and one line of implementation.md",
+    take: "The empty right half of the column becomes a rail: the project, then the dates, then everything the screen can do, stacked. Nothing else changes \u2014 same five-row description, same full-size buttons \u2014 so the number beside it is what the second column is worth on its own. It is worth less than C, which is the finding: a rail of seven buttons is nearly as tall as the form it stands beside, so the two columns come out level and the saving is only the project row and the dates.",
+    notes: [
+      "<b>The row becomes a column.</b> \"Save stands in the same row as Complete and Delete\" is written down and argued for; this keeps them together and keeps Save first, but a column of seven reads as a menu where a row read as a bar. That is the price, and the measurement says it does not buy back more than C gives away for free.",
+      "<b>The dates still read last</b> \u2014 they sit directly above the buttons, in the rail.",
+      "<b>It would measure better with C folded in.</b> A three-row description and the small button size would take it under C \u2014 but then it is C plus a rail, and the rail is not the part that did the work.",
+      "<b>Narrow window folds it back.</b> A container query returns it to one column and the buttons to a row below about 52rem, so it degrades to C rather than to a squeezed grid. Press \"narrow window\" above.",
+      "<b>Delete is now a full-width button</b> next to Back, which is closer to the pointer than it was."
+    ]
+  },
+  {
+    key: "E", name: "No labels",
+    render: vE,
+    touches: "<code>actionfields</code> + <code>action.html</code>",
+    take: "B and C together, with the four label words deleted rather than moved, a three-row description and the small button size the app already has. The title box is a size up so the subject still leads. The shortest of the five, and the only one that removes words from the screen.",
+    notes: [
+      "<b>The boxes identify themselves.</b> The meta line is monospace, the description is the only textarea, the title is the top box and set larger. That is how they are told apart on every other screen already.",
+      "<b>The argument is the app's own.</b> Placeholders and glosses have been stripped from this app on the grounds that its one user wrote the spec; \"Title\" over the title box is the same sentence in a smaller hat.",
+      "<b>Where it could bite:</b> the meta line and the title line are two single-line boxes in a row, and nothing but the typeface separates them. Worth trying with an empty action, where every box is blank.",
+      "<b>Small buttons</b> use the existing <code>.small</code> class, not a new size."
+    ]
+  }
+];
+
+function cardHTML(v) {
+  return `<section class="card" id="card-${v.key}">
+    <header>
+      <span class="tag">${v.key}</span>
+      <h3>${v.name}</h3>
+      <span class="metric" data-metric="${v.key}"></span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">light</span>
+        <div class="frame"><div class="app light${state.ages ? " ages" : ""}" data-spec="${v.key}"></div></div></div>
+      <div class="rail"><span class="lbl">dark</span>
+        <div class="frame"><div class="app dark${state.ages ? " ages" : ""}"></div></div></div>
+      <p class="take">${v.take}</p>
+      <ul class="notes">${v.notes.map(n => `<li>${n}</li>`).join("")}</ul>
+      <span class="cost">touches: ${v.touches}</span>
+    </div>
+  </section>`;
+}
+
+const cards = document.getElementById("cards");
+cards.innerHTML = VARIANTS.map(cardHTML).join("");
+
+/* the padding main adds above and below its content, constant in every frame */
+const CHROME = 48;
+
+function paint() {
+  document.body.classList.toggle("narrow", state.narrow);
+  for (const v of VARIANTS) {
+    const html = v.render();
+    for (const app of document.querySelectorAll(`#card-${v.key} .app`)) {
+      app.classList.toggle("ages", state.ages);
+      app.innerHTML = html;
+    }
+  }
+  measure();
+}
+
+function measure() {
+  const base = document.querySelector('[data-spec="A"]').scrollHeight - CHROME;
+  const rows = [];
+  for (const v of VARIANTS) {
+    const h = document.querySelector(`[data-spec="${v.key}"]`).scrollHeight - CHROME;
+    const saved = base - h;
+    const pct = Math.round((saved / base) * 100);
+    document.querySelector(`[data-metric="${v.key}"]`).innerHTML =
+      v.key === "A" ? `${h} px` : `${h} px <span class="delta">\u2212${pct}%</span>`;
+    rows.push(`<tr class="${v.key === "A" ? "base" : ""}">
+      <td class="k">${v.key}</td>
+      <td>${v.name}</td>
+      <td class="num">${h} px</td>
+      <td class="num ${v.key === "A" ? "" : "win"}">${v.key === "A" ? "\u2014" : `\u2212${saved} px \u00b7 \u2212${pct}%`}</td>
+      <td>${v.touches}</td>
+    </tr>`);
+  }
+  document.getElementById("summary-body").innerHTML = rows.join("");
+  ledger(base);
+}
+
+/* what A spends its height on, read off the rendered specimen */
+function ledger(total) {
+  const a = document.querySelector('[data-spec="A"]');
+  const labels = [...a.querySelectorAll(".stack label")];
+  const px = el => Math.round(el.getBoundingClientRect().height);
+  const words = labels.reduce((n, l) => n + px(l) - px(l.querySelector("input, textarea, .fbox")), 0);
+  const items = [
+    ["The four label words", words, "one line each, above the box they name"],
+    ["The description box", px(labels[3].querySelector("textarea")), "five rows, empty or not"],
+    ["The project field", px(labels[1]) + 8, "a full-width box that cannot be typed into"],
+    ["The title and meta boxes", px(labels[0].querySelector("input")) + px(labels[2].querySelector(".fbox")),
+     "the two lines you came here to change"],
+    ["The dates line", px(a.querySelector(".stamps")) + 16, "with the gap above it"],
+    ["The button row", px(a.querySelector(".actionsbar")) + 32, "seven of them, one line, with its margins"]
+  ].sort((x, y) => y[1] - x[1]);
+  document.getElementById("ledger-body").innerHTML = items.map(([what, h, why]) =>
+    `<tr><td>${what}</td><td class="num">${h} px</td><td class="num">${Math.round(h / total * 100)}%</td>` +
+    `<td style="color:var(--page-muted)">${why}</td></tr>`).join("") +
+    `<tr class="base"><td><b>Total</b></td><td class="num"><b>${total} px</b></td><td class="num"></td>` +
+    `<td>the gaps between the rows make up the rest</td></tr>`;
+}
+
+function wire(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener("click", () => {
+    state[key] = !state[key];
+    el.setAttribute("aria-pressed", String(state[key]));
+    if (key === "ages") el.textContent = state.ages ? "ages shown (^t)" : "ages hidden (^t)";
+    if (key === "standalone") el.textContent = state.standalone ? "standalone action" : "action in a project";
+    if (key === "narrow") el.textContent = state.narrow ? "narrow window" : "full width";
+    paint();
+  });
+}
+wire("t-standalone", "standalone");
+wire("t-ages", "ages");
+wire("t-narrow", "narrow");
+
+document.getElementById("t-standalone").textContent = "action in a project";
+document.getElementById("t-narrow").textContent = "full width";
+
+paint();
+/* the frames only settle once the webfont has swapped in */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+window.addEventListener("resize", measure);
+</script>

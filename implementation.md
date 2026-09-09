@@ -553,6 +553,47 @@ filter box" for how it is built, and design.md, "The filter line" for why.
   Tasks and the project page still list them, and the `zzz until` badge and
   the dimmed row stay exactly as they are for every view that still shows one
 
+### A field's name sits beside its box, not above it
+
+`.stack label` used to be a column: the name on one line, the box on the next.
+An action's page has four of them, so a fifth of that screen's height was four
+lines carrying one word each, read for the hundredth time by the person who
+chose the words. The name now sits in a right-aligned gutter to the left of its
+box — `label.gutter`, with the word in a `.lb` span — which took the page from
+429 px of content to 341 px with every field, every name and the reading order
+untouched. See `research/action-page-study.html` for the five layouts this was
+measured against, and for the ledger of where the height actually goes.
+
+- **the gutter is one width for the whole app**, 7.5rem, rather than sized per
+  form. `project.html` shows a project's fields and its add-action box on one
+  screen, and two forms whose boxes start in different places read as a mistake
+  rather than as two forms. 7.5rem is what the longest field name in the app
+  needs — "Definition of done" — so no name wraps anywhere and every box on
+  every screen starts in the same place
+- **the stack keeps its 34rem**, so the trade is 7.5rem of box width for four
+  lines of height. It is the same trade the rail makes and it is made for the
+  same reason: height is the axis these screens are short of ("Screen layout")
+- **the name had to become an element.** Flex cannot size a bare text node, so
+  `<label>Title <input>` could not put "Title" in a gutter however the label
+  was laid out. It is a `<span class="lb">` now — which is also what the create
+  gate reads the field's name off, so the bar still says "needs a definition of
+  done" in the screen's own words (see "Create buttons"). `missing` in `app.js`
+  takes the span where there is one and the leading text node where there is
+  not, because the forms below have not moved
+- **it reaches every screen that writes an action or a project**, because both
+  are written through one partial each and both partials moved: the action's
+  page, the project's page and its add-action box, both branches of the
+  processing screen, promoting, and the two dialogs — the add-action dialog and
+  the new-project dialog, whose two fields are the one hand-written copy of
+  `projectfields` in the app
+- **the schedule forms and the someday item still stack their names.** They are
+  neither an action nor a project, so they were outside what this change was
+  for; their names all fit the same 7.5rem, so joining them is one class each
+  whenever that is wanted
+- **nothing about the fields moved** — not which they are, not their order, not
+  their validation, not what they mean. This is presentation, so design.md says
+  nothing new about it
+
 ## Token boxes
 
 The filter line and the two meta lines are one control (`tokenbox` in
@@ -1450,6 +1491,10 @@ is the only difference between them, and it says which of the three answers
 this screen has: choose one (`Picker`), it is already decided and here is
 which (`Fixed`), or the screen has answered it elsewhere.
 
+- **each field's name sits beside its box**, in the app-wide gutter rather than
+  on a line of its own — see "A field's name sits beside its box, not above it".
+  The partial is where the `.gutter` label and its `.lb` span are written, so no
+  screen that writes an action can drift out of the alignment
 - **an action opened from a list shows its project and cannot change it.**
   `Fixed` with the project's title, or `<standalone>`. It is not a missing
   control: moving an action between projects is Detach and Attach (design.md,
@@ -1517,6 +1562,10 @@ there is nothing for an action to belong to — design.md will not make a projec
 without one. So the screen holds the actions itself, as rows of hidden fields
 inside the form.
 
+- **the fields are `projectfields`, and their names sit in the same gutter**
+  every other form uses — including "Definition of done", which is the longest
+  name in the app and so the one that sets the gutter's width (see "A field's
+  name sits beside its box, not above it")
 - **an action written here is a row, not a saved thing.** Three hidden fields —
   `atitle`, `ameta`, `adescription` — zipped by index on the server. Plain form
   fields rather than state held in the keyboard layer, because that is what

@@ -224,10 +224,10 @@
      the meta line says what the app thinks this action is, the description
      says what it is about. The notation lives in the ? panel, not beside the
      box. */}}
-<label>Title <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
+<label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
 {{if .Picker}}
-<label>Project
+<label class="gutter"><span class="lb">Project</span>
   <div class="picker" data-picker>
     <input type="hidden" name="projectid" value="">
     <input type="hidden" name="newproject" value="">
@@ -247,10 +247,10 @@
   </div>
 </label>
 {{else if .Fixed}}
-<label>Project <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
+<label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
-<label>Meta {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
-<label>Description <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
+<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
+<label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="5" spellcheck="false">{{.Description}}</textarea></label>
 {{end}}
 
 {{define "projectfields"}}
@@ -264,11 +264,11 @@
      with no definition of done cannot be created, but one that has lost its
      DOD is in the error state design.md gives it and still has to be saveable
      (see "Error state"). */}}
-<label>Title <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
+<label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="A reference to the outcome, not what to do"></label>
-<label>Definition of done <textarea name="dod" rows="2" {{if .Required}}required{{end}}
+<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="2" {{if .Required}}required{{end}}
   placeholder="How you will know it is done">{{.DOD}}</textarea></label>
-<label>Meta {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
+<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
 {{end}}
 
 {{define "projectrow"}}

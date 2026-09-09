@@ -373,6 +373,26 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .stack { display: flex; flex-direction: column; gap: .5rem; max-width: 34rem; margin: .75rem 0; }
 .stack label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
 .stack input, .stack textarea, .stack select { color: var(--fg); }
+/* A field's name beside its box rather than on a line of its own. Four fields
+   on an action's page meant four lines that were nothing but a word, which is
+   a fifth of the screen's height spent naming boxes that are opened several
+   times a day by the person who named them — see research/action-page-study.html
+   for the five layouts this was measured against and chosen from.
+
+   The gutter is one width for the whole app, not per form: `project.html` shows
+   a project's fields and its add-action box on one screen, and two forms whose
+   boxes start in different places read as a mistake. 7.5rem is what the longest
+   field name in the app needs — "Definition of done" — so no name ever wraps
+   and every box on every screen starts at the same place. The stack keeps its
+   34rem, so the trade is 7.5rem of box width for four lines of height. */
+.stack label.gutter { flex-direction: row; align-items: baseline; gap: .6rem; }
+.stack label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
+/* every kind of control the two forms put in a label: the plain boxes, the
+   meta line's wrapper, and the project picker */
+.stack label.gutter > input,
+.stack label.gutter > textarea,
+.stack label.gutter > .fbox,
+.stack label.gutter > .picker { flex: 1 1 auto; min-width: 0; }
 /* the meta line is notation, so it is set in the face the notation is set in
    everywhere else — the ? panel's terms, the audit log. It also stops @home
    and #short from reading as words in a sentence, which is the whole reason
@@ -402,7 +422,6 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    everywhere else, but nothing about it can be pressed or typed into */
 #draft-dialog .pickerbox[readonly] { cursor: default; color: var(--muted); }
 
-.inline-label { flex-direction: row !important; align-items: center; }
 /* the dates over the buttons on an action's page: the same muted line the
    crumb is set in, sat where the crumb used to be read *from* rather than at
    the top of the screen. A flex row so that the line simply disappears when

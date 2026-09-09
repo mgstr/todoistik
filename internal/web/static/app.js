@@ -351,7 +351,10 @@
         if (el.dataset.label) return el.dataset.label;
         const label = el.closest("label");
         if (!label) return el.name;
-        return label.childNodes[0].textContent.trim().toLowerCase() || el.name;
+        // the name is its own element on a label that puts it in a gutter, and
+        // a bare text node in front of the box everywhere else
+        const word = label.querySelector(".lb") || label.childNodes[0];
+        return word.textContent.trim().toLowerCase() || el.name;
       });
   }
 
