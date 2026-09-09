@@ -7,8 +7,12 @@ import (
 	"time"
 )
 
+// The day the tests are standing on: a Monday, so that "the next monday" has
+// a wrong answer to give (today) as well as the right one (a week out).
+const testToday = "2026-09-14"
+
 func vocab(contexts, tags []string) *Vocabulary {
-	v := &Vocabulary{Contexts: map[string]bool{}, Tags: map[string]bool{}}
+	v := &Vocabulary{Contexts: map[string]bool{}, Tags: map[string]bool{}, Today: testToday}
 	for _, c := range contexts {
 		v.Contexts[c] = true
 	}
@@ -240,5 +244,97 @@ func TestWriteProjectMetaRoundTrips(t *testing.T) {
 	}
 	if got := WriteProjectMeta(&Project{}); got != "" {
 		t.Fatalf("nothing to say means an empty box, got %q", got)
+	}
+}
+
+// A date may be written as a word, and the word is resolved on the way in, so
+// that what is stored is always the date it landed on.
+func TestParseMetaRelativeDates(t *testing.T) {
+	v := vocab(nil, nil)
+	cases := []struct{ in, due string }{
+		{"due:today", "2026-09-14"},
+		{"due:tomorrow", "2026-09-15"},
+		{"due:2026-09-20", "2026-09-20"},
+		// the next one of that name, and never the one being stood on
+		{"due:monday", "2026-09-21"},
+		{"due:tuesday", "2026-09-15"},
+		{"due:friday", "2026-09-18"},
+		{"due:sunday", "2026-09-20"},
+		{"due:3days", "2026-09-17"},
+		{"due:3d", "2026-09-17"},
+		{"due:1day", "2026-09-15"},
+		{"due:0days", "2026-09-14"},
+		{"due:30days", "2026-10-14"},
+	}
+	for _, c := range cases {
+		f, err := ParseMeta(c.in, v, false)
+		if err != nil {
+			t.Fatalf("%s: %v", c.in, err)
+		}
+		if f.DueDate != c.due {
+			t.Fatalf("%s: due %s, want %s", c.in, f.DueDate, c.due)
+		}
+	}
+	// snooze reads the same words, and is written back out as the date
+	f, err := ParseMeta("snooze:friday", v, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.SnoozeUntil != "2026-09-18" {
+		t.Fatalf("snooze: %s", f.SnoozeUntil)
+	}
+	if got := (&Action{SnoozeUntil: f.SnoozeUntil}).Meta(); got != "snooze:2026-09-18" {
+		t.Fatalf("a word must not survive the round trip: %q", got)
+	}
+}
+
+// A snooze names a day that is still ahead, so the words that mean today are
+// refused on it — and only on it, since they are a real answer to a deadline.
+func TestParseMetaSnoozeRefusesToday(t *testing.T) {
+	v := vocab(nil, nil)
+	for _, in := range []string{"snooze:today", "snooze:0days", "snooze:0d"} {
+		if _, err := ParseMeta(in, v, false); err == nil {
+			t.Fatalf("%s was accepted", in)
+		}
+	}
+	// an explicit date in the past is still allowed: that is a claim that went
+	// stale, and the weekly review is what catches it
+	if _, err := ParseMeta("snooze:2020-01-01", v, false); err != nil {
+		t.Fatalf("a past date is not an error: %v", err)
+	}
+}
+
+// A word that is not in the vocabulary is refused like any other, and the
+// refusal says what the line does take.
+func TestParseMetaRefusesUnknownDateWords(t *testing.T) {
+	v := vocab(nil, nil)
+	for _, in := range []string{"due:someday", "due:next-friday", "due:3weeks", "due:tomorow", "snooze:d3"} {
+		_, err := ParseMeta(in, v, false)
+		if err == nil {
+			t.Fatalf("%s was accepted", in)
+		}
+		if !strings.Contains(err.Error(), "tomorrow") {
+			t.Fatalf("%s: the refusal does not say what is taken: %v", in, err)
+		}
+	}
+}
+
+// A word is resolved against the app's clock and not the browser's, which is
+// what the vocabulary carrying the day is for.
+func TestVocabularyCarriesToday(t *testing.T) {
+	a, _ := newTestApp(t) // a Friday, 2026-09-04
+	v, err := a.Vocabulary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.Today != "2026-09-04" {
+		t.Fatalf("today: %q", v.Today)
+	}
+	f, err := ParseMeta("due:monday snooze:tomorrow", v, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.DueDate != "2026-09-07" || f.SnoozeUntil != "2026-09-05" {
+		t.Fatalf("due %s, snooze %s", f.DueDate, f.SnoozeUntil)
 	}
 }

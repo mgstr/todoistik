@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // The meta line is the one field an action's metadata is written in:
@@ -50,10 +52,23 @@ var StructuralTags = []string{
 type Vocabulary struct {
 	Contexts map[string]bool
 	Tags     map[string]bool
+	// Today is the day the line is being read on, as a date. A relative date
+	// word is a word whose meaning is a day — "friday" names a different one
+	// depending on when it was typed — so what it means belongs here with
+	// everything else a name means right now, rather than as one more
+	// parameter threaded through every parse.
+	Today string
 }
 
 func (v *Vocabulary) knownContext(name string) bool {
 	return name == WaitingForContext || (v != nil && v.Contexts[name])
+}
+
+func (v *Vocabulary) today() string {
+	if v == nil {
+		return ""
+	}
+	return v.Today
 }
 
 func (v *Vocabulary) knownTag(name string) bool {
@@ -67,7 +82,7 @@ func (v *Vocabulary) knownTag(name string) bool {
 
 // Vocabulary reads the remembered lists.
 func (a *App) Vocabulary() (*Vocabulary, error) {
-	v := &Vocabulary{Contexts: map[string]bool{}, Tags: map[string]bool{}}
+	v := &Vocabulary{Contexts: map[string]bool{}, Tags: map[string]bool{}, Today: a.Today()}
 	names, err := a.Contexts()
 	if err != nil {
 		return nil, err
@@ -95,6 +110,77 @@ var tokenRe = regexp.MustCompile(`(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?`)
 // not a name off a remembered list, and spelling it out keeps it readable
 // without a fourth sigil to learn.
 var dateRe = regexp.MustCompile(`(^|\s)(due|snooze):(\S+)`)
+
+// Either date also takes a word that counts off from today: `tomorrow`, a day
+// name, or a number of days. The app knows what day it is, and making you work
+// out that Friday is the 18th is exactly the friction that ends with the date
+// not being written at all (design.md, "Time fields").
+var weekdays = map[string]time.Weekday{
+	"monday":    time.Monday,
+	"tuesday":   time.Tuesday,
+	"wednesday": time.Wednesday,
+	"thursday":  time.Thursday,
+	"friday":    time.Friday,
+	"saturday":  time.Saturday,
+	"sunday":    time.Sunday,
+}
+
+// `3days` is the spelling the panel teaches, `3d` the shorthand it accepts.
+// `1day` and `3day` are accepted too: they are unambiguous, and refusing a
+// number followed by the word "day" would be the app being pedantic about
+// grammar it understood perfectly well.
+var daysRe = regexp.MustCompile(`^(\d+)(d|days?)$`)
+
+// resolveDate turns a date token's value into the date it names. An ISO date
+// is itself; a word is counted off from today. The word is resolved here, on
+// the way in, so that what is stored and what reads back out is always the
+// date itself — a line that still said `friday` a week later would be a
+// second, drifting opinion about when this actually is.
+//
+// key is carried in only so that a refusal can name the token it is about.
+func resolveDate(key, val, today string) (string, error) {
+	if ValidDate(val) {
+		return val, nil
+	}
+	unknown := fmt.Errorf("%s:%s is not a date — write it as %s:2026-09-20, %s:tomorrow, %s:friday or %s:3days",
+		key, val, key, key, key, key)
+	base, err := time.Parse(DateFormat, today)
+	if err != nil {
+		return "", unknown
+	}
+	var days int
+	wd, isDay := weekdays[val]
+	switch {
+	case val == "today":
+		days = 0
+	case val == "tomorrow":
+		days = 1
+	case isDay:
+		// the next one of that name, never today: "snooze until monday"
+		// typed on a Monday means the Monday ahead, not the one you are
+		// standing in
+		days = (int(wd) - int(base.Weekday()) + 7) % 7
+		if days == 0 {
+			days = 7
+		}
+	case daysRe.MatchString(val):
+		n, cerr := strconv.Atoi(daysRe.FindStringSubmatch(val)[1])
+		if cerr != nil {
+			return "", unknown
+		}
+		days = n
+	default:
+		return "", unknown
+	}
+	// a snooze is a claim that this is not worth looking at yet, so a word
+	// that lands on today is not one. An explicit date in the past is left
+	// alone: that is a claim that went stale, which is the weekly review's to
+	// catch (design.md, "Time fields")
+	if key == "snooze" && days == 0 {
+		return "", fmt.Errorf("snooze:%s names today, which is not a snooze — leave the snooze off instead", val)
+	}
+	return base.AddDate(0, 0, days).Format(DateFormat), nil
+}
 
 // MetaFields is a meta line read as the fields it spells.
 type MetaFields struct {
@@ -141,23 +227,24 @@ func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string
 	text = dateRe.ReplaceAllStringFunc(text, func(m string) string {
 		sub := dateRe.FindStringSubmatch(m)
 		lead, key, val := sub[1], sub[2], sub[3]
-		if !ValidDate(val) {
-			err = orFirst(err, fmt.Errorf("%s:%s is not a date — write it as %s:2026-09-20", key, val, key))
+		date, derr := resolveDate(key, val, v.today())
+		if derr != nil {
+			err = orFirst(err, derr)
 			return m
 		}
 		switch key {
 		case "due":
 			if f.DueDate != "" {
-				err = orFirst(err, fmt.Errorf("two due dates: %s and %s", f.DueDate, val))
+				err = orFirst(err, fmt.Errorf("two due dates: %s and %s", f.DueDate, date))
 				return m
 			}
-			f.DueDate = val
+			f.DueDate = date
 		case "snooze":
 			if f.SnoozeUntil != "" {
-				err = orFirst(err, fmt.Errorf("two snooze dates: %s and %s", f.SnoozeUntil, val))
+				err = orFirst(err, fmt.Errorf("two snooze dates: %s and %s", f.SnoozeUntil, date))
 				return m
 			}
-			f.SnoozeUntil = val
+			f.SnoozeUntil = date
 		}
 		return lead
 	})

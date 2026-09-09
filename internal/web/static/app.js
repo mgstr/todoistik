@@ -526,9 +526,15 @@
   const FILTER_OPEN = "kb-filter-open";
   const TOKEN_RE = /(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?/gu;
   const DATE_RE = /(^|\s)([a-z]+):(\S+)/g;
-  // what is being typed right now, which is a token that may still be empty
+  // what is being typed right now, which is a token that may still be empty.
+  // A date key is a sigil like any other here — it is what has been committed
+  // to and the rest is still open — except that its sigil is `due:` or
+  // `snooze:` rather than one character
   const TYPING_RE = /(^|\s)([@#])([\p{L}\p{N}_-]*)$/u;
+  const TYPING_DATE_RE = /(^|\s)([a-z]+:)([\p{L}\p{N}-]*)$/u;
   const DATE_OK = /^\d{4}-\d{2}-\d{2}$/;
+  const NDAYS_OK = /^\d+(d|days?)$/;
+  const NDAYS_ZERO = /^0+(d|days?)$/;
 
   // Each box says what it takes. contexts is how many an item can have, fields
   // are the #names that stand for fields rather than tags, dates are the two
@@ -536,19 +542,27 @@
   // allowed — the filter line matches titles by its leftover words, a meta
   // line refuses them (design.md, "Writing an action").
   // `dates` says which `key:value` notations this line takes and what the value
-  // may be: a date, or one of a fixed set of words. The windows are words
-  // because "what is coming at me" moves with the day (design.md, "Calendar").
+  // may be: a date, one of a fixed set of words, or a number of days. The
+  // windows are words because "what is coming at me" moves with the day
+  // (design.md, "Calendar"); a meta line's words are a date counted off from
+  // today, resolved by the server on the day it is saved. `today` is a real
+  // answer to a deadline and no answer at all to a snooze, which is the one
+  // difference between the two lists (design.md, "Time fields").
   const DUE_WINDOWS = ["today", "tomorrow", "thisweek", "nextweek"];
+  const DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const WHEN_DUE = { date: true, days: true, words: ["today", "tomorrow"].concat(DAY_NAMES) };
+  const WHEN_SNOOZE = { date: true, days: true, ahead: true, words: ["tomorrow"].concat(DAY_NAMES) };
+  const WHEN_WINDOW = { date: false, days: false, words: DUE_WINDOWS };
   const BOX_RULES = {
     filter: { contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: {}, prose: true },
     // some views filter by tag and by name and by nothing else — design.md
     // gives each view the subset it offers, and a line that quietly ignored
     // the rest would be the app pretending to have narrowed something
     "filter-tags": { contexts: 0, fields: [], dates: {}, prose: true },
-    "filter-due": { contexts: 0, fields: [], dates: { due: DUE_WINDOWS }, prose: true },
+    "filter-due": { contexts: 0, fields: [], dates: { due: WHEN_WINDOW }, prose: true },
     "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
-    action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: "date", snooze: "date" }, prose: false, waiting: true },
-    project: { contexts: 0, fields: [], dates: { snooze: "date" }, prose: false },
+    action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE }, prose: false, waiting: true },
+    project: { contexts: 0, fields: [], dates: { snooze: WHEN_SNOOZE }, prose: false },
   };
 
   function tokenBoxes() { return Array.from(document.querySelectorAll("[data-tokenbox]")); }
@@ -635,13 +649,8 @@
       dated.push(t);
       const spec = rules.dates[m[2]];
       if (!spec) { out.push(Object.assign({ kind: "not-here" }, t)); continue; }
-      if (spec === "date") {
-        if (!DATE_OK.test(m[3])) out.push(Object.assign({ kind: "bad-date" }, t));
-        continue;
-      }
-      if (spec.indexOf(m[3]) < 0) {
-        out.push(Object.assign({ kind: "bad-window", words: spec }, t));
-      }
+      const bad = dateProblem(spec, m[3]);
+      if (bad) out.push(Object.assign({ kind: bad, words: spec.words }, t));
     }
 
     if (!rules.prose) {
@@ -654,6 +663,20 @@
       }
     }
     return out.sort(function (a, b) { return a.start - b.start; });
+  }
+
+  // What is wrong with a date token's value, "" when nothing is. `ahead` is
+  // the snooze rule: a word that lands on today is not a snooze, so it is
+  // named as that rather than reported as an unreadable date (design.md,
+  // "Time fields"). An ISO date in the past is left alone here for the same
+  // reason the server leaves it alone — it is a claim that went stale, and the
+  // weekly review is what catches it.
+  function dateProblem(spec, val) {
+    if (spec.date && DATE_OK.test(val)) return "";
+    if (spec.ahead && (val === "today" || NDAYS_ZERO.test(val))) return "not-ahead";
+    if (spec.words.indexOf(val) >= 0) return "";
+    if (spec.days && NDAYS_OK.test(val)) return "";
+    return spec.date ? "bad-date" : "bad-window";
   }
 
   // The mirror carries the marks: the same text in the same place, behind the
@@ -695,17 +718,40 @@
   function typingToken(box) {
     if (!box || document.activeElement !== box) return null;
     const before = box.value.slice(0, box.selectionStart);
-    const m = TYPING_RE.exec(before);
+    const m = TYPING_RE.exec(before) || TYPING_DATE_RE.exec(before);
     if (!m) return null;
     return { sigil: m[2], prefix: m[3], start: before.length - m[2].length - m[3].length };
   }
 
+  // What a half-typed token may still become: the remembered names after an @
+  // or a #, and the date words after `due:` or `snooze:`. A word is exactly as
+  // hard to remember as a name is, and the panel it is written down in is
+  // behind ? — the box already knows the list, so it may as well say it.
+  //
+  // The names are sorted because that list is a lookup; the dates are left in
+  // the order they are written down in, because theirs is an order everybody
+  // already knows and alphabetical would open with Friday.
+  function poolFor(box, t) {
+    if (t.sigil === "@" || t.sigil === "#") return knownNames(box, t.sigil).slice().sort();
+    const spec = rulesFor(box).dates[t.sigil.slice(0, -1)];
+    if (!spec) return [];
+    const words = spec.words.slice();
+    // a number is a count of days, and the unit is the only part of it left to
+    // say. It goes first because it is what was already being typed
+    const digits = /^\d+$/.test(t.prefix);
+    const zero = digits && Number(t.prefix) === 0;
+    if (spec.days && digits && !(spec.ahead && zero)) words.unshift(t.prefix + "days");
+    return words;
+  }
+
   function suggestionsFor(box, t) {
-    const pool = knownNames(box, t.sigil).slice().sort();
+    const pool = poolFor(box, t);
     const p = t.prefix.toLowerCase();
     const starts = pool.filter(function (n) { return n.toLowerCase().indexOf(p) === 0; });
     const holds = pool.filter(function (n) { return n.toLowerCase().indexOf(p) > 0; });
-    return starts.concat(holds).slice(0, 8);
+    // nine rather than eight, because the date list is nine long and cutting
+    // Sunday off the end of it would cost more than one more row does
+    return starts.concat(holds).slice(0, 9);
   }
 
   function showSuggest(box) {
@@ -917,7 +963,11 @@
     "second-context": function (p) { return "an action has one context, and " + p.text + " is the second one asked for"; },
     "no-context": function (p) { return p.text + " is not something this line can say"; },
     "not-here": function (p) { return p.text + " is not something this line can say"; },
-    "bad-date": function (p) { return p.text + " is not a date — write it as " + p.name + ":2026-09-20"; },
+    "bad-date": function (p) {
+      const k = p.name;
+      return p.text + " is not a date — write it as " + k + ":2026-09-20, " + k + ":tomorrow, " + k + ":friday or " + k + ":3days";
+    },
+    "not-ahead": function (p) { return p.text + " names today, which is not a snooze — leave the snooze off instead"; },
     "bad-window": function (p) { return p.text + " is not one of " + p.words.join(", "); },
     "prose": function (p) { return "\u201c" + p.text + "\u201d is not notation — a name, or prose that belongs in the description"; },
   };
