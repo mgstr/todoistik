@@ -456,6 +456,27 @@ stage is what gives it that for free. It also keeps the rule that the server is 
 source of truth (see "Stack"), which a stage that only exists in the DOM would
 quietly break.
 
+- **the form starts from the captured line, read as notation.** `MetaFromText`
+  for the action form and `TagsFromText` for the other two (`tokens.go`),
+  called where the fields are seeded and nowhere else — a stage that bounces
+  echoes what was typed instead, since by then the reading has been corrected
+  by hand. The same `Vocabulary` the meta line is parsed with does the reading,
+  so a name the app does not know is prose here exactly as it is there
+  (design.md, "Inbox Zero")
+- **an unreadable line is left whole.** `parseTokens` hands back an error for a
+  second context or a date it cannot resolve; that error means the title box
+  gets the line exactly as captured and the meta box stays empty. Half a
+  reading is the bad outcome — the half that moved is visible in a box and the
+  half that was dropped is not
+- **the action form reads it as though the action had a project**, so `#parked`
+  becomes a token rather than the error that would cost the whole line its
+  reading. Filing it standalone then refuses it by name, on the form, with the
+  captured line still on the screen above (see "The meta line")
+- **the narrow forms take the tags and leave the rest in the title.** A project
+  and a someday/maybe item hold nothing else, so `@garage` on such a capture
+  stays in the words — it is not dropped, and it is not moved into a box that
+  would refuse it. Both titles are edited by hand at this point anyway: one has
+  to become a reference to an outcome, the other is being reworded or left
 - **the Someday/Maybe form is the small one**, and it is a stage for one
   reason: the meta line. Its two fields are `somedayfields` in `_layout.html`,
   shared with `/somedayitem/{id}` so that filing an idea and editing it a month
