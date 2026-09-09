@@ -9,6 +9,28 @@ import (
 
 // --- someday/maybe items -------------------------------------------------
 
+// SomedayFields is a someday/maybe item as a form gives it: the idea, the
+// area it belongs to, and when it becomes worth looking at. One struct, so
+// that filing an item and editing one later cannot drift into two answers to
+// the same three questions (design.md, "Someday/maybe item").
+type SomedayFields struct {
+	Text        string
+	Tags        []string
+	SnoozeUntil string
+}
+
+func (f *SomedayFields) validate() error {
+	f.Text = strings.TrimSpace(f.Text)
+	if f.Text == "" {
+		return ErrEmpty
+	}
+	if f.SnoozeUntil != "" && !ValidDate(f.SnoozeUntil) {
+		return fmt.Errorf("bad snooze date %q", f.SnoozeUntil)
+	}
+	f.Tags = normTags(f.Tags)
+	return nil
+}
+
 func (a *App) somedayTx(tx *sql.Tx, id int64) (*SomedayItem, error) {
 	it := &SomedayItem{}
 	var created, reviewed string
@@ -19,6 +41,10 @@ func (a *App) somedayTx(tx *sql.Tx, id int64) (*SomedayItem, error) {
 	}
 	it.CreatedAt = parseTS(created)
 	it.LastReviewedAt = parseTS(reviewed)
+	it.Tags, err = tagsForTx(tx, "someday", id)
+	if err != nil {
+		return nil, err
+	}
 	return it, nil
 }
 
@@ -34,47 +60,85 @@ func (a *App) SomedayItem(id int64) (*SomedayItem, error) {
 
 // SomedayItems returns the someday/maybe view, oldest first (the age shown
 // is the age of the idea). Snoozed items are included, marked by the caller.
-func (a *App) SomedayItems(nameFilter string) ([]*SomedayItem, error) {
+// It filters by name and by tag, the two things a someday item has to be
+// narrowed by (design.md, "Someday/Maybe").
+func (a *App) SomedayItems(f Filters) ([]*SomedayItem, error) {
 	rows, err := a.db.Query(`SELECT id, text, created_at, last_reviewed_at, snooze_until FROM someday_items ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	var out []*SomedayItem
+	var items []*SomedayItem
 	for rows.Next() {
 		it := &SomedayItem{}
 		var created, reviewed string
 		if err := rows.Scan(&it.ID, &it.Text, &created, &reviewed, &it.SnoozeUntil); err != nil {
+			rows.Close()
 			return nil, err
 		}
 		it.CreatedAt = parseTS(created)
 		it.LastReviewedAt = parseTS(reviewed)
-		if matchName(nameFilter, it.Text) {
+		items = append(items, it)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// the tags are read after the rows are done with, the way the projects
+	// query reads them: one connection serves this database, so a second
+	// query while the first is still open has nothing to run on
+	var out []*SomedayItem
+	for _, it := range items {
+		if it.Tags, err = a.tagsFor("someday", it.ID); err != nil {
+			return nil, err
+		}
+		if matchName(f.Name, it.Text) && matchTags(f.Tags, it.Tags) {
 			out = append(out, it)
 		}
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
-// EditSomeday updates the idea's text and snooze; the text may be edited to
-// formulate the idea more clearly while it stays raw.
-func (a *App) EditSomeday(id int64, text, snoozeUntil string) error {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return ErrEmpty
-	}
-	if snoozeUntil != "" && !ValidDate(snoozeUntil) {
-		return fmt.Errorf("bad snooze date %q", snoozeUntil)
+// EditSomeday updates the idea, its tags and its snooze. The text may be
+// reworded to formulate the idea more clearly and the tags may be changed
+// while it stays raw: neither says what will be done about it, which is the
+// clarifying a someday item is spared (design.md, "Someday/maybe item").
+func (a *App) EditSomeday(id int64, f SomedayFields) error {
+	if err := f.validate(); err != nil {
+		return err
 	}
 	return a.tx(func(tx *sql.Tx) error {
 		before, err := a.somedayTx(tx, id)
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`UPDATE someday_items SET text=?, snooze_until=? WHERE id=?`, text, snoozeUntil, id); err != nil {
+		if _, err := tx.Exec(`UPDATE someday_items SET text=?, snooze_until=? WHERE id=?`, f.Text, f.SnoozeUntil, id); err != nil {
+			return err
+		}
+		if err := a.setTagsTx(tx, "someday", id, f.Tags); err != nil {
 			return err
 		}
 		return a.audit(tx, EvEdited, "someday", id, before)
+	})
+}
+
+// ReturnToInbox sends an idea back to the inbox, as the raw capture it was.
+// The item is consumed and its text captured again, so it is one undecided
+// thing in the one place undecided things live and has to be answered like
+// any other (design.md, "Reshaping items").
+//
+// The tags and the snooze do not survive the trip: an inbox item carries
+// neither, and the audit snapshot is where what was dropped is kept. A text
+// that is already sitting in the inbox collapses into it, by the same rule
+// every other way in obeys (design.md, "Duplicate captures") — the idea is
+// in the inbox either way, which is what was asked for.
+func (a *App) ReturnToInbox(id int64) error {
+	return a.tx(func(tx *sql.Tx) error {
+		it, err := a.removeSomedayTx(tx, id, EvReturned)
+		if err != nil {
+			return err
+		}
+		_, _, err = a.captureTx(tx, it.Text)
+		return err
 	})
 }
 
@@ -92,6 +156,9 @@ func (a *App) removeSomedayTx(tx *sql.Tx, id int64, event string) (*SomedayItem,
 		return nil, err
 	}
 	if _, err := tx.Exec(`DELETE FROM someday_items WHERE id=?`, id); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(`DELETE FROM item_tags WHERE item_type='someday' AND item_id=?`, id); err != nil {
 		return nil, err
 	}
 	return before, a.audit(tx, event, "someday", id, before)
@@ -195,14 +262,13 @@ func (a *App) ProcessProject(src string, id int64, f ProjectFields, actions []Ac
 }
 
 // ProcessSomeday: worth looking at some time, but not now. From the inbox
-// only — a someday item deciding to stay is KeepIncubating instead.
-func (a *App) ProcessSomeday(id int64, text, snoozeUntil string) (*SomedayItem, error) {
-	text = strings.TrimSpace(text)
-	if text == "" {
-		return nil, ErrEmpty
-	}
-	if snoozeUntil != "" && !ValidDate(snoozeUntil) {
-		return nil, fmt.Errorf("bad snooze date %q", snoozeUntil)
+// only — a someday item deciding to stay is KeepIncubating instead. The idea
+// arrives written the way it will be read a month from now: reworded if it
+// needed it, and tagged with the area it belongs to, which is the decision
+// this branch was already making (design.md, "Inbox Zero").
+func (a *App) ProcessSomeday(id int64, f SomedayFields) (*SomedayItem, error) {
+	if err := f.validate(); err != nil {
+		return nil, err
 	}
 	var it *SomedayItem
 	err := a.tx(func(tx *sql.Tx) error {
@@ -210,13 +276,16 @@ func (a *App) ProcessSomeday(id int64, text, snoozeUntil string) (*SomedayItem, 
 			return err
 		}
 		now := a.now().UTC()
-		it = &SomedayItem{Text: text, CreatedAt: now, LastReviewedAt: now, SnoozeUntil: snoozeUntil}
+		it = &SomedayItem{Text: f.Text, Tags: f.Tags, CreatedAt: now, LastReviewedAt: now, SnoozeUntil: f.SnoozeUntil}
 		res, err := tx.Exec(`INSERT INTO someday_items (text, created_at, last_reviewed_at, snooze_until) VALUES (?,?,?,?)`,
 			it.Text, ts(it.CreatedAt), ts(it.LastReviewedAt), it.SnoozeUntil)
 		if err != nil {
 			return err
 		}
 		it.ID, _ = res.LastInsertId()
+		if err := a.setTagsTx(tx, "someday", it.ID, it.Tags); err != nil {
+			return err
+		}
 		return a.audit(tx, EvCreated, "someday", it.ID, it)
 	})
 	if err != nil {

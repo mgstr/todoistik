@@ -67,7 +67,7 @@ func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
 	case "inbox":
 		data, err = s.app.Inbox()
 	case "someday":
-		data, err = s.app.SomedayItems(f.Name)
+		data, err = s.app.SomedayItems(f)
 	case "projects":
 		data, err = s.app.ProjectList(f)
 	case "tasks":

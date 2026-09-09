@@ -5,6 +5,7 @@
 {{range .Data}}
   <li class="row {{if .SnoozeUntil}}{{if gt .SnoozeUntil $.Today}}snoozed{{end}}{{end}}" data-kb-row data-href="/somedayitem/{{.ID}}">
     <a href="/somedayitem/{{.ID}}" class="title">{{.Text}}</a>
+    {{range .Tags}}<span class="badge tag">#{{.}}</span>{{end}}
     {{if .SnoozeUntil}}{{if gt .SnoozeUntil $.Today}}<span class="badge">zzz until {{.SnoozeUntil}}</span>{{end}}{{end}}
     <span class="age" title="age of the idea">{{age .CreatedAt}}</span>
     <a class="button small" href="/process?src=someday&item={{.ID}}">Move on it</a>

@@ -432,24 +432,74 @@ func ParseProjectMeta(text string, v *Vocabulary) (ProjectMeta, error) {
 	if left != "" {
 		return ProjectMeta{}, fmt.Errorf("%q is not notation — an unknown name, or prose that belongs in the definition of done", left)
 	}
-	for _, no := range []struct {
-		written bool
-		what    string
-	}{
-		{f.Context != "", "context"},
-		{f.AssignedTo != "", "@" + WaitingForContext},
-		{f.Duration != DurNone, "size"},
-		{f.NeedsFocus, "#" + FocusTag},
-		{f.Today, "#" + TodayTag},
-		{f.Parked, "#" + ParkedTag},
-		{f.DueDate != "", "due date"},
-	} {
-		if no.written {
-			return ProjectMeta{}, fmt.Errorf("a project has no %s; that belongs on an action under it", no.what)
-		}
+	if what := nonTagField(f); what != "" {
+		return ProjectMeta{}, fmt.Errorf("a project has no %s; that belongs on an action under it", what)
 	}
 	return ProjectMeta{Tags: f.Tags, SnoozeUntil: f.SnoozeUntil}, nil
 }
+
+// nonTagField names the first thing on a parsed line that only an action
+// carries, and "" when there is none. Two lines are narrower than an action's
+// — a project's and a someday/maybe item's — and both narrow to the same set,
+// so they ask the same question here and each says its own sentence about the
+// answer. Writing an action's field on either is a mistake about where the
+// thing belongs, and dropping it silently would leave that mistake believed.
+func nonTagField(f MetaFields) string {
+	switch {
+	case f.Context != "":
+		return "context"
+	case f.AssignedTo != "":
+		return "@" + WaitingForContext
+	case f.Duration != DurNone:
+		return "size"
+	case f.NeedsFocus:
+		return "#" + FocusTag
+	case f.Today:
+		return "#" + TodayTag
+	case f.Parked:
+		return "#" + ParkedTag
+	case f.DueDate != "":
+		return "due date"
+	}
+	return ""
+}
+
+// ParseSomedayMeta reads a someday/maybe item's meta line, which carries tags
+// and nothing else. An idea you have decided not to commit to has no context,
+// no size and no deadline — it is not something you are doing — but it does
+// belong to an area of responsibility, and that is what the monthly walk
+// groups it by (design.md, "Someday/maybe item").
+//
+// The snooze is refused here even though the item has one: it is the date box
+// beside this line, which is the control design.md gives the branch, and a
+// second way to write the same field is a second place for it to disagree.
+func ParseSomedayMeta(text string, v *Vocabulary) ([]string, error) {
+	// inProject so that #parked parses rather than erroring in an action's
+	// words; it is refused just below, in a someday item's
+	f, left, err := parseTokens(text, v, true)
+	if err != nil {
+		return nil, err
+	}
+	if left != "" {
+		return nil, fmt.Errorf("%q is not notation — an unknown #tag, or words that belong in the idea itself", left)
+	}
+	if f.SnoozeUntil != "" {
+		return nil, fmt.Errorf("a someday/maybe item's snooze is the date beside this line, not notation")
+	}
+	if what := nonTagField(f); what != "" {
+		return nil, fmt.Errorf("a someday/maybe item has no %s; it is an idea, not something you are doing", what)
+	}
+	return f.Tags, nil
+}
+
+// WriteSomedayMeta is the other direction, through the same writer for the
+// reason WriteProjectMeta goes through it: one notation, not a third dialect.
+func WriteSomedayMeta(it *SomedayItem) string {
+	return MetaFields{Tags: it.Tags}.String()
+}
+
+// Meta is WriteSomedayMeta as a method, so a template can ask the item.
+func (it *SomedayItem) Meta() string { return WriteSomedayMeta(it) }
 
 // WriteProjectMeta is the other direction, and it goes through the same
 // writer, so a project's line cannot drift into a second dialect of the same

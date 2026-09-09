@@ -326,21 +326,21 @@ func (s *Server) capturePost(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) somedayPage(w http.ResponseWriter, r *http.Request) {
 	f := s.viewFilters("someday", r)
-	items, err := s.app.SomedayItems(f.Name)
+	items, err := s.app.SomedayItems(f)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 	p := s.newPage("Someday/Maybe", "someday", r)
 	p.Filters, p.FilterQuery = f, filterQuery(f)
-	if f.Name != "" {
-		if all, err := s.app.SomedayItems(""); err == nil {
+	if f.Active() {
+		if all, err := s.app.SomedayItems(app.Filters{}); err == nil {
 			p.Hidden = len(all) - len(items)
 		}
 	}
-	// a someday item is a raw capture with nothing on it, so its line has
-	// nothing to say but words (design.md, "Filtering by tag")
-	p.FilterMode = "filter-name"
+	// an idea carries the area of responsibility it belongs to and nothing
+	// else, so its line asks about tags and words (design.md, "Someday/Maybe")
+	p.FilterMode = "filter-tags"
 	p.Shown, p.Total = len(items), len(items)+p.Hidden
 	p.Query = f.Query()
 	p.Data = items
@@ -528,6 +528,7 @@ type processData struct {
 	Back      string        // stage one for this item — where "back" and esc go
 	AsAction  string
 	AsProject string
+	AsSomeday string
 	Q         string // "?one=1" when a single picked item, to be carried by the form
 
 	Contexts []string
@@ -588,6 +589,7 @@ func (d *processData) links() {
 	d.Back = base + one
 	d.AsAction = base + "&as=action" + one
 	d.AsProject = base + "&as=project" + one
+	d.AsSomeday = base + "&as=someday" + one
 }
 
 type pickerData struct {
@@ -627,6 +629,8 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		d.Vals.Set("title", d.Text)
 	case "project":
 		d.Vals.Set("title", d.Text)
+	case "someday":
+		d.Vals.Set("text", d.Text)
 	default:
 		d.As = ""
 	}
@@ -654,6 +658,8 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		tmpl = "process_action.html"
 	case "project":
 		tmpl = "process_project.html"
+	case "someday":
+		tmpl = "process_someday.html"
 	}
 	p := s.newPage("Processing", d.Src, r).help("processing").step("Processing", "processing")
 	switch d.As {
@@ -661,6 +667,8 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		p.step("Action", "").notation(s)
 	case "project":
 		p.step("Project", "")
+	case "someday":
+		p.step("Someday/Maybe", "")
 	}
 	p.Processing = true
 	p.Data = d
@@ -928,8 +936,12 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "someday":
-		text := strings.TrimSpace(r.FormValue("text"))
-		_, err = s.app.ProcessSomeday(id, text, strings.TrimSpace(r.FormValue("snooze")))
+		f, ferr := s.readSomeday(r)
+		if ferr != nil {
+			s.bounce(w, r, src, id, "someday", ferr.Error(), false)
+			return
+		}
+		_, err = s.app.ProcessSomeday(id, f)
 	case "keep":
 		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
 	default:
@@ -1400,12 +1412,32 @@ func (s *Server) somedayItemPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) somedayItemUpdate(w http.ResponseWriter, r *http.Request) {
-	err := s.app.EditSomeday(idParam(r), r.FormValue("text"), strings.TrimSpace(r.FormValue("snooze")))
+	f, err := s.readSomeday(r)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
+	if err := s.app.EditSomeday(idParam(r), f); err != nil {
+		httpError(w, err)
+		return
+	}
 	http.Redirect(w, r, "/someday", http.StatusSeeOther)
+}
+
+// readSomeday reads the three fields a someday/maybe item is written in,
+// wherever it is being written: the idea, the tags on its meta line, and the
+// date it becomes worth looking at (design.md, "Someday/maybe item").
+func (s *Server) readSomeday(r *http.Request) (app.SomedayFields, error) {
+	f := app.SomedayFields{
+		Text:        strings.TrimSpace(r.FormValue("text")),
+		SnoozeUntil: strings.TrimSpace(r.FormValue("snooze")),
+	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		return f, err
+	}
+	f.Tags, err = app.ParseSomedayMeta(r.FormValue("meta"), v)
+	return f, err
 }
 
 func (s *Server) somedayItemVerb(w http.ResponseWriter, r *http.Request) {
@@ -1416,12 +1448,20 @@ func (s *Server) somedayItemVerb(w http.ResponseWriter, r *http.Request) {
 		err = s.app.TrashSomeday(id)
 	case "keep":
 		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
+	case "inbox":
+		err = s.app.ReturnToInbox(id)
 	default:
 		http.NotFound(w, r)
 		return
 	}
 	if err != nil {
 		httpError(w, err)
+		return
+	}
+	if verb == "inbox" {
+		// the item is a capture again, and the inbox is where it now has to
+		// be answered — so that is where the screen goes
+		http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/someday", http.StatusSeeOther)
@@ -1507,7 +1547,7 @@ func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 			add("action", a.Title, "/action/"+itoa(a.ID), a.ID, a.LastReviewedAt, a.SnoozeUntil, a.ProjectTitle)
 		}
 	case "someday":
-		its, _ := s.app.SomedayItems("")
+		its, _ := s.app.SomedayItems(app.Filters{})
 		for _, it := range its {
 			add("someday", it.Text, "/somedayitem/"+itoa(it.ID), it.ID, it.LastReviewedAt, it.SnoozeUntil, "")
 		}

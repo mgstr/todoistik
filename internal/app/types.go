@@ -15,8 +15,12 @@ type InboxItem struct {
 }
 
 type SomedayItem struct {
-	ID             int64     `json:"id"`
-	Text           string    `json:"text"`
+	ID   int64    `json:"id"`
+	Text string   `json:"text"`
+	Tags []string `json:"tags,omitempty"`
+	// The idea stays raw — no outcome, no next action — but it carries the
+	// area of responsibility it belongs to, which is the one thing the
+	// monthly walk needs in order to be answerable (design.md, "Tags").
 	CreatedAt      time.Time `json:"createdAt"`
 	LastReviewedAt time.Time `json:"lastReviewedAt"`
 	SnoozeUntil    string    `json:"snoozeUntil,omitempty"`
@@ -190,6 +194,7 @@ const (
 	EvDetached        = "detached"
 	EvPromoted        = "promoted"
 	EvReference       = "sent-to-reference"
+	EvReturned        = "returned-to-inbox"
 	EvTwoMinute       = "two-minute-rule"
 	EvFired           = "fired"
 	EvScheduleExpired = "one-shot-expired"

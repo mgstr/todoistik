@@ -1,0 +1,26 @@
+{{template "top" .}}
+{{$d := .Data}}
+<div class="process" data-cancel="{{$d.Back}}">
+  <div class="subject">
+    <h1 class="capture-text">{{$d.Text}}</h1>
+    <p class="cap">captured {{age $d.CreatedAt}}</p>
+  </div>
+
+  {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
+
+  {{/* The same three fields the item's own page shows, in the same partial:
+       what is written here is what will be read a month from now, and the
+       screen it is read on is that page. */}}
+  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$d.Q}}" class="stack">
+    {{template "somedayfields" (dict
+      "Text" ($d.Vals.Get "text")
+      "Meta" ($d.Vals.Get "meta")
+      "Snooze" ($d.Vals.Get "snooze") "Focus" true)}}
+
+    <div class="branches">
+      <button class="primary">File under Someday/Maybe</button>
+      <a class="button" href="{{$d.Back}}">Back</a>
+    </div>
+  </form>
+</div>
+{{template "bottom" .}}

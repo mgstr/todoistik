@@ -733,6 +733,9 @@
     "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
     action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE }, prose: false, waiting: true },
     project: { contexts: 0, fields: [], dates: { snooze: WHEN_SNOOZE }, prose: false },
+    // an idea carries tags and nothing else — not even its own snooze, which
+    // is the date box beside the line (design.md, "Someday/maybe item")
+    someday: { contexts: 0, fields: [], dates: {}, prose: false },
   };
 
   function tokenBoxes() { return Array.from(document.querySelectorAll("[data-tokenbox]")); }
@@ -1111,9 +1114,22 @@
       "no-context": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
       "not-here": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
     },
-    // said for two views now, so it says what is true of both: a someday item
-    // is a raw capture and a schedule is text and a rule, and neither carries
-    // a name of any kind
+    // an idea carries the area it is about and nothing else, so the line's
+    // refusal says which of the two it was: a field an action has, or the
+    // snooze, which is the date box beside the line
+    someday: {
+      "no-context": function (p) { return "a someday/maybe item has no context; " + p.text + " belongs on the action it becomes"; },
+      // a date token has no sigil, which is what tells the two refusals apart:
+      // the snooze is a field the item has and writes elsewhere, a size is a
+      // field it does not have at all
+      "not-here": function (p) {
+        if (p.sigil === "") return "a someday/maybe item's snooze is the date box beside this line, not notation";
+        return "a someday/maybe item has no " + p.text + "; that belongs on the action it becomes";
+      },
+    },
+    // the Scheduler's line: a schedule is text and a rule, and carries no
+    // name of any kind. Someday/Maybe used to say this too, until an idea
+    // started carrying the area of responsibility it belongs to
     "filter-name": {
       "no-context": function (p) { return "nothing here carries a context or a tag; this view filters by text only"; },
       "not-here": function (p) { return "nothing here carries a context or a tag; this view filters by text only"; },

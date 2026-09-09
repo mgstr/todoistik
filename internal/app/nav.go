@@ -93,7 +93,7 @@ func (a *App) NavCounts() (*NavCounts, error) {
 	}
 	c.Calendar = len(cal)
 
-	someday, err := a.SomedayItems("")
+	someday, err := a.SomedayItems(Filters{})
 	if err != nil {
 		return nil, err
 	}

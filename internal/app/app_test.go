@@ -295,7 +295,7 @@ func TestReviewOutstanding(t *testing.T) {
 		t.Fatalf("capture: acc=%v err=%v", acc, err)
 	}
 	items, _ := a.Inbox()
-	if _, err := a.ProcessSomeday(items[0].ID, "Learn the banjo", "2027-01-01"); err != nil {
+	if _, err := a.ProcessSomeday(items[0].ID, SomedayFields{Text: "Learn the banjo", SnoozeUntil: "2027-01-01"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -776,5 +776,75 @@ func TestParseQueryWindows(t *testing.T) {
 	}
 	if f, _ = ParseQuery("completed:lastweek", v); f.Completed != "lastweek" {
 		t.Errorf("completed = %q", f.Completed)
+	}
+}
+
+// A someday/maybe item carries the area of responsibility it belongs to, and
+// the trip back to the inbox drops it. Both are load-bearing: the tag is what
+// the monthly walk groups by, and an inbox item that kept tags would be a
+// clarified capture, which is the one thing the inbox does not hold.
+func TestSomedayTagsAndReturnToInbox(t *testing.T) {
+	a, _ := newTestApp(t)
+	if err := a.AddTag("hobby"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := a.Capture("Learn to sail"); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := a.Capture("Repaint the shed"); err != nil {
+		t.Fatal(err)
+	}
+	inbox, _ := a.Inbox()
+	it, err := a.ProcessSomeday(inbox[0].ID, SomedayFields{
+		Text: "Learn to sail — a week on the Baltic", Tags: []string{"hobby"}, SnoozeUntil: "2027-01-01"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessSomeday(inbox[1].ID, SomedayFields{Text: "Repaint the shed"}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := a.SomedayItem(it.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got.Tags, []string{"hobby"}) || got.SnoozeUntil != "2027-01-01" {
+		t.Fatalf("filed as %+v", got)
+	}
+	// the tag filter is the point of having tags here at all
+	tagged, err := a.SomedayItems(Filters{Tags: []string{"hobby"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tagged) != 1 || tagged[0].ID != it.ID {
+		t.Fatalf("#hobby matched %d items, want the sailing one", len(tagged))
+	}
+	// editing keeps it raw and keeps it tagged
+	if err := a.EditSomeday(it.ID, SomedayFields{Text: "Learn to sail", Tags: nil}); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = a.SomedayItem(it.ID)
+	if len(got.Tags) != 0 || got.SnoozeUntil != "" {
+		t.Fatalf("edit did not take: %+v", got)
+	}
+
+	// back to the inbox: one capture again, and nothing left carrying a tag
+	other, _ := a.SomedayItems(Filters{Name: "shed"})
+	if err := a.EditSomeday(other[0].ID, SomedayFields{Text: other[0].Text, Tags: []string{"hobby"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.ReturnToInbox(other[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	inbox, _ = a.Inbox()
+	if len(inbox) != 1 || inbox[0].Text != "Repaint the shed" {
+		t.Fatalf("inbox after the return: %+v", inbox)
+	}
+	if left, _ := a.SomedayItems(Filters{}); len(left) != 1 {
+		t.Fatalf("%d someday items left, want 1", len(left))
+	}
+	// the tag rows went with it, or the name could never be removed again
+	if err := a.RemoveTag("hobby"); err != nil {
+		t.Fatalf("the tag is still held by something: %v", err)
 	}
 }

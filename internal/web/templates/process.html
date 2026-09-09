@@ -25,10 +25,11 @@
       <button>Keep incubating</button>
     </form>
     {{else}}
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$q}}" class="inline" data-key="s" data-key-label="someday">
-      <input type="hidden" name="text" value="{{$d.Text}}">
-      <button title="worth looking at some time, but not now">Someday/Maybe</button>
-    </form>
+    {{/* the one branch in this row that opens a stage two: the idea is filed
+         with the area it belongs to, which is the thinking this answer was
+         already doing (design.md, "Inbox Zero") */}}
+    <a class="button" href="{{$d.AsSomeday}}" data-key="s" data-key-label="someday"
+       title="worth looking at some time, but not now">Someday/Maybe</a>
     {{end}}
   </div>
 

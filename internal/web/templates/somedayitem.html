@@ -5,12 +5,16 @@
        the crumb still says where this is. */}}
   <p class="crumb"><a href="/someday">Someday/Maybe</a><span class="agetext"> · captured {{age $it.CreatedAt}}</span></p>
   <form method="post" action="/somedayitem/{{$it.ID}}" class="stack">
-    <label>Text <textarea name="text" rows="3">{{$it.Text}}</textarea></label>
-    <label>Snooze until <input type="date" name="snooze" value="{{$it.SnoozeUntil}}"></label>
+    {{template "somedayfields" (dict
+      "Text" $it.Text "Meta" $it.Meta "Snooze" $it.SnoozeUntil)}}
     <button class="primary">Save</button>
   </form>
   <div class="actionsbar">
     <a class="button" href="/process?src=someday&item={{$it.ID}}">Move on it — process</a>
+    {{/* back to the inbox: the idea has become something to decide about, and
+         the inbox is the one place undecided things wait (design.md,
+         "Reshaping items"). The tags and the snooze do not survive it. */}}
+    <form method="post" action="/somedayitem/{{$it.ID}}/inbox" class="inline"><button>Inbox</button></form>
     <form method="post" action="/somedayitem/{{$it.ID}}/trash" class="inline"><button class="danger">Trash</button></form>
   </div>
 </div>
