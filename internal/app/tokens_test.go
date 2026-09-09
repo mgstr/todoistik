@@ -389,3 +389,46 @@ func TestWriteSomedayMetaRoundTrips(t *testing.T) {
 		t.Fatalf("nothing to say means an empty box, got %q", got)
 	}
 }
+
+// A capture may be typed with notation in it, and Inbox Zero is where it comes
+// to mean something: the branch's meta line takes what it can hold and the
+// words that are left are the title.
+func TestReadingACapturedLine(t *testing.T) {
+	v := vocab([]string{"garage"}, []string{"car", "house"})
+	for _, c := range []struct{ line, meta, rest string }{
+		{"Book the tyre change @garage #car #short",
+			"@garage #short #car", "Book the tyre change"},
+		{"#car Book the tyre change", "#car", "Book the tyre change"},
+		{"Call Marju @waitingFor(Marju) due:2026-10-01 #focus",
+			"@waitingFor(Marju) #focus due:2026-10-01", "Call Marju"},
+		// a name the app does not know is prose, which is what keeps
+		// marju@gmail.com out of the context box
+		{"Mail marju@gmail.com about the #kitchen", "", "Mail marju@gmail.com about the #kitchen"},
+		{"Nothing to see here", "", "Nothing to see here"},
+	} {
+		meta, rest := MetaFromText(c.line, v)
+		if meta != c.meta || rest != c.rest {
+			t.Errorf("%q → meta %q rest %q, want meta %q rest %q", c.line, meta, rest, c.meta, c.rest)
+		}
+	}
+
+	// a line the notation cannot account for is left alone entirely, rather
+	// than half moved and half left where a dropped token would be invisible
+	meta, rest := MetaFromText("Buy paint @garage @nosuch #short #long", v)
+	if meta != "" || rest != "Buy paint @garage @nosuch #short #long" {
+		t.Errorf("a refused line should not be split: meta %q rest %q", meta, rest)
+	}
+
+	// the two narrow lines take the areas of responsibility and leave the rest
+	// of the notation in the text, since neither is something you do
+	for _, c := range []struct{ line, meta, rest string }{
+		{"Rebuild the shed @garage #house #short", "#house", "Rebuild the shed @garage #short"},
+		{"Learn to sail #car #house", "#car #house", "Learn to sail"},
+		{"Something #nosuch", "", "Something #nosuch"},
+	} {
+		meta, rest := TagsFromText(c.line, v)
+		if meta != c.meta || rest != c.rest {
+			t.Errorf("%q → meta %q rest %q, want meta %q rest %q", c.line, meta, rest, c.meta, c.rest)
+		}
+	}
+}

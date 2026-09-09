@@ -607,13 +607,29 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	d.As = q.Get("as")
 	d.links()
 	d.Vals = url.Values{}
+	// the captured line is read as notation on the way into a form: what this
+	// branch's meta line can hold goes there, and the words that are left are
+	// the title it starts from (design.md, "Inbox Zero"). A branch that
+	// creates nothing never gets here, which is the whole of why the notation
+	// means nothing to Trash, Reference material and the two-minute rule
+	v, verr := s.app.Vocabulary()
+	if verr != nil {
+		httpError(w, verr)
+		return
+	}
 	switch d.As {
 	case "action":
-		d.Vals.Set("title", d.Text)
+		meta, title := app.MetaFromText(d.Text, v)
+		d.Vals.Set("title", title)
+		d.Vals.Set("meta", meta)
 	case "project":
-		d.Vals.Set("title", d.Text)
+		meta, title := app.TagsFromText(d.Text, v)
+		d.Vals.Set("title", title)
+		d.Vals.Set("meta", meta)
 	case "someday":
-		d.Vals.Set("text", d.Text)
+		meta, text := app.TagsFromText(d.Text, v)
+		d.Vals.Set("text", text)
+		d.Vals.Set("meta", meta)
 	default:
 		d.As = ""
 	}

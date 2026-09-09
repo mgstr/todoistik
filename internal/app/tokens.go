@@ -72,12 +72,7 @@ func (v *Vocabulary) today() string {
 }
 
 func (v *Vocabulary) knownTag(name string) bool {
-	for _, s := range StructuralTags {
-		if name == s {
-			return true
-		}
-	}
-	return v != nil && v.Tags[name]
+	return structuralTag(name) || (v != nil && v.Tags[name])
 }
 
 // Vocabulary reads the remembered lists.
@@ -510,6 +505,71 @@ func WriteProjectMeta(p *Project) string {
 
 // Meta is WriteProjectMeta as a method, for the same reason Action.Meta is.
 func (p *Project) Meta() string { return WriteProjectMeta(p) }
+
+// --- reading a captured line ---------------------------------------------
+//
+// A capture may be typed with notation in it — "Book the tyre change @garage
+// #car #short" — because the notation is the shortest way to write down what
+// you already know at the moment of capture, and stopping to open the app is
+// exactly what capture must never require (design.md, "Inbox item"). It means
+// nothing until the item is processed: these two functions are what Inbox Zero
+// reads it with, seeding a branch's meta line with what that line can hold and
+// leaving the rest of the words as the title.
+//
+// Nothing is decided by this. It fills in a form that is still answered by
+// hand, which is what keeps it on the right side of the rule that nothing
+// arrives already formed (design.md, "Deliberate omissions").
+
+// MetaFromText splits a captured line into an action's meta line and what is
+// left of the line once the notation is taken out of it.
+//
+// A line the notation cannot account for is left alone entirely — an empty
+// meta line and the text unchanged. Moving half of a misread line into a box
+// and leaving half in the title is worse than not reading it at all: what was
+// dropped would be invisible, and this is the one moment an item is being
+// looked at deliberately.
+//
+// It reads as though the action had a project, so that `#parked` becomes a
+// token rather than an error that costs the whole line its reading. Filing it
+// standalone then refuses it by name, on the form, with the line still on the
+// screen.
+func MetaFromText(text string, v *Vocabulary) (meta, rest string) {
+	f, left, err := parseTokens(text, v, true)
+	if err != nil {
+		return "", text
+	}
+	return f.String(), left
+}
+
+// TagsFromText is the same reading narrowed to tags, for the two lines that
+// hold nothing else: a project's and a someday/maybe item's. Everything else
+// stays in the text where it was typed — a context, a size or a deadline
+// describes doing something, and neither of those two is something you do
+// (design.md, "Writing a project", "Someday/maybe item").
+func TagsFromText(text string, v *Vocabulary) (meta, rest string) {
+	var tags []string
+	rest = tokenRe.ReplaceAllStringFunc(text, func(m string) string {
+		sub := tokenRe.FindStringSubmatch(m)
+		lead, sigil, name := sub[1], sub[2], sub[3]
+		if sigil != "#" || sub[4] != "" || structuralTag(name) || !v.knownTag(name) {
+			return m
+		}
+		tags = append(tags, name)
+		return lead
+	})
+	return MetaFields{Tags: tags}.String(), strings.TrimSpace(collapseBlankLines(rest))
+}
+
+// structuralTag reports a #name that stands for a field rather than for an
+// area of responsibility.
+func structuralTag(name string) bool {
+	for _, s := range StructuralTags {
+		if name == s {
+			return true
+		}
+	}
+	return false
+}
 
 // PromotedMeta is the project meta line a promotion starts from: this action's
 // tags, and nothing else it carries. design.md, "Promoting an action", sends
