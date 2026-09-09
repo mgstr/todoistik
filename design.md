@@ -180,11 +180,12 @@ A due date and a `snoozeUntil` may be **written as a word** rather than as a dat
 
 `snoozeUntil` is also what covers deferral - "there is no point looking at this before Tuesday" - so there is no separate defer date.
 
-A snoozed item is **not hidden**. It stays visible and is shown differently, to indicate that it is not yet ready to be worked on. Hiding it would be confusing: a project whose only action had become invisible would look stalled while the app insists it is not.
+A snoozed item is **not hidden** where what it belongs to is read. A snoozed action stays in its project's action list, shown differently to say that it is not yet ready to be worked on: that list is the project's plan, and an action missing from it would make the plan look like something it is not - a project whose only action had become invisible would look stalled while the app insists it is not. The same holds for a snoozed project in the projects list, and for a snoozed someday/maybe item.
 
 What a snooze actually does:
 - a snoozed **project** is exempt from the stalled project check
 - a snoozed **action** still counts as a next action of its project, so deferring a single action does not make the whole project look stalled. The stalled project check knows about snoozed actions. This is the same exemption a waiting for action gets, and for the same reason
+- a snoozed **action** is left out of the "Next actions" view, and out of that view only. That view answers "what do I do next", and a snoozed action is one that cannot be done yet - it is not an answer to that question, so it does not belong on that list. It is deferred rather than lost: it is still in its project's action list, in Tasks and in the Calendar, and the weekly review still walks it, which is where a snooze date that turned out wrong is caught
 
 What a snooze does **not** do is exempt the item from the weekly review. The snooze date is a claim about the future, and claims go stale like everything else: a wrong one either wakes the item at a moment that no longer means anything or keeps it asleep past the moment that did. The review is the only place that can be noticed, so a snoozed item is walked like any other - and checking its date is part of what walking it means.
 
@@ -419,7 +420,7 @@ The main working view, and the one the app is used from day to day: the actions 
 
 Note the distinction in naming. A waiting for action is still a next action of its project - that is what keeps a delegated project from counting as stalled - but it does not appear in this view, because this view is only the actions that are yours to act on.
 
-Snoozed actions appear here as well, shown differently to mark them as not yet ready. They still count as a next action of their project for the stalled project check.
+Snoozed actions do **not** appear here, and this is the one view they are left out of. The question is "what do I do next", and an action that is snoozed cannot be done yet - it is not an answer to it. They are not hidden anywhere else: they still appear in their project's action list and in Tasks, they still count as a next action of their project for the stalled project check, and the weekly review still walks them - see "Time fields".
 
 There is no separate "what can I do right now" screen. It was this same query with a few filters applied, and a second view that can quietly disagree with the first about what is next is exactly the kind of thing that stops being trusted. Asking "what can I do right now" is narrowing this view, not going somewhere else.
 
