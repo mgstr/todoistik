@@ -1,21 +1,23 @@
 {{template "top" .}}
 {{$it := .Data}}
-<div class="item">
+{{/* One idea, in the same form it is filed on, and one row of buttons under
+     it — the shape an action's page has, for the reason it has it: a screen
+     you can leave with the same key everywhere, and a Save that only offers
+     itself when there is something to save (design.md, "Editing items"). */}}
+<div class="item" data-cancel="/someday" data-cancel-label="back">
   {{/* the age hides with every other age (^t): the view it names does not, so
        the crumb still says where this is. */}}
   <p class="crumb"><a href="/someday">Someday/Maybe</a><span class="agetext"> · captured {{age $it.CreatedAt}}</span></p>
-  <form method="post" action="/somedayitem/{{$it.ID}}" class="stack">
-    {{template "somedayfields" (dict
-      "Text" $it.Text "Meta" $it.Meta "Snooze" $it.SnoozeUntil)}}
-    <button class="primary">Save</button>
+  <form method="post" action="/somedayitem/{{$it.ID}}" id="itemform" class="stack" data-dirty-save>
+    {{template "somedayfields" (dict "Text" $it.Text "Meta" $it.Meta)}}
   </form>
   <div class="actionsbar">
-    <a class="button" href="/process?src=someday&item={{$it.ID}}">Move on it — process</a>
-    {{/* back to the inbox: the idea has become something to decide about, and
-         the inbox is the one place undecided things wait (design.md,
-         "Reshaping items"). The tags and the snooze do not survive it. */}}
+    <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
+    {{/* the only way out that changes anything: the idea goes back to be
+         decided about, tags and all, and is trashed there if that is the
+         decision (design.md, "Reshaping items") */}}
     <form method="post" action="/somedayitem/{{$it.ID}}/inbox" class="inline"><button>Inbox</button></form>
-    <form method="post" action="/somedayitem/{{$it.ID}}/trash" class="inline"><button class="danger">Trash</button></form>
+    <a class="button" href="/someday">Back</a>
   </div>
 </div>
 {{template "bottom" .}}

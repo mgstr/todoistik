@@ -49,8 +49,7 @@ CREATE TABLE IF NOT EXISTS someday_items (
 	id INTEGER PRIMARY KEY,
 	text TEXT NOT NULL,
 	created_at TEXT NOT NULL,
-	last_reviewed_at TEXT NOT NULL,
-	snooze_until TEXT NOT NULL DEFAULT ''
+	last_reviewed_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS projects (
 	id INTEGER PRIMARY KEY,
@@ -130,6 +129,20 @@ func (a *App) migrate() error {
 		// belongs to a commitment lives on the action it belongs to (design.md,
 		// "Deliberate omissions").
 		if _, err := a.db.Exec(`ALTER TABLE projects DROP COLUMN description`); err != nil {
+			return err
+		}
+	}
+	has, err = a.hasColumn("someday_items", "snooze_until")
+	if err != nil {
+		return err
+	}
+	if has {
+		// A someday/maybe item stopped having a snooze. Every other way out of
+		// that list now goes through the inbox, and a date that only ever meant
+		// "do not show me this yet" on a list you already chose to open was
+		// hiding ideas from the one walk that exists to look at them
+		// (design.md, "Someday/maybe item").
+		if _, err := a.db.Exec(`ALTER TABLE someday_items DROP COLUMN snooze_until`); err != nil {
 			return err
 		}
 	}

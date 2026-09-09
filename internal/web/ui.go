@@ -509,8 +509,6 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 // --- Inbox Zero ----------------------------------------------------------
 
 type processData struct {
-	Src       string
-	Item      any // *app.InboxItem or *app.SomedayItem
 	ID        int64
 	Text      string
 	CreatedAt time.Time
@@ -538,40 +536,29 @@ type processData struct {
 // processItem loads the item a processing screen is about: the named one, or
 // the oldest when the Inbox Zero run is working down the list. A nil item with
 // no error means the inbox is empty and the run is over.
-func (s *Server) processItem(src string, id int64) (*processData, error) {
-	d := &processData{Src: src, ID: id}
-	switch src {
-	case "inbox":
-		items, err := s.app.Inbox()
-		if err != nil {
-			return nil, err
-		}
-		if len(items) == 0 {
-			return nil, nil
-		}
-		it := items[0]
-		if id != 0 {
-			it = nil
-			for _, cand := range items {
-				if cand.ID == id {
-					it = cand
-					break
-				}
-			}
-			if it == nil {
-				return nil, nil // processed already, in another tab or by a back button
-			}
-		}
-		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, len(items)
-	case "someday":
-		it, err := s.app.SomedayItem(id)
-		if err != nil {
-			return nil, err
-		}
-		d.Item, d.ID, d.Text, d.CreatedAt, d.Remaining = it, it.ID, it.Text, it.CreatedAt, 1
-	default:
-		return nil, fmt.Errorf("unknown source %q", src)
+func (s *Server) processItem(id int64) (*processData, error) {
+	d := &processData{ID: id}
+	items, err := s.app.Inbox()
+	if err != nil {
+		return nil, err
 	}
+	if len(items) == 0 {
+		return nil, nil
+	}
+	it := items[0]
+	if id != 0 {
+		it = nil
+		for _, cand := range items {
+			if cand.ID == id {
+				it = cand
+				break
+			}
+		}
+		if it == nil {
+			return nil, nil // processed already, in another tab or by a back button
+		}
+	}
+	d.ID, d.Text, d.CreatedAt, d.Remaining = it.ID, it.Text, it.CreatedAt, len(items)
 	return d, nil
 }
 
@@ -585,7 +572,7 @@ func (d *processData) links() {
 		one = "&one=1"
 		d.Q = "?one=1"
 	}
-	base := fmt.Sprintf("/process?src=%s&item=%d", url.QueryEscape(d.Src), d.ID)
+	base := fmt.Sprintf("/process?item=%d", d.ID)
 	d.Back = base + one
 	d.AsAction = base + "&as=action" + one
 	d.AsProject = base + "&as=project" + one
@@ -601,19 +588,15 @@ type pickerData struct {
 
 func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	src := q.Get("src")
-	if src == "" {
-		src = "inbox"
-	}
-	d, err := s.processItem(src, int64Query(r, "item"))
+	d, err := s.processItem(int64Query(r, "item"))
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 	if d == nil {
-		if src == "someday" || int64Query(r, "item") != 0 {
-			// the item was decided about already; the list is the honest answer
-			http.Redirect(w, r, listFor(src), http.StatusSeeOther)
+		if int64Query(r, "item") != 0 {
+			// the item was decided about already; the inbox is the honest answer
+			http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 			return
 		}
 		s.render(w, "process_done.html", s.newPage("Inbox Zero", "inbox", r).
@@ -661,7 +644,7 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 	case "someday":
 		tmpl = "process_someday.html"
 	}
-	p := s.newPage("Processing", d.Src, r).help("processing").step("Processing", "processing")
+	p := s.newPage("Processing", "inbox", r).help("processing").step("Processing", "processing")
 	switch d.As {
 	case "action":
 		p.step("Action", "").notation(s)
@@ -673,13 +656,6 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 	p.Processing = true
 	p.Data = d
 	s.render(w, tmpl, p)
-}
-
-func listFor(src string) string {
-	if src == "someday" {
-		return "/someday"
-	}
-	return "/inbox"
 }
 
 func int64Query(r *http.Request, key string) int64 {
@@ -874,15 +850,15 @@ func (s *Server) projectFromForm(r *http.Request) (app.ProjectFields, []app.Acti
 // settled — false means the form has already been sent back, which matters
 // more here than anywhere else: the actions live in the form until it is
 // accepted, so an error that threw the page away would throw them away too.
-func (s *Server) processProjectBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
+func (s *Server) processProjectBranch(w http.ResponseWriter, r *http.Request, id int64) bool {
 	pf, actions, todays, err := s.projectFromForm(r)
 	if err != nil {
-		s.bounce(w, r, src, id, "project", err.Error(), false)
+		s.bounce(w, r, id, "project", err.Error(), false)
 		return false
 	}
-	p, err := s.app.ProcessProject(src, id, pf, actions)
+	p, err := s.app.ProcessProject(id, pf, actions)
 	if err != nil {
-		s.bounce(w, r, src, id, "project", err.Error(), false)
+		s.bounce(w, r, id, "project", err.Error(), false)
 		return false
 	}
 	// #today on one of them is applied once there is an action to apply it to.
@@ -903,10 +879,10 @@ func (s *Server) processProjectBranch(w http.ResponseWriter, r *http.Request, sr
 // bounce sends a stage-two form back to the screen instead of accepting it,
 // carrying everything that was typed plus the reason. Nothing is written and
 // the item is untouched, so this is the same non-answer as leaving.
-func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id int64, as, note string, needDOD bool) {
-	d, err := s.processItem(src, id)
+func (s *Server) bounce(w http.ResponseWriter, r *http.Request, id int64, as, note string, needDOD bool) {
+	d, err := s.processItem(id)
 	if err != nil || d == nil {
-		http.Redirect(w, r, listFor(src), http.StatusSeeOther)
+		http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 		return
 	}
 	d.One = r.URL.Query().Get("one") != ""
@@ -918,42 +894,36 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, src string, id i
 }
 
 func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
-	src, id, branch := r.PathValue("src"), idParam(r), r.PathValue("branch")
+	id, branch := idParam(r), r.PathValue("branch")
 	var err error
 	switch branch {
 	case "trash":
-		err = s.app.ProcessTrash(src, id)
+		err = s.app.ProcessTrash(id)
 	case "reference":
-		err = s.app.ProcessReference(src, id)
+		err = s.app.ProcessReference(id)
 	case "twominute":
-		err = s.app.ProcessTwoMinute(src, id)
+		err = s.app.ProcessTwoMinute(id)
 	case "action":
-		if done := s.processActionBranch(w, r, src, id); !done {
+		if done := s.processActionBranch(w, r, id); !done {
 			return
 		}
 	case "project":
-		if done := s.processProjectBranch(w, r, src, id); !done {
+		if done := s.processProjectBranch(w, r, id); !done {
 			return
 		}
 	case "someday":
 		f, ferr := s.readSomeday(r)
 		if ferr != nil {
-			s.bounce(w, r, src, id, "someday", ferr.Error(), false)
+			s.bounce(w, r, id, "someday", ferr.Error(), false)
 			return
 		}
 		_, err = s.app.ProcessSomeday(id, f)
-	case "keep":
-		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
 	default:
 		http.NotFound(w, r)
 		return
 	}
 	if err != nil {
 		httpError(w, err)
-		return
-	}
-	if src == "someday" {
-		http.Redirect(w, r, "/someday", http.StatusSeeOther)
 		return
 	}
 	// one named item goes back to the list; the Inbox Zero run carries on to
@@ -970,12 +940,12 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 // files it there, a pending new project is created with this action as its
 // first, and neither means standalone. It reports whether the branch was
 // settled — false means the form has already been sent back.
-func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src string, id int64) bool {
+func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id int64) bool {
 	pid := parseID(strings.TrimSpace(r.FormValue("projectid")))
 	newProject := strings.TrimSpace(r.FormValue("newproject"))
 	wa, err := s.readAction(r, pid != 0 || newProject != "")
 	if err != nil {
-		s.bounce(w, r, src, id, "action", err.Error(), false)
+		s.bounce(w, r, id, "action", err.Error(), false)
 		return false
 	}
 	f := wa.Fields
@@ -984,11 +954,11 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src
 		// the project and its first action are created together: until the
 		// form is submitted there is no action to be its first, and design.md
 		// will not have a project without one
-		p, err := s.app.ProcessProject(src, id,
+		p, err := s.app.ProcessProject(id,
 			app.ProjectFields{Title: newProject, DOD: strings.TrimSpace(r.FormValue("newdod"))},
 			[]app.ActionFields{f})
 		if err != nil {
-			s.bounce(w, r, src, id, "action", err.Error(), false)
+			s.bounce(w, r, id, "action", err.Error(), false)
 			return false
 		}
 		if len(p.Actions) == 1 {
@@ -997,9 +967,9 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, src
 		return true
 	}
 
-	act, err := s.app.ProcessAction(src, id, f, pid, wa.Parked && pid != 0)
+	act, err := s.app.ProcessAction(id, f, pid, wa.Parked && pid != 0)
 	if err != nil {
-		s.bounce(w, r, src, id, "action", err.Error(), false)
+		s.bounce(w, r, id, "action", err.Error(), false)
 		return false
 	}
 	return s.finishAction(w, act.ID, wa.Today)
@@ -1424,14 +1394,11 @@ func (s *Server) somedayItemUpdate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/someday", http.StatusSeeOther)
 }
 
-// readSomeday reads the three fields a someday/maybe item is written in,
-// wherever it is being written: the idea, the tags on its meta line, and the
-// date it becomes worth looking at (design.md, "Someday/maybe item").
+// readSomeday reads the two fields a someday/maybe item is written in,
+// wherever it is being written: the idea, and the tags on its meta line
+// (design.md, "Someday/maybe item").
 func (s *Server) readSomeday(r *http.Request) (app.SomedayFields, error) {
-	f := app.SomedayFields{
-		Text:        strings.TrimSpace(r.FormValue("text")),
-		SnoozeUntil: strings.TrimSpace(r.FormValue("snooze")),
-	}
+	f := app.SomedayFields{Text: strings.TrimSpace(r.FormValue("text"))}
 	v, err := s.app.Vocabulary()
 	if err != nil {
 		return f, err
@@ -1440,31 +1407,18 @@ func (s *Server) readSomeday(r *http.Request) (app.SomedayFields, error) {
 	return f, err
 }
 
-func (s *Server) somedayItemVerb(w http.ResponseWriter, r *http.Request) {
-	id, verb := idParam(r), r.PathValue("verb")
-	var err error
-	switch verb {
-	case "trash":
-		err = s.app.TrashSomeday(id)
-	case "keep":
-		err = s.app.KeepIncubating(id, strings.TrimSpace(r.FormValue("snooze")))
-	case "inbox":
-		err = s.app.ReturnToInbox(id)
-	default:
-		http.NotFound(w, r)
-		return
-	}
-	if err != nil {
+// somedayItemToInbox is the only thing this screen does besides saving: the
+// idea goes back to be decided about, carrying its tags in its text. It is
+// also how an idea is trashed — in the inbox, by the branch that trashes
+// everything else (design.md, "Reshaping items").
+func (s *Server) somedayItemToInbox(w http.ResponseWriter, r *http.Request) {
+	if err := s.app.ReturnToInbox(idParam(r)); err != nil {
 		httpError(w, err)
 		return
 	}
-	if verb == "inbox" {
-		// the item is a capture again, and the inbox is where it now has to
-		// be answered — so that is where the screen goes
-		http.Redirect(w, r, "/inbox", http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, "/someday", http.StatusSeeOther)
+	// the item is a capture again, and the inbox is where it now has to be
+	// answered — so that is where the screen goes
+	http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 }
 
 // --- weekly review -------------------------------------------------------
@@ -1549,7 +1503,7 @@ func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 	case "someday":
 		its, _ := s.app.SomedayItems(app.Filters{})
 		for _, it := range its {
-			add("someday", it.Text, "/somedayitem/"+itoa(it.ID), it.ID, it.LastReviewedAt, it.SnoozeUntil, "")
+			add("someday", it.Text, "/somedayitem/"+itoa(it.ID), it.ID, it.LastReviewedAt, "", "")
 		}
 	case "scheduler":
 		ss, _ := s.app.Schedules("")

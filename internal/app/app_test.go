@@ -35,7 +35,7 @@ func TestCaptureDuplicates(t *testing.T) {
 		t.Fatalf("inbox has %d items, want 1", len(items))
 	}
 	// processing the first makes the same text capturable again
-	if err := a.ProcessTrash("inbox", items[0].ID); err != nil {
+	if err := a.ProcessTrash(items[0].ID); err != nil {
 		t.Fatal(err)
 	}
 	_, acc, _ = a.Capture("Pay the rent")
@@ -295,7 +295,7 @@ func TestReviewOutstanding(t *testing.T) {
 		t.Fatalf("capture: acc=%v err=%v", acc, err)
 	}
 	items, _ := a.Inbox()
-	if _, err := a.ProcessSomeday(items[0].ID, SomedayFields{Text: "Learn the banjo", SnoozeUntil: "2027-01-01"}); err != nil {
+	if _, err := a.ProcessSomeday(items[0].ID, SomedayFields{Text: "Learn the banjo"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -566,7 +566,7 @@ func TestProcessActionIntoProject(t *testing.T) {
 	}
 
 	it, _, _ := a.Capture("Book the winter tyre change")
-	act, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID, false)
+	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -588,7 +588,7 @@ func TestProcessActionParkedAndStandalone(t *testing.T) {
 		[]ActionFields{{Title: "Measure the wall"}})
 
 	it, _, _ := a.Capture("Price the worktop")
-	act, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Price the worktop"}, p.ID, true)
+	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Price the worktop"}, p.ID, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -597,13 +597,13 @@ func TestProcessActionParkedAndStandalone(t *testing.T) {
 	}
 
 	it2, _, _ := a.Capture("Pay the rent")
-	if _, err := a.ProcessAction("inbox", it2.ID, ActionFields{Title: "Pay the rent"}, 0, true); err == nil {
+	if _, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0, true); err == nil {
 		t.Fatal("parking a standalone action must be refused")
 	}
 	if items, _ := a.Inbox(); len(items) != 1 {
 		t.Fatal("a refused branch must leave the item in the inbox")
 	}
-	act2, err := a.ProcessAction("inbox", it2.ID, ActionFields{Title: "Pay the rent"}, 0, false)
+	act2, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,7 +625,7 @@ func TestProcessActionRejectsCompletedProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	it, _, _ := a.Capture("File the VAT return")
-	if _, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "File the VAT return"}, p.ID, false); err == nil {
+	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "File the VAT return"}, p.ID, false); err == nil {
 		t.Fatal("a completed project must not take a new action")
 	}
 	if items, _ := a.Inbox(); len(items) != 1 {
@@ -685,7 +685,7 @@ func TestProjectCandidates(t *testing.T) {
 	it, _, _ := a.Capture("Order the worktop")
 	kitchen, _, _ := a.ProjectCandidates("Kitchen renovation", 0)
 	*now = now.Add(time.Minute)
-	if _, err := a.ProcessAction("inbox", it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID, false); err != nil {
+	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID, false); err != nil {
 		t.Fatal(err)
 	}
 	hits, _, _ = a.ProjectCandidates("", 0)
@@ -780,9 +780,10 @@ func TestParseQueryWindows(t *testing.T) {
 }
 
 // A someday/maybe item carries the area of responsibility it belongs to, and
-// the trip back to the inbox drops it. Both are load-bearing: the tag is what
-// the monthly walk groups by, and an inbox item that kept tags would be a
-// clarified capture, which is the one thing the inbox does not hold.
+// the trip back to the inbox writes it into the text. Both are load-bearing:
+// the tag is what the monthly walk groups by, and an inbox item has no tags of
+// its own, so a returned idea that dropped them would arrive having lost a
+// decision that was already made about it.
 func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	a, _ := newTestApp(t)
 	if err := a.AddTag("hobby"); err != nil {
@@ -796,7 +797,7 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	}
 	inbox, _ := a.Inbox()
 	it, err := a.ProcessSomeday(inbox[0].ID, SomedayFields{
-		Text: "Learn to sail — a week on the Baltic", Tags: []string{"hobby"}, SnoozeUntil: "2027-01-01"})
+		Text: "Learn to sail — a week on the Baltic", Tags: []string{"hobby"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -808,7 +809,7 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(got.Tags, []string{"hobby"}) || got.SnoozeUntil != "2027-01-01" {
+	if !reflect.DeepEqual(got.Tags, []string{"hobby"}) {
 		t.Fatalf("filed as %+v", got)
 	}
 	// the tag filter is the point of having tags here at all
@@ -819,16 +820,16 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	if len(tagged) != 1 || tagged[0].ID != it.ID {
 		t.Fatalf("#hobby matched %d items, want the sailing one", len(tagged))
 	}
-	// editing keeps it raw and keeps it tagged
+	// editing keeps it unclarified and may drop the area again
 	if err := a.EditSomeday(it.ID, SomedayFields{Text: "Learn to sail", Tags: nil}); err != nil {
 		t.Fatal(err)
 	}
 	got, _ = a.SomedayItem(it.ID)
-	if len(got.Tags) != 0 || got.SnoozeUntil != "" {
+	if len(got.Tags) != 0 || got.Text != "Learn to sail" {
 		t.Fatalf("edit did not take: %+v", got)
 	}
 
-	// back to the inbox: one capture again, and nothing left carrying a tag
+	// back to the inbox: one capture again, with the area written into it
 	other, _ := a.SomedayItems(Filters{Name: "shed"})
 	if err := a.EditSomeday(other[0].ID, SomedayFields{Text: other[0].Text, Tags: []string{"hobby"}}); err != nil {
 		t.Fatal(err)
@@ -837,8 +838,8 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 		t.Fatal(err)
 	}
 	inbox, _ = a.Inbox()
-	if len(inbox) != 1 || inbox[0].Text != "Repaint the shed" {
-		t.Fatalf("inbox after the return: %+v", inbox)
+	if len(inbox) != 1 || inbox[0].Text != "Repaint the shed #hobby" {
+		t.Fatalf("inbox after the return: %+v", inbox[0])
 	}
 	if left, _ := a.SomedayItems(Filters{}); len(left) != 1 {
 		t.Fatalf("%d someday items left, want 1", len(left))

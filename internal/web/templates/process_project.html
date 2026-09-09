@@ -13,7 +13,7 @@
        belong to. So the actions are held here as rows carrying hidden fields,
        and an action is written in the same form it is written in everywhere
        else — see the add-action dialog below. */}}
-  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/project{{$d.Q}}" class="stack" data-drafts>
+  <form method="post" action="/process/{{$d.ID}}/project{{$d.Q}}" class="stack" data-drafts>
     {{template "projectfields" (dict
       "Title" ($d.Vals.Get "title") "DOD" ($d.Vals.Get "dod") "Meta" ($d.Vals.Get "meta")
       "Required" true "Focus" true)}}

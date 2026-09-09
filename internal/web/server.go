@@ -224,7 +224,7 @@ func (s *Server) routes() {
 
 	// Inbox Zero / processing
 	m.HandleFunc("GET /process", s.processPage)
-	m.HandleFunc("POST /process/{src}/{id}/{branch}", s.processBranch)
+	m.HandleFunc("POST /process/{id}/{branch}", s.processBranch)
 
 	// actions
 	m.HandleFunc("GET /action/{id}", s.actionPage)
@@ -248,7 +248,7 @@ func (s *Server) routes() {
 	// someday item editing
 	m.HandleFunc("GET /somedayitem/{id}", s.somedayItemPage)
 	m.HandleFunc("POST /somedayitem/{id}", s.somedayItemUpdate)
-	m.HandleFunc("POST /somedayitem/{id}/{verb}", s.somedayItemVerb)
+	m.HandleFunc("POST /somedayitem/{id}/inbox", s.somedayItemToInbox)
 
 	// weekly review
 	m.HandleFunc("GET /review", s.reviewPage)

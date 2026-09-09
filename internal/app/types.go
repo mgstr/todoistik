@@ -23,7 +23,6 @@ type SomedayItem struct {
 	// monthly walk needs in order to be answerable (design.md, "Tags").
 	CreatedAt      time.Time `json:"createdAt"`
 	LastReviewedAt time.Time `json:"lastReviewedAt"`
-	SnoozeUntil    string    `json:"snoozeUntil,omitempty"`
 }
 
 type Duration string

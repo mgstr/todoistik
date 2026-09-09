@@ -1,36 +1,28 @@
 {{template "top" .}}
 {{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
-<div class="process" data-cancel="{{if eq $d.Src "someday"}}/someday{{else}}/inbox{{end}}">
+<div class="process" data-cancel="/inbox">
   <div class="subject">
     <h1 class="capture-text">{{$d.Text}}</h1>
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
   <div class="branches">
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="trash">
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="trash">
       <button>Trash</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
+    <form method="post" action="/process/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
       <button title="not actionable, kept outside the app">Reference material</button>
     </form>
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="done">
+    <form method="post" action="/process/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="done">
       <button title="under two minutes: do it now, record it done">Two-minute rule — done</button>
     </form>
   </div>
 
   <div class="branches">
-    {{if eq $d.Src "someday"}}
-    <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/keep{{$q}}" class="inline">
-      <input type="date" name="snooze" title="snooze until">
-      <button>Keep incubating</button>
-    </form>
-    {{else}}
-    {{/* the one branch in this row that opens a stage two: the idea is filed
-         with the area it belongs to, which is the thinking this answer was
-         already doing (design.md, "Inbox Zero") */}}
+    {{/* the idea is filed with the area it belongs to, which is the thinking
+         this answer was already doing (design.md, "Inbox Zero") */}}
     <a class="button" href="{{$d.AsSomeday}}" data-key="s" data-key-label="someday"
        title="worth looking at some time, but not now">Someday/Maybe</a>
-    {{end}}
   </div>
 
   <div class="branches">

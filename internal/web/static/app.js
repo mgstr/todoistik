@@ -1120,16 +1120,14 @@
       "no-context": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
       "not-here": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
     },
-    // an idea carries the area it is about and nothing else, so the line's
-    // refusal says which of the two it was: a field an action has, or the
-    // snooze, which is the date box beside the line
+    // an idea carries the area it is about and nothing else — not a field an
+    // action has, and not a date: the two refusals differ only in the wording
+    // of what it is being told to leave off
     someday: {
       "no-context": function (p) { return "a someday/maybe item has no context; " + p.text + " belongs on the action it becomes"; },
-      // a date token has no sigil, which is what tells the two refusals apart:
-      // the snooze is a field the item has and writes elsewhere, a size is a
-      // field it does not have at all
+      // a date token has no sigil, which is what tells the two apart
       "not-here": function (p) {
-        if (p.sigil === "") return "a someday/maybe item's snooze is the date box beside this line, not notation";
+        if (p.sigil === "") return "a someday/maybe item has no dates; it waits on the list until you decide about it";
         return "a someday/maybe item has no " + p.text + "; that belongs on the action it becomes";
       },
     },

@@ -348,9 +348,9 @@ func TestParseSomedayMeta(t *testing.T) {
 	if !reflect.DeepEqual(tags, []string{"car", "house"}) {
 		t.Fatalf("tags: %v", tags)
 	}
-	// an idea carries its area of responsibility and nothing else. Its snooze
-	// is a field it has, written in the date box beside the line and refused
-	// here, so that the field has one place it is written
+	// an idea carries its area of responsibility and nothing else: not a field
+	// an action has, and not a date, since an idea nobody is committed to has
+	// nothing to be shown later than
 	for _, c := range []struct{ text, wants string }{
 		{"@home", "no context"},
 		{"@waitingFor(Marju)", "no @waitingFor"},
@@ -359,7 +359,7 @@ func TestParseSomedayMeta(t *testing.T) {
 		{"#today", "no #today"},
 		{"#parked", "no #parked"},
 		{"due:2026-10-01", "no due date"},
-		{"snooze:2026-10-01", "date beside this line"},
+		{"snooze:2026-10-01", "no snooze"},
 		{"#nosuchtag", "is not notation"},
 		{"a house in the country", "is not notation"},
 	} {
@@ -373,9 +373,8 @@ func TestParseSomedayMeta(t *testing.T) {
 
 func TestWriteSomedayMetaRoundTrips(t *testing.T) {
 	v := vocab(nil, []string{"car", "house"})
-	it := &SomedayItem{Tags: []string{"house", "car"}, SnoozeUntil: "2026-10-01"}
+	it := &SomedayItem{Tags: []string{"house", "car"}}
 	line := WriteSomedayMeta(it)
-	// the snooze is on the item and never on its line
 	if line != "#car #house" {
 		t.Fatalf("line: %q", line)
 	}

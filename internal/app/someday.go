@@ -3,29 +3,24 @@ package app
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"strings"
 )
 
 // --- someday/maybe items -------------------------------------------------
 
-// SomedayFields is a someday/maybe item as a form gives it: the idea, the
-// area it belongs to, and when it becomes worth looking at. One struct, so
-// that filing an item and editing one later cannot drift into two answers to
-// the same three questions (design.md, "Someday/maybe item").
+// SomedayFields is a someday/maybe item as a form gives it: the idea, and the
+// area it belongs to. One struct, so that filing an item and editing one later
+// cannot drift into two answers to the same two questions (design.md,
+// "Someday/maybe item").
 type SomedayFields struct {
-	Text        string
-	Tags        []string
-	SnoozeUntil string
+	Text string
+	Tags []string
 }
 
 func (f *SomedayFields) validate() error {
 	f.Text = strings.TrimSpace(f.Text)
 	if f.Text == "" {
 		return ErrEmpty
-	}
-	if f.SnoozeUntil != "" && !ValidDate(f.SnoozeUntil) {
-		return fmt.Errorf("bad snooze date %q", f.SnoozeUntil)
 	}
 	f.Tags = normTags(f.Tags)
 	return nil
@@ -34,8 +29,8 @@ func (f *SomedayFields) validate() error {
 func (a *App) somedayTx(tx *sql.Tx, id int64) (*SomedayItem, error) {
 	it := &SomedayItem{}
 	var created, reviewed string
-	err := tx.QueryRow(`SELECT id, text, created_at, last_reviewed_at, snooze_until FROM someday_items WHERE id=?`, id).
-		Scan(&it.ID, &it.Text, &created, &reviewed, &it.SnoozeUntil)
+	err := tx.QueryRow(`SELECT id, text, created_at, last_reviewed_at FROM someday_items WHERE id=?`, id).
+		Scan(&it.ID, &it.Text, &created, &reviewed)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +54,10 @@ func (a *App) SomedayItem(id int64) (*SomedayItem, error) {
 }
 
 // SomedayItems returns the someday/maybe view, oldest first (the age shown
-// is the age of the idea). Snoozed items are included, marked by the caller.
-// It filters by name and by tag, the two things a someday item has to be
-// narrowed by (design.md, "Someday/Maybe").
+// is the age of the idea). It filters by name and by tag, the two things a
+// someday item has to be narrowed by (design.md, "Someday/Maybe").
 func (a *App) SomedayItems(f Filters) ([]*SomedayItem, error) {
-	rows, err := a.db.Query(`SELECT id, text, created_at, last_reviewed_at, snooze_until FROM someday_items ORDER BY id`)
+	rows, err := a.db.Query(`SELECT id, text, created_at, last_reviewed_at FROM someday_items ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +65,7 @@ func (a *App) SomedayItems(f Filters) ([]*SomedayItem, error) {
 	for rows.Next() {
 		it := &SomedayItem{}
 		var created, reviewed string
-		if err := rows.Scan(&it.ID, &it.Text, &created, &reviewed, &it.SnoozeUntil); err != nil {
+		if err := rows.Scan(&it.ID, &it.Text, &created, &reviewed); err != nil {
 			rows.Close()
 			return nil, err
 		}
@@ -98,9 +92,9 @@ func (a *App) SomedayItems(f Filters) ([]*SomedayItem, error) {
 	return out, nil
 }
 
-// EditSomeday updates the idea, its tags and its snooze. The text may be
-// reworded to formulate the idea more clearly and the tags may be changed
-// while it stays raw: neither says what will be done about it, which is the
+// EditSomeday updates the idea and its tags. The text may be reworded to
+// formulate the idea more clearly and the tags may be changed while it stays
+// unclarified: neither says what will be done about it, which is the
 // clarifying a someday item is spared (design.md, "Someday/maybe item").
 func (a *App) EditSomeday(id int64, f SomedayFields) error {
 	if err := f.validate(); err != nil {
@@ -111,7 +105,7 @@ func (a *App) EditSomeday(id int64, f SomedayFields) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`UPDATE someday_items SET text=?, snooze_until=? WHERE id=?`, f.Text, f.SnoozeUntil, id); err != nil {
+		if _, err := tx.Exec(`UPDATE someday_items SET text=? WHERE id=?`, f.Text, id); err != nil {
 			return err
 		}
 		if err := a.setTagsTx(tx, "someday", id, f.Tags); err != nil {
@@ -121,31 +115,30 @@ func (a *App) EditSomeday(id int64, f SomedayFields) error {
 	})
 }
 
-// ReturnToInbox sends an idea back to the inbox, as the raw capture it was.
-// The item is consumed and its text captured again, so it is one undecided
-// thing in the one place undecided things live and has to be answered like
-// any other (design.md, "Reshaping items").
+// ReturnToInbox sends an idea back to the inbox, to be decided about now
+// rather than later. The item is consumed and its text captured again, so it
+// is one undecided thing in the one place undecided things live and has to be
+// answered like any other (design.md, "Reshaping items").
 //
-// The tags and the snooze do not survive the trip: an inbox item carries
-// neither, and the audit snapshot is where what was dropped is kept. A text
-// that is already sitting in the inbox collapses into it, by the same rule
-// every other way in obeys (design.md, "Duplicate captures") — the idea is
-// in the inbox either way, which is what was asked for.
+// The tags ride along written into the text — "Restore the bicycle #hobby" —
+// because an inbox item has no tags of its own and the area is a decision
+// already made about this idea. Dropping it would make the trip back cost
+// something, which is the one thing that would stop it being taken.
+//
+// A text that is already sitting in the inbox collapses into it, by the same
+// rule every other way in obeys (design.md, "Duplicate captures") — the idea
+// is in the inbox either way, which is what was asked for.
 func (a *App) ReturnToInbox(id int64) error {
 	return a.tx(func(tx *sql.Tx) error {
 		it, err := a.removeSomedayTx(tx, id, EvReturned)
 		if err != nil {
 			return err
 		}
-		_, _, err = a.captureTx(tx, it.Text)
-		return err
-	})
-}
-
-// TrashSomeday deletes a someday/maybe item (audited, recoverable).
-func (a *App) TrashSomeday(id int64) error {
-	return a.tx(func(tx *sql.Tx) error {
-		_, err := a.removeSomedayTx(tx, id, EvTrashed)
+		text := it.Text
+		for _, t := range it.Tags {
+			text += " #" + t
+		}
+		_, _, err = a.captureTx(tx, text)
 		return err
 	})
 }
@@ -165,37 +158,31 @@ func (a *App) removeSomedayTx(tx *sql.Tx, id int64, event string) (*SomedayItem,
 }
 
 // --- Inbox Zero branches -------------------------------------------------
-// Each branch consumes the source item (inbox or someday) and produces the
-// decided outcome in one transaction. src is "inbox" or "someday".
+// Each branch consumes the inbox item and produces the decided outcome in one
+// transaction. The inbox is the only source: an idea that has become worth
+// moving on goes back to the inbox first (design.md, "Reshaping items"), so
+// that every decision is made in one place, on one kind of item.
 
-func (a *App) consumeSource(tx *sql.Tx, src string, id int64, event string) error {
-	switch src {
-	case "inbox":
-		_, err := a.removeInboxItem(tx, id, event)
-		return err
-	case "someday":
-		_, err := a.removeSomedayTx(tx, id, event)
-		return err
-	default:
-		return fmt.Errorf("unknown source %q", src)
-	}
+func (a *App) consumeSource(tx *sql.Tx, id int64, event string) error {
+	_, err := a.removeInboxItem(tx, id, event)
+	return err
 }
 
 // ProcessTrash: the item is deleted, recorded in the audit log.
-func (a *App) ProcessTrash(src string, id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, src, id, EvTrashed) })
+func (a *App) ProcessTrash(id int64) error {
+	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvTrashed) })
 }
 
 // ProcessReference: sent out of the app to wherever reference material is
 // kept; the app stores none. The audit entry is the record it existed.
-func (a *App) ProcessReference(src string, id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, src, id, EvReference) })
+func (a *App) ProcessReference(id int64) error {
+	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvReference) })
 }
 
 // ProcessTwoMinute: done right now, under two minutes — completed in the
 // audit log without ever becoming an action.
-func (a *App) ProcessTwoMinute(src string, id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, src, id, EvTwoMinute) })
+func (a *App) ProcessTwoMinute(id int64) error {
+	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvTwoMinute) })
 }
 
 // ProcessAction: the item becomes an action, standalone when projectID is 0
@@ -209,7 +196,7 @@ func (a *App) ProcessTwoMinute(src string, id int64) error {
 // is about not being bugged, not about being closed to new work. A completed
 // one is not — it is finished, and reopening it is not a decision to make
 // while emptying the inbox.
-func (a *App) ProcessAction(src string, id int64, f ActionFields, projectID int64, parked bool) (*Action, error) {
+func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bool) (*Action, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
 	}
@@ -227,7 +214,7 @@ func (a *App) ProcessAction(src string, id int64, f ActionFields, projectID int6
 	}
 	var act *Action
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeSource(tx, src, id, EvDeleted); err != nil {
+		if err := a.consumeSource(tx, id, EvDeleted); err != nil {
 			return err
 		}
 		now := a.now().UTC()
@@ -252,33 +239,32 @@ func (a *App) ProcessAction(src string, id int64, f ActionFields, projectID int6
 
 // ProcessProject: the item becomes a project (title, DOD and at least one
 // action required — the Inbox Zero project branch).
-func (a *App) ProcessProject(src string, id int64, f ProjectFields, actions []ActionFields) (*Project, error) {
+func (a *App) ProcessProject(id int64, f ProjectFields, actions []ActionFields) (*Project, error) {
 	if err := a.tx(func(tx *sql.Tx) error {
-		return a.consumeSource(tx, src, id, EvDeleted)
+		return a.consumeSource(tx, id, EvDeleted)
 	}); err != nil {
 		return nil, err
 	}
 	return a.CreateProject(f, actions)
 }
 
-// ProcessSomeday: worth looking at some time, but not now. From the inbox
-// only — a someday item deciding to stay is KeepIncubating instead. The idea
-// arrives written the way it will be read a month from now: reworded if it
-// needed it, and tagged with the area it belongs to, which is the decision
-// this branch was already making (design.md, "Inbox Zero").
+// ProcessSomeday: worth looking at some time, but not now. The idea arrives
+// written the way it will be read a month from now: reworded if it needed it,
+// and tagged with the area it belongs to, which is the decision this branch
+// was already making (design.md, "Inbox Zero").
 func (a *App) ProcessSomeday(id int64, f SomedayFields) (*SomedayItem, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
 	}
 	var it *SomedayItem
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeSource(tx, "inbox", id, EvDeleted); err != nil {
+		if err := a.consumeSource(tx, id, EvDeleted); err != nil {
 			return err
 		}
 		now := a.now().UTC()
-		it = &SomedayItem{Text: f.Text, Tags: f.Tags, CreatedAt: now, LastReviewedAt: now, SnoozeUntil: f.SnoozeUntil}
-		res, err := tx.Exec(`INSERT INTO someday_items (text, created_at, last_reviewed_at, snooze_until) VALUES (?,?,?,?)`,
-			it.Text, ts(it.CreatedAt), ts(it.LastReviewedAt), it.SnoozeUntil)
+		it = &SomedayItem{Text: f.Text, Tags: f.Tags, CreatedAt: now, LastReviewedAt: now}
+		res, err := tx.Exec(`INSERT INTO someday_items (text, created_at, last_reviewed_at) VALUES (?,?,?)`,
+			it.Text, ts(it.CreatedAt), ts(it.LastReviewedAt))
 		if err != nil {
 			return err
 		}
@@ -292,22 +278,4 @@ func (a *App) ProcessSomeday(id int64, f SomedayFields) (*SomedayItem, error) {
 		return nil, err
 	}
 	return it, nil
-}
-
-// KeepIncubating: still interesting, still not now — a new snooze, nothing
-// else changes. Only when processing a someday/maybe item.
-func (a *App) KeepIncubating(id int64, snoozeUntil string) error {
-	if snoozeUntil != "" && !ValidDate(snoozeUntil) {
-		return fmt.Errorf("bad snooze date %q", snoozeUntil)
-	}
-	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.somedayTx(tx, id)
-		if err != nil {
-			return err
-		}
-		if _, err := tx.Exec(`UPDATE someday_items SET snooze_until=? WHERE id=?`, snoozeUntil, id); err != nil {
-			return err
-		}
-		return a.audit(tx, EvEdited, "someday", id, before)
-	})
 }

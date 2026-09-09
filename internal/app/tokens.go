@@ -470,9 +470,9 @@ func nonTagField(f MetaFields) string {
 // belong to an area of responsibility, and that is what the monthly walk
 // groups it by (design.md, "Someday/maybe item").
 //
-// The snooze is refused here even though the item has one: it is the date box
-// beside this line, which is the control design.md gives the branch, and a
-// second way to write the same field is a second place for it to disagree.
+// A snooze is refused like the rest: the item has no such field. Hiding an
+// idea until a date, on a list you already chose to open, is hiding it from
+// the one walk that exists to look at it.
 func ParseSomedayMeta(text string, v *Vocabulary) ([]string, error) {
 	// inProject so that #parked parses rather than erroring in an action's
 	// words; it is refused just below, in a someday item's
@@ -484,7 +484,7 @@ func ParseSomedayMeta(text string, v *Vocabulary) ([]string, error) {
 		return nil, fmt.Errorf("%q is not notation — an unknown #tag, or words that belong in the idea itself", left)
 	}
 	if f.SnoozeUntil != "" {
-		return nil, fmt.Errorf("a someday/maybe item's snooze is the date beside this line, not notation")
+		return nil, fmt.Errorf("a someday/maybe item has no snooze; it waits on the list until you decide about it")
 	}
 	if what := nonTagField(f); what != "" {
 		return nil, fmt.Errorf("a someday/maybe item has no %s; it is an idea, not something you are doing", what)

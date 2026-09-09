@@ -8,14 +8,13 @@
 
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
-  {{/* The same three fields the item's own page shows, in the same partial:
+  {{/* The same two fields the item's own page shows, in the same partial:
        what is written here is what will be read a month from now, and the
        screen it is read on is that page. */}}
-  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/someday{{$d.Q}}" class="stack">
+  <form method="post" action="/process/{{$d.ID}}/someday{{$d.Q}}" class="stack">
     {{template "somedayfields" (dict
       "Text" ($d.Vals.Get "text")
-      "Meta" ($d.Vals.Get "meta")
-      "Snooze" ($d.Vals.Get "snooze") "Focus" true)}}
+      "Meta" ($d.Vals.Get "meta") "Focus" true)}}
 
     <div class="branches">
       <button class="primary">File under Someday/Maybe</button>

@@ -28,7 +28,7 @@
   <a href="/waiting" class="{{if eq .View "waiting"}}on{{end}}" title="g w">Waiting{{if .Nav.Waiting}}<span class="badge navcount">{{.Nav.Waiting}}</span>{{end}}</a>
   <a href="/calendar" class="{{if eq .View "calendar"}}on{{end}}" title="g c">Calendar{{if .Nav.Calendar}}<span class="badge navcount">{{.Nav.Calendar}}</span>{{end}}</a>
   <div class="grp">Later</div>
-  <a href="/someday" class="{{if eq .View "someday"}}on{{end}}" title="g s">{{if and .Processing (eq .View "someday")}}Processing…{{else}}Someday{{if .Nav.Someday}}<span class="badge navcount">{{.Nav.Someday}}</span>{{end}}{{end}}</a>
+  <a href="/someday" class="{{if eq .View "someday"}}on{{end}}" title="g s">Someday{{if .Nav.Someday}}<span class="badge navcount">{{.Nav.Someday}}</span>{{end}}</a>
   <a href="/scheduler" class="{{if eq .View "scheduler"}}on{{end}}" title="g h">Scheduler{{if .Nav.Scheduler}}<span class="badge navcount">{{.Nav.Scheduler}}</span>{{end}}</a>
   <a href="/review" class="{{if eq .View "review"}}on{{end}}" title="g r">Review{{if .Nav.Review}}<span class="badge navcount">{{.Nav.Review}}</span>{{end}}</a>
   <div class="grp">Records</div>
@@ -257,21 +257,18 @@
 {{/* The fields an idea is written in, wherever it is being written: the
      Someday/Maybe branch of processing, and the item's own page later on.
      One definition, for the reason actionfields has one — the branch and the
-     page are the same three questions, and two copies is how the meta line
+     page are the same two questions, and two copies is how the meta line
      ends up on only one of them.
 
-     Three fields and no more. The idea itself, which may be reworded; the
+     Two fields and no more. The idea itself, which may be reworded, and the
      area of responsibility it belongs to, which is what the monthly walk
-     groups by; and the date it becomes worth looking at. Nothing that would
-     clarify it into a commitment, because deciding not to commit is exactly
-     what put it here (design.md, "Someday/maybe item").
-
-     The snooze is a date box and not notation on the meta line, so that
-     there is one place the field is written and one thing the line is for. */}}
+     groups by. Nothing that would clarify it into a commitment, because
+     deciding not to commit is exactly what put it here — and no date, because
+     an idea you are not committed to has nothing to be shown later *than*
+     (design.md, "Someday/maybe item"). */}}
 <label class="gutter"><span class="lb">Idea</span> <textarea name="text" rows="1" data-grow required
   {{if .Focus}}autofocus{{end}}>{{.Text}}</textarea></label>
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "someday")}}</label>
-<label class="gutter"><span class="lb">Snooze until</span> <input type="date" name="snooze" value="{{.Snooze}}"></label>
 {{end}}
 
 {{define "projectfields"}}

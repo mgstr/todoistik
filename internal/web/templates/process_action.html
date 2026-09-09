@@ -8,7 +8,7 @@
 
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
-  <form method="post" action="/process/{{$d.Src}}/{{$d.ID}}/action{{$d.Q}}" class="stack">
+  <form method="post" action="/process/{{$d.ID}}/action{{$d.Q}}" class="stack">
     {{template "actionfields" (dict
       "Title" ($d.Vals.Get "title")
       "Meta" ($d.Vals.Get "meta")
