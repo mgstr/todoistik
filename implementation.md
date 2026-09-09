@@ -156,11 +156,11 @@ Nothing else. The read API is read only, and capture is the only way in.
 
 ### Jumping to a control
 
-`g` goes to a view; `ctrl-j` goes to a control on the view already open. It
+`g` goes to a view; `ctrl-j` goes to something on the view already open. It
 marks every control on the screen with a letter, the way `g` marks the rail,
-and the next key pressed puts the focus there — at the end of what is already
-in the box, since the first thing typed after a jump is meant to follow the
-text rather than land in front of it.
+and the next key pressed goes there — which means whatever that thing is for:
+a box is focused, a button is pressed, and a list is arrived at by selecting
+its first row.
 
 It exists because a form is not a list. `j`/`k` walk rows and the row keys act
 on them, but a screen made of boxes has no cursor to move: reaching the meta
@@ -178,15 +178,33 @@ line from the description meant the mouse, or tabbing past everything between.
   `e` and Delete is `l`. Every letter shown therefore goes somewhere, which is
   the promise the key bar already makes: a key is never advertised without
   working
+- **arriving does the thing, it does not stand next to it.** A button is
+  pressed rather than focused: a jump that then needs a second key to press
+  what it landed on is two keys for what the key bar does in one, and every
+  button here is a control the screen was about to act on anyway. A box is
+  focused at the end of what is already in it — the first thing typed after a
+  jump is meant to follow the text, not to land in front of it, which is the
+  rule `caretToEnd` applies to a field that opens focused. A list is arrived at
+  by selecting its first row, which is what puts the row keys in reach
+- **a list is one destination, named by the heading over it.** The Actions list
+  on a project's page is `a`, and landing on it hands the screen to `j`/`k`,
+  `enter`, `c` and `t` — the keys that were always the way through a list. An
+  empty list is not a destination: there is no row to land on
+- **what nothing names is numbered.** A control with no name to take a letter
+  from — the Archive's search box, its completed-when dropdown — gets `0`, `1`
+  and so on in reading order, and so does one whose every letter is already
+  spoken for. A letter that stands for nothing would not be the guess the
+  letters are for, and dropping the hint would leave a control the key could
+  not reach
 - **a control that cannot be pressed is not a destination.** Disabled means
   disabled — Save carries no letter until the form has been changed, and grows
   one the moment it has. `tabindex="-1"` is how a box that is shown rather
   than filled in says the same thing, which is what keeps the project on an
   action's page out of it while leaving the picker on the processing screen in
-- **the rail and the list rows are out.** The rail is `g`'s. A row's controls
-  have their own keys — `c`, `t`, `enter` — and marking them would put eighteen
-  letters on a nine-item list. So a plain list view has nothing to jump to, and
-  the bar does not offer the key there
+- **the rail and a row's own controls are out.** The rail is `g`'s. A row's
+  complete and pick buttons have their own keys — `c`, `t`, `enter` — and
+  marking them would put eighteen letters on a nine-item list, which is what
+  the list being a single destination avoids
 - **the hint is placed from the control's own rectangle**, in viewport
   coordinates, rather than hung inside it the way the rail's are: a text box
   has nowhere to put a child and half of what these mark are buttons. It
