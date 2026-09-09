@@ -39,6 +39,114 @@
     document.querySelectorAll(".ghint").forEach(function (h) { h.remove(); });
   }
 
+  // ctrl-j is g one level in: g goes to a view, ctrl-j goes to a control on
+  // the screen already open. Ctrl, because the whole point is reaching another
+  // box without leaving the one the hands are in — a bare letter could not,
+  // since it would be typed into the box instead.
+  let jPending = false;
+  let jumpMap = {};
+
+  const JUMPABLE = "input, textarea, select, button, .button";
+
+  // Everything on this screen that focus can usefully land on. Two things are
+  // deliberately not here: the rail, which is g's, and a list row's own
+  // controls, which have their own keys (c, t, enter) and would otherwise put
+  // eighteen hints on a nine-item list.
+  function jumpTargets() {
+    const scope = topDialog() || document;
+    // a dialog that declares its own keys is a menu of them, not a form: its
+    // letters already mean something, and a jump would be a second answer
+    if (scope !== document && scope.querySelector("[data-key]")) return [];
+    const out = [];
+    scope.querySelectorAll(JUMPABLE).forEach(function (el) {
+      // a control that cannot be pressed is not a destination — the same rule
+      // the key bar follows. tabindex="-1" is how a box that is shown rather
+      // than filled in says so (the project on an action's page)
+      if (el.disabled || el.tabIndex < 0 || el.type === "hidden") return;
+      if (el.closest("nav") || el.closest("[data-kb-row]")) return;
+      if (!el.getClientRects().length) return;
+      out.push(el);
+    });
+    return out;
+  }
+
+  // What the screen calls this control: the name beside it where it has one,
+  // its own words where it is a button.
+  function jumpName(el) {
+    const label = el.closest("label");
+    if (label) {
+      const lb = label.querySelector(".lb") || label.childNodes[0];
+      const word = lb ? (lb.textContent || "") : "";
+      if (word.trim()) return word.trim();
+    }
+    // then what it is called out loud, then its own words, and the field name
+    // off the wire last. Never its value: a box named by what is typed into it
+    // would change letter as it was typed into
+    return (el.getAttribute("aria-label") || el.textContent || el.name || "").trim();
+  }
+
+  // The letter is the first of the control's own name, which is what makes it
+  // guessable — and where two names start alike the first one on the screen
+  // takes it and the second falls to its next free letter. Every letter shown
+  // therefore goes somewhere, which is the same promise the key bar makes: a
+  // key is never advertised without working.
+  function assignJumpKeys(els) {
+    const used = {}, out = [];
+    els.forEach(function (el) {
+      const name = jumpName(el).toLowerCase();
+      for (let i = 0; i < name.length; i++) {
+        const c = name.charAt(i);
+        if (c >= "a" && c <= "z" && !used[c]) {
+          used[c] = true;
+          out.push([c, el]);
+          return;
+        }
+      }
+    });
+    return out;
+  }
+
+  // The hint is placed from the control's own rectangle rather than hung
+  // inside it: a text box has nowhere to put a child, and half of what these
+  // mark are buttons.
+  function showJumpHints() {
+    assignJumpKeys(jumpTargets()).forEach(function (pair) {
+      const key = pair[0], el = pair[1], r = el.getBoundingClientRect();
+      jumpMap[key] = el;
+      const hint = document.createElement("span");
+      hint.className = "jhint";
+      hint.textContent = key;
+      hint.setAttribute("aria-hidden", "true");
+      hint.style.left = r.left + "px";
+      // centred on a one-line control, on the first line of a taller one: a
+      // note box that has grown is still written from the top down, and a
+      // letter floating at its middle reads as marking the line it is beside
+      hint.style.top = (r.top + Math.min(r.height / 2, 16)) + "px";
+      document.body.appendChild(hint);
+    });
+    return Object.keys(jumpMap).length;
+  }
+
+  function setJumping(on) {
+    document.querySelectorAll(".jhint").forEach(function (h) { h.remove(); });
+    jumpMap = {};
+    // a screen with nothing to jump to leaves the key to the browser rather
+    // than lighting up an empty page
+    jPending = on ? showJumpHints() > 0 : false;
+    renderKeybar();
+    return jPending;
+  }
+
+  // At the end of what is already there. The first thing typed after a jump is
+  // meant to follow the text, not to land in front of it — the same rule
+  // caretToEnd applies to a field that opens focused.
+  function focusJump(el) {
+    el.focus();
+    if (typeof el.selectionStart === "number") {
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }
+
   // The capture dialog. A native <dialog> so the centring, the backdrop, the
   // focus trap and Escape-to-cancel all come from the browser. Enter submits
   // to /capture, which drops a text already sitting in the inbox without
@@ -84,6 +192,9 @@
   // no view, so it has no view help and the key would do nothing.
   function globalKeys() {
     const keys = [["q", "add to inbox"], ["g", "go to"]];
+    // offered only where there is something to jump to, so a list view with
+    // no form on it does not advertise a key that would light up nothing
+    if (jumpTargets().length) keys.push(["^j", "jump to a field"]);
     if (document.getElementById("help")) keys.push(["?", "help"]);
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -136,6 +247,9 @@
         !document.querySelector("[data-picker] [name=newproject]").value;
       return { view: [["\u2193", "projects"], ["c", "new project"],
         ["\u21b5", empty ? "new project" : "change"], ["esc", "standalone"]], global: [] };
+    }
+    if (jPending) {
+      return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
     }
     if (gPending) {
       // z is the one jump with nothing on screen to mark: the processing
@@ -1172,6 +1286,17 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    // While a jump is pending the next key is the jump and nothing else, so
+    // this is read before every other key on the page.
+    if (jPending) {
+      const to = e.key.length === 1 ? jumpMap[e.key.toLowerCase()] : null;
+      setJumping(false);
+      if (e.key === "Escape") { e.preventDefault(); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (to) { e.preventDefault(); focusJump(to); renderKeybar(); }
+      return;
+    }
+
     // ctrl-v is the panels, from anywhere: the chooser if it is shut, and zen
     // if it is already up — the second press is the answer wanted most often,
     // and the dialog is a list of four keys rather than a place to be. Ctrl
@@ -1207,6 +1332,16 @@
     if (e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector("dialog[open]")) {
       const ctrlBranch = branchFor(e);
       if (ctrlBranch) { e.preventDefault(); press(ctrlBranch); return; }
+    }
+
+    // ctrl-j marks every control on the screen with a letter and takes the
+    // next key as the one to go to. It is read after the screen's own declared
+    // keys, so a screen that wanted ^j for something of its own would keep it,
+    // and it is not inside the block above because that one stands down for a
+    // dialog — a form in a dialog is exactly where a jump is wanted.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "j") {
+      if (setJumping(true)) e.preventDefault();
+      return;
     }
 
     const dlg = captureDialog();
@@ -1417,6 +1552,7 @@
   // a click or a lost window abandons a half-typed "g" sequence
   document.addEventListener("click", function (e) {
     setPending(false);
+    setJumping(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
     if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
     const pick = e.target.closest(".fsuggest li");
@@ -1444,7 +1580,10 @@
     const row = rowFromEvent(e);
     if (row) select(row);
   });
-  window.addEventListener("blur", function () { setPending(false); });
+  window.addEventListener("blur", function () { setPending(false); setJumping(false); });
+  // the hints are placed in viewport coordinates, so a scroll would leave them
+  // behind the controls they name
+  window.addEventListener("scroll", function () { setJumping(false); }, true);
 
   // double click is the mouse's Enter: on the Inbox that is processing the
   // item, everywhere else it is opening it — the same data-href either way

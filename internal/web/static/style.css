@@ -519,19 +519,28 @@ nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
   border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px;
 }
 
-/* Vimium-style jump hints: "g" pins the key onto each nav destination. They
-   sit in the row's own left gutter, vertically centred: stacked rows leave no
-   gap above a label to hang a hint in, and the gutter is space nothing else
-   wants — so unlike the top bar, nothing has to move or blank to make room. */
-.ghint {
-  position: absolute; top: 50%; left: .18rem; transform: translateY(-50%); z-index: 20;
-  padding: 0 .3rem; border-radius: 4px;
+/* Vimium-style hints: "g" pins a key onto each nav destination, ctrl-j pins
+   one onto every control of the screen already open. One chip, because it
+   says the same thing either way — press this letter to go there — and only
+   where it can be hung differs. */
+.ghint, .jhint {
+  z-index: 20; padding: 0 .3rem; border-radius: 4px;
   font: 700 .68rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
   text-transform: uppercase; letter-spacing: .02em;
   color: #2b2200; background: linear-gradient(#fff785, #ffc542);
   border: 1px solid #c38a22; box-shadow: 0 1px 3px rgba(0,0,0,.4);
   pointer-events: none;
 }
+/* the nav's sit in the row's own left gutter, vertically centred: stacked rows
+   leave no gap above a label to hang a hint in, and the gutter is space
+   nothing else wants — so unlike the top bar, nothing has to move or blank to
+   make room. */
+.ghint { position: absolute; top: 50%; left: .18rem; transform: translateY(-50%); }
+/* a control's is placed from its own rectangle instead, in viewport
+   coordinates: a text box has nowhere inside it to hang a child, and half of
+   what these mark are buttons. Straddling the left edge keeps the letter off
+   whatever is written in the box. */
+.jhint { position: fixed; transform: translate(-55%, -50%); }
 
 /* the context key bar: chrome, so it is tinted away from the page colour */
 #keybar {
