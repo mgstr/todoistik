@@ -376,7 +376,7 @@ The **Inbox** deliberately has no name filter. It is worked through one item at 
 ### Filtering by tag
 Tags are the other shared filter, written `#car` in the line, as many as you like. It is carried by every view whose items have tags on them - **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Archive** and **Someday/Maybe** - and behaves identically in all of them. It is what answers the review question "which part of my life am I starving?", which is why it reaches all of them and not only the working view.
 
-- selected tags combine with **OR**: `#car` and `#finance` selected means everything about either
+- selected tags combine with **AND**: `#car #finance` is the items that are about both. A second tag narrows the question rather than widening it, which is what everything else on the line already does - the name filter requires all of its words, and a filter added to the line takes items away. It combined with OR first, and that made a tag the one thing on the line that could only ever make the list longer; the narrower question - the one a pile of tagged items is actually read with - had no way of being asked at all. The union is still one keystroke away, because taking a tag back out is how every filter here is loosened
 - an item with **no** tags is excluded as soon as any tag is selected: the filter asks "is this about #car", and "about nothing in particular" answers no. The context filter behaves the same way and for the same reason - see "Filtering by context", where the opposite was tried first
 - taking a tag out of the line is how it resets, and no tag in the line means all tags again, never none
 - it matches the item's **own** tags. In "Projects" this deliberately differs from the name filter: a project is matched by the title of an action under it, but never by that action's tags. The name filter is a recall aid - a project is remembered by a step in it - while a tag says what the commitment itself belongs to, and a project does not belong to an area because one action in it happens to
@@ -444,7 +444,7 @@ There is no separate "what can I do right now" screen. It was this same query wi
 The filters are what make one view enough. All of them are optional and combine with **AND** - each one narrows what the ones before it left. Every filter is reachable and resettable from the keyboard, since this is the screen the app is used from.
 
 - **context** - `@home`, one at a time - see "Filtering by context". An action with no context is shown only when the line asks for no context
-- **tags** - `#car`, as many as you like, combining with **OR** - see "Filtering by tag"
+- **tags** - `#car`, as many as you like, combining with **AND** - see "Filtering by tag"
 - **name** - every word in the line that is not a name, all of them having to match - see "Filtering by name"
 - **duration** - `#short`, `#medium`, `#long`, one or several, combined with OR: what fits in the time available
 - **needs focus** - `#focus` keeps only the actions that need real attention. An hour of it is worth spending on those, and nothing is more wasteful than spending it on things that could have been done half asleep. The opposite question - *drop what I cannot do while tired* - is not in the line yet, and is the one filter this notation still owes
