@@ -120,7 +120,13 @@
   function assignJumpKeys(els) {
     const used = {}, out = [];
     let digit = 0;
-    els.forEach(function (el) {
+    // Boxes and buttons choose first, lists after them. A list is named by the
+    // heading over it, and on a project's page "Actions" and "Add an action"
+    // both want `a` — the button is pressed far more often than the list is
+    // stepped into, and the list has j/k reaching it anyway.
+    const isList = function (el) { return jumpKind(el) === "list"; };
+    const ordered = els.filter(function (el) { return !isList(el); }).concat(els.filter(isList));
+    ordered.forEach(function (el) {
       const name = jumpName(el).toLowerCase();
       let key = null;
       for (let i = 0; i < name.length; i++) {
@@ -1336,8 +1342,14 @@
     // While a jump is pending the next key is the jump and nothing else, so
     // this is read before every other key on the page.
     if (jPending) {
+      // a modifier pressed on its own is not an answer, so it does not count
+      // as one: holding shift to reach a key must not throw the jump away
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
       const to = e.key.length === 1 ? jumpMap[e.key.toLowerCase()] : null;
       setJumping(false);
+      // esc puts the hints away and leaves everything else alone — in a dialog
+      // that means the dialog stays, since the browser would otherwise take
+      // the same key as "close me"
       if (e.key === "Escape") { e.preventDefault(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (to) { e.preventDefault(); jumpTo(to); }
