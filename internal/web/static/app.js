@@ -46,12 +46,20 @@
   let jPending = false;
   let jumpMap = {};
 
-  const JUMPABLE = "input, textarea, select, button, .button";
+  const JUMPABLE = "input, textarea, select, button, .button, ul.list";
 
-  // Everything on this screen that focus can usefully land on. Two things are
-  // deliberately not here: the rail, which is g's, and a list row's own
-  // controls, which have their own keys (c, t, enter) and would otherwise put
-  // eighteen hints on a nine-item list.
+  // What a jump does when it arrives, which is whatever that thing is for: a
+  // box is written in, a button is pressed, and a list is moved through.
+  function jumpKind(el) {
+    if (el.matches("ul.list")) return "list";
+    if (el.tagName === "BUTTON" || el.classList.contains("button")) return "press";
+    return "focus";
+  }
+
+  // Everything on this screen a jump can usefully arrive at. The rail is not
+  // here — that is g's — and neither are a list row's own controls: the row
+  // keys already reach them, and marking them would put eighteen hints on a
+  // nine-item list. The list itself is one destination instead.
   function jumpTargets() {
     const scope = topDialog() || document;
     // a dialog that declares its own keys is a menu of them, not a form: its
@@ -59,30 +67,49 @@
     if (scope !== document && scope.querySelector("[data-key]")) return [];
     const out = [];
     scope.querySelectorAll(JUMPABLE).forEach(function (el) {
-      // a control that cannot be pressed is not a destination — the same rule
-      // the key bar follows. tabindex="-1" is how a box that is shown rather
-      // than filled in says so (the project on an action's page)
-      if (el.disabled || el.tabIndex < 0 || el.type === "hidden") return;
-      if (el.closest("nav") || el.closest("[data-kb-row]")) return;
+      if (el.closest("nav")) return;
+      if (jumpKind(el) === "list") {
+        // an empty list has no row to land on, so it is not a place to go
+        if (!el.querySelector("[data-kb-row]")) return;
+      } else {
+        if (el.closest("[data-kb-row]")) return;
+        // a control that cannot be pressed is not a destination — the same
+        // rule the key bar follows. tabindex="-1" is how a box that is shown
+        // rather than filled in says so (the project on an action's page)
+        if (el.disabled || el.tabIndex < 0 || el.type === "hidden") return;
+      }
       if (!el.getClientRects().length) return;
       out.push(el);
     });
     return out;
   }
 
-  // What the screen calls this control: the name beside it where it has one,
-  // its own words where it is a button.
+  // What the screen calls this thing: the heading over a list, the name beside
+  // a box, a button's own words. Empty where the screen names it nothing —
+  // which is answered with a number rather than a letter, since a letter that
+  // stands for nothing is not the guess the letters are for.
   function jumpName(el) {
+    const kind = jumpKind(el);
+    if (kind === "list") {
+      for (let p = el.previousElementSibling; p; p = p.previousElementSibling) {
+        if (/^H[1-3]$/.test(p.tagName)) return p.textContent.trim();
+      }
+      return "";
+    }
     const label = el.closest("label");
     if (label) {
+      // the name beside the box, then whatever else the label says: a tag chip
+      // puts its word after its checkbox rather than in front of it
       const lb = label.querySelector(".lb") || label.childNodes[0];
       const word = lb ? (lb.textContent || "") : "";
       if (word.trim()) return word.trim();
+      if ((label.textContent || "").trim()) return label.textContent.trim();
     }
-    // then what it is called out loud, then its own words, and the field name
-    // off the wire last. Never its value: a box named by what is typed into it
+    // a button's own words, but never a select's: its text is every option it
+    // holds. Never a box's value either — a box named by what is typed into it
     // would change letter as it was typed into
-    return (el.getAttribute("aria-label") || el.textContent || el.name || "").trim();
+    if (kind === "press" && (el.textContent || "").trim()) return el.textContent.trim();
+    return (el.getAttribute("aria-label") || "").trim();
   }
 
   // The letter is the first of the control's own name, which is what makes it
@@ -92,16 +119,23 @@
   // key is never advertised without working.
   function assignJumpKeys(els) {
     const used = {}, out = [];
+    let digit = 0;
     els.forEach(function (el) {
       const name = jumpName(el).toLowerCase();
+      let key = null;
       for (let i = 0; i < name.length; i++) {
         const c = name.charAt(i);
-        if (c >= "a" && c <= "z" && !used[c]) {
-          used[c] = true;
-          out.push([c, el]);
-          return;
-        }
+        if (c >= "a" && c <= "z" && !used[c]) { key = c; break; }
       }
+      // nothing on the screen names it, or every letter of the name is spoken
+      // for: it is numbered instead, in the order it is read in
+      if (!key) {
+        while (digit < 10 && used[String(digit)]) digit++;
+        if (digit > 9) return;
+        key = String(digit);
+      }
+      used[key] = true;
+      out.push([key, el]);
     });
     return out;
   }
@@ -137,14 +171,27 @@
     return jPending;
   }
 
-  // At the end of what is already there. The first thing typed after a jump is
-  // meant to follow the text, not to land in front of it — the same rule
-  // caretToEnd applies to a field that opens focused.
-  function focusJump(el) {
+  // Arriving. A button is pressed rather than focused — a jump to a control
+  // that then has to be pressed a second time is two keys for what the key bar
+  // does in one, and every one of these is a control the screen was going to
+  // act on anyway. A list is arrived at by selecting its first row, which is
+  // what puts the row keys in reach. A box is focused at the end of what is
+  // already in it: the first thing typed after a jump is meant to follow the
+  // text, not to land in front of it — the same rule caretToEnd applies to a
+  // field that opens focused.
+  function jumpTo(el) {
+    const kind = jumpKind(el);
+    if (kind === "press") { press(el); return; }
+    if (kind === "list") {
+      const row = el.querySelector("[data-kb-row]");
+      if (row) select(row);
+      return;
+    }
     el.focus();
     if (typeof el.selectionStart === "number") {
       el.setSelectionRange(el.value.length, el.value.length);
     }
+    renderKeybar();
   }
 
   // The capture dialog. A native <dialog> so the centring, the backdrop, the
@@ -194,7 +241,7 @@
     const keys = [["q", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
-    if (jumpTargets().length) keys.push(["^j", "jump to a field"]);
+    if (jumpTargets().length) keys.push(["^j", "jump"]);
     if (document.getElementById("help")) keys.push(["?", "help"]);
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -1293,7 +1340,7 @@
       setJumping(false);
       if (e.key === "Escape") { e.preventDefault(); return; }
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (to) { e.preventDefault(); focusJump(to); renderKeybar(); }
+      if (to) { e.preventDefault(); jumpTo(to); }
       return;
     }
 
