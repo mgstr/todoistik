@@ -1220,6 +1220,35 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "project.html", p)
 }
 
+// projectAddAction is the screen an action is written on for a project that
+// already exists. It is the same form the processing screen and an action's
+// own page use, with the project answered — see the template for why it is a
+// screen and no longer a fold on the project's page.
+func (s *Server) projectAddAction(w http.ResponseWriter, r *http.Request) {
+	proj, err := s.app.Project(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	d := &addActionPageData{
+		ProjectID:    proj.ID,
+		ProjectTitle: proj.Title,
+		Back:         "/project/" + itoa(proj.ID),
+	}
+	// the trail reads Projects / Add an action, the same shape promoting has:
+	// the item this is about is named by the form's own project box, not twice
+	p := s.newPage(proj.Title, viewOf(d.Back), r).
+		help("action").step("Add an action", "").notation(s)
+	p.Data = d
+	s.render(w, "action_new.html", p)
+}
+
+type addActionPageData struct {
+	ProjectID    int64
+	ProjectTitle string
+	Back         string // the project, which is where this screen was opened from
+}
+
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	f, err := s.projectMetaFromForm(r)
 	if err != nil {

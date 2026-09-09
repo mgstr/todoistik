@@ -234,6 +234,7 @@ func (s *Server) routes() {
 
 	// projects
 	m.HandleFunc("GET /project/{id}", s.projectPage)
+	m.HandleFunc("GET /project/{id}/addaction", s.projectAddAction)
 	m.HandleFunc("POST /project/{id}", s.projectUpdate)
 	m.HandleFunc("POST /project/{id}/{verb}", s.projectVerb)
 

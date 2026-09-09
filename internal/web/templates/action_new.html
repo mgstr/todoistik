@@ -1,0 +1,26 @@
+{{template "top" .}}
+{{$d := .Data}}
+{{/* Writing an action for a project that already exists. It is a screen of its
+     own rather than the fold it used to be under the project's action list:
+     an action is written in the form an action is written in (design.md,
+     "Editing items"), and that form is a page everywhere else it appears —
+     folded under a list it was the one place where writing one meant opening
+     something first, on the screen where actions are added most.
+
+     The project is answered, not asked: this screen was opened from it, and
+     there is nothing here to choose. Same as an action opened from a list,
+     for the same reason — filing an action elsewhere is Detach and Attach. */}}
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
+  <form method="post" action="/project/{{$d.ProjectID}}/addaction" class="stack">
+    {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
+      "Fixed" $d.ProjectTitle "Focus" true)}}
+
+    {{/* the row promote.html carries, with this screen's verb in it: what
+         this makes, and the way out that makes nothing */}}
+    <div class="actionsbar">
+      <button class="primary">Create action</button>
+      <a class="button" href="{{$d.Back}}">Back</a>
+    </div>
+  </form>
+</div>
+{{template "bottom" .}}

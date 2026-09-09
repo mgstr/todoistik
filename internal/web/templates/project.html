@@ -32,17 +32,15 @@
   {{end}}
   </ul>
 
-  <details {{if $d.Ask}}open{{end}}>
-    <summary>Add an action</summary>
-    <form method="post" action="/project/{{$p.ID}}/addaction" class="stack">
-      {{/* the project is answered here, so the control says which and cannot
-           be changed — the same form as everywhere else, with the one field
-           this screen already knows the answer to */}}
-      {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
-        "Fixed" $p.Title "Focus" false)}}
-      <button class="primary">Add action</button>
-    </form>
-  </details>
+  {{/* A way to the form, not the form. Writing an action is a screen of its
+       own (action_new.html) for the same reason opening one is: it is the
+       same four fields wherever it happens, and a fold is the one shape that
+       asked to be opened first. What is left here is the list's own control,
+       under the list it adds to. */}}
+  <div class="actionsbar">
+    <a class="button" href="/project/{{$p.ID}}/addaction"
+       data-key="^a" data-key-label="add action">Add an action</a>
+  </div>
 
   {{/* the same row of buttons an action's page carries, in the same order:
        save, the state changes, delete, and the way out */}}

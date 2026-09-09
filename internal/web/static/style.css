@@ -379,12 +379,15 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
    times a day by the person who named them — see research/action-page-study.html
    for the five layouts this was measured against and chosen from.
 
-   The gutter is one width for the whole app, not per form: `project.html` shows
-   a project's fields and its add-action box on one screen, and two forms whose
-   boxes start in different places read as a mistake. 7.5rem is what the longest
-   field name in the app needs — "Definition of done" — so no name ever wraps
-   and every box on every screen starts at the same place. The stack keeps its
-   34rem, so the trade is 7.5rem of box width for four lines of height. */
+   The gutter is one width for the whole app, not per form. A project, the
+   action it opens and the screen that writes a new one are three screens read
+   one after another, and a width sized per form would give each of them a
+   different indent — it would also make that indent depend on which fields a
+   form happens to have, so adding one could move every box on the screen.
+   7.5rem is what the longest field name in the app needs — "Definition of
+   done" — so no name ever wraps and every box everywhere starts in the same
+   place. The stack keeps its 34rem, so the trade is 7.5rem of box width for
+   four lines of height. */
 .stack label.gutter { flex-direction: row; align-items: baseline; gap: .6rem; }
 .stack label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
 /* every kind of control the two forms put in a label: the plain boxes, the
