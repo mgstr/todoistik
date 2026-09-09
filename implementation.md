@@ -577,6 +577,13 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
 - **there is no Trash here.** An idea is trashed where everything else is
   trashed — in the inbox, by the branch that does that — so this screen does
   not carry a second, quieter copy of a decision the app makes in one place
+- **the page says its name once, in the title bar.** It carried a crumb of its
+  own — a `Someday/Maybe` link over the form — from before the title bar
+  existed to say where you are; with the bar up they were the same words twice
+  on one screen, and the second copy was the one that could be wrong. What that
+  line was actually for was the capture age, which now sits over the buttons in
+  a `.stamps` line, the way an action's page carries its dates: the last thing
+  read before Inbox is pressed, and hidden by `^t` with every other age
 - **Back is a link and `esc` is the same door.** `data-cancel="/someday"` on
   the item, `data-cancel-label="back"`, exactly as an action's page does it, so
   the key bar reads `esc back` and the mouse has a button that goes where the
