@@ -42,20 +42,26 @@ func matchName(filter string, names ...string) bool {
 	return true
 }
 
-// matchTags: selected tags combine with OR; an item with no tags is
-// excluded as soon as any tag is selected.
+// matchTags: selected tags combine with AND — an item has to carry every tag
+// asked for (design.md, "Filtering by tag"). Asking for none is asking for all
+// of them, which is what an empty loop answers, and an item with no tags is
+// excluded as soon as any tag is selected, which falls out of the same rule
+// rather than needing one of its own. This is the name filter's rule applied
+// to names instead of words: every one of them has to be present.
 func matchTags(selected, own []string) bool {
-	if len(selected) == 0 {
-		return true
-	}
 	for _, s := range selected {
+		found := false
 		for _, t := range own {
 			if s == t {
-				return true
+				found = true
+				break
 			}
 		}
+		if !found {
+			return false
+		}
 	}
-	return false
+	return true
 }
 
 // matchContexts: the question is "is this action's context among the ones I am

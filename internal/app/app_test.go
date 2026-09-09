@@ -465,6 +465,44 @@ func TestNextActionsFilters(t *testing.T) {
 	}
 }
 
+// Several tags narrow rather than widen: the question "what is about both of
+// these" is the one a pile of tagged items is read with, and it is the rule
+// every other filter on the line already follows (design.md, "Filtering by
+// tag"). This changed from OR, so it is worth holding down.
+func TestSeveralTagsNarrow(t *testing.T) {
+	a, _ := newTestApp(t)
+	mk := func(title string, tags ...string) {
+		if _, err := a.CreateAction(0, ActionFields{Title: title, Tags: tags}, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mk("Service the car", "car", "finance")
+	mk("Wash the car", "car")
+	mk("File the tax return", "finance")
+	mk("Think of a gift")
+
+	both, _ := a.NextActions(Filters{Tags: []string{"car", "finance"}})
+	if len(both) != 1 || both[0].Title != "Service the car" {
+		t.Fatalf("#car #finance must be the ones about both, got %v", titles(both))
+	}
+	// one tag is still everything carrying it, and the order of two cannot matter
+	if one, _ := a.NextActions(Filters{Tags: []string{"car"}}); len(one) != 2 {
+		t.Fatalf("#car alone: got %d, want 2: %v", len(one), titles(one))
+	}
+	rev, _ := a.NextActions(Filters{Tags: []string{"finance", "car"}})
+	if len(rev) != 1 {
+		t.Fatalf("the order of two tags changed the answer: %v", titles(rev))
+	}
+	// a tag nothing carries is an empty list, not everything
+	if none, _ := a.NextActions(Filters{Tags: []string{"car", "house"}}); len(none) != 0 {
+		t.Fatalf("#car #house matches nothing, got %v", titles(none))
+	}
+	// and asking for no tag at all is still asking for all of them
+	if all, _ := a.NextActions(Filters{}); len(all) != 4 {
+		t.Fatalf("no tag filter: got %d, want all 4: %v", len(all), titles(all))
+	}
+}
+
 // The one view a snoozed action is missing from — and the review, which reads
 // the same query, still has to see it.
 func TestNextActionsHidesSnoozed(t *testing.T) {
