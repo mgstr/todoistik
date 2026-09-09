@@ -178,6 +178,12 @@ line from the description meant the mouse, or tabbing past everything between.
   `e` and Delete is `l`. Every letter shown therefore goes somewhere, which is
   the promise the key bar already makes: a key is never advertised without
   working
+- **boxes and buttons choose their letters before lists do.** On a project's
+  page "Add an action" and the "Actions" heading over the list both want `a`,
+  and document order would give it to the list. The button gets it: it is
+  pressed far more often than the list is stepped into, and the list has
+  `j`/`k` reaching it from anywhere anyway. It takes `i` instead, which is
+  written on it while the hints are up
 - **arriving does the thing, it does not stand next to it.** A button is
   pressed rather than focused: a jump that then needs a second key to press
   what it landed on is two keys for what the key bar does in one, and every
@@ -186,10 +192,10 @@ line from the description meant the mouse, or tabbing past everything between.
   jump is meant to follow the text, not to land in front of it, which is the
   rule `caretToEnd` applies to a field that opens focused. A list is arrived at
   by selecting its first row, which is what puts the row keys in reach
-- **a list is one destination, named by the heading over it.** The Actions list
-  on a project's page is `a`, and landing on it hands the screen to `j`/`k`,
-  `enter`, `c` and `t` — the keys that were always the way through a list. An
-  empty list is not a destination: there is no row to land on
+- **a list is one destination, named by the heading over it.** Landing on it
+  hands the screen to `j`/`k`, `enter`, `c` and `t` — the keys that were always
+  the way through a list. An empty list is not a destination: there is no row
+  to land on
 - **what nothing names is numbered.** A control with no name to take a letter
   from — the Archive's search box, its completed-when dropdown — gets `0`, `1`
   and so on in reading order, and so does one whose every letter is already
@@ -215,6 +221,11 @@ line from the description meant the mouse, or tabbing past everything between.
   are jumpable. A dialog that declares its own keys is skipped: the panel
   chooser is a menu of letters that already mean something, and a jump would be
   a second answer to the same key
+- **`esc` puts the hints away and changes nothing else**, which the bar says
+  while they are up. Inside a dialog that means the dialog stays: the browser
+  would otherwise take the same key as "close me", so the key is spent here and
+  not passed on. A modifier pressed on its own is not an answer and does not
+  count as one — holding shift to reach a key must not throw the jump away
 - **inside the project picker `ctrl-j` still means "next project".** The picker
   stops the event, so the page never sees it — an open list is being moved
   through, and that is what the key means there
