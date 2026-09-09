@@ -595,6 +595,43 @@ measured against, and for the ledger of where the height actually goes.
   their validation, not what they mean. This is presentation, so design.md says
   nothing new about it
 
+### A box is as wide as the form, and as tall as what is in it
+
+Two things the gutter left behind, and one it did not.
+
+- **a form is 48rem.** It was 34rem, chosen for the layout where each name sat
+  on a line of its own — so when the names moved into a 7.5rem gutter, that
+  width came off the boxes rather than off the page, leaving them a third
+  narrower than the column they sit in has room for. `--form-width` is the one
+  number, beside `--main-pad-top`, because a form is one shape wherever it is
+  written. The processing screen still clamps to its own 40rem column, which
+  is sized for reading one captured sentence and is not this decision's to
+  spend (see `research/process-subject-study.html`)
+- **the project picker lost a width of its own.** It carried `max-width: 34rem`
+  from before the gutter; inside a gutter label it is a flex item like every
+  other control, so the label sizes it and a cap of its own could only make one
+  box narrower than the rest
+- **a note box opens at one line and grows as it is written in.** Every
+  textarea opened at a fixed several rows, which is the wrong height twice: a
+  hole under the many actions that carry no note, and still too small for the
+  few that carry a real one. `rows="1"` with `data-grow` is the honest starting
+  size — the same height as the title box above it — and `growBox` in `app.js`
+  sets the height from the content on every input
+- **the height is read off the content, not counted in newlines.** A line that
+  wrapped grows the box exactly as a line that was typed does, which is what
+  the eye means by "another line" whichever way it arrived. It shrinks back the
+  same way, because the height is set to `auto` before it is measured —
+  otherwise `scrollHeight` can only ever report the height the box already has
+- **no resize handle and no scrollbar.** The height is not a thing to set any
+  more, and the box never holds more than it shows
+- **a dialog's boxes are grown again when it opens.** A closed `<dialog>`
+  measures zero, so growing at page load would set its boxes to nothing at all;
+  the two dialogs that fill their fields by hand call `growAll(dlg)` right
+  after `showModal`, which is also where a draft being edited gets its note
+  sized to what is in it
+- **the someday item's text box still opens at three rows.** It is neither an
+  action nor a project, the same line the gutter drew
+
 ## Token boxes
 
 The filter line and the two meta lines are one control (`tokenbox` in
