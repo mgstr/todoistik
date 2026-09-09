@@ -140,6 +140,8 @@ Nothing else. The read API is read only, and capture is the only way in.
   one letter each, and a second `ctrl-v` presses zen — see "Panels"
 - `ctrl-f` puts up the filter line on a view that has one, and takes it and
   every filter away when pressed again — see "Token boxes"
+- `ctrl-j` then a letter moves the focus to a control on the screen already
+  open — see "Jumping to a control" below
 - `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
   are hidden by default"), and the timer on the doing screen (see "Doing"). The
   one key that sets a flag rather than doing something, which is why the bar
@@ -151,6 +153,53 @@ Nothing else. The read API is read only, and capture is the only way in.
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
+
+### Jumping to a control
+
+`g` goes to a view; `ctrl-j` goes to a control on the view already open. It
+marks every control on the screen with a letter, the way `g` marks the rail,
+and the next key pressed puts the focus there — at the end of what is already
+in the box, since the first thing typed after a jump is meant to follow the
+text rather than land in front of it.
+
+It exists because a form is not a list. `j`/`k` walk rows and the row keys act
+on them, but a screen made of boxes has no cursor to move: reaching the meta
+line from the description meant the mouse, or tabbing past everything between.
+
+- **ctrl, so it is reachable from inside a box.** A bare letter cannot be a
+  command where the hands are — it would be typed. That is the same argument
+  the declared `^a` keys make above, and the same reason it is ctrl and not
+  cmd
+- **the letter is the first letter of the control's own name**, which is what
+  makes it guessable without being learned: the name beside the box where
+  there is one, the button's own words where there is not. Where two names
+  start alike the first on the screen takes the letter and the second falls to
+  its next free one — Description takes `d` on an action's page, so Detach is
+  `e` and Delete is `l`. Every letter shown therefore goes somewhere, which is
+  the promise the key bar already makes: a key is never advertised without
+  working
+- **a control that cannot be pressed is not a destination.** Disabled means
+  disabled — Save carries no letter until the form has been changed, and grows
+  one the moment it has. `tabindex="-1"` is how a box that is shown rather
+  than filled in says the same thing, which is what keeps the project on an
+  action's page out of it while leaving the picker on the processing screen in
+- **the rail and the list rows are out.** The rail is `g`'s. A row's controls
+  have their own keys — `c`, `t`, `enter` — and marking them would put eighteen
+  letters on a nine-item list. So a plain list view has nothing to jump to, and
+  the bar does not offer the key there
+- **the hint is placed from the control's own rectangle**, in viewport
+  coordinates, rather than hung inside it the way the rail's are: a text box
+  has nowhere to put a child and half of what these mark are buttons. It
+  straddles the left edge so the letter stays off what is written in the box,
+  and sits on the first line of a note box rather than at its middle
+- **the scope is whatever owns the keyboard** — the open dialog if there is
+  one, the page otherwise — so the add-action dialog and the new-project dialog
+  are jumpable. A dialog that declares its own keys is skipped: the panel
+  chooser is a menu of letters that already mean something, and a jump would be
+  a second answer to the same key
+- **inside the project picker `ctrl-j` still means "next project".** The picker
+  stops the event, so the page never sees it — an open list is being moved
+  through, and that is what the key means there
 
 ## Capture
 
