@@ -465,6 +465,45 @@ func TestNextActionsFilters(t *testing.T) {
 	}
 }
 
+// The one view a snoozed action is missing from — and the review, which reads
+// the same query, still has to see it.
+func TestNextActionsHidesSnoozed(t *testing.T) {
+	a, _ := newTestApp(t) // 2026-09-04
+	mk := func(f ActionFields) *Action {
+		act, err := a.CreateAction(0, f, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return act
+	}
+	mk(ActionFields{Title: "Buy milk"})
+	mk(ActionFields{Title: "Ring the fitter", SnoozeUntil: "2026-09-11"})
+	// a date that has arrived is not a snooze any more, on either side of it
+	mk(ActionFields{Title: "Chase the invoice", SnoozeUntil: "2026-09-04"})
+	mk(ActionFields{Title: "Book the ferry", SnoozeUntil: "2026-08-01"})
+
+	acts, err := a.NextActions(Filters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(acts) != 3 {
+		t.Fatalf("snoozed action still in the view: %v", titles(acts))
+	}
+	for _, act := range acts {
+		if act.Title == "Ring the fitter" {
+			t.Fatalf("the live snooze is the one that has to go: %v", titles(acts))
+		}
+	}
+	// the review walks all four: a wrong snooze date is caught nowhere else
+	acts, err = a.NextActionsWithSnoozed(Filters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(acts) != 4 {
+		t.Fatalf("the review must still see the snoozed one: %v", titles(acts))
+	}
+}
+
 func titles(acts []*Action) []string {
 	var out []string
 	for _, a := range acts {

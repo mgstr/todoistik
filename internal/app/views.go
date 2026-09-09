@@ -276,12 +276,36 @@ func sortActions(acts []*Action, f Filters) {
 
 // --- the views -----------------------------------------------------------
 
-// NextActions: becameNextActionAt set, not completed, not assigned. The
-// main working view; all its filters apply.
-func (a *App) NextActions(f Filters) ([]*Action, error) {
+// NextActions: becameNextActionAt set, not completed, not assigned, and not
+// snoozed. The main working view; all its filters apply.
+//
+// This is the one view a snoozed action is missing from, and design.md says
+// why: the view answers "what do I do next", and a snoozed action cannot be
+// done yet, so it is not an answer to that. Every other view still shows it —
+// its project's action list above all — see design.md, "Time fields".
+func (a *App) NextActions(f Filters) ([]*Action, error) { return a.nextActions(f, false) }
+
+// NextActionsWithSnoozed is the same query with the snoozed ones kept, and it
+// is what the weekly review reads. A snooze date is a claim about the future
+// and the review is the only place a wrong one is caught (design.md, "Weekly
+// review"), so the walk cannot be built on the one query that hides them.
+func (a *App) NextActionsWithSnoozed(f Filters) ([]*Action, error) { return a.nextActions(f, true) }
+
+func (a *App) nextActions(f Filters, keepSnoozed bool) ([]*Action, error) {
 	acts, err := a.loadActions(`a.became_next_at IS NOT NULL AND a.completed_at IS NULL AND a.assigned_to = ''`)
 	if err != nil {
 		return nil, err
+	}
+	if !keepSnoozed {
+		today := a.Today()
+		awake := acts[:0]
+		for _, act := range acts {
+			if act.IsSnoozed(today) {
+				continue
+			}
+			awake = append(awake, act)
+		}
+		acts = awake
 	}
 	acts = a.filterActions(acts, f, true, true, true)
 	sortActions(acts, f)

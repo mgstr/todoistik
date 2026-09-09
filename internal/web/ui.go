@@ -1470,7 +1470,10 @@ func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 			add("project", pr.Title, "/project/"+itoa(pr.ID), pr.ID, pr.LastReviewedAt, pr.SnoozeUntil, detail)
 		}
 	case "next":
-		acts, _ := s.app.NextActions(app.Filters{})
+		// the review walks the snoozed ones too: their date is one of the
+		// claims being checked (design.md, "Weekly review"), which is why
+		// this is not the same call the view makes
+		acts, _ := s.app.NextActionsWithSnoozed(app.Filters{})
 		for _, a := range acts {
 			add("action", a.Title, "/action/"+itoa(a.ID), a.ID, a.LastReviewedAt, a.SnoozeUntil, a.ProjectTitle)
 		}
