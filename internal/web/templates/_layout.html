@@ -152,7 +152,9 @@
 <dialog id="capture-dialog" aria-labelledby="capture-title">
   <form method="post" action="/capture">
     <h2 id="capture-title">Add to Inbox</h2>
-    <input name="text" autocomplete="off">
+    {{/* one line to look at and to type in, and as tall as what is in
+         it the moment there is more — see implementation.md, "Capture" */}}
+    <textarea name="text" rows="1" data-grow autocomplete="off"></textarea>
   </form>
 </dialog>
 {{if .HelpText}}<div id="help" hidden>

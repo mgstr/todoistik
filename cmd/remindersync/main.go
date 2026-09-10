@@ -185,9 +185,9 @@ func jsonUnmarshal(out string, v any) error {
 	return nil
 }
 
-// collapse puts a multi-line note on one line. On the way in the inbox is a
-// list of lines and a note's own line breaks are not information worth
-// breaking that; on the way out it is what makes two titles comparable at all.
+// collapse puts a multi-line string on one line. It is what makes two titles
+// comparable at all, and what keeps a title that was typed with a break in it
+// from becoming an item whose second line is part of its name.
 func collapse(s string) string {
 	return strings.Join(strings.Fields(s), " ")
 }

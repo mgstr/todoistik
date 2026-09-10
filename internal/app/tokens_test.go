@@ -432,3 +432,67 @@ func TestReadingACapturedLine(t *testing.T) {
 		}
 	}
 }
+
+// A capture may run to more than one line, and only the first is the item
+// (design.md, "Inbox item"). These pin the two halves of that: which line the
+// notation is read out of, and where the body is allowed to land.
+
+func TestSplitCaptureKeepsTheBodyOffTheLine(t *testing.T) {
+	line, body := SplitCapture("Book the tyre change\nhttps://mail.example/#search/x\nquoted 240 eur")
+	if line != "Book the tyre change" {
+		t.Fatalf("line: %q", line)
+	}
+	if body != "https://mail.example/#search/x\nquoted 240 eur" {
+		t.Fatalf("body: %q", body)
+	}
+	if l, b := SplitCapture("Buy milk"); l != "Buy milk" || b != "" {
+		t.Fatalf("a one-line capture has no body: %q / %q", l, b)
+	}
+}
+
+// The body arrives from wherever the capture came from and was never written
+// to be read: a link to a mail is full of `#`. It must not be able to reach a
+// meta line even when it does say a name the app knows.
+func TestSeedReadsNotationFromTheFirstLineOnly(t *testing.T) {
+	v := vocab([]string{"garage"}, []string{"car"})
+	s := SeedCapture("action", "Book the tyre change @garage\nthe #car thread from Marju", v)
+	if s.Meta != "@garage" {
+		t.Fatalf("meta: %q — the body's #car is not notation", s.Meta)
+	}
+	if s.Title != "Book the tyre change" {
+		t.Fatalf("title: %q", s.Title)
+	}
+	if s.Description != "the #car thread from Marju" {
+		t.Fatalf("description: %q", s.Description)
+	}
+}
+
+// A project has no description of its own, so its body goes to the first
+// action — and never to the DOD, which is the one sentence the form exists to
+// force out of you (design.md, "Inbox Zero").
+func TestSeedGivesAProjectNoDOD(t *testing.T) {
+	v := vocab(nil, []string{"car"})
+	s := SeedCapture("project", "Winter tyres sorted #car\nquotes are in the mail", v)
+	if s.Meta != "#car" || s.Title != "Winter tyres sorted" {
+		t.Fatalf("seed: %+v", s)
+	}
+	if s.Description != "quotes are in the mail" {
+		t.Fatalf("description: %q — it is the first action's", s.Description)
+	}
+}
+
+// An unclarified idea is one free-form field and its tags, so there is nothing
+// to split the capture into: all of it goes in the one box.
+func TestSeedGivesASomedayItemTheWholeCapture(t *testing.T) {
+	v := vocab(nil, []string{"hobby"})
+	s := SeedCapture("someday", "Restore the bicycle #hobby\nthe frame is in the shed", v)
+	if s.Meta != "#hobby" {
+		t.Fatalf("meta: %q", s.Meta)
+	}
+	if s.Title != "Restore the bicycle\nthe frame is in the shed" {
+		t.Fatalf("text: %q", s.Title)
+	}
+	if s.Description != "" {
+		t.Fatalf("description: %q — the someday form has no second box", s.Description)
+	}
+}

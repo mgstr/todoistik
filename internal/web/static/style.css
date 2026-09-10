@@ -459,6 +459,15 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
    accent is free to spend here, being the only one on the screen. */
 .process .subject { border-left: 3px solid var(--accent); padding: .1rem 0 .1rem .8rem; margin: .8rem 0 .2rem; }
 .capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; }
+/* what the capture carried under its first line: a reminder's note, a link to
+   the mail a loop came in on. It is inside the same quotation rule, because it
+   is the same item and not a second thing on the screen — set at reading size
+   under a line set at heading size, and keeping the breaks it arrived with,
+   which are most of what made it a body (design.md, "Inbox item"). It is set
+   in the reading colour and the age under it is not: they would otherwise be
+   three muted lines in a row, and the age is about the item while the body is
+   the item. */
+.capture-body { white-space: pre-wrap; margin: .5rem 0 .6rem; color: var(--fg); font-size: 1rem; }
 .process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
 .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
 /* The two answers to a completion request are one question's yes and no, so
@@ -519,11 +528,12 @@ nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
 #capture-dialog h2 {
   margin: 0 0 .55rem; font-size: .95rem; font-weight: 600; color: var(--muted);
 }
-#capture-dialog input {
+#capture-dialog textarea {
   width: 100%; padding: .35rem .55rem; font-size: 1.5rem;
   border: 1px solid var(--line); border-radius: 8px;
+  font-family: inherit; line-height: 1.25; display: block;
 }
-#capture-dialog input:focus {
+#capture-dialog textarea:focus {
   border-color: var(--accent); outline: 2px solid var(--accent); outline-offset: 1px;
 }
 

@@ -63,7 +63,13 @@ func Write(l Line) string {
 // is **not** a request: it is an ordinary capture that happens to begin with
 // those words, and it is processed as one. Half-reading it would mean a screen
 // offering to complete something it could not name.
+//
+// It is the first line of the capture that is read, and only the first. An
+// item's text may run to more than one (design.md, "Inbox item"), so the
+// grammar has to name the line it reads or acquire a second meaning the first
+// time anything files a request with a body under it.
 func Parse(text string) (Line, bool) {
+	text, _, _ = strings.Cut(text, "\n")
 	rest, ok := cutPrefix(text)
 	if !ok {
 		return Line{}, false

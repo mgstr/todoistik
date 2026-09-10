@@ -13,7 +13,7 @@ var ErrEmpty = errors.New("empty text")
 // when the text exactly matches an item already sitting in the open inbox —
 // the duplicate is dropped, unaudited, per design.md "Duplicate captures".
 func (a *App) Capture(text string) (item *InboxItem, accepted bool, err error) {
-	text = strings.TrimSpace(text)
+	text = normalizeCapture(text)
 	if text == "" {
 		return nil, false, ErrEmpty
 	}
@@ -44,6 +44,33 @@ func (a *App) captureTx(tx *sql.Tx, text string) (*InboxItem, bool, error) {
 		return nil, false, err
 	}
 	return item, true, nil
+}
+
+// normalizeCapture makes one string out of the several ways the same words can
+// arrive: a browser posts a textarea with CRLF line endings, a script posts LF,
+// and either may come with space around it. Duplicate collapse compares the
+// whole text exactly (design.md, "Duplicate captures"), so the same capture
+// typed in the dialog and posted by curl has to be the same string or the
+// second one would not collapse into the first.
+func normalizeCapture(text string) string {
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	return strings.TrimSpace(text)
+}
+
+// SplitCapture divides a capture into the line the inbox shows and the body
+// carried under it, unshown, until the item is processed (design.md, "Inbox
+// item"). The ordinary capture is one line and has no body at all.
+//
+// Everything that reads a capture reads the line and never the body: the
+// notation the branches are seeded from, and the completion request grammar.
+// A body comes from wherever the capture came from and was not written to be
+// read — a link to a mail is full of `#`, the address it came from is an `@` —
+// so keeping it away from the readers is a rule here rather than a bet on the
+// remembered lists not holding those names.
+func SplitCapture(text string) (line, body string) {
+	line, body, _ = strings.Cut(text, "\n")
+	return strings.TrimSpace(line), strings.Trim(body, "\n")
 }
 
 // Inbox returns the open inbox, oldest first. No filters, by design.
