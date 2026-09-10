@@ -2,8 +2,8 @@
 {{$d := .Data}}
 <div class="process" data-cancel="{{$d.Back}}">
   <div class="subject">
-    <h1 class="capture-text">{{$d.Line}}</h1>
-    {{if $d.Body}}<p class="capture-body">{{$d.Body}}</p>{{end}}
+    <h1 class="capture-text">{{linkify $d.Line}}</h1>
+    {{if $d.Body}}<p class="capture-body">{{linkify $d.Body}}</p>{{end}}
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 

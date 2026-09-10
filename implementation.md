@@ -435,7 +435,8 @@ wrong shape.
   link to a thread. A message id is assigned once by whoever sent the mail and
   never changes, while a thread's own URL is per-account and moves when the
   thread does. A message with no id captures without a link rather than with a
-  broken one
+  broken one. It arrives as text, like the rest of the capture, and is pressable
+  wherever that text is shown — see "Links in item text"
 - **nothing is written as a token.** No `#tag`, no `@context`, however
   obviously a label called "arved" maps to one — the same rule `move` obeys,
   for the same reason: a captured line is prose until someone processes it
@@ -1467,7 +1468,9 @@ per-view one.
   there being anything after it (design.md, "Inbox item"). A body is the one
   thing an item can carry that no row has ever shown, and showing it would make
   inbox rows several times the height of every other list's — for text that is
-  about to be read in full on the processing screen anyway
+  about to be read in full on the processing screen anyway. A link *in* that
+  first line is live where it stands; a link in the body is not brought up into
+  the row to be shown — see "Links in item text"
 - **the age is a chip, not small grey text.** Grey text beside black text still
   parses as a continuation of the title — "call the dentist yesterday" reads as
   a phrase before it reads as two fields. The enclosing shape is what makes it a
@@ -1626,6 +1629,78 @@ notation, and a list is read, not decoded.
   Those fire on either match (design.md, "Schedule"), and no short phrase says
   that without lying about it. The expression itself is the honest answer, and
   it is the one thing here that is not prose on purpose
+
+## Links in item text
+
+design.md, "Following a link" asks for a link in an item's text to be pressable
+wherever that text is shown. `internal/web/links.go` is the whole of it, plus
+three template functions and one shared partial.
+
+- **it lives in internal/web and not in internal/app.** The usual rule sends
+  anything that reads item text to the domain package — the meta line is parsed
+  there because what it says becomes columns. Nothing here becomes anything: no
+  field is set, no text is rewritten, the database never sees it, and the
+  output is HTML. It is how text is drawn, which is this package's one job
+- **what counts as a link is one regexp**, `https://` followed by everything
+  that is not whitespace, `<`, `>`, `"` or `'`. Deliberately no `www.` case, no
+  bare domain and no `http://` — design.md says why. The excluded characters
+  are the ones that would end the attribute or the tag it is about to be
+  written into, which is also why a URL containing them was never going to
+  survive being written down in the first place
+- **the `s` is not optional and there is a test saying so.** `https?://` is
+  what the pattern wants to be and what a later hand will "fix" it back to, so
+  `TestLinksLeavesPlainHTTPAsWords` pins it: a plain `http://` address renders
+  as the characters it is, unlinked and unchanged. It is a policy, not a limit
+  of the parser
+- **the sentence gets its punctuation back.** A trailing `.`, `,`, `;`, `:`,
+  `!`, `?`, `'` or `"` is prose, not URL, and is handed back. A trailing `)`,
+  `]` or `}` is handed back only when the text never opened one — otherwise
+  `…/wiki/Go_(programming_language)` would lose the half that identifies it
+- **`linkify` is the text with its links live**, and the words it shows are the
+  URL exactly as written. Nothing is shortened or relabelled inline: the screen
+  is showing that text, and a link whose label differs from its destination is
+  the one thing a link may never be. It escapes everything around the link
+  itself, so it is the only place in the app that hands a template
+  `template.HTML`
+- **`links` and `linkLabel` are for the two places `linkify` cannot go**: under
+  a `textarea`, which holds characters and no markup, and inside a row whose
+  title is already an `<a>` to the item's own page. Both get a strip of chips
+  instead — `.badge ext`, the same badge vocabulary the row already uses for
+  tags and contexts
+- **the chip is cut in the middle, not at the end.** Both ends of a link carry:
+  the host says where the chip goes, and the tail is what tells two of them
+  apart — every Gmail permalink is identical for its first forty characters.
+  The whole URL is on the chip's `title`, so nothing is hidden, only shortened
+- **the chips are built from the saved text, not from the box.** No JavaScript
+  watches the field. A URL pasted in goes live on save, which is a half-second
+  away, and the alternative is a second definition of what a link is — in
+  another language, drifting against the first
+- **`target="_blank"` with `rel="noopener noreferrer"`**, which is design.md's
+  "a place of its own" plus the two words that keep the opened page from
+  reaching back through `window.opener`
+- **`--ext`, purple, underlined, with a `↗`.** Every other link on a screen is
+  `--accent` blue and unadorned, so three signals separate them at a glance and
+  none of them requires reading the URL. Underlined at rest as well as on
+  hover, because the arrow is small; a colour of its own rather than borrowing
+  `--ok`, whose green already means "context" on a badge
+- **`overflow-wrap: anywhere` where a link sits in prose.** A Gmail permalink is
+  longer than the column it is read in, and the alternative is a page that
+  scrolls sideways
+
+Which screens get which:
+
+| where | how |
+|---|---|
+| processing screen — the capture's line and its body | inline |
+| an inbox row's first line | inline (the row is not a link; the whole row opens the item) |
+| a project's "no next action left" DOD | inline |
+| description, definition of done, idea — under the box | chips |
+| a Someday/Maybe row | chips (its title already links to the item's page) |
+
+The three field strips are one `{{template "extlinks"}}` inside `actionfields`,
+`somedayfields` and `projectfields`, so every screen those partials serve —
+the item's own page, the processing branches, promoting, adding an action to a
+project — gets it from the one definition, for the reason the partials exist.
 
 ## Doing
 

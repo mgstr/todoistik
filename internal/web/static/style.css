@@ -1,6 +1,6 @@
 :root {
   --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
-  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37; --ext: #9b2fae;
   --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff;
   --bar-bg: #eceef3;
   --main-pad-top: 1rem;
@@ -14,7 +14,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
-    --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
+    --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a; --ext: #d99ae8;
     --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d;
     --bar-bg: #1f232b;
   }
@@ -38,6 +38,27 @@ main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 main { padding: var(--main-pad-top) max(1.25rem, calc(50% - 31rem)) 2rem; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* A link out of the app. Every other link on the screen moves inside it and is
+   blue and unadorned, so a link that leaves says so in the two ways a glance
+   reads first: a colour of its own, and an arrow that only these carry. It is
+   underlined at rest as well, because the arrow is small and the colours are
+   close enough on a dark screen that colour alone would be the whole signal.
+   Named --ext rather than borrowing --ok, whose green already means "context"
+   on a badge. */
+a.ext { color: var(--ext); text-decoration: underline; text-underline-offset: .15em; }
+a.ext::after { content: "\2197"; font-size: .85em; margin-left: .1em; }
+/* wraps at the slashes rather than pushing the page sideways: a Gmail
+   permalink is longer than the column it is read in */
+.capture-body a.ext, .capture-text a.ext, .row .title a.ext { overflow-wrap: anywhere; }
+.row .title { min-width: 0; }
+
+/* The links a box holds, under the box and lined up with it — the gutter is
+   the field's name column and this is not a field. */
+.extlinks { display: flex; flex-wrap: wrap; gap: .3rem; margin: -.25rem 0 0 8.1rem; }
+.badge.ext { color: var(--ext); text-decoration: none; }
+.badge.ext:hover { text-decoration: underline; }
+.badge.ext::after { content: "\2197"; font-size: .85em; margin-left: .15em; }
 
 /* A rail down the left rather than a bar across the top. Main caps its column
    at 62rem and the rail is 11.5rem, so above about 76rem of window the rail is

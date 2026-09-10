@@ -9,6 +9,11 @@
        "The someday item's page") */}}
   <li class="row" data-kb-row data-href="/somedayitem/{{.ID}}">
     <a href="/somedayitem/{{.ID}}" class="title">{{.Text}}</a>
+    {{/* chips and not a live word inside the title, which is already a link to
+         the item's own page: a link cannot sit inside a link, and the two
+         would mean different places anyway */}}
+    {{range links .Text}}<a class="badge ext" href="{{.}}"
+      target="_blank" rel="noopener noreferrer" title="{{.}}">{{linkLabel .}}</a>{{end}}
     {{range .Tags}}<span class="badge tag">#{{.}}</span>{{end}}
     <span class="age" title="age of the idea">{{age .CreatedAt}}</span>
   </li>
