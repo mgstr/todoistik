@@ -668,7 +668,7 @@ they apply.
 - **`p` processes the selected item**, at `/process?item=<id>&one=1`, and
   returns to the list afterwards. **`z` runs Inbox Zero**, at `/process`, which
   takes the oldest item, comes back for the next one after each answer, and
-  ends on the done screen. `z` is exactly `p` repeated: the same screen, fed the
+  ends on the inbox. `z` is exactly `p` repeated: the same screen, fed the
   oldest item instead of the selected one. **`g z` is that same run from
   anywhere**, without stopping at the list on the way (see "Keyboard view-jump
   overlay")
@@ -691,6 +691,15 @@ they apply.
 - **an `item` that is no longer in the inbox redirects to the list** rather than
   erroring. It means the item was processed already — in another tab, or by a
   back button — and the list is the honest answer to "then what?"
+- **a run that has nothing left to answer redirects to the list too**, so both
+  ways of arriving with no item end on the same screen. There used to be a done
+  screen instead — *"Inbox zero ✓ / Every capture has been decided about."* over
+  a link to Next actions — and it was three faults at once: it congratulated,
+  it explained the empty inbox to someone who did not write the spec (the same
+  argument as the removed *"Nothing to decide about."* above), and it made
+  "empty inbox" look like two different places depending on how you got there.
+  The inbox already renders empty perfectly well, and the link out was a
+  keystroke (`g n`) dressed up as a signpost
 - the button this replaced ("Process — Inbox Zero") was the view's only control
   and sat on every visit whether or not there was anything to process. A key
   costs nothing when unused, and the bar already says when it is available
