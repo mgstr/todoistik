@@ -2,7 +2,8 @@
 {{$d := .Data}}
 <div class="process" data-cancel="{{$d.Back}}">
   <div class="subject">
-    <h1 class="capture-text">{{$d.Text}}</h1>
+    <h1 class="capture-text">{{$d.Line}}</h1>
+    {{if $d.Body}}<p class="capture-body">{{$d.Body}}</p>{{end}}
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
@@ -32,7 +33,7 @@
 
     {{/* after the button, because the button is what the eye goes to first on
          an empty project and what the list grows away from once it is not */}}
-    <ul class="list drafts" data-draft-list>
+    <ul class="list drafts" data-draft-list data-draft-seed="{{$d.Body}}">
       {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
     </ul>
 

@@ -214,12 +214,18 @@
     return document.getElementById("capture-dialog");
   }
 
+  function captureBox(d) { return d.querySelector("[name=text]"); }
+
   function openCapture() {
     const d = captureDialog();
     if (!d || d.open) return;
-    const box = d.querySelector("input[name=text]");
+    const box = captureBox(d);
     if (box) box.value = "";
     d.showModal();
+    // the box is a textarea that is one line tall until something puts a
+    // second line in it, so an emptied one has to be measured again — a box
+    // inside a closed dialog measures 0 (see growAll)
+    growAll(d);
     if (box) box.focus();
     renderKeybar();
   }
@@ -232,7 +238,7 @@
   // Enter adds. Nothing typed means nothing to add, so just close: the empty
   // box is not a mistake worth a complaint, same as a duplicate is not.
   function submitCapture(d) {
-    const box = d.querySelector("input[name=text]");
+    const box = captureBox(d);
     if (!box || box.value.trim() === "") { closeCapture(d); return; }
     d.querySelector("form").requestSubmit();
   }
@@ -1431,6 +1437,13 @@
       // both are UA behaviours with edge cases, and these two keys are the
       // whole interaction.
       if (e.key === "Escape") { e.preventDefault(); closeCapture(dlg); }
+      // shift-enter is the newline, because an item's text may run to more
+      // than one line (design.md, "Inbox item") and Enter is what adds. The
+      // modifier is on the second line rather than on adding: one line is the
+      // common case, and moving which key adds would cost more than the second
+      // line is worth. Left to the browser, which inserts it and fires the
+      // input event the box grows on
+      if (e.key === "Enter" && e.shiftKey) return;
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
       return;
     }
@@ -1737,7 +1750,13 @@
     const meta = dlg.querySelector("[name=meta]");
     const desc = dlg.querySelector("[name=description]");
     const ok = dlg.querySelector("[data-draft-ok]");
-    const v = row ? draftValues(row) : { title: "", meta: "", description: "" };
+    // the body the capture carried is written into the first action of the
+    // project, since a project has no description of its own and material a
+    // project needs belongs to whichever of its actions needs it (design.md,
+    // "Inbox Zero"). Only the first: it is one body, and the dialog that adds
+    // the second action opens empty like every one after it
+    const seed = list.children.length ? "" : (list.dataset.draftSeed || "");
+    const v = row ? draftValues(row) : { title: "", meta: "", description: seed };
     title.value = v.title; meta.value = v.meta; desc.value = v.description;
     dlg.querySelector("h2").textContent = row ? "Edit action" : "Add an action";
     ok.textContent = row ? "Save action" : "Create action";

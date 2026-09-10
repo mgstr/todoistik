@@ -550,6 +550,8 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 type processData struct {
 	ID        int64
 	Text      string
+	Line      string // the capture's first line — what the inbox showed
+	Body      string // what it carried under that line, empty for most captures
 	CreatedAt time.Time
 	Remaining int
 	One       bool // processing one named item, not working down the inbox
@@ -604,6 +606,7 @@ func (s *Server) processItem(id int64) (*processData, error) {
 		}
 	}
 	d.ID, d.Text, d.CreatedAt, d.Remaining = it.ID, it.Text, it.CreatedAt, len(items)
+	d.Line, d.Body = it.Line(), it.Body()
 	return d, nil
 }
 
@@ -678,19 +681,26 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, verr)
 		return
 	}
+	// only the first line is read that way, and the body goes where the branch
+	// keeps material: an action's description, the first draft action's on the
+	// project form, and the someday form's one box, which takes the whole
+	// capture (design.md, "Inbox Zero"). The DOD is never seeded — it is the
+	// one sentence the form exists to force out of you, and a body pre-filled
+	// there would satisfy the check that makes a project a project
 	switch d.As {
-	case "action":
-		meta, title := app.MetaFromText(d.Text, v)
-		d.Vals.Set("title", title)
-		d.Vals.Set("meta", meta)
-	case "project":
-		meta, title := app.TagsFromText(d.Text, v)
-		d.Vals.Set("title", title)
-		d.Vals.Set("meta", meta)
-	case "someday":
-		meta, text := app.TagsFromText(d.Text, v)
-		d.Vals.Set("text", text)
-		d.Vals.Set("meta", meta)
+	case "action", "project", "someday":
+		seed := app.SeedCapture(d.As, d.Text, v)
+		d.Vals.Set("meta", seed.Meta)
+		if d.As == "someday" {
+			d.Vals.Set("text", seed.Title)
+		} else {
+			d.Vals.Set("title", seed.Title)
+		}
+		// the project form has no description box of its own: its body is
+		// written into the first action, by the dialog that adds one
+		if d.As == "action" {
+			d.Vals.Set("description", seed.Description)
+		}
 	default:
 		d.As = ""
 	}
