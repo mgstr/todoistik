@@ -93,24 +93,68 @@ The endpoints, matching design.md exactly:
 
 Nothing else. The read API is read only, and capture is the only way in.
 
-## Importing from Reminders
+## Reminders, both ways
 
-`cmd/remindersync` empties a macOS Reminders list into the inbox: one capture
-per reminder, and the reminder deleted once the app has said it has the text.
-It is a separate command, not part of the server — it is one person's way in
-from one other program, and nothing about it belongs in a process that serves
-every request.
+`cmd/remindersync` carries items between a macOS Reminders list and the app, in
+either direction. It is a separate command, not part of the server — it is one
+person's way to and from one other program, and nothing about it belongs in a
+process that serves every request.
 
-- **it goes in through `POST /api/capture`**, like anything else outside the
-  app, rather than opening the database beside the server. Capture is the only
-  way in by design (design.md, "Capture"); a second writer would skip the
-  duplicate collapse and the audit entry, and would have to be trusted to keep
-  the schema
-- **a reminder becomes one line, carrying everything it held** — title, due
+**The direction is a subcommand, not a flag**: `remindersync move` empties a
+list into the inbox, `remindersync sync` makes a list say what a view says. A
+run with neither named does nothing and says so, because the two do opposite
+things to the same list — a default here would be a guess that costs items.
+
+- **it goes through the APIs**, like anything else outside the app, rather than
+  opening the database beside the server: `POST /api/capture` on the way in and
+  `GET /api/view/<name>` on the way out. Those are the only ways in and out by
+  design (design.md, "External capture" and "The read API"); a second writer
+  would skip the duplicate collapse and the audit entry, and would have to be
+  trusted to keep the schema
+- **`osascript` and JavaScript for Automation, not EventKit.** EventKit is the
+  better interface and would mean a second language in the tree and a signed
+  bundle of its own for the privacy prompt, for the same five fields
+- **the list name and the reminder ids are spliced into the scripts as JSON
+  literals**, which are also JavaScript string literals, so a list named with a
+  quote in it cannot become script
+- **the list has to exist.** A name that is not there is an error naming the
+  lists that are, in both directions. Creating one would turn a typo into a
+  second list that quietly collects items nobody looks at
+- **a run that changed nothing says nothing.** Every line printed is an item
+  that actually moved — a reminder written, retitled or deleted, a line
+  captured, a request filed — followed by a tally of exactly those lines. No
+  heading, no "nothing to do", no row of zeroes. These run every few minutes
+  for months, and a log saying "0 created, 0 deleted" nine hundred times is a
+  log nobody reads, which is a log that hides the one line that mattered.
+  Silence is the good outcome and worth being able to recognise at a glance.
+  A dry run is the exception and always answers, because it was asked
+- **what was left behind is counted in the tally but is never the reason for
+  one.** The first version printed the tally whenever anything was left, which
+  put "0 captured, 0 duplicate, 1 left" on standard output every time a run
+  failed — the zero tally this rule exists to prevent, beside a stderr line
+  already saying why. A failure is stderr's to report, in full, and standard
+  output stays for what moved
+- **what went wrong goes to stderr**, whether or not anything moved: a failure
+  is not a change, but it is not the quiet outcome either. And both directions
+  exit non-zero if anything was left behind — this runs unattended, where the
+  tally is not read but the status is
+
+### move: a list into the inbox
+
+One capture per reminder, and the reminder deleted once the app has said it has
+the text.
+
+- **a reminder becomes one capture, carrying everything it held** — title, due
   date, note. The reminder is deleted immediately after, so anything left out
   here is lost, and the inbox is raw text with no field to put a date in
-  instead. The note joins on one line: the inbox is a list of lines, and a
-  note's own line breaks are not worth breaking that
+  instead
+- **the title and the due date are the first line, and the note is the rest.**
+  The note used to be flattened onto that one line with them, because the inbox
+  was a list of lines and a note's own breaks had nowhere to go. They have one
+  now (design.md, "Inbox item"), and a note is exactly what it is for: it
+  survives the trip intact, and processing puts it in a description — which is
+  where `sync` reads a note back out of, so a note carried in by `move` returns
+  to the phone as the note it was
 - **nothing is written as a token.** No `#tag`, no `@context`, however
   obviously a list called "дом" maps to one. A captured line is prose until
   someone processes it, and deciding what an item means at capture time is the
@@ -125,25 +169,206 @@ every request.
   lost by the order: a run cut short between the two leaves the reminder in
   place, and the next run re-captures it, is told it is a duplicate, and
   deletes it then
-- **`osascript` and JavaScript for Automation, not EventKit.** EventKit is the
-  better interface and would mean a second language in the tree and a signed
-  bundle of its own for the privacy prompt, for the same five fields
+- **completed reminders are left where they are.** The list is being emptied of
+  what is still outstanding; a finished reminder is a record, not an inbox item
 
-What that interface can and cannot answer shaped the rest:
+### sync: a view onto a list
 
-- **every property is read for the whole list at once and the open reminders
-  picked out here**, rather than asked for with a `whose` filter. A filtered
+The list is made to hold what the view holds — `-view next -q "#gc #sync"` is
+the same view and the same filter line as the screen (design.md, "The read
+API"), so a filter worked out once is the thing that goes across. It exists to
+read a filter away from the desk: a Reminders list is on the phone and the
+watch already. That is not the app on a phone — what arrives is a list of
+titles, not a view, and processing and reviewing still happen at the desk
+(design.md, "the app is used at a desk").
+
+- **it never completes anything in the app.** The read API is read only, and
+  this is a caller of it. A tick on the phone does not complete the action: it
+  files a request through the capture API and a person answers it at the desk
+  (see "The completion channel"). A second way to complete things would be a
+  second source of truth about what is done, and the audit log would hold
+  completions nobody confirmed
+- **the whole difference is worked out before anything is written**, so a dry
+  run and a real run are the same decision made twice
+- **a reminder is recognised by the marker in its title**, `(::15)`, which is
+  the action's own id. The whole title was the alternative and is worse: it
+  strands a reminder the moment the action is renamed, writes a duplicate
+  beside it, and cannot tell two items with one title apart. A marker in the
+  note was the other, and is worse again — the note is a field this also
+  writes and that you may edit on the phone, so the identity would be living in
+  the most fragile place available. The cost is that the marker is read on the
+  watch every day, and it is accepted: it is what makes the return channel
+  possible at all (see "The completion channel"), and an identity has to sit
+  where neither side rewrites it casually
+- **a reminder with no marker matches nothing**, and is therefore a stranger.
+  Reminders written before there were markers are replaced once, on the first
+  run, rather than matched by title as well: a fallback path for a one-off
+  event outlives the event and then has to be explained forever
+- **the title carries the item's name and the marker, and nothing else.** None
+  of the notation the filter was written in goes across: a `#gc` in a
+  reminder's name would be todoistik's vocabulary leaking into a program that
+  has no idea what a tag is, and it would come back as prose if it came back at
+  all. The marker is not vocabulary — it is an identity, meaningless to
+  Reminders and meaningless as prose — which is why it can share the field
+  without pretending to be part of the name. The import keeps the same rule in
+  the other direction
+- **the description becomes the note and the due date the reminder's own due
+  date**, because those two are the only fields Reminders has that mean the
+  same thing. A tag, a context, a size, a project: todoistik keeps those. The
+  reminder is a copy of what to do, not a copy of the item, and a phone that
+  showed the whole item would invite editing it there
+- **the list is the view**: a reminder no item in the view is titled after is
+  deleted, whoever typed it. That is what makes the list readable as an answer
+  to "what is on this filter" rather than a pile that only grows. The marker
+  makes a stranger identifiable now — no marker, not ours — and it is deleted
+  anyway: sparing it would leave the list saying two things at once, some of it
+  the filter's answer and some of it whatever survived, with nothing on screen
+  to say which row is which. The list it points at is therefore a list kept for
+  it, which the README says plainly
+- **a reminder that has been ticked off is not an item on the list any more,
+  it is a message**: it files a completion request and is deleted (see "The
+  completion channel"). It is never re-opened in place and never rewritten,
+  because a reminder rewritten after being ticked would be the run arguing with
+  the phone about work already done
+- **only what todoistik knows is written.** A note or a due date the item does
+  not carry leaves the reminder's own alone: an empty field in todoistik is not
+  an assertion that Reminders should be empty too, and clearing it would erase
+  what the phone had set, on every single run. A due date already on the right
+  day is left as it is, time and all — an action's due date is a day and
+  nothing finer, so a reminder due at 14:30 that day already says what the
+  action says, and rewriting it to midnight would throw away a time only the
+  phone knew
+- **additions first, deletions last, one visit each.** A round trip costs about
+  five seconds whatever it carries, so each kind of change is one script over
+  the whole batch, and a batch with nothing in it makes no visit at all. A run
+  cut off in the middle then leaves the list holding too much rather than too
+  little, and too much is what the next run can fix
+
+### The completion channel
+
+A ticked reminder is the one thing Reminders can say back, and `sync` reads it:
+a reminder that is completed and carries a marker files one capture, and is
+then deleted.
+
+- **the request goes in through `POST /api/capture`** like everything else,
+  as the line design.md specifies (see design.md, "Completion requests"):
+  `Completion request from reminders ::15 ::2026-09-08T14:30 залогировать кеш 8
+  сентября`. The prefix names the source, so a second kind of sync later files
+  its own kind of line instead of being told apart by guesswork
+- **the request is the first line of the capture, and only the first.** An
+  item's text may run to more than one (design.md, "Inbox item"), so the
+  grammar has to name the line it reads or acquire a second meaning the first
+  time anything files a request with a body under it. Nothing does today, and
+  saying which line is read costs a sentence now instead of a decision later
+- **`::` is the sigil because the app's notation does not use it.** `@` and `#`
+  are vocabulary, read against the remembered lists (see "The meta line"), and
+  `::` is read by nothing — so a request cannot half-parse into fields on the
+  way through a form, and a marker in a title cannot become a tag on the way
+  back in
+- **the time carries a time, not only a day.** design.md has accepting a
+  request stamp the moment the work was finished, and Reminders knows the
+  moment; a bare day would stamp midnight, which is a fiction the Archive would
+  then repeat forever. It is written `2026-09-08T14:30`, local, as one word,
+  because everything that reads this line splits it on whitespace
+- **the reminder is deleted once the request is filed.** The tick is a message,
+  and a message left in the outbox is sent again on every run — nothing
+  anywhere remembers that a request was already made, and design.md keeps it
+  that way deliberately, because "not done" is a state and not a decision.
+  Deleting it closes the loop with no stored state at all: accepting means the
+  reminder never returns, and ignoring means the next run finds the action still
+  in the view and writes a fresh open reminder, which is the truthful answer to
+  "no, I have not done that". The cost is a window where the item is neither on
+  the phone nor finished, and that is only the safe direction to be wrong in
+  because the item is in the app throughout
+- **a ticked reminder files its request whether or not its action is still in
+  the view.** The marker is an identity and the app resolves one without a view,
+  so an action snoozed, parked or untagged between the tick and the run does not
+  lose the tick. Treating the filter as the channel was the alternative, and it
+  drops the only signal this direction has, silently. The price is a request
+  that resolves to "completed here already" when both sides did the same work,
+  and design.md gives that case its own answer on the screen
+- **the tick is read, and nothing else is.** A reminder deleted on the phone is
+  indistinguishable from one that was never there, so it says nothing and the
+  next run writes it again; ticking is the only gesture Reminders keeps a record
+  of
+
+### loop: every direction, on a period
+
+`remindersync loop <config file>` runs each direction named in a file, over and
+over. The direction is a subcommand like the other two, because a loop is not a
+third direction — it is the other two, repeated.
+
+- **a loop rather than a cron entry.** Reminders costs about five seconds a
+  visit and answers one caller at a time, so a schedule that fires two runs at
+  once has them queueing behind each other with no idea the other is there, and
+  a laptop that was asleep has cron firing every missed run at once. One
+  process, one pass at a time, is the whole of the concurrency control — and it
+  means this can be tried out without writing a `launchd` plist first
+- **the wait starts when a pass ends**, not when it began, so however long a
+  pass takes two of them can never overlap. `-period` is in minutes because
+  nothing here is worth doing more often than that: a tick on a watch is
+  answered at the desk, and five minutes is faster than the walk back
+- **a config line is the words you would type**, direction and all, and the
+  program's own name at the front is allowed and dropped. That is what makes
+  the file need no documentation of its own: anything that can be typed can be
+  filed, and learning the file is learning nothing. Refusing the leading
+  `./remindersync` was the first version, and it was wrong for exactly that
+  reason — the words a person would type start with it, so a file promising
+  "what you would type" that then rejects it has an exception to remember,
+  which is the one thing it was for. The quoting is a shell's — `-q "#gc
+  #sync"` — because the filter line is written that way everywhere else, and an
+  unquoted `#` starts a comment, which is why the quoting has to be understood
+  rather than the line cut at the first hash
+- **`-url` and `-token` given to the loop go in *front* of each line's own
+  arguments**, so a line that names either one wins: the flag package lets the
+  last of a repeated flag win, and putting the defaults first is the whole
+  implementation of "unless the line says otherwise"
+- **a wrong file refuses to start**, naming the line: an unknown direction, a
+  line with nothing to work on, a quote never closed. The same rule the app's
+  settings file keeps (README, "Settings"), and for the same reason — a typo
+  that is not fatal here is a typo printed once a pass, forever
+- **a failing run is the run's failure and never the loop's.** It is printed
+  and the pass carries on; the next pass tries again, because a direction that
+  cannot reach the app now is usually one that can in five minutes. This is
+  what `-list is required` stopped being fatal for: a direction typed at the
+  prompt still exits, and the same words read from a file come back as an error
+  the loop can print
+- **nothing echoes a token.** The output is what gets redirected to a log and
+  read weeks later, so what is printed for each run is the config line as
+  written, with any token in it replaced — a secret that reaches a log is a
+  secret to change
+- **it says what it will do once, at the start, and then only what it did.**
+  The opening block is the parsed runs rather than the file's own text, because
+  what was *understood* is the thing worth checking: a comment, a dropped
+  program name and a quoted filter line all read back there as what will
+  actually run. After it, a pass where nothing moved prints nothing — see the
+  quiet rule above
+- **each stream says which run it is about, for itself.** Standard output gets
+  a `=== time  run` heading, printed lazily by the first line the run writes,
+  so a heading never appears with nothing under it. Standard error puts the
+  same time and run in front of every line instead, because the two streams
+  are often redirected to different files: an error traced upwards to find out
+  which list it was about is an error nobody traces, and a heading in the other
+  file is no help at all
+- **`ctrl-c` stops after the run it is in**, not part-way through one. A pass
+  abandoned between a capture and a deletion is exactly the state each run's own
+  ordering works to avoid
+
+What that interface can and cannot answer shaped both directions:
+
+- **every property is read for the whole list at once and the reminders sorted
+  out here**, rather than asked for with a `whose` filter. A filtered
   collection re-runs its filter on every property read — the difference between
-  a read that takes five seconds and one that never finishes
+  a read that takes five seconds and one that never finishes. Completed
+  reminders come back too, with a flag, because the two directions want
+  opposite things from them
 - **a due date falling exactly on local midnight is written as a day alone**,
   without a time, which is how Reminders stores a reminder set for a date
   rather than a moment. Its `allDayDueDate` says so directly and cannot be read
-  over this interface at all, in bulk or one at a time
-- **completed reminders are left where they are.** The list is being emptied of
-  what is still outstanding; a finished reminder is a record, not an inbox item
-- **the list name and the reminder ids are spliced into the script as JSON
-  literals**, which are also JavaScript string literals, so a list named with a
-  quote in it cannot become script
+  over this interface at all, in bulk or one at a time — so a day is written
+  the same way, as local midnight, and reads back as the day it was
+- **deletions go from the back of the list forward**, by the ids read earlier,
+  so that removing one does not shift the position of another still to go
 
 ## Keyboard
 
@@ -308,6 +533,24 @@ day, which is the same permanently-open-control problem as the filter panels
 - **the field is empty and unlabelled**: one large text box, no placeholder.
   Design.md's "Capture costs nothing" is about not demanding a decision; there
   is nothing to decide here, so there is nothing to read before typing
+- **the box is a textarea, and `shift-enter` is the newline.** An inbox item's
+  text may run to more than one line (design.md, "Inbox item"), and a one-line
+  `<input>` cannot hold one — worse, it silently flattens a paste that has
+  newlines in it, which is how a body most often arrives by hand. `Enter` still
+  adds: that is the whole interaction, and moving which key adds would cost
+  more than the second line is worth. The newline is the one that takes a
+  modifier, which is the right way round for a box where one line is the common
+  case
+- **the dialog looks exactly as it did, and stays one line until there is a
+  second.** `rows="1"` with `data-grow` is the box every note field already
+  uses (see "A box is as wide as the form, and as tall as what is in it"), so
+  it opens at the height the `<input>` had and grows only when a newline or a
+  pasted body actually puts something on a second line — and shrinks back if
+  that is deleted. The common case is one line and nothing about it was worth
+  redesigning for the uncommon one: this is a one-line box that can hold more,
+  not a text area that usually holds one line. In the stylesheet
+  `#capture-dialog input` becomes `#capture-dialog textarea` and keeps every
+  value it had; `resize: none` and the hidden scrollbar arrive with `data-grow`
 - **`Enter` adds, `Esc` discards**, and the dialog closes either way. Adding
   returns to the view you were on rather than to the inbox: a capture
   interrupts something, and should hand it straight back
@@ -375,7 +618,7 @@ they apply.
 
 ## The processing screen
 
-One captured line, and a menu of answers to "what is it?". The first working
+One capture, and a menu of answers to "what is it?". The first working
 version put the question in a heading, the run's position in a crumb above it,
 and all eight branches on screen at once — three buttons and five forms in
 `<details>`, every field of every branch one click from being visible.
@@ -396,6 +639,13 @@ and all eight branches on screen at once — three buttons and five forms in
   and spends an accent that nothing else on this screen is using. Chosen from
   five treatments in `research/process-subject-study.html`, which also settles
   why no *"N left"* came back with it
+- **the first line leads the capture and the body follows it**, inside that
+  same rule. The line is what the inbox showed and the body is what it did not,
+  so they are set apart — the line at the size the old heading was, the body
+  under it in the reading size — and neither is given a label, because the item
+  has no fields (design.md, "Inbox item"). The body keeps its own line breaks:
+  it arrived with them, they are most of what made it a body, and this is the
+  one screen where they are read
 - **deciding and describing are two stages.** The question a branch answers is
   *what is this*, and that is one click. Everything a branch then needs — a
   title in valid form, a context, a definition of done — belongs to a second
@@ -498,6 +748,69 @@ a link is a link being followed, the way `a` and `p` already were.
   three presses rather than two. That is the right trade in a screen worked
   many times a day — the abandon path is rare and the typing path is not
 
+### A completion request asks one question
+
+A captured line that is a completion request (design.md, "Completion requests")
+**replaces** stage one rather than adding a seventh button to it.
+
+- **the six branches are not shown at all.** They answer "what is it?", and
+  this line already says what it is. A screen offering both questions would be
+  asking the reader to work out which question they are answering
+- **the grammar of the line is `internal/request`, and what a line *means* is
+  `internal/app`.** The split is the point: one program writes the line and
+  another reads it, so the grammar lives where both can have it and neither
+  keeps a second copy that can drift — and the utility can write one without
+  linking the database driver to do it. What the line means is an action, and
+  only the app can say whether that action is still there, so the resolving
+  belongs there and not in the handler or the template
+- **the item is resolved by id, which needs no view.** `App.Action(id)` answers
+  for any action, in or out of any filter — which is what lets a request be
+  filed by something that could only see one view (see "The completion
+  channel")
+- **the screen states the case before it offers anything**: open, so it can be
+  completed; completed here already, and when; deleted; or promoted into a
+  project, which is the case that looks like a bug and is not, because the
+  action's identity ends at the promotion (design.md, "Reshaping items"). Only
+  the first case has two answers; the rest have one, so the screen never shows
+  a button that could not be pressed honestly
+- **an id can be handed out twice, and the request's own time is what catches
+  it.** An action's id is its rowid, given out as one past the highest in the
+  table with no `AUTOINCREMENT` to reserve the ones handed back — so deleting
+  the newest action, or promoting it (which deletes it and writes the project's
+  own actions), gives that number to the next action created. A request filed
+  before the swap would otherwise name a stranger with the same id, and the
+  screen would offer to complete it. Nothing has to be stored to rule it out:
+  the item a request is about existed before the work on it was finished, so an
+  action whose creation date is *after* the request's moment is a different
+  action, and the request is answered as one about something gone. The only way
+  to fool it is to tick a reminder in the same minute its action was created.
+  This was found by a test that promoted an action and watched its id come
+  straight back (`internal/app/requests_test.go`)
+- **completing takes the time from the request**, which needed a completion at
+  a given moment: `setActionCompleted` stamped `now` and nothing could ask it
+  for anything else. It takes a time now, and every other caller passes the
+  moment of the click — so the ordinary path is unchanged and this one is not a
+  second implementation of completing
+- **the audit entry is the ordinary completion entry.** The log holds that the
+  action was completed and the item as it was; that the answer came from a phone
+  is in the request line, and the request's own removal is audited like any
+  processed item, so the line is recoverable from the log. A second event type
+  would make every reader of the log learn a kind of completion that behaves
+  identically to the other one
+- **completing is the default answer, and the two answers are the same size.**
+  It wears the accent and takes the focus, so `Enter` gives it: a tick on the
+  phone is a claim that the work is done, and confirming it is the answer that
+  is right whenever the phone was right — which is nearly always, since the
+  tick was deliberate. Ignoring stays one keystroke away (`t`, the same branch
+  it posts to) and exactly as wide, because a wider button reads as the safer
+  one and which answer is safe here depends only on what actually happened. The
+  pair is held to the form width and does not wrap: two answers side by side
+  are the question's shape, and a wrapped pair reads as a list of options
+- **ignoring is the trash branch under another name**, and is written as one:
+  the request is deleted with its audit entry, and nothing touches the action.
+  A separate "ignore" that did the same thing differently would be two ways to
+  throw away an inbox item
+
 ## Stage two
 
 Answering Action, Project or Someday/Maybe opens a form on the same screen, at
@@ -515,6 +828,22 @@ quietly break.
   by hand. The same `Vocabulary` the meta line is parsed with does the reading,
   so a name the app does not know is prose here exactly as it is there
   (design.md, "Inbox Zero")
+- **the notation is read out of the first line, and the body is not read at
+  all.** Both readers are handed that line alone; the rest of the text never
+  meets a vocabulary. A body carries whatever its source carried — a link to a
+  mail is full of `#`, the address it came from is an `@` — and keeping it out
+  of the reading is a rule, rather than a bet on the remembered lists not
+  holding those names
+- **the body seeds a description, and which one depends on the branch**: the
+  action's own on the action form; the first draft action's on the project
+  form, pre-filled in the dialog that writes it and empty in every dialog
+  after; and none on the someday form, which takes the whole capture into its
+  one box. The project form's DOD is left empty and stays `required` —
+  `projectFromForm` refuses a blank one, and that refusal is the only thing
+  standing between a captured body and a project whose definition of done
+  defines nothing (design.md, "Inbox Zero"). It is the same seeding
+  `promote.html` already does, which passes `"DOD" ""` for exactly this reason
+  (see "Writing a project")
 - **an unreadable line is left whole.** `parseTokens` hands back an error for a
   second context or a date it cannot resolve; that error means the title box
   gets the line exactly as captured and the meta box stays empty. Half a
@@ -1038,6 +1367,11 @@ per-view one.
   needed a line under every item to carry the eye across the gap. The age sits
   beside its title now, so the line has nothing left to do, and an inbox of nine
   items stopped looking like a table with nothing in it
+- **an inbox row is the item's first line and no more**, and says nothing about
+  there being anything after it (design.md, "Inbox item"). A body is the one
+  thing an item can carry that no row has ever shown, and showing it would make
+  inbox rows several times the height of every other list's — for text that is
+  about to be read in full on the processing screen anyway
 - **the age is a chip, not small grey text.** Grey text beside black text still
   parses as a continuation of the title — "call the dentist yesterday" reads as
   a phrase before it reads as two fields. The enclosing shape is what makes it a
@@ -1893,7 +2227,9 @@ elsewhere.
   and the only one without the drafts list. It is the project form now
   (`promote.html`), seeded with the action's title, its description on the
   first draft and its tags on the project's meta line, and read by the same
-  `projectFromForm` the Project branch of processing uses. `promoteFromForm`
+  `projectFromForm` the Project branch of processing uses — which seeds a
+  captured body the same way, into the first draft and never into the DOD (see
+  "Stage two"). `promoteFromForm`
   and its `paction` fields are gone
 - **the trail says which screen this is, not which item is on it.** "Next
   actions / Edit action", not the action's title: the title is the biggest
