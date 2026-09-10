@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"todoistik/internal/apiclient"
 )
 
 var runAt = time.Date(2026, 9, 10, 9, 0, 0, 0, time.Local)
@@ -12,37 +14,37 @@ var runAt = time.Date(2026, 9, 10, 9, 0, 0, 0, time.Local)
 func TestReminderFor(t *testing.T) {
 	cases := []struct {
 		name string
-		in   viewItem
+		in   apiclient.Item
 		want desired
 	}{
 		{
 			"a title carries the marker",
-			viewItem{ID: 15, Title: "залогировать кеш 8 сентября"},
+			apiclient.Item{ID: 15, Title: "залогировать кеш 8 сентября"},
 			desired{ItemID: 15, Name: "залогировать кеш 8 сентября", Title: "залогировать кеш 8 сентября (::15)"},
 		},
 		{
 			"the description becomes the note and the due date the due date",
-			viewItem{ID: 7, Title: "Replace the log", Description: "bring a pencil", DueDate: "2026-09-15"},
+			apiclient.Item{ID: 7, Title: "Replace the log", Description: "bring a pencil", DueDate: "2026-09-15"},
 			desired{ItemID: 7, Name: "Replace the log", Title: "Replace the log (::7)", Body: "bring a pencil", Due: "2026-09-15"},
 		},
 		{
 			"an item that is text rather than a title still goes across",
-			viewItem{ID: 3, Text: "Buy new winter tyres"},
+			apiclient.Item{ID: 3, Text: "Buy new winter tyres"},
 			desired{ItemID: 3, Name: "Buy new winter tyres", Title: "Buy new winter tyres (::3)"},
 		},
 		{
 			"a note's own line breaks do not survive, so two runs compare equal",
-			viewItem{ID: 7, Title: "Replace the log", Description: "bring a pencil\nand a bag\n"},
+			apiclient.Item{ID: 7, Title: "Replace the log", Description: "bring a pencil\nand a bag\n"},
 			desired{ItemID: 7, Name: "Replace the log", Title: "Replace the log (::7)", Body: "bring a pencil and a bag"},
 		},
 		{
 			"an item with nothing to call it makes no reminder",
-			viewItem{ID: 9, Title: "  "},
+			apiclient.Item{ID: 9, Title: "  "},
 			desired{ItemID: 9},
 		},
 		{
 			"an item with no id cannot be recognised later, so it gets no title",
-			viewItem{Title: "Replace the log"},
+			apiclient.Item{Title: "Replace the log"},
 			desired{Name: "Replace the log"},
 		},
 	}

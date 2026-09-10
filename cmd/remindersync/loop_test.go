@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"todoistik/internal/apiclient"
 )
 
 // A config file line is written the way the same words are typed at the
@@ -158,7 +160,7 @@ func TestRunDefaults(t *testing.T) {
 	if _, err := f.parse(fs, own.args); err != nil {
 		t.Fatal(err)
 	}
-	if got := base(*f.base); got != "http://other:8390" {
+	if got := apiclient.Base(*f.base); got != "http://other:8390" {
 		t.Errorf("url = %q, want the line's own", got)
 	}
 	if !*f.dry {

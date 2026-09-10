@@ -8,6 +8,8 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+
+	"todoistik/internal/apiclient"
 )
 
 func moveMain(args []string) {
@@ -26,7 +28,7 @@ func moveRun(args []string, eh flag.ErrorHandling) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return move(list, base(*f.base), *f.token, *f.dry)
+	return move(list, apiclient.Base(*f.base), *f.token, *f.dry)
 }
 
 // move carries one list across and returns how many reminders it had to leave
@@ -56,7 +58,7 @@ func move(list, base, token string, dry bool) (int, error) {
 		return 0, nil // nothing open is the quiet outcome, and says so by saying nothing
 	}
 
-	c := newClient(base, token)
+	c := apiclient.New(base, token)
 
 	type delivered struct {
 		id, text  string
@@ -80,12 +82,12 @@ func move(list, base, token string, dry bool) (int, error) {
 			continue
 		}
 
-		status, err := c.capture(text)
+		status, err := c.Capture(text)
 		if err != nil {
 			// a wrong token or an unreachable app fails identically for every
 			// remaining reminder, so stop asking — but still delete what the
 			// app already took, or the run would leave those to come back
-			if errors.Is(err, errFatal) {
+			if errors.Is(err, apiclient.ErrFatal) {
 				fatal = err
 				left += len(rems) - len(done) - left
 				break

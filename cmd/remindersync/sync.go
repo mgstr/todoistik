@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"todoistik/internal/request"
+
+	"todoistik/internal/apiclient"
 )
 
 func syncMain(args []string) {
@@ -29,7 +31,7 @@ func syncRun(args []string, eh flag.ErrorHandling) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return sync(list, base(*f.base), *f.token, *view, *query, *f.dry)
+	return sync(list, apiclient.Base(*f.base), *f.token, *view, *query, *f.dry)
 }
 
 // source is what a request says it came from: this program's name for itself,
@@ -72,8 +74,8 @@ type pending struct {
 // that. Everything after it is one visit to Reminders per kind of change,
 // because a round trip costs about five seconds whatever it carries.
 func sync(list, base, token, view, query string, dry bool) (int, error) {
-	c := newClient(base, token)
-	items, err := c.view(view, query)
+	c := apiclient.New(base, token)
+	items, err := c.View(view, query)
 	if err != nil {
 		return 0, err
 	}
@@ -135,7 +137,7 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 	// get back
 	spent := make([]string, 0, len(p.Requests))
 	for _, q := range p.Requests {
-		status, err := c.capture(q.line)
+		status, err := c.Capture(q.line)
 		if err != nil {
 			fmt.Fprintf(errOut, "kept: %s (%v)\n", q.line, err)
 			left++
@@ -227,7 +229,7 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 // due date, because those two are the only fields Reminders has that mean the
 // same thing. A tag, a context, a size, a project: todoistik keeps those, and
 // the reminder is a copy of what to do, not a copy of the item.
-func reminderFor(it viewItem) desired {
+func reminderFor(it apiclient.Item) desired {
 	name := collapse(it.Title)
 	if name == "" {
 		// an inbox or someday item is text, not a title

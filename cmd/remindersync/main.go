@@ -185,6 +185,17 @@ func jsonUnmarshal(out string, v any) error {
 	return nil
 }
 
+// said answers with the message when there is one, and with the fallback when
+// whatever produced it said nothing. Reminders and the app both have ways of
+// failing without a reason, and a line reading "kept: ()" says less than one
+// naming the guess.
+func said(msg, fallback string) string {
+	if strings.TrimSpace(msg) != "" {
+		return msg
+	}
+	return fallback
+}
+
 // collapse puts a multi-line string on one line. It is what makes two titles
 // comparable at all, and what keeps a title that was typed with a break in it
 // from becoming an item whose second line is part of its name.
