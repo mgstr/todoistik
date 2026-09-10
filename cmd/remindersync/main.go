@@ -9,6 +9,8 @@
 //	      match what the view holds, and a reminder ticked off there files a
 //	      completion request for a person to answer. It can be run again and
 //	      again, and the second run changes nothing.
+//	loop  every direction named in a file, over and over, so that the two
+//	      programs stay in step without anything being run by hand.
 //
 // Both talk to the app the way anything outside it does — the capture API on
 // the way in, the read API on the way out, bearer token on both — rather than
@@ -41,6 +43,8 @@ func main() {
 		moveMain(os.Args[2:])
 	case "sync":
 		syncMain(os.Args[2:])
+	case "loop":
+		loopMain(os.Args[2:])
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -79,8 +83,9 @@ func usage() {
 
   remindersync move -list "Inbox"                        empty a Reminders list into the inbox
   remindersync sync -list "geocaching" -q "#gc #sync"    make a Reminders list match a view
+  remindersync loop -period 5 ~/remindersync.conf        both of the above, every few minutes
 
-Run either with -h for its own flags.
+Run any of them with -h for its own flags.
 `)
 }
 
