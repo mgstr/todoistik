@@ -461,6 +461,14 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 .capture-text { font-size: 1.9rem; line-height: 1.18; letter-spacing: -.02em; margin: 0; }
 .process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
 .branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
+/* The two answers to a completion request are one question's yes and no, so
+   they are the same width: a wider button reads as the safer answer, and which
+   answer is safe here depends only on whether the work was actually done. The
+   pair is held to the form width so it does not stretch across the window, and
+   the row does not wrap — two answers side by side are the question's shape. */
+.branches.answers { max-width: var(--form-width); flex-wrap: nowrap; }
+.branches.answers form { flex: 1 1 0; display: flex; }
+.branches.answers button { flex: 1; text-align: center; }
 /* the projects the picker is offering. Rows rather than chips, because a row
    has somewhere to put what is worth knowing before filing into one — whether
    it is stalled, how much is open there — and because rows are what j/k move

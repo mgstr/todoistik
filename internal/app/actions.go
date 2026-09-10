@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 var ErrTitle = errors.New("a title is required")
@@ -187,31 +188,41 @@ func (a *App) UpdateAction(id int64, f ActionFields) error {
 
 // CompleteAction marks an action done.
 func (a *App) CompleteAction(id int64) error {
-	return a.setActionCompleted(id, true)
+	return a.tx(func(tx *sql.Tx) error { return a.completeActionTx(tx, id, a.now()) })
 }
 
 // UncompleteAction brings back something completed by mistake.
 func (a *App) UncompleteAction(id int64) error {
-	return a.setActionCompleted(id, false)
+	return a.tx(func(tx *sql.Tx) error { return a.setActionCompleted(tx, id, nil) })
 }
 
-func (a *App) setActionCompleted(id int64, done bool) error {
-	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.actionTx(tx, id)
-		if err != nil {
-			return err
-		}
-		var at any
-		event := EvUncompleted
-		if done {
-			at = ts(a.now())
-			event = EvCompleted
-		}
-		if _, err := tx.Exec(`UPDATE actions SET completed_at=? WHERE id=?`, at, id); err != nil {
-			return err
-		}
-		return a.audit(tx, event, "action", id, before)
-	})
+// completeActionTx completes an action at a given moment.
+//
+// The moment is a parameter rather than always being now, because there is one
+// path where the two differ: confirming a completion request stamps the time
+// the work was actually finished elsewhere, which may be days before the
+// answer (design.md, "Completion"). Every other caller passes the moment of
+// the click, so the ordinary path is this path and there is no second way to
+// complete an action.
+func (a *App) completeActionTx(tx *sql.Tx, id int64, at time.Time) error {
+	return a.setActionCompleted(tx, id, &at)
+}
+
+func (a *App) setActionCompleted(tx *sql.Tx, id int64, at *time.Time) error {
+	before, err := a.actionTx(tx, id)
+	if err != nil {
+		return err
+	}
+	var stamp any
+	event := EvUncompleted
+	if at != nil {
+		stamp = ts(*at)
+		event = EvCompleted
+	}
+	if _, err := tx.Exec(`UPDATE actions SET completed_at=? WHERE id=?`, stamp, id); err != nil {
+		return err
+	}
+	return a.audit(tx, event, "action", id, before)
 }
 
 // DeleteAction resolves an action by deleting it — audited and recoverable.

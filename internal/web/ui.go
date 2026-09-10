@@ -570,6 +570,12 @@ type processData struct {
 
 	Contexts []string
 	Tags     []string
+
+	// a completion request replaces stage one rather than adding a branch to
+	// it: the line already says what it is, and the only question left is
+	// whether it is true (design.md, "Inbox Zero")
+	Req   *app.CompletionRequest
+	ReqAt string // the exact moment it was finished elsewhere, beside the age word
 }
 
 // processItem loads the item a processing screen is about: the named one, or
@@ -646,6 +652,22 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	d.As = q.Get("as")
 	d.links()
 	d.Vals = url.Values{}
+	// a request is read before the branches are: the six answers are answers
+	// to "what is it?", and this line has already said (design.md, "Inbox
+	// Zero"). A branch asked for on the URL is ignored rather than honoured,
+	// so a stale link cannot open a form over a request
+	req, isReq, rerr := s.app.ReadCompletionRequest(d.Text)
+	if rerr != nil {
+		httpError(w, rerr)
+		return
+	}
+	if isReq {
+		d.As = ""
+		d.Req = req
+		d.ReqAt = req.At.Format("2 Jan, 15:04")
+		s.renderProcess(w, r, d)
+		return
+	}
 	// the captured line is read as notation on the way into a form: what this
 	// branch's meta line can hold goes there, and the words that are left are
 	// the title it starts from (design.md, "Inbox Zero"). A branch that
@@ -691,6 +713,9 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		}
 	}
 	tmpl := "process.html"
+	if d.Req != nil {
+		tmpl = "process_completion.html"
+	}
 	switch d.As {
 	case "action":
 		tmpl = "process_action.html"
@@ -958,6 +983,10 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 		err = s.app.ProcessReference(id)
 	case "twominute":
 		err = s.app.ProcessTwoMinute(id)
+	case "confirm":
+		// yes to a completion request: the action it names is completed at the
+		// moment the work was finished, and the request leaves the inbox
+		_, err = s.app.ProcessCompletion(id)
 	case "action":
 		if done := s.processActionBranch(w, r, id); !done {
 			return

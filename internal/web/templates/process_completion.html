@@ -1,0 +1,45 @@
+{{template "top" .}}
+{{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
+{{$r := $d.Req}}
+<div class="process" data-cancel="/inbox">
+  <div class="subject">
+    <h1 class="capture-text">{{$r.Name}}</h1>
+    <p class="cap">finished on {{$r.Source}} {{age $r.At}}, {{$d.ReqAt}}</p>
+  </div>
+
+  {{/* the case is stated before anything is offered: only an open action has
+       two answers, and the rest have one, so no button on this screen is ever
+       one that could not be pressed honestly (design.md, "Inbox Zero") */}}
+  {{if eq $r.Verdict "open"}}
+  <p class="cap">{{$r.Action.Title}}{{if $r.Action.ProjectTitle}} · {{$r.Action.ProjectTitle}}{{end}}</p>
+  {{/* completing is the default answer: it is what a tick on the phone is
+       claiming, and it is the answer that is right whenever the phone was
+       right — so Enter gives it, and it is the only one wearing the accent.
+       Ignoring stays one keystroke away and the same size, because a wider
+       button would read as the safer answer (see implementation.md) */}}
+  <div class="branches answers">
+    <form method="post" action="/process/{{$d.ID}}/confirm{{$q}}" data-key="c" data-key-label="complete">
+      <button class="primary" autofocus title="complete it, stamped with the time it was finished">Complete it</button>
+    </form>
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" data-key="t" data-key-label="ignore">
+      <button title="it is not done; the request goes and the item stays open">Ignore</button>
+    </form>
+  </div>
+  {{else}}
+  <p class="cap">
+    {{if eq $r.Verdict "done"}}
+      Completed here already, {{age $r.Action.CompletedAt}}.
+    {{else if eq $r.Verdict "promoted"}}
+      That item became a project, so there is nothing left to complete.
+    {{else}}
+      That item is gone.
+    {{end}}
+  </p>
+  <div class="branches">
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="throw away">
+      <button>Throw the request away</button>
+    </form>
+  </div>
+  {{end}}
+</div>
+{{template "bottom" .}}
