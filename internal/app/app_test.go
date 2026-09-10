@@ -20,6 +20,44 @@ func newTestApp(t *testing.T) (*App, *time.Time) {
 	return a, &now
 }
 
+// Duplicate collapse compares the whole text, every line of it. Two captures
+// that lead with the same line and carry different bodies are two different
+// things — two mails sharing a subject, two reminders whose notes differ — and
+// collapsing them would throw one away on the strength of a line that was
+// never meant to identify anything (design.md, "Duplicate captures").
+func TestCaptureCollapsesOnTheWholeTextAndNotTheLine(t *testing.T) {
+	a, _ := newTestApp(t)
+	if _, acc, err := a.Capture("Re: the quote\nfrom Marju, 240 eur"); err != nil || !acc {
+		t.Fatalf("first: %v %v", acc, err)
+	}
+	if _, acc, _ := a.Capture("Re: the quote\nfrom the garage, 190 eur"); !acc {
+		t.Fatal("a different body is a different capture, not a duplicate")
+	}
+	if _, acc, _ := a.Capture("Re: the quote\nfrom Marju, 240 eur"); acc {
+		t.Fatal("the identical capture is still a duplicate")
+	}
+}
+
+// The dialog posts a textarea with CRLF and a script posts LF, and collapse
+// compares the stored text exactly — so the same capture arriving both ways
+// has to be the same string, or the second would never collapse into the first.
+func TestCaptureNormalizesLineEndings(t *testing.T) {
+	a, _ := newTestApp(t)
+	it, acc, err := a.Capture("  Book the tyre change\r\nquoted 240 eur\r\n  ")
+	if err != nil || !acc {
+		t.Fatalf("capture: %v %v", acc, err)
+	}
+	if it.Text != "Book the tyre change\nquoted 240 eur" {
+		t.Fatalf("stored %q", it.Text)
+	}
+	if it.Line() != "Book the tyre change" || it.Body() != "quoted 240 eur" {
+		t.Fatalf("line %q, body %q", it.Line(), it.Body())
+	}
+	if _, acc, _ := a.Capture("Book the tyre change\nquoted 240 eur"); acc {
+		t.Fatal("the same capture posted with LF is a duplicate of the CRLF one")
+	}
+}
+
 func TestCaptureDuplicates(t *testing.T) {
 	a, _ := newTestApp(t)
 	_, acc, err := a.Capture("Pay the rent")

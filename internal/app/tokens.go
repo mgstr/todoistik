@@ -560,6 +560,51 @@ func TagsFromText(text string, v *Vocabulary) (meta, rest string) {
 	return MetaFields{Tags: tags}.String(), strings.TrimSpace(collapseBlankLines(rest))
 }
 
+// CaptureSeed is what one of the three creating branches of Inbox Zero starts
+// its form from, read out of the captured item.
+//
+// There is no DOD field here, and that is the point: a definition of done is
+// the one sentence the project form exists to force out of you, and a body
+// pre-filled there would satisfy the check that makes a project a project,
+// leaving a definition of done that defines nothing and is read at every
+// review from then on (design.md, "Inbox Zero").
+type CaptureSeed struct {
+	Meta        string // the branch's meta line, read from the first line only
+	Title       string // the words left on that line — the Idea box, for someday
+	Description string // the body, where the branch has somewhere to keep it
+}
+
+// SeedCapture reads a capture into the fields a branch's form starts from.
+//
+// The first line is read as notation and the body never is (see SplitCapture),
+// and the body then goes where that branch keeps material: an action's
+// description, the first action of a project — a project has no description of
+// its own, and material a project needs belongs to whichever of its actions
+// needs it — and, for a someday/maybe item, into the one box its form has,
+// since an unclarified idea is a single free-form field and there is nothing to
+// split the capture into.
+//
+// Nothing is decided by any of it. It fills in a form that is still answered by
+// hand.
+func SeedCapture(branch, text string, v *Vocabulary) CaptureSeed {
+	line, body := SplitCapture(text)
+	switch branch {
+	case "action":
+		meta, title := MetaFromText(line, v)
+		return CaptureSeed{Meta: meta, Title: title, Description: body}
+	case "project":
+		meta, title := TagsFromText(line, v)
+		return CaptureSeed{Meta: meta, Title: title, Description: body}
+	case "someday":
+		meta, text := TagsFromText(line, v)
+		if body != "" {
+			text = strings.TrimSpace(text + "\n" + body)
+		}
+		return CaptureSeed{Meta: meta, Title: text}
+	}
+	return CaptureSeed{}
+}
+
 // structuralTag reports a #name that stands for a field rather than for an
 // area of responsibility.
 func structuralTag(name string) bool {

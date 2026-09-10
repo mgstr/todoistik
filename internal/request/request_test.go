@@ -113,3 +113,17 @@ func TestMarker(t *testing.T) {
 		})
 	}
 }
+
+// An item's text may run to more than one line (design.md, "Inbox item"), and
+// the grammar reads the first and only the first. Without that, a body under a
+// request would be swept into the name by the whitespace split, and the screen
+// would offer to complete something called several lines of note.
+func TestParseReadsTheFirstLineOnly(t *testing.T) {
+	l, ok := Parse("Completion request from reminders ::15 ::2026-09-08T14:30 log the cache\nsent from an iPhone")
+	if !ok {
+		t.Fatal("still a request with a body under it")
+	}
+	if l.Name != "log the cache" {
+		t.Fatalf("name: %q — the body is not part of the claim", l.Name)
+	}
+}

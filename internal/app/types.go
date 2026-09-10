@@ -14,6 +14,15 @@ type InboxItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// Line is the capture's first line: what every list of inbox items shows, and
+// the only line anything reads (design.md, "Inbox item").
+func (i *InboxItem) Line() string { l, _ := SplitCapture(i.Text); return l }
+
+// Body is what the capture carried under that line — a reminder's note, a link
+// to the mail a loop came in on. Empty for the ordinary one-line capture, and
+// seen on the processing screen and nowhere else.
+func (i *InboxItem) Body() string { _, b := SplitCapture(i.Text); return b }
+
 type SomedayItem struct {
 	ID   int64    `json:"id"`
 	Text string   `json:"text"`
