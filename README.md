@@ -239,6 +239,50 @@ The first run asks macOS for permission to control Reminders; without it every
 run fails with `-1743`, granted back under System Settings → Privacy & Security
 → Automation.
 
+## Mail into the inbox
+
+`mailsync` empties a Gmail label into the inbox, one capture per message. Put
+the label on a mail wherever you read it; the run captures it and takes the
+label off:
+
+```sh
+go build -o mailsync ./cmd/mailsync
+MAILSYNC_PASSWORD=$(cat ~/.mailsync-app-password) \
+  ./mailsync -label todoistik -user you@gmail.com -token "$TOK"
+```
+
+| flag             | env                 | default                 |                                                     |
+|------------------|---------------------|-------------------------|-----------------------------------------------------|
+| `-label`         |                     | *(required)*            | the Gmail label to empty                            |
+| `-user`          | `MAILSYNC_USER`     | *(required)*            | the account, `you@gmail.com`                        |
+| `-password-file` |                     | *(empty)*               | a file holding the app password; otherwise `MAILSYNC_PASSWORD` |
+| `-server`        | `MAILSYNC_SERVER`   | `imap.gmail.com:993`    | the IMAP server                                     |
+| `-account`       |                     | `0`                     | which signed-in Google account the links open in (`/mail/u/N/`) |
+| `-url`           | `TODOISTIK_URL`     | `http://127.0.0.1:8390` | the running app                                     |
+| `-token`         | `TODOISTIK_TOKEN`   | *(empty)*               | bearer token; empty for a server started without one |
+| `-dry-run`       |                     | *(off)*                 | print what would be captured; change nothing on either side |
+
+**The password is an app password, never your Google password**, and it is
+never a flag — a flag is on the process list for anything on the machine to
+read. Make one under Google Account → Security → 2-Step Verification → App
+passwords, and give it to the run in `MAILSYNC_PASSWORD` or in a file named by
+`-password-file`.
+
+Each message becomes one capture: the **subject is the first line**, and who it
+is from and a link straight back to the mail are the body under it — unshown in
+the inbox list, and read on the processing screen, where they go into the
+action's description. Nothing is written as a `#tag` or an `@context`.
+
+**The label is the queue.** A mail the app has captured has its label removed,
+by moving it to All Mail: the mail itself is not deleted, not marked read and
+not moved out of the account. A message the app calls a duplicate loses its
+label too, since the identical capture is already in the inbox. A run that
+fails part way leaves the label on, and the next run captures it again, is told
+it is a duplicate, and takes the label off then.
+
+It prints a line per message and exits non-zero if it had to leave anything
+behind. See implementation.md, "Mail into the inbox".
+
 ## Source layout
 
 ```
@@ -250,10 +294,19 @@ cmd/remindersync/         both directions between a macOS Reminders list and the
   sync.go                 a view onto a Reminders list, through the read API
   loop.go                 every direction in a config file, on a period
   reminders.go            the osascript layer: one script per operation, one visit each
-  client.go               the app: capture on the way in, a view on the way out
   main_test.go
   sync_test.go
   loop_test.go
+
+cmd/mailsync/             a Gmail label into the inbox, through the capture API
+  main.go                 the flags, and the run: capture everything, then take the labels off
+  imap.go                 the IMAP layer: the label's messages, and the move that unlabels one
+  capture.go              the capture a message makes — subject, sender, and the link back
+  capture_test.go
+  run_test.go             a whole run, against go-imap's in-memory server and a stub capture API
+
+internal/apiclient/
+  client.go               the app as seen from outside: capture on the way in, a view on the way out
 
 internal/request/
   request.go              the completion-request line: the grammar the utility writes and the app reads
