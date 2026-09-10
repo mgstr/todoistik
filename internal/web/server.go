@@ -95,6 +95,7 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 		"linkify":   linkify,
 		"links":     links,
 		"linkLabel": linkLabel,
+		"itemlinks": itemLinks,
 		"qesc":      url.QueryEscape,
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}

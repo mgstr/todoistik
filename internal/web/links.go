@@ -135,3 +135,33 @@ func linkLabel(u string) string {
 	}
 	return string(r[:labelWidth-labelTail-1]) + "…" + string(r[len(r)-labelTail:])
 }
+
+// itemLinks is the `data-links` attribute: every link the item's text holds,
+// on one line, for the key layer to follow with ctrl-o. Several texts because
+// an item is not always one field — a capture is a line and a body, and both
+// are read on the processing screen.
+//
+// It is `links` with a join around it and nothing else, on purpose. The chips,
+// the live words in the prose and this attribute all have to agree about what
+// a text holds, and one function reading the string is how they cannot come to
+// disagree.
+//
+// Space-separated, which the browser splits back for free and which cannot be
+// ambiguous: a link with a space in it is not one (see linkPattern). Empty
+// when the item holds none, so a template can leave the attribute off with
+// `{{with itemlinks ...}}` — and its absence is then already the answer to
+// "has this item a link", which is what the key bar asks before offering ^o.
+func itemLinks(texts ...string) string {
+	var out []string
+	seen := map[string]bool{}
+	for _, t := range texts {
+		for _, u := range links(t) {
+			if seen[u] {
+				continue
+			}
+			seen[u] = true
+			out = append(out, u)
+		}
+	}
+	return strings.Join(out, " ")
+}

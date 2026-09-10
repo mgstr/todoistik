@@ -44,6 +44,11 @@ type Config struct {
 	// about the person's patience, not about the protocol (design.md,
 	// "Weekly review").
 	ReviewSomedayDays int
+	// LinksReach: how far ctrl-o sees when it follows a link in the item
+	// under the cursor. ReachAny is every link the item's text holds,
+	// ReachShown only the ones the screen has actually drawn (design.md,
+	// "Following a link").
+	LinksReach string
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -51,6 +56,16 @@ type Config struct {
 // is short while the answer is short and still right after an hour, which no
 // single pattern can be.
 const TimerAuto = "auto"
+
+// The two answers links.reach takes. Any is the default because the key exists
+// for the screens that show least of an item — a next action is a title and
+// some badges, the doing screen is a title alone — and a reach that stopped at
+// what was drawn would be missing on exactly those. Shown is the other
+// defensible reading: that a link must be lookable-at before it is followed.
+const (
+	ReachAny   = "any"
+	ReachShown = "shown"
+)
 
 // Defaults are what the app runs with when there is no file at all, and what
 // any key left out of the file falls back to.
@@ -69,6 +84,7 @@ func Defaults() Config {
 		ZenViews:          []string{"doing", "processing"},
 		BackupDays:        2,
 		ReviewSomedayDays: 30,
+		LinksReach:        ReachAny,
 	}
 }
 
@@ -127,6 +143,7 @@ var intChecks = map[string]func(int) error{
 func (c *Config) strs() map[string]*string {
 	return map[string]*string{
 		"zen.timer_format": &c.ZenTimerFormat,
+		"links.reach":      &c.LinksReach,
 	}
 }
 
@@ -142,6 +159,17 @@ func (c *Config) lists() map[string]*[]string {
 var checks = map[string]func(string) error{
 	"zen.timer_format": checkTimerFormat,
 	"zen.views":        checkNames,
+	"links.reach":      checkReach,
+}
+
+// checkReach: one of two words and nothing else. A third word here would read
+// as a third behaviour and get none — the failure every string setting in this
+// file is checked against.
+func checkReach(v string) error {
+	if v == ReachAny || v == ReachShown {
+		return nil
+	}
+	return fmt.Errorf("%q is not a reach: it is %q (every link the item holds) or %q (only the ones on the screen)", v, ReachAny, ReachShown)
 }
 
 // checkNames: a comma-separated list of screen slugs. Only the shape is

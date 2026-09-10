@@ -162,3 +162,22 @@ func TestBadLinesAreRefused(t *testing.T) {
 		})
 	}
 }
+
+func TestLinksReach(t *testing.T) {
+	if got := Defaults().LinksReach; got != ReachAny {
+		t.Errorf("default links.reach = %q, want %q — the key exists for the screens that draw no link", got, ReachAny)
+	}
+	c, err := Load(write(t, "links.reach = shown\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.LinksReach != ReachShown {
+		t.Errorf("links.reach = %q, want %q", c.LinksReach, ReachShown)
+	}
+	// a third word would read as a third behaviour and get none
+	for _, bad := range []string{"", "all", "Any", "any, shown"} {
+		if _, err := Load(write(t, "links.reach = "+bad+"\n")); err == nil {
+			t.Errorf("links.reach = %q was accepted", bad)
+		}
+	}
+}

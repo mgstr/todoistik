@@ -5,7 +5,8 @@
      processing (design.md, "Promoting an action"). What is different is only
      what it starts with: the action's title, its description on the first
      action, and its tags on the project. */}}
-<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back"
+  {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}>
   <form method="post" action="/action/{{$a.ID}}/promote" class="stack" data-drafts>
     <input type="hidden" name="from" value="{{$d.From}}">
     {{template "projectfields" (dict "Title" $a.Title "DOD" "" "Meta" $a.PromotedMeta

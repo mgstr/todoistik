@@ -4,7 +4,8 @@
      it — the shape an action's page has, for the reason it has it: a screen
      you can leave with the same key everywhere, and a Save that only offers
      itself when there is something to save (design.md, "Editing items"). */}}
-<div class="item" data-cancel="/someday" data-cancel-label="back">
+<div class="item" data-cancel="/someday" data-cancel-label="back"
+  {{with itemlinks $it.Text}}data-links="{{.}}"{{end}}>
   <form method="post" action="/somedayitem/{{$it.ID}}" id="itemform" class="stack" data-dirty-save>
     {{template "somedayfields" (dict "Text" $it.Text "Meta" $it.Meta)}}
   </form>
