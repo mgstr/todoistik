@@ -247,6 +247,21 @@
 </li>
 {{end}}
 
+{{define "extlinks"}}
+{{/* The links a field holds, shown beside the field, because the field itself
+     cannot carry them: a textarea is characters and nothing else. It sits
+     under every box an item is written in — the description, the definition
+     of done, the idea — so that a link captured with the item is one click
+     from the screen the item is read on (design.md, "Following a link").
+
+     What it lists is the saved text's links, not what is in the box this
+     second: a URL pasted here goes live when it is saved, and until then it
+     is being typed rather than followed. Each chip says a shortened URL and
+     carries the whole one as its title — see links.go. */}}
+{{$u := links .}}{{if $u}}<p class="extlinks">{{range $u}}<a class="badge ext" href="{{.}}"
+  target="_blank" rel="noopener noreferrer" title="{{.}}">{{linkLabel .}}</a>{{end}}</p>{{end}}
+{{end}}
+
 {{define "actionfields"}}
 {{/* The fields an action is written in, wherever it is being written: its own
      page, the processing screen, the add-action dialog on a project form, and
@@ -289,6 +304,7 @@
 {{end}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
 <label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="1" data-grow spellcheck="false">{{.Description}}</textarea></label>
+{{template "extlinks" .Description}}
 {{end}}
 
 {{define "somedayfields"}}
@@ -306,6 +322,7 @@
      (design.md, "Someday/maybe item"). */}}
 <label class="gutter"><span class="lb">Idea</span> <textarea name="text" rows="1" data-grow required
   {{if .Focus}}autofocus{{end}}>{{.Text}}</textarea></label>
+{{template "extlinks" .Text}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "someday")}}</label>
 {{end}}
 
@@ -324,6 +341,7 @@
   placeholder="A reference to the outcome, not what to do"></label>
 <label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{end}}
   placeholder="How you will know it is done">{{.DOD}}</textarea></label>
+{{template "extlinks" .DOD}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
 {{end}}
 

@@ -3,7 +3,9 @@
 <ul class="list"{{if .Data}} data-inbox-zero="/process"{{end}}>
 {{range .Data}}
   <li class="row" data-kb-row data-href="/process?item={{.ID}}&one=1" data-process>
-    <span class="title">{{.Line}}</span>
+    {{/* the row is prose and not a link — the whole row opens it — so a link
+         in the line can simply be live where it is written (links.go) */}}
+    <span class="title">{{linkify .Line}}</span>
     <span class="age">{{age .CreatedAt}}</span>
   </li>
 {{end}}

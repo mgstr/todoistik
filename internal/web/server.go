@@ -90,7 +90,12 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 			}
 			return false
 		},
-		"qesc": url.QueryEscape,
+		// item text with its links live, and the links on their own for the
+		// screens that cannot make the text itself live — see links.go
+		"linkify":   linkify,
+		"links":     links,
+		"linkLabel": linkLabel,
+		"qesc":      url.QueryEscape,
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(pairs); i += 2 {

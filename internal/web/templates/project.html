@@ -7,7 +7,7 @@
   {{if $d.Ask}}
   <div class="ask">
     <h2>No next action left.</h2>
-    <p>DOD: <em>{{$p.DOD}}</em></p>
+    <p>DOD: <em>{{linkify $p.DOD}}</em></p>
     <div class="actionsbar">
       {{if not $p.OpenActions}}
       <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button class="primary">Complete the project</button></form>
