@@ -211,13 +211,13 @@ Context names come from a remembered list - never typed fresh, otherwise `@home`
 #### Parameters
 A context may carry a parameter: `@person(Andres)`, `@grocery(Selver)`. This keeps the context namespace small and scannable, which is the only reason contexts are useful at all - putting every person and every shop chain at the top level would destroy that.
 
-- the parameterised form is **narrower** than the bare one. Standing in Selver satisfies `@grocery(Selver)` and bare `@grocery`, but not `@grocery(Prisma)`
+- the parameterised form is **narrower** than the bare one. An action written `@grocery` can be done in Selver, one written `@grocery(Prisma)` can not. It runs the same way through the filter, where `@grocery(Selver)` finds the Selver errands and the shop-agnostic ones, and the bare `@grocery` finds every errand under the type - see "Filtering by context"
 - the bare form is not always meaningful. Bare `@grocery` is useful ("buy milk, any shop"), bare `@person` is not. Some context types will in practice always carry a parameter, and that is fine
 - parameter values are picked from a remembered list per context type, never typed fresh, otherwise `@person(Andres)`, `@person(andres)` and `@person(Andres P.)` become three different contexts
 - that set of values has to be editable, so that values that are no longer used can be removed
 
 #### Filtering
-The "Next actions" view filters by context, one at a time - see "Filtering by context" for the control and what it hides. An action carries a single context, so "where am I" has a single answer, and the question the filter asks is "which actions can be done here".
+The "Next actions" view filters by context, one at a time - see "Filtering by context" for the control and what it hides. An action carries a single context, so "where am I" has a single answer, and the question the filter asks is "which actions can be done here" - or, when the line names a type without a parameter, "which actions belong to this kind of place".
 
 The filter itself takes several and combines them with **OR** - at home, with a computer and an internet connection is `@home OR @computer OR @online` - but that is now only reachable through the read API, where the caller states its own situation and may well be in more than one of them at once. The screen offers one, because a row of exclusive answers is read at a glance and a set of checkboxes has to be interpreted. The cost of the single context on an action is that one needing two prerequisites at once has to name the scarcer one; this is accepted.
 
@@ -389,6 +389,7 @@ Only **Next actions** carries it, because it is the only view that asks "what ca
 **One context at a time**, written `@home` in the line. An action carries one context and standing somewhere is one answer, so a second one in the line is refused the way an unknown name is - it would be asking for the actions that need two places at once, which is none of them.
 
 - **an action with no context is shown only when no context is asked for.** The opposite was tried first, on the argument that "nothing required" is doable everywhere and a filter about prerequisites has nothing to exclude it by. In use it read as a leak: asking for `@home` and being shown four things that are not about being at home makes the answer to "what can I do here" longer than it should be, and the actions with no context are exactly the ones that are never *not* available, so they are never the ones you are looking for by asking. The unfiltered list is where they live, and it is one keystroke away
+- **a bare `@grocery` in the line covers every parameter under it**: the Lidl errands and the Prisma ones as well as the shop-agnostic ones, while `@grocery(Lidl)` narrows to Lidl and the shop-agnostic ones (see "Parameters"). The bare name in the line is the context *type*, not an unspecified place being stood in. It read the other way first - bare `@grocery` meaning "at some shop, no idea which", so it found only the errands that named no shop - and that made the filter undo the one thing parameters are for: they exist to keep a type from splitting into a dozen top-level names, and a line that can ask about `@grocery(Lidl)` but never about groceries has split it again, in the one place it matters. The cost is that there is no way to ask for the shop-agnostic errands alone, which is a question nobody asks: those are the errands any shop satisfies, so every answer that would contain them contains them already
 - **turning it off is taking it out of the line**, like every other filter. There is no second control for resetting one filter, because there is one control for all of them: the line
 
 The views:
