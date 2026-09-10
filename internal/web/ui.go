@@ -642,13 +642,11 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if d == nil {
-		if int64Query(r, "item") != 0 {
-			// the item was decided about already; the inbox is the honest answer
-			http.Redirect(w, r, "/inbox", http.StatusSeeOther)
-			return
-		}
-		s.render(w, "process_done.html", s.newPage("Inbox Zero", "inbox", r).
-			help("processing").step("Processing", "processing"))
+		// nothing left to decide about — whether the run just emptied the
+		// inbox or the item was decided about in another tab. The empty inbox
+		// is the honest answer, and it is the same screen the navigation
+		// leads to, so a run ends where the inbox already lives
+		http.Redirect(w, r, "/inbox", http.StatusSeeOther)
 		return
 	}
 	d.One = q.Get("one") != ""
