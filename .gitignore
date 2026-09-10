@@ -1,7 +1,8 @@
-todoistik
+/todoistik
 *.db
 *.db-shm
 *.db-wal
 *.db.backups/
-todoistik.conf
-remindersync
+/todoistik.conf
+/remindersync
+/remindersync.conf

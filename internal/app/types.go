@@ -195,6 +195,7 @@ const (
 	EvReference       = "sent-to-reference"
 	EvReturned        = "returned-to-inbox"
 	EvTwoMinute       = "two-minute-rule"
+	EvConfirmed       = "completion-confirmed"
 	EvFired           = "fired"
 	EvScheduleExpired = "one-shot-expired"
 	EvReviewed        = "reviewed"

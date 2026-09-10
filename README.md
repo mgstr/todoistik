@@ -67,7 +67,8 @@ and remembered in the database like the filter sets.
 One way in, one way out — both under the same bearer token:
 
 ```sh
-# capture (the only way in): raw text or {"text": "..."}
+# capture (the only way in): raw text or {"text": "..."}; several lines are one
+# item, of which the first is the one the inbox shows
 curl -X POST -H "Authorization: Bearer $TOK" -d "Buy new winter tyres" http://host:8390/api/capture
 # → {"status":"accepted", ...} or {"status":"duplicate"}
 
@@ -86,31 +87,153 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 containing "milk". Given `q`, the parameters above are not also read (`sort`
 and `desc` are, since the line cannot say them).
 
-## Importing from Reminders
+## Reminders, both ways
 
-`remindersync` empties a macOS Reminders list into the inbox — one capture per
-reminder, and the reminder deleted once the app has said it has the text. It is
-a separate binary, and it goes in through the capture API like anything else.
+`remindersync` carries items between a macOS Reminders list and todoistik. It
+is a separate binary, and the direction is named on the command line, because
+the two do opposite things to the same list:
 
 ```sh
 go build -o remindersync ./cmd/remindersync
-./remindersync -list "Inbox" -url http://127.0.0.1:8390 -token "$TOK" -dry-run
-./remindersync -list "Inbox" -url http://127.0.0.1:8390 -token "$TOK"
+./remindersync move -list "Inbox" -token "$TOK"                        # a list into the inbox
+./remindersync sync -list "geocaching" -q "#gc #sync" -token "$TOK"    # a view onto a list
+./remindersync loop -token "$TOK" ~/remindersync.conf                  # both, every few minutes
+```
+
+`move` and `sync` take the same four flags, and `sync` two more:
+
+| flag       | env               | default                 |                                                    |
+|------------|-------------------|-------------------------|----------------------------------------------------|
+| `-list`    |                   | *(required)*            | the Reminders list to work on                      |
+| `-url`     | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                    |
+| `-token`   | `TODOISTIK_TOKEN` | *(empty)*               | bearer token; empty for a server started without one |
+| `-dry-run` |                   | *(off)*                 | print what would happen; change nothing on either side |
+| `-view`    |                   | `next`                  | *(sync)* which view to mirror                      |
+| `-q`       |                   | *(empty)*               | *(sync)* the view's filter line, as typed on the screen |
+
+### move — a Reminders list into the inbox
+
+One capture per reminder, and the reminder deleted once the app has said it has
+the text. It goes in through the capture API like anything else.
+
+Each reminder becomes one capture carrying everything it held — title and due
+date on the first line, the note under it — because the reminder is deleted
+straight after. Completed reminders are
+left alone, nothing is written as a `#tag` or an `@context`, and a reminder the
+app calls a duplicate is deleted too, since the identical line is already in
+the inbox.
+
+### sync — a view onto a Reminders list
+
+The other direction, for reading away from the desk: whatever a view holds
+appears on a Reminders list, which is on the phone and the watch without
+anything having to be typed twice. `-q` is the filter line the view is filtered
+with on screen, so the list can be one filter's worth of it —
+`-q "#gc #sync"` is the list of what is tagged both.
+
+**The list is the view.** Each reminder carries a marker, `(::15)`, which is
+the action's id and how it is recognised — so renaming an action in todoistik
+retitles its reminder instead of stranding it. Then:
+
+- an item the list does not hold is added, with its description as the note and
+  its due date as the reminder's own
+- a reminder carrying no marker, or a marker no item in the view holds, is
+  **deleted** — including one typed straight into Reminders. Point this at a
+  list kept for it, not at one you also write to by hand
+- a reminder already there is not rewritten into a copy of the item. Only what
+  todoistik knows is written: a due date or note the item does not carry leaves
+  the reminder's own alone, and a reminder due at 14:30 on the right day keeps
+  its time, because an action's due date is a day and nothing finer
+
+Running it again changes nothing — the second run prints `0 created, 0 updated,
+0 deleted`. The list has to exist; a name that is not there is an error naming
+the lists that are, rather than a new list nobody asked for.
+
+**Ticking a reminder off does not complete the action** — it asks you to. A
+ticked reminder files one capture and is then deleted:
+
+```
+Completion request from reminders ::15 ::2026-09-08T14:30 залогировать кеш 8 сентября
+```
+
+Processing that line asks one question instead of the usual six: complete
+action 15, stamped with the time you ticked it, or ignore the request. Ignoring
+leaves the action open, so the next run puts a fresh open reminder back on the
+phone. If the action has since been deleted, promoted into a project or
+completed at the desk, the screen says which and the request is thrown away.
+
+That keeps one way into the app and one place where work is confirmed: the
+phone says "this looks done", and you answer at the desk. See design.md,
+"Completion requests" and "Inbox Zero".
+
+### loop — every direction, every few minutes
+
+```sh
+./remindersync loop -token "$TOK" -period 5 ~/remindersync.conf
 ```
 
 | flag       | env               | default                 |                                                    |
 |------------|-------------------|-------------------------|----------------------------------------------------|
-| `-list`    |                   | *(required)*            | the Reminders list to empty                        |
-| `-url`     | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                    |
-| `-token`   | `TODOISTIK_TOKEN` | *(empty)*               | bearer token; empty for a server started without one |
-| `-dry-run` |                   | *(off)*                 | print the lines that would be captured; change nothing |
+| `-period`  |                   | `5`                     | minutes between passes, counted from the end of one to the start of the next |
+| `-url`     | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the default for every line that does not name its own |
+| `-token`   | `TODOISTIK_TOKEN` | *(empty)*               | the same                                            |
+| `-dry-run` |                   | *(off)*                 | print what every run would do; change nothing        |
 
-Each reminder becomes one line carrying everything it held — title, due date,
-note — because the reminder is deleted straight after. Completed reminders are
-left alone, nothing is written as a `#tag` or an `@context`, and a reminder the
-app calls a duplicate is deleted too, since the identical line is already in
-the inbox. The run prints a line per reminder and exits non-zero if it had to
-leave any behind. See implementation.md, "Importing from Reminders".
+The config file holds **one run per line**, and a line is the words you would
+type at the prompt — the program's own name at the front is optional:
+
+```sh
+cat > ~/remindersync.conf <<'EOF'
+# the phone's inbox, into todoistik
+move -list Inbox
+
+# geocaching, out to the watch
+./remindersync sync -list geocaching -q "#gc #sync"
+
+# a second list, from a different filter
+sync -list "к покупке" -q "@grocery"
+EOF
+```
+
+Blank lines and `#` comments are ignored, and quotes hold a value together, so
+`-q "#gc #sync"` is written here exactly as it is typed at the prompt. `-url`
+and `-token` given to `loop` stand in for every line; a line naming its own
+wins. A file with an unknown direction, a line with nothing to work on, or a
+quote that is never closed refuses to start and says which line — the same rule
+the app's settings file keeps.
+
+The runs go one at a time, in the order the file names them, and the wait
+starts when the pass ends: Reminders answers one caller at a time, and two
+passes at once would queue behind each other with no idea the other was there.
+A run that fails is printed and the pass carries on; the next pass tries it
+again. `ctrl-c` stops after the run it is in.
+
+**It says what it will do once, and then only what it did.** After the opening
+block, a pass where nothing moved prints nothing at all — so anything in the
+log is something that happened:
+
+```
+2 run(s) every 5 minute(s), from /Users/andres/remindersync.conf:
+  move -list Inbox
+  sync -list geocaching -q #gc #sync
+
+=== 2026-09-10 20:39:40  move -list Inbox
+captured: проверка
+1 captured, 0 duplicate, 0 left on the list
+```
+
+Failures go to stderr, one self-contained line each, so the two streams can be
+redirected separately:
+
+```
+2026-09-10 20:42:31 sync -list geocaching -q #gc #sync: cannot reach http://127.0.0.1:8390
+```
+
+Nothing echoes a token, in either stream.
+
+Both one-shot directions print a line per item and exit non-zero if they had to
+leave anything behind; `loop` runs until it is stopped. See implementation.md,
+"Reminders, both ways".
 
 The first run asks macOS for permission to control Reminders; without it every
 run fails with `-1743`, granted back under System Settings → Privacy & Security
@@ -121,9 +244,20 @@ run fails with `-1743`, granted back under System Settings → Privacy & Securit
 ```
 main.go                   entrypoint: flags, opens the DB, starts the server
 
-cmd/remindersync/
-  main.go                 empties a macOS Reminders list into the inbox, through the capture API
+cmd/remindersync/         both directions between a macOS Reminders list and the app, through its APIs
+  main.go                 which direction, and the flags both of them take
+  move.go                 a Reminders list into the inbox, through the capture API
+  sync.go                 a view onto a Reminders list, through the read API
+  loop.go                 every direction in a config file, on a period
+  reminders.go            the osascript layer: one script per operation, one visit each
+  client.go               the app: capture on the way in, a view on the way out
   main_test.go
+  sync_test.go
+  loop_test.go
+
+internal/request/
+  request.go              the completion-request line: the grammar the utility writes and the app reads
+  request_test.go
 
 internal/conf/
   conf.go                 the settings file: key = value, read once at startup
@@ -146,6 +280,7 @@ internal/app/             the domain — everything design.md describes, indepen
   query.go                the filter line: `@home #car milk` read into a filter set and written back out
   nav.go                  per-view item counts, for the nav badges
   meta.go                 the remembered tag/context lists
+  requests.go             completion requests: what one names, and confirming it
   app_test.go             behavior tests for the load-bearing rules — not CRUD plumbing
 
 internal/web/              HTTP and HTML — thin: talks to internal/app, never touches SQL directly
@@ -155,7 +290,7 @@ internal/web/              HTTP and HTML — thin: talks to internal/app, never 
   panels.go                which panels a screen wears, zen mode, and zen.views
   panels_test.go
   static/                  style.css, app.js (the keyboard layer), vendored htmx.min.js
-  templates/                one .html per page; _layout.html holds the shared nav, the title bar, the panel chooser, the ? help overlay, and reusable partials (actionrow, actionformfields, filterloud)
+  templates/                one .html per page (process_completion.html is the request's own screen); _layout.html holds the shared nav, the title bar, the panel chooser, the ? help overlay, and reusable partials (actionrow, actionformfields, filterloud)
 ```
 
 ## Working on this codebase
