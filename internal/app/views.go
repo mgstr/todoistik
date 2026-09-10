@@ -69,8 +69,8 @@ func matchTags(selected, own []string) bool {
 // is asking for the actions that carry it — an action with no context is not
 // one of those, and is found under "all" (design.md, "Filtering by context").
 // Selecting "grocery(Selver)" satisfies @grocery(Selver) and bare @grocery;
-// selecting bare "grocery" satisfies only bare @grocery (the parameterised
-// form is narrower and needs the specific place).
+// selecting bare "grocery" names the context type and so satisfies every
+// parameterised form of it as well (design.md, "Filtering by context").
 func matchContexts(selected []string, ctx, param string) bool {
 	if len(selected) == 0 {
 		return true
@@ -83,7 +83,7 @@ func matchContexts(selected []string, ctx, param string) bool {
 		if sName != ctx {
 			continue
 		}
-		if param == "" || param == sParam {
+		if sParam == "" || param == "" || param == sParam {
 			return true
 		}
 	}

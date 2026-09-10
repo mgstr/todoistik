@@ -444,8 +444,8 @@ func TestNextActionsFilters(t *testing.T) {
 		t.Fatalf("Selver filter: got %d actions, want 2: %v", len(acts), titles(acts))
 	}
 	acts, _ = a.NextActions(Filters{Contexts: []string{"grocery"}})
-	if len(acts) != 1 { // milk only; the parameterised form is narrower
-		t.Fatalf("bare grocery filter: got %d, want 1: %v", len(acts), titles(acts))
+	if len(acts) != 2 { // milk and cheese: the bare form names the type
+		t.Fatalf("bare grocery filter: got %d, want 2: %v", len(acts), titles(acts))
 	}
 	// asking for nothing is asking for all of them, the gift included
 	if acts, _ = a.NextActions(Filters{}); len(acts) != 4 {
