@@ -370,6 +370,93 @@ What that interface can and cannot answer shaped both directions:
 - **deletions go from the back of the list forward**, by the ids read earlier,
   so that removing one does not shift the position of another still to go
 
+## Mail into the inbox
+
+`cmd/mailsync` empties a Gmail label into the inbox, one capture per message.
+It is a second utility rather than a third direction of the first: it shares
+nothing with `remindersync` but the app it talks to, and a program that has to
+say which of Reminders and Gmail it means before it can do anything has the
+wrong shape.
+
+- **the label is the queue.** A mail worth deciding about gets a label — on
+  the phone, in the browser, wherever it is read — and the run takes what is
+  wearing that label and takes the label off. It is exactly `move`'s shape: the
+  reminder is deleted once the app has said it has the text, and the label
+  comes off at that same moment and for the same reason. The gesture is
+  deliberate, because a filter that labels mail on its own would fill the one
+  list that has to be emptied with things nobody decided were loops
+- **the label comes off by moving the message to All Mail**, not by deleting
+  it. A Gmail label is an IMAP folder and a message sits in the folder of every
+  label it wears, so moving it out of that one folder *is* "remove this label"
+  and nothing else — the mail stays in the account, its read state untouched,
+  still in All Mail where it always was. Deleting it from the folder would ask
+  Gmail's own expunge setting what that means, and that setting is not
+  something this program can see, let alone one it should be able to surprise
+  you with
+- **All Mail is found by its `\All` attribute and never by its name.** It is
+  `[Gmail]/All Mail` in an English account and `[Gmail]/Kogu meil` in an
+  Estonian one, so a hard-coded name works until the day the interface language
+  changes and then silently fails to find the one folder the run needs. `LIST`
+  with `SELECT-SPECIAL-USE` answers with the attribute, which is the same
+  question asked in a way the answer cannot drift out of
+- **IMAP rather than the Gmail API.** The API is the better interface and costs
+  a Cloud project, a consent screen that expires and a refresh token on disk,
+  for a job that is "list a folder, read five headers, move a message". IMAP
+  costs an app password in the environment. What it gives up is thread
+  awareness and Gmail's own metadata, and emptying a label needs neither
+- **`github.com/emersion/go-imap/v2` is the one direct dependency in the
+  tree**, and it is here for the protocol only. The five commands this needs
+  are simple; what is not simple is literals, tagged responses, modified UTF-7
+  mailbox names and the `\All` lookup, which is where a hand-rolled client
+  would spend its bugs. It is a beta, pinned in `go.sum` like everything else —
+  the v1 API is stable and worse, and this program is a hundred lines of it
+- **the whole folder is read, never searched.** `SELECT` already says how many
+  messages the label holds, so the fetch is `1:*` and there is no `SEARCH` in
+  the run at all. There is no criterion left to apply — the label *is* the
+  criterion, and a mail wearing it was chosen by hand — so a search could only
+  ask a question with no purpose, in an extension (`ESEARCH`) the server is not
+  obliged to have
+- **the header decoding is stdlib's.** `mime.WordDecoder` reads
+  `=?UTF-8?B?...?=` back into a subject, because go-imap hands the envelope over
+  exactly as it arrived; a subject in Estonian or Russian is the normal case
+  here, not the edge one. A charset the decoder does not know leaves the raw
+  header, which is ugly and readable, rather than failing the message
+- **the password is never a flag.** `MAILSYNC_PASSWORD`, or `-password-file`
+  for a launchd plist that should not carry a secret either. A flag is on the
+  process list for anything on the machine to read, and this one is an app
+  password with the whole mailbox behind it
+- **the subject is the first line and the rest is the body.** An inbox row then
+  reads like every other capture, and what makes the mail findable again — who
+  it is from and a link straight to it — rides underneath, unshown until the
+  item is processed, when it goes into the action's description (design.md,
+  "Inbox item", "Action"). This is the capture that multi-line inbox items were
+  for: on one line the link would be most of what the row said
+- **the link is a search for the message id**, `#search/rfc822msgid:...`, not a
+  link to a thread. A message id is assigned once by whoever sent the mail and
+  never changes, while a thread's own URL is per-account and moves when the
+  thread does. A message with no id captures without a link rather than with a
+  broken one
+- **nothing is written as a token.** No `#tag`, no `@context`, however
+  obviously a label called "arved" maps to one — the same rule `move` obeys,
+  for the same reason: a captured line is prose until someone processes it
+- **everything is captured first and the labels come off in one pass.** A run
+  cut short between the two leaves the label on, and the next run captures the
+  mail again, is told it is a duplicate, and takes the label off then. As in
+  `move`, **duplicate counts as delivered**: the identical capture is already
+  in the inbox, so the mail has nothing left to carry
+- **there is no `loop`.** Reminders needed one because osascript costs five
+  seconds a visit and answers one caller at a time, so two runs at once queue
+  behind each other. IMAP has neither problem, and mail is not a medium worth
+  polling faster than a `launchd` interval
+- **the connection is the one seam a test replaces**, a package-level
+  `dialTLS`. A real account cannot be reached from a test, so the run is driven
+  against go-imap's own in-memory server instead — with a `LIST` of its own,
+  because that server has no way to give a mailbox a special-use attribute and
+  the attribute is the thing worth testing. What that buys is the assertion
+  this program most needs and could otherwise only be eyeballed: after a run,
+  the label is empty **and All Mail still holds the mail**. Losing mail is the
+  one mistake here that cannot be undone
+
 ## Keyboard
 
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
