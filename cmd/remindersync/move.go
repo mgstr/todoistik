@@ -148,22 +148,37 @@ func move(list, base, token string, dry bool) (int, error) {
 	return left, fatal
 }
 
-// captureText writes a reminder as the one line todoistik captures. Everything
-// the reminder holds goes in, because the reminder is deleted straight after:
-// a due date or a note left out here is lost, and the inbox is raw text by
-// design (design.md, "Capture") with no field to put them in instead.
+// captureText writes a reminder as the capture todoistik takes. Everything the
+// reminder holds goes in, because the reminder is deleted straight after: a due
+// date or a note left out here is lost, and the inbox is raw text by design
+// (design.md, "Capture") with no field to put them in instead.
+//
+// The title and the due date are the first line and the note is the rest. The
+// note used to be flattened onto that one line with them, because the inbox was
+// a list of lines and a note's own breaks had nowhere to go; they have one now
+// (design.md, "Inbox item"), and a note is exactly what it is for — it survives
+// the trip intact, and processing puts it in a description, which is where sync
+// reads a note back out of.
 //
 // Nothing is written as a token — no `#tag`, no `@context`. A captured line is
 // prose until someone processes it, and inventing notation here would be this
 // utility deciding what an item means, which is the one thing capture must
 // never require.
 func captureText(r reminder) string {
-	text := collapse(r.Name)
+	line := collapse(r.Name)
 	if due := r.dueText(); due != "" {
-		text += " (due " + due + ")"
+		line += " (due " + due + ")"
 	}
-	if body := collapse(r.Body); body != "" {
-		text += " — " + body
+	line = strings.TrimSpace(line)
+	body := strings.TrimSpace(strings.ReplaceAll(r.Body, "\r\n", "\n"))
+	switch {
+	case body == "":
+		return line
+	case line == "":
+		// a reminder that is all note still carries something worth deciding
+		// about, and an empty first line would be an inbox row with nothing on
+		// it
+		return body
 	}
-	return strings.TrimSpace(text)
+	return line + "\n" + body
 }

@@ -31,17 +31,27 @@ func TestCaptureText(t *testing.T) {
 			"Call the garage (due 2026-09-15)",
 		},
 		{
-			"the note follows the date",
+			"the title and the date are the first line, the note is the rest",
 			reminder{Name: "Book winter tyres", AllDay: "2026-09-15", Body: "Pärnu mnt is cheapest"},
-			"Book winter tyres (due 2026-09-15) — Pärnu mnt is cheapest",
+			"Book winter tyres (due 2026-09-15)\nPärnu mnt is cheapest",
 		},
 		{
-			"a note's own line breaks do not break the line",
+			"a note keeps its own line breaks, which is what makes it a body",
 			reminder{Name: "Book winter tyres", Body: "ask Marju\nabout the rims\n"},
-			"Book winter tyres — ask Marju about the rims",
+			"Book winter tyres\nask Marju\nabout the rims",
 		},
 		{
-			"a reminder with nothing in it makes no line at all",
+			"a title written with a break in it is still one line",
+			reminder{Name: "Book winter\ntyres", Body: "at Pärnu mnt"},
+			"Book winter tyres\nat Pärnu mnt",
+		},
+		{
+			"a reminder that is all note captures the note, with nothing above it",
+			reminder{Name: "  ", Body: "the rims are 17 inch"},
+			"the rims are 17 inch",
+		},
+		{
+			"a reminder with nothing in it makes no capture at all",
 			reminder{Name: "   ", Body: "  "},
 			"",
 		},
