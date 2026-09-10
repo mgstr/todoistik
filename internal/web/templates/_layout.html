@@ -48,7 +48,8 @@
   data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
   {{if .Nav.Inbox}}data-inbox-full{{end}}
   {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
-  data-zen-timer-format="{{.Conf.ZenTimerFormat}}">
+  data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
+  data-links-reach="{{.Conf.LinksReach}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
      the same count the nav badge carries, and every step inside it follows —
@@ -126,6 +127,13 @@
      been asked. The dialog is filled in by the key layer, one problem at a
      time; creating goes through the same endpoint the Settings screen uses,
      and comes back here with the line still in the box. */}}
+{{/* ^o with more than one link in the item: they are the answers, lettered in
+     the order they read, and nothing opens until one is chosen (design.md,
+     "Following a link"). No heading over them — the unknown-name dialog below
+     states a problem before offering answers, and this one is a list of links.
+     Filled in by the key layer, which is also what puts the letters on. */}}
+<dialog id="links-dialog"><div class="choices"></div></dialog>
+
 <dialog id="unknown-dialog" aria-labelledby="unknown-title">
   <h2 id="unknown-title"></h2>
   <div class="choices"></div>
@@ -222,7 +230,12 @@
 
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
+{{/* data-links is what ^o follows here: the description's links, which this
+     row does not show and never has (implementation.md, "Links in item text").
+     The row is a title and its badges, and the reference material is one field
+     down — the key is what reaches it without opening the item. */}}
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
+    {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}
     {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}>
   {{if not .HidePick}}
   <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
@@ -353,7 +366,8 @@
      project is worked on (design.md, "Projects"). */}}
 {{$p := .P}}{{$today := .Today}}
 <li class="row {{if $p.IsSnoozed $today}}snoozed{{end}} {{if $p.CompletedAt}}done{{end}}"
-    data-kb-row data-href="/project/{{$p.ID}}">
+    data-kb-row data-href="/project/{{$p.ID}}"
+    {{with itemlinks $p.DOD}}data-links="{{.}}"{{end}}>
   <a href="/project/{{$p.ID}}" class="title">{{$p.Title}}</a>
   {{if $p.Stalled}}<span class="badge error">stalled</span>{{end}}
   {{range $p.Errors}}<span class="badge error">{{.}}</span>{{end}}

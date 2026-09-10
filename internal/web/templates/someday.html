@@ -7,7 +7,8 @@
        sitting there — and no controls: everything this screen can do to an
        item is on the item's own page, one Enter away (implementation.md,
        "The someday item's page") */}}
-  <li class="row" data-kb-row data-href="/somedayitem/{{.ID}}">
+  <li class="row" data-kb-row data-href="/somedayitem/{{.ID}}"
+      {{with itemlinks .Text}}data-links="{{.}}"{{end}}>
     <a href="/somedayitem/{{.ID}}" class="title">{{.Text}}</a>
     {{/* chips and not a live word inside the title, which is already a link to
          the item's own page: a link cannot sit inside a link, and the two

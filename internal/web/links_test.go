@@ -130,3 +130,40 @@ func TestLinkLabelLeavesAShortLinkAlone(t *testing.T) {
 		t.Fatalf("linkLabel = %q", got)
 	}
 }
+
+// The attribute the key layer follows. It has to be exactly what the chips and
+// the live words say the text holds, and in the same order, because ^o and the
+// eye are looking at the same item.
+func TestItemLinksIsTheSameSetOnOneLine(t *testing.T) {
+	text := "spec https://a.example/1 and thread https://b.example/2"
+	got := itemLinks(text)
+	want := "https://a.example/1 https://b.example/2"
+	if got != want {
+		t.Fatalf("itemlinks = %q, want %q", got, want)
+	}
+	if strings.Join(links(text), " ") != got {
+		t.Fatalf("itemlinks disagrees with links, which is the one thing it must not do")
+	}
+}
+
+// A capture is a line and a body and is decided about as one item, so both are
+// read — and the same link written twice is one link.
+func TestItemLinksReadsEveryFieldAndSaysEachLinkOnce(t *testing.T) {
+	got := itemLinks("see "+mailLink, "from marju\n"+mailLink+" https://a.example/1")
+	want := mailLink + " https://a.example/1"
+	if got != want {
+		t.Fatalf("itemlinks = %q, want %q", got, want)
+	}
+}
+
+// Empty is the answer that lets a template leave the attribute off, which is
+// how the key bar knows not to offer ^o (implementation.md, "Links in item
+// text"). A plain `http://` address is words, so an item holding only one holds
+// no link at all.
+func TestItemLinksIsEmptyWhenThereIsNothingToFollow(t *testing.T) {
+	for _, text := range []string{"", "buy milk", "http://plain.example/a"} {
+		if got := itemLinks(text); got != "" {
+			t.Errorf("itemlinks(%q) = %q, want empty", text, got)
+		}
+	}
+}

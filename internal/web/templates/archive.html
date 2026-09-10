@@ -21,7 +21,8 @@
 {{range .Data}}
   {{if .Project}}
   <section class="project done">
-    <h2 data-kb-row data-href="/project/{{.Project.ID}}">
+    <h2 data-kb-row data-href="/project/{{.Project.ID}}"
+        {{with itemlinks .Project.DOD}}data-links="{{.}}"{{end}}>
       <a href="/project/{{.Project.ID}}">{{.Project.Title}}</a>
       <span class="badge">project</span>
       {{range .Project.Tags}}<span class="badge tag">#{{.}}</span>{{end}}
@@ -32,7 +33,8 @@
     </ul>
   </section>
   {{else}}
-  <ul class="list"><li class="row done" data-kb-row data-href="/action/{{.Action.ID}}">
+  <ul class="list"><li class="row done" data-kb-row data-href="/action/{{.Action.ID}}"
+      {{with itemlinks .Action.Description}}data-links="{{.}}"{{end}}>
     <span class="check">☑</span>
     <a class="title" href="/action/{{.Action.ID}}">{{.Action.Title}}</a>
     {{range .Action.Tags}}<span class="badge tag">#{{.}}</span>{{end}}

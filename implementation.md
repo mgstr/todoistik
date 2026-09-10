@@ -508,6 +508,11 @@ wrong shape.
   every filter away when pressed again — see "Token boxes"
 - `ctrl-j` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
+- `ctrl-o` follows a link in the item under the cursor — the selected row, or
+  the one item the screen is about. Ctrl for the reason the declared `^` keys
+  spend one: the link is most often wanted with the item open and a box being
+  typed in. See "Links in item text" for what counts as being in the item,
+  and for the settings key that narrows it to what is on the screen
 - `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
   are hidden by default"), and the timer on the doing screen (see "Doing"). The
   one key that sets a flag rather than doing something, which is why the bar
@@ -1702,6 +1707,64 @@ The three field strips are one `{{template "extlinks"}}` inside `actionfields`,
 the item's own page, the processing branches, promoting, adding an action to a
 project — gets it from the one definition, for the reason the partials exist.
 
+### Following one from the keyboard
+
+design.md, "Following a link" gives `ctrl-o` the link belonging to whatever the
+cursor is on. Four pieces: an attribute the server writes, a scope the key
+layer resolves out of it, a chooser for when there is more than one, and one
+settings key saying how far the key sees.
+
+- **`data-links` is the item's links, written on every element an item appears
+  as** — each list row, and the wrapper of every screen that is about one item.
+  Space-separated, which costs nothing to read back and cannot be ambiguous,
+  since a link with a space in it is not one (see the pattern above). It is
+  written by `itemlinks`, which is `links` with a `strings.Join` around it, so
+  the attribute and the chips can never come to disagree about what a text
+  holds — being one function was what `links` was for
+- **the attribute is left off when there is nothing to say**, `{{with itemlinks
+  …}}`, so its presence is already the answer to "does this item hold a link".
+  That is what lets the key bar offer `^o` only where it does something,
+  without a second rule saying when
+- **the scope is the row under the cursor, and otherwise the screen's own
+  item**: `selected()`, else `[data-links]:not([data-kb-row])`. A list with
+  nothing selected has no scope at all, which is the honest answer — "which
+  item" has not been asked yet, and answering it with the first row would be
+  the app picking one
+- **the reach is a filter on that scope, never a second scope.** `links.reach =
+  any` reads the attribute; `shown` reads the `a.ext` inside the same element
+  instead, in document order, deduplicated. Both are the item you are standing
+  on, and they differ only in whether the screen had to draw the link first
+- **`href` is read with `getAttribute`** and not off `a.href`, which the
+  browser normalises. The URL followed has to be the URL written, character for
+  character — the same reason the inline rendering shows it unshortened
+- **one link is opened by clicking it, and so is every other.** The chooser's
+  rows are real `<a target="_blank" rel="noopener noreferrer">`, and a lone
+  link is followed by building its row and clicking it without ever showing the
+  dialog. One way a link opens in this whole app — an anchor being clicked —
+  rather than a `window.open` beside it carrying its own popup-blocker rules
+  and its own chance of losing `noopener`
+- **`press` learned about `target`.** A declared key already did "whatever
+  clicking this control does", except that for a link it did
+  `window.location.href` — which for an external one is the app replacing
+  itself with the reference, exactly what "a place of its own" forbids. An
+  `<a target="_blank">` is clicked now, and everything else is unchanged
+- **the chooser is the unknown-name dialog's shape**: a `.choices` column, one
+  `data-kb-row` per answer, a letter on each, `j`/`k` and Enter alongside them,
+  esc to leave. That dialog settled how a question with a short list of answers
+  is asked here, and a second vocabulary for the same shape is how two dialogs
+  come to behave differently
+- **and it has no title over it.** The unknown-name dialog states a problem
+  before it offers answers; this one is a list of links, and a line reading
+  "which link?" above them would be the app narrating what is already in front
+  of you
+- **the letters skip `j` and `k`**, which move through the list here as they do
+  everywhere else. Past the letters — twenty-four links in one item — a row has
+  no key of its own, and `j`/`k` with Enter still reach it
+- **the whole URL is on the row, wrapped rather than cut.** A chip is shortened
+  because it sits in a line of badges; the chooser is a column with a dialog's
+  width to spend, and this is the moment the address is actually being decided
+  about. Nothing about that choice should need a hover to see
+
 ## Doing
 
 design.md, "Doing one action" asks for the selected action alone on an
@@ -1797,6 +1860,7 @@ zen.show_timer = false         # the timer starts hidden; ctrl-t shows it
 zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
 backup.days = 2                # days of hourly snapshots kept; 0 keeps none
 review.someday_days = 30       # days before a someday/maybe item is back on the review
+links.reach = any              # ^o follows any link the item holds; "shown" only the drawn ones
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -1838,6 +1902,14 @@ review.someday_days = 30       # days before a someday/maybe item is back on the
   so `H:MM`, `HH:MM`, `M` and `H h MM` all work. Any *other* capital is refused
   rather than printed: a capital in a pattern reads as a field, and `HH:NN`
   quietly rendering as `01:NN` is the failure this file cannot afford
+- **`links.reach` takes one of two words, and the wider one is the default.**
+  `any` is every link the item's text holds, `shown` only the ones the screen
+  has drawn — design.md, "Following a link" argues both, which is why this is
+  a key and not a rule. It brings its own check like every other word setting,
+  so `links.reach = all` stops startup naming the two words rather than
+  quietly reading as one of them; and like every other key it says what you
+  get, since both words name what `ctrl-o` will follow rather than what it
+  will not
 - **a setting that takes a number brings its own check too.** `backup.days =
   two` stops startup rather than reading as zero — the same failure the string
   settings have, except that this one would quietly keep no backups at all.

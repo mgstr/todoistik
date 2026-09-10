@@ -1,6 +1,7 @@
 {{template "top" .}}
 {{$d := .Data}}{{$q := ""}}{{if $d.One}}{{$q = "?one=1"}}{{end}}
-<div class="process" data-cancel="/inbox">
+<div class="process" data-cancel="/inbox"
+  {{with itemlinks $d.Line $d.Body}}data-links="{{.}}"{{end}}>
   <div class="subject">
     <h1 class="capture-text">{{linkify $d.Line}}</h1>
     {{if $d.Body}}<p class="capture-body">{{linkify $d.Body}}</p>{{end}}

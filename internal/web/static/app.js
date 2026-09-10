@@ -280,6 +280,13 @@
     if (pd && pd.open) {
       return { view: declaredKeys("[data-key]").concat([["esc", "close"]]), global: [] };
     }
+    const ld = linksDialog();
+    if (ld && ld.open && topDialog() === ld) {
+      // the links are the answers and each carries its own letter, so the bar
+      // is that list — read off the dialog, like every other declared key
+      return { view: declaredKeys("[data-key]").concat(
+        [["j k", "move"], ["\u21b5", "open"], ["esc", "cancel"]]), global: [] };
+    }
     const unknown = unknownDialog();
     if (unknown && unknown.open && topDialog() === unknown) {
       const keys = declaredKeys("[data-key]");
@@ -346,6 +353,9 @@
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
     branchKeys().forEach(function (k) { view.push(k); });
+    // offered only where the item under the cursor actually holds one, the way
+    // every other entry here is derived from the page rather than written down
+    if (itemLinks(linkScope()).length) view.push(["^o", "open link"]);
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
     if (document.querySelector(".namebox")) view.push(["/", "filter"]);
@@ -420,7 +430,114 @@
     // the same handler and cannot come to differ
     if (el.tagName === "BUTTON") { el.click(); return; }
     const href = el.getAttribute("href");
+    // a link that opens in a place of its own is opened in one, key or mouse.
+    // window.location here would be the app replacing itself with the
+    // reference, which is the one thing design.md, "Following a link" forbids
+    if (href && el.target === "_blank") { el.click(); return; }
     if (href) window.location.href = href;
+  }
+
+  // ---- Following a link (^o) -------------------------------------------
+  //
+  // design.md, "Following a link" gives ^o the link belonging to whatever the
+  // cursor is on. The server has already said what each item holds, in
+  // data-links on the row or on the wrapper of a one-item screen, so nothing
+  // here reads item text: what counts as a link is decided once, in Go
+  // (links.go), and this side only follows what it was handed.
+
+  function linksDialog() { return document.getElementById("links-dialog"); }
+
+  // The item ^o is about: the row under the cursor, and otherwise the one item
+  // this screen is for. A list with nothing selected has no answer — which item
+  // would it be? — so the key does nothing there and is not offered.
+  function linkScope() {
+    return selected() || document.querySelector("[data-links]:not([data-kb-row])");
+  }
+
+  // How far the key sees, read off the pane like every other answer the
+  // settings file gives (implementation.md, "Settings file").
+  function linksReach() {
+    const pane = document.querySelector(".pane");
+    return (pane && pane.dataset.linksReach) || "any";
+  }
+
+  // What ^o may follow on that item. Under "any" it is every link the item's
+  // text holds, which the server wrote down; under "shown" it is the external
+  // links this screen actually drew inside the same element. getAttribute and
+  // not .href, because the browser normalises .href and the address followed
+  // has to be the address written.
+  function itemLinks(scope) {
+    if (!scope) return [];
+    if (linksReach() !== "shown") {
+      return (scope.dataset.links || "").split(/\s+/).filter(Boolean);
+    }
+    const out = [], seen = {};
+    scope.querySelectorAll("a.ext").forEach(function (a) {
+      const u = a.getAttribute("href");
+      if (u && !seen[u]) { seen[u] = true; out.push(u); }
+    });
+    return out;
+  }
+
+  // The letters the chooser hands out, in the order the links read. j and k are
+  // not among them: they move through this list as they do through every other
+  // one. Past the end of it a row has no letter and is still reached with j/k
+  // and Enter, which is the promise the key bar makes — never a key that does
+  // nothing, rather than a key for everything.
+  const LINK_KEYS = "abcdefghilmnopqrstuvwxyz";
+
+  function linkHost(u) {
+    try { return new URL(u).host; } catch (err) { return u; }
+  }
+
+  // One answer: a real external link wearing exactly what every other one on a
+  // screen wears, so that pressing its letter and clicking it are the same
+  // event arriving at the same element.
+  function linkChoice(u, i) {
+    const a = document.createElement("a");
+    a.className = "ext";
+    a.href = u;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.setAttribute("data-kb-row", "");
+    if (i < LINK_KEYS.length) {
+      a.dataset.key = LINK_KEYS.charAt(i);
+      // the bar names where the link goes rather than the whole address: a
+      // column of full URLs along the bottom would be unreadable, and where it
+      // goes is what is being chosen between
+      a.dataset.keyLabel = linkHost(u);
+      const mark = document.createElement("span");
+      mark.className = "lkey";
+      mark.textContent = LINK_KEYS.charAt(i);
+      a.appendChild(mark);
+    }
+    a.appendChild(document.createTextNode(u));
+    // the tab opens in its own place, so this page is still here afterwards and
+    // the question that has now been answered has to come down
+    a.addEventListener("click", function () {
+      const d = linksDialog();
+      if (d && d.open) { d.close(); renderKeybar(); }
+    });
+    return a;
+  }
+
+  // ^o. One link goes straight to its tab, which is nearly always what an item
+  // holds; several put the chooser up, because a key that opened four tabs is
+  // not one you would press to find out what an item is carrying. Either way
+  // what opens it is an anchor being clicked — there is no second way to open a
+  // link in this app, and so no second set of popup rules to get wrong.
+  function followLink() {
+    const dlg = linksDialog();
+    const list = itemLinks(linkScope());
+    if (!dlg || !list.length) return false;
+    const choices = dlg.querySelector(".choices");
+    choices.textContent = "";
+    list.forEach(function (u, i) { choices.appendChild(linkChoice(u, i)); });
+    if (list.length === 1) { choices.firstChild.click(); return true; }
+    dlg.showModal();
+    select(rows()[0]);
+    renderKeybar();
+    return true;
   }
 
   function pushRowKeys(into, row) {
@@ -1419,6 +1536,20 @@
       if (ctrlBranch) { e.preventDefault(); press(ctrlBranch); return; }
     }
 
+    // ^o follows a link in the item under the cursor. Read here rather than
+    // left to the declared-key layer above, because what it presses is not a
+    // control on the page: it is the item the selection is on, which changes
+    // with every j and k. After that layer, so a screen wanting ^o for
+    // something of its own would keep it — and, like it, not while a dialog is
+    // up, since the item is on the page behind one.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "o" &&
+        !document.querySelector("dialog[open]")) {
+      // an item with no link leaves the key to the browser rather than
+      // swallowing it to do nothing
+      if (followLink()) e.preventDefault();
+      return;
+    }
+
     // ctrl-j marks every control on the screen with a letter and takes the
     // next key as the one to go to. It is read after the screen's own declared
     // keys, so a screen that wanted ^j for something of its own would keep it,
@@ -1445,6 +1576,22 @@
       // input event the box grows on
       if (e.key === "Enter" && e.shiftKey) return;
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
+      return;
+    }
+    const linkdlg = linksDialog();
+    if (linkdlg && linkdlg.open && topDialog() === linkdlg) {
+      if (e.key === "Escape") { e.preventDefault(); linkdlg.close(); renderKeybar(); return; }
+      // the answers are a list, and a list is moved through with j and k —
+      // which is exactly why neither is one of the letters handed out
+      if (e.key === "j" || e.key === "k") { e.preventDefault(); move(e.key === "j" ? 1 : -1); return; }
+      if (e.key === "Enter") {
+        const row = selected();
+        if (row) { e.preventDefault(); row.click(); }
+        return;
+      }
+      const one = branchFor(e);
+      if (one) { e.preventDefault(); press(one); return; }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
       return;
     }
     const unknown = unknownDialog();

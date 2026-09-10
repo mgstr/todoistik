@@ -349,12 +349,12 @@ section.project.done { opacity: .8; }
 .fsuggest li { padding: .2rem .45rem; border-radius: 5px; white-space: nowrap; cursor: pointer; }
 .fsuggest li.on { background: var(--select); outline: 1px solid var(--accent); }
 
-#unknown-dialog {
+#unknown-dialog, #links-dialog {
   border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--fg);
   width: min(24rem, 90vw); padding: .95rem 1.1rem;
 }
-#unknown-dialog::backdrop { background: rgba(0,0,0,.45); }
+#unknown-dialog::backdrop, #links-dialog::backdrop { background: rgba(0,0,0,.45); }
 #unknown-dialog h2 { margin: 0 0 .6rem; font-size: .98rem; }
 #unknown-dialog .choices { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .6rem; }
 #unknown-dialog .choices button {
@@ -366,10 +366,28 @@ section.project.done { opacity: .8; }
 /* the answers are a list, and the one under the cursor is marked the way a
    row in any list is — same class, same colours, so j and k look like they
    do everywhere else */
-#unknown-dialog .kb-selected { background: var(--select); outline: 1px solid var(--accent); }
+#unknown-dialog .kb-selected, #links-dialog .kb-selected { background: var(--select); outline: 1px solid var(--accent); }
 #unknown-dialog .createname { margin: 0; }
 #unknown-dialog .createname button { width: 100%; justify-content: center; }
 #unknown-dialog .choices .why { color: var(--muted); font-size: .82rem; margin-left: auto; }
+
+/* The ^o chooser: the same box and the same list as the question above, since
+   it is the same shape of question — a few answers, a letter on each. Wider,
+   because what is being read here is whole addresses, and the one thing a
+   chooser of links must not do is shorten what is being chosen between
+   (implementation.md, "Links in item text"). */
+#links-dialog { width: min(34rem, 92vw); }
+#links-dialog .choices { display: flex; flex-direction: column; gap: .25rem; }
+#links-dialog .choices a {
+  display: block; padding: .3rem .5rem; border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+#links-dialog .choices a:hover { background: var(--row-hover); }
+/* The letter is the mark and not part of the address: muted, and an
+   inline-block so that the link's underline stops at it — a decoration does
+   not propagate into an atomic inline, which is the only way a child of an
+   underlined link gets out of being underlined. */
+#links-dialog .lkey { display: inline-block; width: 1.1rem; color: var(--muted); text-decoration: none; }
 .filtered { color: var(--danger); font-weight: 600; }
 .reset { margin-left: .25rem; }
 

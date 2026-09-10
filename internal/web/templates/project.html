@@ -1,6 +1,7 @@
 {{template "top" .}}
 {{$d := .Data}}{{$p := $d.Project}}
-<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
+<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back"
+  {{with itemlinks $p.DOD}}data-links="{{.}}"{{end}}>
   {{if $p.Stalled}}<p class="error-banner">STALLED — this project has no next action.</p>{{end}}
   {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
