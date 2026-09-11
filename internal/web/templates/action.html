@@ -65,7 +65,13 @@
        control happens to live. */}}
   <div class="actionsbar">
     <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
-    <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button>Complete</button></form>
+    {{/* completing says where to go, the way delete does: the action is
+         finished, and what this screen would come back as is the frozen
+         read-only branch above — see implementation.md, "Writing an action" */}}
+    <form method="post" action="/action/{{$a.ID}}/complete" class="inline">
+      <input type="hidden" name="back" value="{{$d.Back}}">
+      <button>Complete</button>
+    </form>
     <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
     {{if $a.ProjectID}}
       {{if $a.BecameNextAt}}

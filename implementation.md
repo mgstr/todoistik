@@ -2465,6 +2465,27 @@ elsewhere.
   of the action that had just stopped existing — a 400 that htmx does not swap,
   so the screen sat there looking untouched while the item was gone and the
   nav badge stale. It carries `back` now, like every other form on the screen
+- **so does Complete, for the same reason one level along.** It carried no
+  `back` either, so `back()` fell to the Referer — this page — and completing
+  an action left you standing on it: first as the edit form with the button
+  flipped to "Bring back", and since the freeze as the read-only record of what
+  you had just finished (see "Reading a completed item"). Either way the press
+  read as having failed while the action really was done, and either way the
+  screen you were left on was not the one you were working in (design.md,
+  "Editing items"). The doing screen's complete form carries `back` for exactly
+  this reason (see "Doing"), and it is the same form posting to the same verb —
+  so this is the page catching up rather than a new rule. It also makes
+  `Bring back` the one form on these screens that carries no destination, which
+  is what "Reading a completed item" says of it
+- **the project ask carries the destination on.** When the completion leaves
+  the project with no next action, the redirect to `/project/{id}?ask=1` adds
+  `&from=` the `back` that was posted, so the screen asking the question hands
+  the way out along and Back there still reaches the view the action was opened
+  from. Without it the chain broke at the ask: a project's page reads its Back
+  off the Referer, and the Referer at that point is the action's page, which is
+  not a view — so it fell back to `/projects`. The one `back` it does not pass
+  on is the project's own page, which is where an action opened from its
+  project comes back to: a screen cannot be its own way out
 - **promoting is a screen, not a fold-out.** It was a `<details>` on the action
   page holding a second, smaller project form — a fourth way to write a project
   and the only one without the drafts list. It is the project form now
@@ -2610,6 +2631,29 @@ inside the form.
   the bar cannot advertise a key that would do nothing
 - **a draft row is dashed**, the way a parked badge is: it reads as a list row
   because it is one, and the dashes say that nothing about it is saved yet
+
+The project's own page is the same form with the project already there, plus
+its action list — and the same row of buttons an action's page carries:
+
+- **completing or deleting the project leaves the page**, to the `back` the
+  form posts (design.md, "Editing items"). Both went to `/projects`
+  unconditionally, which was right about leaving and wrong about where: a
+  project opened from the Calendar, the Archive or the weekly review sent you
+  to a view you were not working in, and the delete form had been carrying a
+  `back` field that nothing read
+- **`/projects` is the fallback rather than the Referer.** `back()` would pick
+  the Referer when no destination is posted, and here that is the page of the
+  project that has just been completed or deleted — the bug delete on an
+  action's page had. `projectGone` says the pile the project was in instead,
+  which is the honest answer to "then what" when nothing said where you came
+  from
+- **the "no next action left" ask posts `back` too.** It is reached by
+  completing an action, so the destination it was handed on the URL has to
+  survive the one press that screen exists for (see "Writing an action")
+- **where each resolution lands is pinned by a test**
+  (`internal/web/leaving_test.go`), because it is invisible in the templates:
+  a missing hidden field looks like nothing at all, and the page it fails to
+  leave renders perfectly well
 
 ## Specified, not yet built
 
