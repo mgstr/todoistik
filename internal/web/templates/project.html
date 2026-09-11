@@ -5,6 +5,41 @@
   {{if $p.Stalled}}<p class="error-banner">STALLED — this project has no next action.</p>{{end}}
   {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
+  {{if $p.CompletedAt}}
+
+  {{/* A completed project reads and does not write, the way a completed
+       action does (design.md, "Completion"). What is kept is the whole
+       thing — the DOD that was met, and the actions it was completed with —
+       which is what the Archive shows a project for at all. */}}
+  {{template "projectread" (dict "Title" $p.Title "DOD" $p.DOD "Meta" $p.Meta)}}
+
+  <h2>Actions</h2>
+  <ul class="list">
+  {{range $p.Actions}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{end}}
+  </ul>
+  {{/* and no control under the list: a finished project takes no new work,
+       which the app refuses rather than merely hides — see internal/app,
+       ErrCompleted */}}
+
+  <p class="stamps">
+    <b>completed</b> <span class="agetext">{{age $p.CompletedAt}} · created {{age $p.CreatedAt}}</span>
+  </p>
+
+  <div class="actionsbar">
+    {{/* the one control, and it lifts the freeze rather than working around
+         it: save, delete and adding an action are all reached by bringing the
+         project back first. No `back` on it, because a project brought back
+         is one you are now standing on and about to do something to. */}}
+    <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline">
+      <button class="primary">Bring back</button>
+    </form>
+    <a class="button" href="{{$d.Back}}">Back</a>
+  </div>
+
+  {{else}}
+
   {{if $d.Ask}}
   <div class="ask">
     <h2>No next action left.</h2>
@@ -47,16 +82,14 @@
        save, the state changes, delete, and the way out */}}
   <div class="actionsbar">
     <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
-    {{if $p.CompletedAt}}
-    <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline"><button>Bring back</button></form>
-    {{else}}
     <form method="post" action="/project/{{$p.ID}}/complete" class="inline"><button>Complete</button></form>
-    {{end}}
     <form method="post" action="/project/{{$p.ID}}/delete" class="inline">
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button class="danger">Delete</button>
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>
+
+  {{end}}
 </div>
 {{template "bottom" .}}

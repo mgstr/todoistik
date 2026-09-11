@@ -209,7 +209,7 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bo
 			return nil, err
 		}
 		if p.CompletedAt != nil {
-			return nil, errors.New("that project is completed; it can not take a new action")
+			return nil, ErrCompleted
 		}
 	}
 	var act *Action

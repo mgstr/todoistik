@@ -455,6 +455,38 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
    everywhere else — the ? panel's terms, the audit log. It also stops @home
    and #short from reading as words in a sentence, which is the whole reason
    they left the description box */
+
+/* A completed item's fields, set in text. The same stack, the same 7.5rem
+   gutter and the same names as the form it is the frozen half of, so the two
+   screens line up to the character — what changes is that the right-hand
+   column is words instead of boxes (design.md, "Completion").
+
+   The name keeps the muted label colour it has beside a box; the value takes
+   the page's own colour, because on this screen the value is the content
+   rather than the thing being labelled. No borders anywhere: a box drawn
+   around text that cannot be typed into is the one thing this layout exists
+   to avoid. */
+.stack.read p.gutter {
+  display: flex; flex-direction: row; align-items: baseline; gap: .6rem;
+  margin: 0; font-size: .85rem; color: var(--muted);
+}
+.stack.read p.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
+.stack.read .val { flex: 1 1 auto; min-width: 0; color: var(--fg); font-size: 1rem; }
+.stack.read .val.muted { color: var(--muted); }
+/* prose keeps the line breaks it was written with — there is no textarea left
+   to keep them — and wraps a long link rather than widening the page */
+.stack.read .val.prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* the meta line is notation wherever it is read, box or no box */
+.stack.read .val.notation {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .88rem;
+}
+/* the ☑ on a completed row, where the checkbox used to be: the same width the
+   button took, so a list of finished actions does not shift against an open
+   one (see the "actionrow" partial). The pick dot's place is held open the
+   same way — hidden rather than absent, because absent would be narrower. */
+.row .check.done { color: var(--muted); }
+.row .pick.gap { visibility: hidden; }
 /* An action written before its project exists. It reads as a list row because
    it is one — j/k reach it and the row keys act on it — but it is dashed, the
    way a parked badge is, because nothing about it is saved yet. */

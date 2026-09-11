@@ -1107,7 +1107,16 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 	// the title bar says which screen this is, not which item is on it: the
 	// item's name is the biggest thing on the page already, and the trail is
 	// the one place that answers "where am I" (design.md, "Panels")
-	p := s.newPage(act.Title, viewOf(d.Back), r).help("action").step("Edit action", "").notation(s)
+	p := s.newPage(act.Title, viewOf(d.Back), r).help("action")
+	if act.CompletedAt != nil {
+		// a completed action is frozen and this screen only reads it
+		// (design.md, "Completion"), so the crumb says so — and the notation
+		// panel, which explains how a meta line is typed, is left off: there
+		// is no line to type here
+		p = p.step("Completed action", "")
+	} else {
+		p = p.step("Edit action", "").notation(s)
+	}
 	p.Data = d
 	s.render(w, "action.html", p)
 }
@@ -1122,7 +1131,11 @@ func (s *Server) promotePage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	if act.ProjectID != 0 {
+	// a completed action is frozen, and promoting it would reshape a finished
+	// commitment into a fresh project — bringing it back is the way to that
+	// (design.md, "Completion"). The page it came from says so, the way the
+	// doing screen turns a finished action away
+	if act.ProjectID != 0 || act.CompletedAt != nil {
 		http.Redirect(w, r, "/action/"+itoa(act.ID), http.StatusSeeOther)
 		return
 	}
@@ -1288,8 +1301,13 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
-	// the trail says which screen this is, the way the action page does
-	p := s.newPage(proj.Title, viewOf(d.Back), r).step("Edit project", "")
+	// the trail says which screen this is, the way the action page does —
+	// including that a completed project is only read
+	step := "Edit project"
+	if proj.CompletedAt != nil {
+		step = "Completed project"
+	}
+	p := s.newPage(proj.Title, viewOf(d.Back), r).step(step, "")
 	p.Data = d
 	s.render(w, "project.html", p)
 }
@@ -1302,6 +1320,13 @@ func (s *Server) projectAddAction(w http.ResponseWriter, r *http.Request) {
 	proj, err := s.app.Project(idParam(r))
 	if err != nil {
 		httpError(w, err)
+		return
+	}
+	// a finished project takes no new work: the form is not offered on its
+	// page, and the address is turned away rather than opening a screen whose
+	// create button the app would refuse (see internal/app, ErrCompleted)
+	if proj.CompletedAt != nil {
+		http.Redirect(w, r, "/project/"+itoa(proj.ID), http.StatusSeeOther)
 		return
 	}
 	d := &addActionPageData{

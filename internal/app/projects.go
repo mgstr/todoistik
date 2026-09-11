@@ -100,6 +100,20 @@ func (a *App) projectRowTx(tx *sql.Tx, id int64) (*Project, error) {
 }
 
 // Project loads one project with all its actions, stalled state derived.
+// openProjectRowTx loads a project that is about to be written to, and refuses
+// if it is completed — the freeze, for projects, in one place (see
+// ErrCompleted).
+func (a *App) openProjectRowTx(tx *sql.Tx, id int64) (*Project, error) {
+	p, err := a.projectRowTx(tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if p.CompletedAt != nil {
+		return nil, ErrCompleted
+	}
+	return p, nil
+}
+
 func (a *App) Project(id int64) (*Project, error) {
 	var p *Project
 	err := a.tx(func(tx *sql.Tx) error {
@@ -154,7 +168,7 @@ func (a *App) UpdateProject(id int64, f ProjectFields) error {
 		return fmt.Errorf("bad snooze date %q", f.SnoozeUntil)
 	}
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.projectRowTx(tx, id)
+		before, err := a.openProjectRowTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -173,7 +187,7 @@ func (a *App) UpdateProject(id int64, f ProjectFields) error {
 // completing is the moment the DOD is confirmed met (design.md, "Completion").
 func (a *App) CompleteProject(id int64) error {
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.projectRowTx(tx, id)
+		before, err := a.openProjectRowTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -212,7 +226,7 @@ func (a *App) UncompleteProject(id int64) error {
 // action resolved first; completed actions are kept in the audit snapshot.
 func (a *App) DeleteProject(id int64) error {
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.projectRowTx(tx, id)
+		before, err := a.openProjectRowTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -250,7 +264,7 @@ func (a *App) Promote(actionID int64, f ProjectFields, actions []ActionFields) (
 	var src *Action
 	err := a.tx(func(tx *sql.Tx) error {
 		var err error
-		src, err = a.actionTx(tx, actionID)
+		src, err = a.openActionTx(tx, actionID)
 		if err != nil {
 			return err
 		}

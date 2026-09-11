@@ -10,6 +10,18 @@ import (
 
 var ErrTitle = errors.New("a title is required")
 
+// ErrCompleted is what every write refuses with when the item it names is
+// already completed. A finished item is frozen: the Archive is the record of
+// what was done, and a record that can be rewritten in place is not one
+// (design.md, "Completion"). It is a rule of the domain rather than of the
+// screens, so that a second tab, a stale page or the next way in cannot walk
+// around it.
+//
+// Bringing an item back is the one write a completed item accepts, and it is
+// deliberately not guarded: clearing completedAt is what unfreezes it, and
+// after that it is an ordinary item again.
+var ErrCompleted = errors.New("that item is completed — bring it back first to change it")
+
 // ActionFields is everything settable on an action from a form.
 type ActionFields struct {
 	Title        string
@@ -70,6 +82,13 @@ func (a *App) CreateAction(projectID int64, f ActionFields, parked bool) (*Actio
 		act.BecameNextAt = &now
 	}
 	err := a.tx(func(tx *sql.Tx) error {
+		// a finished project takes no new work: the commitment it named is
+		// met, and an action added to it would be work nobody is tracking
+		if projectID != 0 {
+			if _, err := a.openProjectRowTx(tx, projectID); err != nil {
+				return err
+			}
+		}
 		return a.insertActionTx(tx, act)
 	})
 	if err != nil {
@@ -135,6 +154,20 @@ func (a *App) actionTx(tx *sql.Tx, id int64) (*Action, error) {
 	return act, err
 }
 
+// openActionTx loads an action that is about to be written to, and refuses if
+// it is completed — the one place the freeze is enforced for actions, so that
+// every write either goes through it or is the one that lifts the freeze.
+func (a *App) openActionTx(tx *sql.Tx, id int64) (*Action, error) {
+	act, err := a.actionTx(tx, id)
+	if err != nil {
+		return nil, err
+	}
+	if act.CompletedAt != nil {
+		return nil, ErrCompleted
+	}
+	return act, nil
+}
+
 // Action loads one action with its tags (and project title, when any).
 func (a *App) Action(id int64) (*Action, error) {
 	var act *Action
@@ -160,7 +193,7 @@ func (a *App) UpdateAction(id int64, f ActionFields) error {
 		return err
 	}
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.actionTx(tx, id)
+		before, err := a.openActionTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -188,7 +221,14 @@ func (a *App) UpdateAction(id int64, f ActionFields) error {
 
 // CompleteAction marks an action done.
 func (a *App) CompleteAction(id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.completeActionTx(tx, id, a.now()) })
+	return a.tx(func(tx *sql.Tx) error {
+		// completing what is already complete would restamp the moment the
+		// work was finished, which is the one thing the Archive is for
+		if _, err := a.openActionTx(tx, id); err != nil {
+			return err
+		}
+		return a.completeActionTx(tx, id, a.now())
+	})
 }
 
 // UncompleteAction brings back something completed by mistake.
@@ -228,7 +268,7 @@ func (a *App) setActionCompleted(tx *sql.Tx, id int64, at *time.Time) error {
 // DeleteAction resolves an action by deleting it — audited and recoverable.
 func (a *App) DeleteAction(id int64) error {
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.actionTx(tx, id)
+		before, err := a.openActionTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -246,7 +286,7 @@ func (a *App) DeleteAction(id int64) error {
 // only meaningful inside a project; a standalone action is always next.
 func (a *App) SetNext(id int64, next bool) error {
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.actionTx(tx, id)
+		before, err := a.openActionTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -273,7 +313,7 @@ func (a *App) SnoozeAction(id int64, until string) error {
 		return fmt.Errorf("bad date %q", until)
 	}
 	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.actionTx(tx, id)
+		before, err := a.openActionTx(tx, id)
 		if err != nil {
 			return err
 		}
@@ -292,7 +332,7 @@ func (a *App) Detach(id int64) error {
 }
 
 func (a *App) detachTx(tx *sql.Tx, id int64) error {
-	before, err := a.actionTx(tx, id)
+	before, err := a.openActionTx(tx, id)
 	if err != nil {
 		return err
 	}
@@ -321,6 +361,12 @@ func (a *App) ToggleTag(itemType string, id int64, tag string) error {
 		return fmt.Errorf("no tags on %q", itemType)
 	}
 	return a.tx(func(tx *sql.Tx) error {
+		// the freeze reaches the cheapest edit in the app as well: a tag is
+		// what an item is about, and a finished item was about what it was
+		// about when it was finished
+		if err := refuseCompletedTx(tx, itemType, id); err != nil {
+			return err
+		}
 		var n int
 		if err := tx.QueryRow(`SELECT COUNT(*) FROM item_tags WHERE item_type=? AND item_id=? AND tag=?`,
 			itemType, id, tag).Scan(&n); err != nil {
@@ -343,6 +389,23 @@ func (a *App) ToggleTag(itemType string, id int64, tag string) error {
 		}
 		return a.audit(tx, EvEdited, itemType, id, map[string]any{"toggledTag": tag})
 	})
+}
+
+// refuseCompletedTx is the freeze for the writes that touch an item without
+// loading it — the tag toggle, which knows only a type and an id.
+func refuseCompletedTx(tx *sql.Tx, itemType string, id int64) error {
+	table := "actions"
+	if itemType == "project" {
+		table = "projects"
+	}
+	var completed sql.NullString
+	if err := tx.QueryRow(`SELECT completed_at FROM `+table+` WHERE id=?`, id).Scan(&completed); err != nil {
+		return err
+	}
+	if completed.Valid {
+		return ErrCompleted
+	}
+	return nil
 }
 
 func normTag(t string) string {
