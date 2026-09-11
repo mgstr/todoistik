@@ -4,10 +4,44 @@
      fields in the same order, and one row of buttons under them. The project
      is shown and not chosen — an action opened from a list is being edited,
      not filed, and moving it between projects is what Detach and Attach are
-     for (design.md, "Reshaping items"). */}}
+     for (design.md, "Reshaping items").
+
+     Unless it is completed, and then this screen only reads. A finished item
+     is frozen and opens as text with one control on it — see the branch
+     below and design.md, "Completion". */}}
 <div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back"
   {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}>
   {{range $a.Errors}}<p class="error-banner">{{.}}</p>{{end}}
+
+  {{if $a.CompletedAt}}
+
+  {{template "actionread" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description
+    "Fixed" (or $a.ProjectTitle "<standalone>"))}}
+
+  {{/* The stamps read the same as on an open action, and say more here: this
+       is the line that answers "when did I do this", which is the question
+       the Archive exists for. */}}
+  <p class="stamps">
+    <b>completed</b> <span class="agetext">{{age $a.CompletedAt}} · created {{age $a.CreatedAt}}</span>
+  </p>
+
+  {{/* One control, and it is the one that lifts the freeze. Everything an
+       action's page can otherwise do — save, pick, park, detach, promote,
+       delete — changes a finished commitment, so each of them is reached by
+       bringing the action back first and is then the ordinary control it
+       always was. */}}
+  <div class="actionsbar">
+    {{/* and it deliberately does not carry a `back`: bringing an item back
+         leaves you on it, open and editable, which is where the next thing
+         you wanted to do to it happens. The Archive it was opened from no
+         longer holds it. */}}
+    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline">
+      <button class="primary">Bring back</button>
+    </form>
+    <a class="button" href="{{$d.Back}}">Back</a>
+  </div>
+
+  {{else}}
 
   <form method="post" action="/action/{{$a.ID}}" id="itemform" class="stack" data-dirty-save>
     <input type="hidden" name="back" value="{{$d.Back}}">
@@ -23,7 +57,6 @@
        thing read before Complete or Delete is pressed, which is the moment
        "next for three weeks" actually means something. */}}
   <p class="stamps">
-    {{if $a.CompletedAt}}<b>completed</b>{{end}}
     <span class="agetext">created {{age $a.CreatedAt}}{{if $a.BecameNextAt}} · next for {{age $a.BecameNextAt}}{{end}}</span>
   </p>
 
@@ -32,11 +65,7 @@
        control happens to live. */}}
   <div class="actionsbar">
     <button form="itemform" class="primary" data-key="^s" data-key-label="save">Save</button>
-    {{if $a.CompletedAt}}
-    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline"><button>Bring back</button></form>
-    {{else}}
     <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button>Complete</button></form>
-    {{end}}
     <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
     {{if $a.ProjectID}}
       {{if $a.BecameNextAt}}
@@ -60,5 +89,7 @@
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>
+
+  {{end}}
 </div>
 {{template "bottom" .}}

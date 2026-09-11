@@ -237,14 +237,26 @@
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
     {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}
     {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}>
+  {{/* On a completed action the two controls are marks and nothing more —
+       the same ☑ the Archive's own rows carry. A finished item is frozen
+       (design.md, "Completion"), and a check that posted /complete again
+       would restamp the moment the work was done; with no form here `t` and
+       `c` find nothing to submit and the keys are inert too. */}}
+  {{if $a.CompletedAt}}
+  {{/* the dot's place is kept and left blank, so that a finished action in a
+       list of open ones does not pull its title a character to the left */}}
+  {{if not .HidePick}}<span class="pick gap">●</span>{{end}}
+  <span class="check done">☑</span>
+  {{else}}
   {{if not .HidePick}}
   <form method="post" action="/action/{{$a.ID}}/pick" class="kb-pick inline">
     <button title="pick for today (t)" class="pick {{if hasTag $a.Tags "today"}}picked{{end}}">●</button>
   </form>
   {{end}}
   <form method="post" action="/action/{{$a.ID}}/complete" class="kb-complete inline">
-    <button title="complete (c)" class="check">{{if $a.CompletedAt}}☑{{else}}☐{{end}}</button>
+    <button title="complete (c)" class="check">☐</button>
   </form>
+  {{end}}
   <a href="/action/{{$a.ID}}" class="title">{{$a.Title}}</a>
   {{if and .ShowProject $a.ProjectTitle}}<a class="badge proj" href="/project/{{$a.ProjectID}}">{{$a.ProjectTitle}}</a>{{end}}
   {{if $a.ContextLabel}}<span class="badge ctx">{{$a.ContextLabel}}</span>{{end}}
@@ -318,6 +330,42 @@
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
 <label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="1" data-grow spellcheck="false">{{.Description}}</textarea></label>
 {{template "extlinks" .Description}}
+{{end}}
+
+{{define "actionread"}}
+{{/* A completed action, set in text. Not the form with its boxes disabled:
+     the fields an item was written in are for writing, and a frozen item has
+     nothing to write — a page of dead boxes would still look like a page you
+     could type on, and would still be four boxes tall for two lines of
+     content (design.md, "Completion").
+
+     Same labels, same gutter, same order as "actionfields", so this reads as
+     the screen it is the finished half of rather than as a second screen. The
+     fields that are empty are left out entirely: an empty box says "nothing
+     here yet", an empty line says nothing at all.
+
+     The description is prose here, which it is nowhere else — so its links
+     are live in the words themselves and there are no chips beside a box,
+     because there is no box (design.md, "Following a link"). */}}
+<div class="stack read">
+  <p class="gutter"><span class="lb">Title</span> <span class="val">{{.Title}}</span></p>
+  <p class="gutter"><span class="lb">Project</span> <span class="val muted">{{.Fixed}}</span></p>
+  {{if .Meta}}<p class="gutter"><span class="lb">Meta</span> <span class="val notation">{{.Meta}}</span></p>{{end}}
+  {{if .Description}}<p class="gutter"><span class="lb">Description</span> <span class="val prose">{{linkify .Description}}</span></p>{{end}}
+</div>
+{{end}}
+
+{{define "projectread"}}
+{{/* A completed project, set in text, for the reason "actionread" is — and
+     with the same labels the project form uses. A project that reached its
+     DOD is the one item whose DOD is worth reading most, so it is never
+     dropped for being empty: a finished project with nothing under
+     "Definition of done" is a thing worth noticing. */}}
+<div class="stack read">
+  <p class="gutter"><span class="lb">Title</span> <span class="val">{{.Title}}</span></p>
+  <p class="gutter"><span class="lb">Definition of done</span> <span class="val prose">{{linkify .DOD}}</span></p>
+  {{if .Meta}}<p class="gutter"><span class="lb">Meta</span> <span class="val notation">{{.Meta}}</span></p>{{end}}
+</div>
 {{end}}
 
 {{define "somedayfields"}}
