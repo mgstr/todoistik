@@ -35,7 +35,13 @@
     {{if $a.CompletedAt}}
     <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline"><button>Bring back</button></form>
     {{else}}
-    <form method="post" action="/action/{{$a.ID}}/complete" class="inline"><button>Complete</button></form>
+    {{/* completing says where to go, the way delete does: the action is
+         finished and this screen is the one for editing it, so it leaves —
+         see implementation.md, "Writing an action" */}}
+    <form method="post" action="/action/{{$a.ID}}/complete" class="inline">
+      <input type="hidden" name="back" value="{{$d.Back}}">
+      <button>Complete</button>
+    </form>
     {{end}}
     <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
     {{if $a.ProjectID}}

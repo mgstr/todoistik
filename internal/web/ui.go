@@ -1192,7 +1192,17 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 			// completing is the moment with the most context: check the project
 			st, serr := s.app.ProjectState(act.ProjectID)
 			if serr == nil && !st.HasNext {
-				http.Redirect(w, r, "/project/"+itoa(act.ProjectID)+"?ask=1", http.StatusSeeOther)
+				home := "/project/" + itoa(act.ProjectID)
+				to := home + "?ask=1"
+				// where the action was opened from goes with it: the screen
+				// that asks about the project is still on the way back to
+				// that view, and its own Referer is a page that is not one.
+				// Unless it is this project — an action opened from its own
+				// project comes back to it, and a page cannot be its own way out
+				if from := localPath(r.FormValue("back"), ""); from != "" && from != home {
+					to += "&from=" + url.QueryEscape(from)
+				}
+				http.Redirect(w, r, to, http.StatusSeeOther)
 				return
 			}
 		}
@@ -1336,20 +1346,30 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
+// projectGone is where a project's page goes once the project it is about is
+// completed or deleted: the view the page was opened from, which it posts as
+// "back". Not back(), because back() falls to the Referer and the Referer here
+// is the page of the project that has just stopped being an active one — the
+// bug delete on an action's page had. "/projects" is the fallback instead: the
+// pile this one was in is the honest answer to "then what".
+func projectGone(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, localPath(r.FormValue("back"), "/projects"), http.StatusSeeOther)
+}
+
 func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 	id, verb := idParam(r), r.PathValue("verb")
 	var err error
 	switch verb {
 	case "complete":
 		if err = s.app.CompleteProject(id); err == nil {
-			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			projectGone(w, r)
 			return
 		}
 	case "uncomplete":
 		err = s.app.UncompleteProject(id)
 	case "delete":
 		if err = s.app.DeleteProject(id); err == nil {
-			http.Redirect(w, r, "/projects", http.StatusSeeOther)
+			projectGone(w, r)
 			return
 		}
 	case "tag":
