@@ -705,6 +705,10 @@ A project is reachable this way from everywhere it appears - "Projects", the "Ca
 
 **Leaving without saving is always offered.** Nothing is written until it is saved, the way out is the same key that leaves any screen, and it costs nothing - an item sat with and left alone is exactly the state it was in. Saving is offered only when there is something to save, so a screen that has not been changed cannot be "saved" into an audit entry that records nothing.
 
+**Resolving an item leaves its page.** Completing it or deleting it (see "Completion") is the one change that ends the reason the screen is open: the item is no longer a commitment being worked on, and a form still sitting there offering to edit it invites changes to something that is settled. It goes back where the screen was opened from - the same place saving goes and the same place leaving without saving goes, the three differing only in what they did on the way out. Completing an action inside a project goes wherever that completion leads, the ask about the project included (see "Completing a next action").
+
+**Bringing a completed item back does not leave.** It is the opposite act: the item is open again, and this page is where an open item is worked on. The same is true of every other change made here - tagging, parking, picking for today - which is why only the two that resolve an item close the screen behind them.
+
 Rules:
 
 - **an action added to a project is a next action**, with parking one keystroke away. The default is deliberate, because the costs are asymmetric: a wrongly parked action is invisible to "Next actions", to the stalled project check and to the weekly review - it silently dies, which is the failure mode this whole document is built against - while a wrongly next action merely turns up in the working view, where it is seen and parked. Parking is the deliberate act, so it is the one that has to be performed
