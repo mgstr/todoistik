@@ -2493,6 +2493,65 @@ elsewhere.
 - **the line is a flex row, so it disappears rather than emptying.** With the
   ages hidden the `<p>` has no flex items left and takes no height, and the
   form sits straight on top of the buttons with no gap where a line used to be
+- **all of this is the page an *open* action gets.** A completed one is frozen
+  and opens with no form on it at all — see "Reading a completed item"
+
+## Reading a completed item
+
+A completed item is frozen (design.md, "A completed item is frozen"), so its
+page reads and does not write. The screens are the ones it already had, in a
+second shape.
+
+- **the freeze is in `internal/app`, not in the templates.** `ErrCompleted` is
+  what `UpdateAction`, `CompleteAction`, `DeleteAction`, `SetNext`,
+  `SnoozeAction`, `Detach`, `ToggleTag`, `Promote`, `UpdateProject`,
+  `CompleteProject` and `DeleteProject` refuse with, through two loaders —
+  `openActionTx` and `openProjectRowTx` — that every write goes through
+  instead of the plain ones. A rule kept only in the templates is a rule a
+  second tab walks around, and the buttons are the smallest part of it: the
+  API, a page left open since yesterday and whatever the next way in turns out
+  to be all arrive at these functions
+- **`UncompleteAction` and `UncompleteProject` are deliberately not guarded.**
+  Clearing `completedAt` is what lifts the freeze, so a guard there would make
+  it permanent. They are the only two writes that take a completed item
+- **`ToggleTag` gets its own check** (`refuseCompletedTx`), because it is the
+  one write that touches an item without loading it — it knows a type and an
+  id and nothing else. It is also what `pick` posts, so `t` on a row is
+  covered by the same line
+- **the fields are set in text by `actionread` and `projectread`**, partials
+  beside `actionfields` and `projectfields` and carrying the same labels in the
+  same gutter and the same order. Not the form with its boxes disabled: a
+  dead box still looks like something you could type in, and four of them are
+  four boxes tall for two lines of content. Empty fields are dropped
+  altogether — an empty box says "nothing here yet", an empty line says nothing
+- **the description is prose here and nowhere else.** Everywhere it is
+  written it is a `<textarea>`, which can hold no links, so the links it holds
+  are chips beside it ("Links in item text"). With no box there is no need:
+  `linkify` makes them live in the words themselves
+- **one button, and it is `Bring back`.** It carries no `back` field, unlike
+  every other form on these screens: the point of pressing it is to have the
+  item open and editable, so the redirect falls through to the Referer and
+  leaves you on the page you pressed it on — which has just become the form.
+  The view it was opened from no longer holds it anyway
+- **the crumb says "Completed action" / "Completed project"** rather than
+  "Edit …", because the second crumb has always said what this screen is, and
+  the `?` panel's notation section is left off with the meta box it explains
+- **a completed action's row is marks, not controls.** The `actionrow` partial
+  renders `☑` as a span where the checkbox form would be — the same span the
+  Archive's own rows have always used — because that form posts `/complete`,
+  and pressing it, or `c`, would restamp the moment the work was done. With no
+  form in the row, `submitIn` finds nothing and the row keys are inert without
+  needing to know anything about completion
+- **the pick dot's place is held open and hidden** (`.pick.gap`) rather than
+  dropped, so a finished action in a list of open ones keeps its title in the
+  same column. This is the opposite of what the "Out of time" rows do, and for
+  the opposite reason: there, the whole list has no such column, and reserving
+  the gap would claim a control is there and unavailable; here, the row beside
+  it has one
+- **the screens behind the removed controls turn a completed item away** —
+  `promotePage`, `projectAddAction` and `doingPage` redirect rather than
+  render. A bookmark or a stale tab would otherwise open a form whose submit
+  the app refuses, which is a worse answer than not opening it
 
 ## Writing a project
 

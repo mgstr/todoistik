@@ -269,6 +269,16 @@ An item is resolved explicitly, and only in one of two ways: it is completed, or
 - a completed item leaves the active views and is found in the "Archive". That view and the audit log are not the same record: the Archive holds finished **commitments**, the audit log holds **events** - every creation, edit, completion and deletion, including the ones that never became items at all
 - **the moment recorded is the moment the work was finished**, which is all but always the moment of the answer and is not the same thing. Accepting a completion request stamps the time the item was ticked off elsewhere rather than now (see "Completion requests", "Inbox Zero"): the Archive and the completed filters exist to say when work happened, so answering Tuesday's tick on Friday has to leave them saying Tuesday. This is the only path where the two moments come apart, which is why it is the only one that has to say which of them it means
 
+#### A completed item is frozen
+Completing an item ends it, and what it was when it ended is what is kept. A completed action or project is read from then on: opening it shows every field it has, and none of them can be changed.
+
+This is the Archive earning the name. It exists to answer "what did I do about X" (see "Archive"), and an answer that can be rewritten in place is not a record - a finished commitment edited afterwards says whatever it was last edited to say, and nothing distinguishes fixing the record from describing work that was never done. The audit log would still hold the edit, but the thing the Archive shows would already be wrong, and the one view built to be trusted about the past is the wrong place to spend that trust.
+
+- **the one thing a completed item accepts is being brought back**, which clears `completedAt` and returns it to the active views. It is not an exception to the freeze, it is the way out of it: brought back, the item is ordinary again and every edit it ever had is available. Everything else - renaming it, retagging it, snoozing it, parking it, detaching it, promoting it, deleting it, completing it a second time - is reached that way and not around it
+- **deleting is a change like any other.** An item completed by mistake and then deleted from the Archive would leave nothing where the work was, which is the one outcome this view exists to prevent. Deleting a finished item means bringing it back first and then deciding it was never a commitment at all - which is exactly the thought that should have to be had out loud
+- **a finished project takes no new action.** The commitment it named is met, so work added under it is work nobody is tracking - it would sit in a project no view walks, which is the silent death this whole document is built against
+- **the refusal is the app's, not the screen's.** The controls are not on the page, and the operations behind them refuse as well: the freeze has to survive a second tab, a page left open since yesterday, a bookmark and the next way in, or it is only a hidden button
+
 ### Error state
 An item that is not in a state you would have accepted is in an error state: its fields contradict each other, or something it can not do without is missing. It stays highly visible until it is fixed, the same way a stalled project does, and is dealt with at the weekly review or whenever there is time.
 
@@ -568,6 +578,8 @@ The archive carries neither context, nor duration, nor needs focus: those three 
 
 It is a view like any other, so nothing is moved into it - an item is in it for exactly as long as `completedAt` is set. Clearing that field is therefore how something completed by mistake comes back to the active views, and like every other change it is audited.
 
+Everything in it is frozen, and opening one of its items is reading it: what the Archive shows about a finished commitment is what that commitment was when it was finished, and clearing `completedAt` is the only way to change that (see "A completed item is frozen"). The same is true of a finished step seen inside a still-running project - the freeze is a property of the item, not of which view it happened to be reached from.
+
 The archive has no review step. Nothing in it is an open loop, so there is nothing in it that can silently die.
 
 ### Scheduler
@@ -687,13 +699,15 @@ Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is wa
 The review period is a week for everything except someday/maybe items, which get a month by default (a setting - one number, in days). A parked idea does not change from week to week, and being asked every single review about a list that mostly answers "still parked" is the kind of chore that gets the whole review skipped - which would cost the views their trustworthiness, the one thing the review exists to protect. Snoozing does not stretch the period for the items that have one: a snoozed project or action is still walked when its period runs out, because its snooze date is one of the claims being reviewed.
 
 ### Editing items
-Every item stays editable after it is created, and every edit is recorded in the audit log (see "Audit entry"). Nothing in the app is written once.
+Every item stays editable for as long as it is open, and every edit is recorded in the audit log (see "Audit entry"). Nothing in the app is written once - and nothing is written twice after it is finished, either: completing an item freezes it, and the way back to editing is to bring it back (see "A completed item is frozen").
 
 Editing happens in two places:
 
 **Inline, in the views.** The cheap changes are made where the item is already shown: renaming an action, toggling a tag, setting a `snoozeUntil` or a due date, marking an action as next or parking it. These are the changes noticed while scanning a list, and making them cost a screen transition is the friction that ends with them not being made at all.
 
 **In the item itself.** Opening a project or an action shows every field it has, editable, and for a project the full list of actions under it: add one, delete one, rename one, detach one (see "Reshaping items"). This is where a project is actually worked on. The DOD is prose and it is the field step 3 of the weekly review asks about, so it needs the room a list does not have.
+
+**A completed item opens on the same screen with nothing to write in.** The same fields, the same names, the same order, read rather than written - and one control, which brings it back. It is the same screen because it is the same item and there is nothing new to learn about where anything is; it does not offer the form because there is nothing left to decide (see "A completed item is frozen").
 
 **A someday/maybe item has a page of the same kind**, holding the two fields it has: the idea and its tags. It is where an idea is reworded, moved to the area it turns out to belong to, or sent back to the inbox - and it is the same form the Someday/Maybe branch of Inbox Zero files it on, because an item is written in one form wherever it is written (see the rule below). It is also the only screen that acts on an idea: the list it sits in carries no controls at all.
 
