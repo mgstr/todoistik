@@ -647,6 +647,23 @@ nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
   margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line);
 }
 #keybar > .kb-view:empty + .kb-global { padding-left: 0; border-left: none; }
+/* The layout mark rides at the far right, past the keys: it is not one, so it
+   sits outside both groups. It takes the right edge itself only when a mode
+   has emptied the global group and left nothing else holding it there.
+
+   Loud on purpose, and the one loud thing in the bar. Written in the bar's own
+   muted grey it was invisible — it read as a fourth key label, which is exactly
+   what it is not, and a warning nobody sees is not a warning. Yellow on dark
+   ink rather than the accent or the danger colour: those two already mean "the
+   view you are on" and "this went wrong", and this is neither. It is fixed
+   rather than themed because it has to look the same alarming way on both
+   schemes. */
+#keybar > .kb-layout {
+  padding: .1rem .5rem; border-radius: 5px;
+  background: #f5c518; color: #17181c;
+  font-weight: 700; letter-spacing: .01em;
+}
+#keybar > .kb-view + .kb-layout { margin-left: auto; }
 #keybar span { white-space: nowrap; }
 #keybar b {
   display: inline-block; margin-right: .3rem;

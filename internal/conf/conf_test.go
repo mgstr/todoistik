@@ -181,3 +181,36 @@ func TestLinksReach(t *testing.T) {
 		}
 	}
 }
+
+// Both keyboard settings are on out of the box: a key that stops working when
+// the layout changes is a bug rather than a mode, and the file exists to take
+// either behaviour back out of the way rather than to switch it on.
+func TestKeyboardSettings(t *testing.T) {
+	d := Defaults()
+	if !d.KeysAnyLayout {
+		t.Error("default keys.any_layout = false, want true — the keys must work in either layout unasked")
+	}
+	if !d.KeysLayoutMarker {
+		t.Error("default keys.layout_marker = false, want true")
+	}
+	c, err := Load(write(t, "keys.any_layout = false\nkeys.layout_marker = false\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.KeysAnyLayout || c.KeysLayoutMarker {
+		t.Errorf("both were turned off and got %+v", c)
+	}
+	// and each is independent of the other, since either is worth having alone
+	c, err = Load(write(t, "keys.layout_marker = false\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if !c.KeysAnyLayout {
+		t.Error("turning the marker off also turned the keys off")
+	}
+	for _, bad := range []string{"", "yes", "1", "on"} {
+		if _, err := Load(write(t, "keys.any_layout = "+bad+"\n")); err == nil {
+			t.Errorf("keys.any_layout = %q was accepted", bad)
+		}
+	}
+}

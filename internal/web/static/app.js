@@ -406,12 +406,127 @@
     return keyLive(el) && !el.disabled;
   }
 
+  // ---- What the settings file said -------------------------------------
+  //
+  // Read off the pane, like every other answer the file gives
+  // (implementation.md, "Settings file"). Both of these are on by default, so
+  // a page with no pane at all — the login screen — answers the same as a file
+  // that says nothing, and neither of them has a key bar to be wrong about
+  // anyway.
+  function paneSays(attr) {
+    const pane = document.querySelector(".pane");
+    return !pane || pane.hasAttribute(attr);
+  }
+
+  function anyLayout() { return paneSays("data-keys-any-layout"); }
+  function layoutMarker() { return paneSays("data-keys-layout-marker"); }
+
+  // ---- Which layout the keyboard is in --------------------------------
+  //
+  // The keys work whatever the layout says, because keyOf below reads the
+  // place rather than the letter. What that cannot answer is which layout it
+  // is, and the answer is still worth having — not for the keys, but for the
+  // boxes: what gets typed into a capture or a description is whatever the
+  // layout types, and noticing after the sentence is a line to delete.
+  //
+  // Cyrillic and nothing else, because it is the one other layout this
+  // keyboard is ever in (design.md, "Design principles"): a second script
+  // would need a second name and there is no second keyboard to name.
+  //
+  // One source, and it is the keys. Chrome's keyboard map
+  // (navigator.keyboard.getLayoutMap()) looked like the better one — it can
+  // answer with nothing pressed — but on this machine it answers *wrong*: it
+  // reports the ASCII layout underneath while macOS is in Russian. Polling it
+  // put the marker in a fight with the keys it was supposed to agree with, and
+  // the marker lost once a second — it lit on each keystroke and went out
+  // between them, so typing a sentence in Russian made it blink all the way
+  // through. A wrong answer arriving on a timer is worse than no answer, and
+  // it is gone.
+  //
+  // So: the character that arrives, against the key it arrived from — the
+  // comparison keyOf already makes, exact in every browser — and then it
+  // *stays*. That is the difference between an indicator and a flicker. The
+  // one in the menu bar holds its state until the state changes, and so does
+  // this. The cost is that it learns on the first key after a switch rather
+  // than at the switch itself, because nothing inside a page can see the
+  // switch happen.
+
+  const CYRILLIC = /[\u0400-\u04ff]/;
+  const LAYOUT = "kb-layout";
+
+  // Not-yet-known and Latin are the same silence. The question is "am I in the
+  // other one", and only "yes" has anything to say — a marker that is up all
+  // the time is furniture rather than a signal.
+  let cyrillic = false;
+  try { cyrillic = sessionStorage.getItem(LAYOUT) === "1"; } catch (err) { /* fine */ }
+
+  // Remembered for the tab, because a g-jump is a real page load and the
+  // marker must not blink off across one — blinking is the whole thing being
+  // fixed here. sessionStorage rather than the server for the same reason the
+  // selection uses it (see implementation.md, "Keyboard"): it decides nothing,
+  // and losing it costs one keystroke of not knowing.
+  function setLayout(on) {
+    if (on === cyrillic) return;
+    cyrillic = on;
+    try {
+      if (on) sessionStorage.setItem(LAYOUT, "1"); else sessionStorage.removeItem(LAYOUT);
+    } catch (err) { /* fine */ }
+    renderKeybar();
+  }
+
+  // ---- Which key was pressed ------------------------------------------
+  //
+  // A key is a place on the keyboard, not a letter the layout happens to
+  // print on it. Reading e.key alone made every key in this file mean nothing
+  // once the layout was Cyrillic: d arrives as в, and there is no data-key
+  // for в, so the whole layer went silent — the app looked broken rather
+  // than in another language. e.code names the physical key, unchanged by the
+  // layout, and ЙЦУКЕН puts its letters on the same keys as QWERTY, so the
+  // key under d is the key under в and pressing either is pressing d.
+  //
+  // e.key first and e.code only as the fallback, because a Latin layout that
+  // moves its letters — Dvorak, Colemak — means what it prints, and asking
+  // the position there would fight the layout instead of following it. The
+  // fallback catches exactly the case where the layout has no Latin answer.
+  //
+  // Slash is here for the same reason: ЙЦУКЕН types . and , on that key,
+  // so / and ? — the filter and the help — were not reachable at all.
+  //
+  // And last, the letter itself, read back to the place ЙЦУКЕН puts it. That
+  // is the same answer e.code gives, so it never fires when e.code has one —
+  // it is there for when it does not. An event can arrive with e.code empty,
+  // and the key that lands in that gap is the key that silently does nothing
+  // once and works on the second press, which is worse to use than one that
+  // never works.
+  const YCUKEN = "йцукенгшщзфывапролдячсмить";
+  const QWERTY = "qwertyuiopasdfghjklzxcvbnm";
+
+  function keyOf(e) {
+    if (/^[a-z]$/i.test(e.key)) return e.key.toLowerCase();
+    // off, the key is the letter the layout printed and nothing else, which
+    // is what this file did before any of the below existed
+    if (!anyLayout()) return e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const letter = /^Key([A-Z])$/.exec(e.code);
+    if (letter) return letter[1].toLowerCase();
+    if (e.code === "Slash") return e.shiftKey ? "?" : "/";
+    if (e.key && e.key.length === 1) {
+      const at = YCUKEN.indexOf(e.key.toLowerCase());
+      if (at >= 0) return QWERTY[at];
+      // the same key / and ? live on, which ЙЦУКЕН prints . and , on
+      if (e.key === ".") return "/";
+      if (e.key === ",") return "?";
+    }
+    return e.key;
+  }
+
   // A declared key may ask for ctrl, written "^a" — the same notation the bar
   // already uses for ctrl-enter. Ctrl and not cmd: cmd-a is select-all in every
   // text box on this machine, and a screen key must not take that away.
   function branchFor(e) {
-    if (e.key.length !== 1 || e.altKey || e.metaKey) return null;
-    const want = (e.ctrlKey ? "^" : "") + e.key.toLowerCase();
+    if (e.altKey || e.metaKey) return null;
+    const k = keyOf(e);
+    if (k.length !== 1) return null;
+    const want = (e.ctrlKey ? "^" : "") + k;
     const all = document.querySelectorAll('[data-key="' + CSS.escape(want) + '"]');
     for (let i = 0; i < all.length; i++) {
       if (keyUsable(all[i])) return all[i];
@@ -617,6 +732,14 @@
     bar.textContent = "";
     bar.appendChild(keygroup("kb-view", groups.view));
     if (groups.global.length) bar.appendChild(keygroup("kb-global", groups.global));
+    // Last, past the keys and outside both groups: it is not a key, and the
+    // bar's promise is that everything in a group is one that works.
+    if (cyrillic && layoutMarker()) {
+      const mark = document.createElement("span");
+      mark.className = "kb-layout";
+      mark.textContent = "русский";
+      bar.appendChild(mark);
+    }
   }
 
   // the button a form would submit with, if it has one. A button may sit
@@ -1482,13 +1605,23 @@
   }
 
   document.addEventListener("keydown", function (e) {
+    // What was typed against where it was typed from — and it holds until a
+    // key says otherwise. Unmodified keys only: with ctrl or cmd held a
+    // browser may report the Latin letter it would match an accelerator
+    // against rather than the one the layout types, and believing that would
+    // put the marker out on every ^v.
+    if (/^Key/.test(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey && layoutMarker()) {
+      setLayout(CYRILLIC.test(e.key));
+    }
+
     // While a jump is pending the next key is the jump and nothing else, so
     // this is read before every other key on the page.
     if (jPending) {
       // a modifier pressed on its own is not an answer, so it does not count
       // as one: holding shift to reach a key must not throw the jump away
       if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
-      const to = e.key.length === 1 ? jumpMap[e.key.toLowerCase()] : null;
+      const hint = keyOf(e);
+      const to = hint.length === 1 ? jumpMap[hint] : null;
       setJumping(false);
       // esc puts the hints away and leaves everything else alone — in a dialog
       // that means the dialog stays, since the browser would otherwise take
@@ -1504,7 +1637,7 @@
     // and the dialog is a list of four keys rather than a place to be. Ctrl
     // and not cmd, because cmd-v is paste in every box on this machine and a
     // key of the app's must not take that away.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "v") {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "v") {
       const d = panelsDialog();
       if (!d) return;
       e.preventDefault();
@@ -1518,7 +1651,7 @@
     // key every other program uses, and what this app has to search is its own
     // list rather than the page. Pressed again it closes the box and takes the
     // filters with it — a filter you cannot see is one you cannot undo.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "f") {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "f") {
       const bar = filterBar();
       if (!bar) return; // a view with no box leaves ctrl-f to the browser
       e.preventDefault();
@@ -1542,7 +1675,7 @@
     // with every j and k. After that layer, so a screen wanting ^o for
     // something of its own would keep it — and, like it, not while a dialog is
     // up, since the item is on the page behind one.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "o" &&
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "o" &&
         !document.querySelector("dialog[open]")) {
       // an item with no link leaves the key to the browser rather than
       // swallowing it to do nothing
@@ -1555,7 +1688,7 @@
     // keys, so a screen that wanted ^j for something of its own would keep it,
     // and it is not inside the block above because that one stands down for a
     // dialog — a form in a dialog is exactly where a jump is wanted.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "j") {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "j") {
       if (setJumping(true)) e.preventDefault();
       return;
     }
@@ -1583,7 +1716,8 @@
       if (e.key === "Escape") { e.preventDefault(); linkdlg.close(); renderKeybar(); return; }
       // the answers are a list, and a list is moved through with j and k —
       // which is exactly why neither is one of the letters handed out
-      if (e.key === "j" || e.key === "k") { e.preventDefault(); move(e.key === "j" ? 1 : -1); return; }
+      const step = keyOf(e);
+      if (step === "j" || step === "k") { e.preventDefault(); move(step === "j" ? 1 : -1); return; }
       if (e.key === "Enter") {
         const row = selected();
         if (row) { e.preventDefault(); row.click(); }
@@ -1600,7 +1734,8 @@
       // the answers are a list, and a list is moved through with j and k. The
       // letters on them stay: a key that goes straight to an answer is worth
       // having on a question asked this often, and neither costs the other
-      if (e.key === "j" || e.key === "k") { e.preventDefault(); move(e.key === "j" ? 1 : -1); return; }
+      const step = keyOf(e);
+      if (step === "j" || step === "k") { e.preventDefault(); move(step === "j" ? 1 : -1); return; }
       if (e.key === "Enter") {
         const row = selected();
         if (row) { e.preventDefault(); row.click(); }
@@ -1682,8 +1817,9 @@
 
     if (gPending) {
       setPending(false);
-      if (e.key === "g") { e.preventDefault(); openCapture(); return; }
-      const dest = jumps[e.key];
+      const to = keyOf(e);
+      if (to === "g") { e.preventDefault(); openCapture(); return; }
+      const dest = jumps[to];
       if (dest) {
         e.preventDefault();
         window.location.href = dest;
@@ -1697,7 +1833,7 @@
     if (branch) { e.preventDefault(); press(branch); return; }
 
     const row = selected();
-    switch (e.key) {
+    switch (keyOf(e)) {
       case "g": e.preventDefault(); setPending(true); break;
       case "j": e.preventDefault(); move(1); break;
       case "k": e.preventDefault(); move(-1); break;
@@ -2043,12 +2179,13 @@
       if (e.target !== box) return;
       const openList = !list.hidden;
       const ctrl = e.ctrlKey && !e.metaKey && !e.altKey;
+      const k = keyOf(e);
       switch (true) {
-        case e.key === "ArrowDown" || (ctrl && e.key === "j"):
+        case e.key === "ArrowDown" || (ctrl && k === "j"):
           e.preventDefault(); e.stopPropagation();
           if (openList) move(1); else open();
           return;
-        case e.key === "ArrowUp" || (ctrl && e.key === "k"):
+        case e.key === "ArrowUp" || (ctrl && k === "k"):
           e.preventDefault(); e.stopPropagation();
           if (openList) move(-1);
           return;
@@ -2067,7 +2204,7 @@
           return;
         // a letter can only be a command while the list is shut, because an
         // open list is being filtered and every letter belongs to the filter
-        case e.key === "c" && !openList && !ctrl:
+        case k === "c" && !openList && !ctrl:
           e.preventDefault(); e.stopPropagation();
           newProjectDialog(root);
           return;

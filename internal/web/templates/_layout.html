@@ -49,6 +49,8 @@
   {{if .Nav.Inbox}}data-inbox-full{{end}}
   {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
   data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
+  {{if .Conf.KeysAnyLayout}}data-keys-any-layout{{end}}
+  {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
   data-links-reach="{{.Conf.LinksReach}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
