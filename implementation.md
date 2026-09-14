@@ -526,6 +526,112 @@ wrong shape.
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
 - `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
 
+### Which key is which
+
+`keys.any_layout` in the settings file, on by default. Every key above is a
+*place on the keyboard*, not a letter. The layer used to
+read `e.key`, the character the layout produces, and that made the whole thing
+go silent the moment the layout was Cyrillic: `d` arrives as `в`, no `data-key`
+matches `в`, and every key in the app did nothing at once. Nothing was broken
+and everything looked broken — which is worse than a key that is missing,
+because a missing key is a feature not built and a dead keyboard is an app that
+has stopped working.
+
+- **`e.key` first, `e.code` only when it has no Latin answer.** `e.code` names
+  the physical key and the layout cannot move it, so the key under `d` is the
+  key under `в` and pressing either is pressing `d`. But a Latin layout that
+  moves its letters on purpose — Dvorak, Colemak — *means* what it prints, and
+  asking the position there would fight the layout instead of following it. So
+  the character is believed whenever it is a Latin letter, and the position is
+  the fallback for exactly the case where it is not
+- **`/` and `?` come from the position too.** ЙЦУКЕН types `.` and `,` on that
+  key, so the filter and the view help were not reachable at all rather than
+  merely renamed — the one pair of keys the letter rule would have missed
+- **one function, read at the top of every handler.** `keyOf` is the only thing
+  in the file that decides what was pressed; the dialogs, the `g` map, the row
+  keys and the declared `data-key` controls all ask it. A second answer living
+  anywhere else is how half the keys would come to work and half would not
+- **the letter itself is the last fallback.** `й` read back to the place
+  ЙЦУКЕН puts it is `q` — the same answer `e.code` gives, so the table never
+  fires while `e.code` has one. It is there for when it does not: an event can
+  arrive with `e.code` empty, and the key that lands in that gap is the one
+  that silently does nothing once and works on the second press. A key that is
+  unreliable is worse to use than a key that is missing, because there is
+  nothing to learn from it
+- **off, it is the old behaviour exactly**: the character the layout printed
+  and nothing else. That is worth being able to ask for even though nobody
+  would — a setting whose "off" is some third thing is a setting you cannot
+  reason about, and this one's off is "the app before this was built"
+- **it changes nothing inside a text box.** Bare letters already stand down
+  where something is being typed, and that guard is untouched — a Cyrillic
+  letter typed into a capture box is text, exactly as before. The `^` keys stay
+  live in boxes, and `ctrl-в` types nothing in any layout, so reading it as
+  `^d` costs the box nothing
+
+### Which layout the keyboard is in
+
+`keys.layout_marker` in the settings file, on by default, and independent of
+`keys.any_layout` — the keys working in Russian and the bar saying you are in
+Russian are two wants, and either is worth having without the other. The key
+bar carries a marker — `русский`, at the far right — when the keyboard
+is in a Cyrillic layout. It is not for the keys: those work either way now. It
+is for the *boxes*. What goes into a capture or a description is whatever the
+layout types, and noticing after the sentence is a line to delete.
+
+- **Cyrillic and nothing else.** It is the one other layout this keyboard is
+  ever in, and a second script would need a second name for a keyboard that
+  does not exist — design.md, "Design principles". The marker says the language
+  rather than the script for the same reason: there is one, and it has a name
+- **it is up only when the answer is "the other one".** Latin shows nothing,
+  and so does not-yet-known. The question is "am I in the wrong one", and the
+  answer to "no" is silence; a marker that is always up is furniture rather
+  than a signal, and one reading "unknown" answers a question nobody asked
+- **it is loud, and it is the only loud thing in the bar.** Written in the
+  bar's own muted grey it was invisible — it read as a fourth key label, which
+  is exactly what it is not, and a warning nobody sees is not a warning. Yellow
+  with dark ink, and fixed rather than themed: the accent already means "the
+  view you are on" and the danger colour means "this went wrong", this is
+  neither, and it has to look the same alarming way on both schemes
+- **the keys are the only source, and the answer sticks.** A keydown carries
+  both the character and the physical key, which is the comparison `keyOf`
+  already makes; the character decides the layout, and that decision then holds
+  until another key disagrees with it. Holding is the entire point. An
+  indicator is a thing that *has* a state — the one in the menu bar sits there
+  saying the same word until the word changes — and anything that lights up per
+  keystroke is not an indicator, it is a flicker
+- **`navigator.keyboard.getLayoutMap()` is not used, having been tried.** It
+  can answer with nothing pressed, which looked like exactly what was wanted,
+  and it was read on a one-second timer. But on this machine it answers
+  *wrong*: it reports the ASCII layout underneath while macOS is in Russian. So
+  the timer spent every second contradicting the keys it was supposed to agree
+  with — the marker lit on each keystroke and went out between them, and typing
+  a sentence in Russian made it blink the whole way through. A wrong answer
+  arriving on a schedule is worse than no answer, because it is a fight the
+  right answer keeps losing
+- **it costs one keystroke after a switch.** Nothing inside a page can see the
+  layout change: there is no event for it, and switching input source leaves
+  the window focused, so `focus` and `visibilitychange` never fire either. The
+  marker is therefore right from the first key typed in the new layout rather
+  than from the switch — and since what it guards against is *typing* in the
+  wrong layout, the first key is early enough to still be the first key
+- **it is remembered for the tab**, in `sessionStorage`, because a `g` jump is
+  a real page load and the marker must not blink off across one — blinking is
+  the thing being fixed. Same store and same argument as the selection handover
+  above: it decides nothing, and losing it costs one keystroke of not knowing
+- **unmodified keys only.** With ctrl or cmd held a browser may report the
+  Latin letter it would match an accelerator against rather than the letter the
+  layout types, and believing that would put the marker out on every `^v`
+- **it sits outside both key groups**, past where the rule between them would
+  be. The bar's promise is that everything in a group is a key that works, and
+  this is not a key — putting it in one would spend that promise to save a gap
+- **off, nothing is tracked at all**, not merely nothing drawn: the keydown
+  stops looking at the character and nothing is written to `sessionStorage`. A
+  flag that only hides its output leaves the work running and the state
+  accumulating, which is a thing to be wrong about later
+- **no key bar, no marker**, which means none in zen mode. The panel that
+  carries it is the one that talks about the keyboard, and a screen cleared on
+  purpose is not the place to put a new thing back (see "Panels")
+
 ### Jumping to a control
 
 `g` goes to a view; `ctrl-j` goes to something on the view already open. It
@@ -1862,6 +1968,8 @@ zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
 backup.days = 2                # days of hourly snapshots kept; 0 keeps none
 review.someday_days = 30       # days before a someday/maybe item is back on the review
 links.reach = any              # ^o follows any link the item holds; "shown" only the drawn ones
+keys.any_layout = true         # a shortcut is a place on the keyboard, so the keys work in Russian
+keys.layout_marker = true      # the key bar says "русский" while the keyboard is in Cyrillic
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -1890,6 +1998,20 @@ links.reach = any              # ^o follows any link the item holds; "shown" onl
 - **an empty list is an answer.** `zen.views =` means no screen opens bare,
   which the defaults cannot say — a key left out falls back to the default, so
   "none" has to be writable
+- **the two keyboard keys are on by default**, unlike every other flag here,
+  and the asymmetry is the point: they are not preferences about how the app
+  should behave, they are a keyboard that works. A key that dies when the
+  layout changes is a bug, and the fix for a bug does not wait to be asked for.
+  They are in the file at all so that either can be taken back out of the way
+  — if the position-reading ever guesses wrong on a layout not thought of here,
+  the answer should be a line in a file rather than a wait for a patch (see
+  "Which key is which" and "Which layout the keyboard is in")
+- **a flag reaches the browser as an attribute on the pane**, never as a script
+  block: `data-keys-any-layout` and `data-keys-layout-marker` sit beside
+  `data-links-reach`, and the key layer reads the page like it reads everything
+  else. One source of truth and it is the server's (see "Stack"). A page with
+  no pane — the login screen — reads as the default, which is the only answer
+  that could be right for a screen the key layer is not on
 - **`zen.views` is checked against the app's screens, but not here.** conf
   checks the shape and `internal/web` checks the names, which is where the list
   of screens lives (see "Panels"). Wrong either way still stops startup
@@ -1996,6 +2118,12 @@ off it (see "Panels").
   furniture: only the left half has to be re-read when the view or the
   selection changes. A thin rule divides them, and disappears when the view
   has no keys of its own
+- **the layout marker rides past both groups**, on the right edge, and only
+  when the keyboard is in a Cyrillic layout — see "Which layout the keyboard is
+  in". It is the one thing in the bar that is not a key, which is why it is
+  outside the groups rather than the last entry in one, and the one thing in
+  the bar that is loud, because everything else here is chrome and this is a
+  warning
 - **modes replace the bar rather than extending it.** While the capture dialog
   is up it reads `↵ add · esc cancel` and nothing else, because nothing else is
   reachable; the `g` overlay and the `?` panel do the same. A bar that listed

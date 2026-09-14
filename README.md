@@ -51,6 +51,8 @@ zen.timer_format = auto        # minutes, then H:MM past the hour. Or a pattern:
 backup.days = 2                # days of hourly database snapshots to keep (default 2; 0 keeps none)
 review.someday_days = 30       # days before a someday/maybe item is back on the weekly review (default 30)
 links.reach = any              # ctrl-o follows any link the item holds; "shown" only what is on screen
+keys.any_layout = true         # a shortcut is a place on the keyboard, so the keys work in Russian too
+keys.layout_marker = true      # the key bar says "русский" while the keyboard is in a Cyrillic layout
 EOF
 ```
 

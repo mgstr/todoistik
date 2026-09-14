@@ -44,6 +44,18 @@ type Config struct {
 	// about the person's patience, not about the protocol (design.md,
 	// "Weekly review").
 	ReviewSomedayDays int
+	// KeysAnyLayout: whether a shortcut is a place on the keyboard rather
+	// than a letter, so that the keys still work with the keyboard in a
+	// Cyrillic layout (implementation.md, "Which key is which"). Off reads
+	// the character and nothing else, which is what the app did before and
+	// means no key at all answers while the layout is Russian.
+	KeysAnyLayout bool
+	// KeysLayoutMarker: whether the key bar says when the keyboard is in a
+	// Cyrillic layout. It is about the boxes rather than the keys — what
+	// gets typed into a capture is whatever the layout types (design.md,
+	// "Panels"). Independent of KeysAnyLayout: either is worth having
+	// without the other.
+	KeysLayoutMarker bool
 	// LinksReach: how far ctrl-o sees when it follows a link in the item
 	// under the cursor. ReachAny is every link the item's text holds,
 	// ReachShown only the ones the screen has actually drawn (design.md,
@@ -76,7 +88,11 @@ const (
 // is the one being answered. The timer is off, because a clock on the wall is
 // a thing you ask for. A someday/maybe item waits a month between reviews,
 // because a parked idea does not change week to week (design.md, "Weekly
-// review"). Every one of them is one line away from the opposite.
+// review"). Both keyboard settings are on, because the app is used from the
+// keyboard in two languages and a key that stops working when the layout
+// changes is a bug rather than a mode — they are settings at all only so that
+// either can be taken back out of the way without an edit to the code. Every
+// one of them is one line away from the opposite.
 func Defaults() Config {
 	return Config{
 		ZenShowsTimer:     false,
@@ -84,6 +100,8 @@ func Defaults() Config {
 		ZenViews:          []string{"doing", "processing"},
 		BackupDays:        2,
 		ReviewSomedayDays: 30,
+		KeysAnyLayout:     true,
+		KeysLayoutMarker:  true,
 		LinksReach:        ReachAny,
 	}
 }
@@ -105,7 +123,9 @@ const MaxReviewDays = 365
 // key's name.
 func (c *Config) bools() map[string]*bool {
 	return map[string]*bool{
-		"zen.show_timer": &c.ZenShowsTimer,
+		"zen.show_timer":     &c.ZenShowsTimer,
+		"keys.any_layout":    &c.KeysAnyLayout,
+		"keys.layout_marker": &c.KeysLayoutMarker,
 	}
 }
 
