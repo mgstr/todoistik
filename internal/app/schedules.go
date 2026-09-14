@@ -214,11 +214,17 @@ func applySuffix(text, suffix, occurrence string) string {
 
 // occurrencesUpTo lists the days the rule fires in [countedFrom..today],
 // excluding days at or before lastFired, oldest first, capped.
-func occurrencesUpTo(s *Schedule, today string) ([]string, error) {
+//
+// lastFired is an instant stored in UTC and every other day here is a day in
+// the configured timezone, so it has to be read in that zone before it can be
+// compared with one: a day start just after local midnight is still yesterday
+// in UTC, and reading it as one would leave the day it just fired looking
+// unfired and fire it again the next morning.
+func occurrencesUpTo(s *Schedule, today string, loc *time.Location) ([]string, error) {
 	from := s.CountedFrom
 	if s.LastFiredAt != nil {
 		// day granularity: an occurrence already fired never refires
-		if d := s.LastFiredAt.Format(DateFormat); d >= from {
+		if d := s.LastFiredAt.In(loc).Format(DateFormat); d >= from {
 			day, _ := time.Parse(DateFormat, d)
 			from = day.AddDate(0, 0, 1).Format(DateFormat)
 		}
@@ -286,7 +292,7 @@ func (a *App) fireSchedules(tx *sql.Tx) error {
 
 	today := a.Today()
 	for _, s := range schedules {
-		occ, err := occurrencesUpTo(s, today)
+		occ, err := occurrencesUpTo(s, today, a.loc)
 		if err != nil {
 			continue // an unparseable rule (should not happen: validated on save)
 		}

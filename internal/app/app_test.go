@@ -200,6 +200,48 @@ func TestScheduleNeverBackfires(t *testing.T) {
 	}
 }
 
+// A day start that runs in the first hours after local midnight is still on
+// the previous day in UTC, and last_fired_at is stored in UTC. Reducing that
+// instant to a day without moving it into the configured timezone leaves the
+// occurrence it just fired looking unfired, so the next day start fires that
+// day again alongside the new one — the schedule appears to fire twice, which
+// is visible whenever the suffix dates the capture and hidden by duplicate
+// collapse whenever it does not.
+func TestScheduleFiredAfterLocalMidnightDoesNotRefire(t *testing.T) {
+	loc := time.FixedZone("EEST", 3*60*60)
+	a, err := Open(filepath.Join(t.TempDir(), "test.db"), loc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { a.Close() })
+	now := time.Date(2026, 9, 12, 0, 0, 42, 0, loc) // 2026-09-11T21:00:42Z
+	a.now = func() time.Time { return now }
+
+	if _, err := a.CreateSchedule("Log the cache", "* * *", " DD"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	items, _ := a.Inbox()
+	if len(items) != 1 || items[0].Text != "Log the cache 12" {
+		t.Fatalf("first day: %v", itemTexts(items))
+	}
+	// out of the inbox, so a refire of the 12th would show rather than collapse
+	if err := a.ProcessTrash(items[0].ID); err != nil {
+		t.Fatal(err)
+	}
+
+	now = time.Date(2026, 9, 13, 0, 0, 42, 0, loc) // 2026-09-12T21:00:42Z
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	items, _ = a.Inbox()
+	if len(items) != 1 || items[0].Text != "Log the cache 13" {
+		t.Fatalf("second day should fire only the 13th, inbox: %v", itemTexts(items))
+	}
+}
+
 func TestOneShotFiresOnceAndDeletesItself(t *testing.T) {
 	a, now := newTestApp(t)
 	if _, err := a.CreateSchedule("File the return", "2026-09-10", ""); err != nil {
