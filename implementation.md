@@ -657,7 +657,7 @@ line from the description meant the mouse, or tabbing past everything between.
   the promise the key bar already makes: a key is never advertised without
   working
 - **boxes and buttons choose their letters before lists do.** On a project's
-  page "Add an action" and the "Actions" heading over the list both want `a`,
+  page "Add" and the "Actions" heading over the list both want `a`,
   and document order would give it to the list. The button gets it: it is
   pressed far more often than the list is stepped into, and the list has
   `j`/`k` reaching it from anywhere anyway. It takes `i` instead, which is
@@ -866,7 +866,7 @@ and all eight branches on screen at once — three buttons and five forms in
 - **the branches are grouped into rows by what the answer costs**, one row per
   group, and the grouping is the only structure the screen has left now that
   the prose is gone:
-  - **nothing changes but the audit log** — Trash, Reference material,
+  - **nothing changes but the audit log** — Delete, Reference material,
     Two-minute rule. The item leaves and no new object is created; the record
     that it existed is the audit entry
   - **it moves to a list, still unclarified** — Someday/Maybe, alone in its row
@@ -1010,15 +1010,16 @@ A captured line that is a completion request (design.md, "Completion requests")
   It wears the accent and takes the focus, so `Enter` gives it: a tick on the
   phone is a claim that the work is done, and confirming it is the answer that
   is right whenever the phone was right — which is nearly always, since the
-  tick was deliberate. Ignoring stays one keystroke away (`t`, the same branch
+  tick was deliberate. Deleting stays one keystroke away (`t`, the same branch
   it posts to) and exactly as wide, because a wider button reads as the safer
   one and which answer is safe here depends only on what actually happened. The
   pair is held to the form width and does not wrap: two answers side by side
   are the question's shape, and a wrapped pair reads as a list of options
-- **ignoring is the trash branch under another name**, and is written as one:
-  the request is deleted with its audit entry, and nothing touches the action.
-  A separate "ignore" that did the same thing differently would be two ways to
-  throw away an inbox item
+- **the second answer is the delete branch, and now says so**, and is written
+  as one: the request is deleted with its audit entry, and nothing touches the
+  action. It used to be called `Ignore`, which named a mood rather than what
+  the press does (see "Button labels"); a separate ignore that did the same
+  thing differently would be two ways to throw away an inbox item
 
 ## Stage two
 
@@ -1164,8 +1165,8 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   text is captured again with the tags written into it (design.md, "Reshaping
   items"). What it costs is that the inbox now has to be emptied, which is the
   point of pressing it
-- **there is no Trash here.** An idea is trashed where everything else is
-  trashed — in the inbox, by the branch that does that — so this screen does
+- **there is no Delete here.** An idea is deleted where everything else is
+  deleted — in the inbox, by the branch that does that — so this screen does
   not carry a second, quieter copy of a decision the app makes in one place
 - **the page says its name once, in the title bar.** It carried a crumb of its
   own — a `Someday/Maybe` link over the form — from before the title bar
@@ -1182,6 +1183,61 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   item is not on the someday list any more, and the honest answer to "then
   what?" is the place it went — which is also the place that now has one more
   thing to answer
+
+## Button labels
+
+One word per act, and the same word wherever the act appears. Seventy-six
+controls had grown seventy-six labels, because each was named where it was
+written rather than against the ones already there: three names for writing an
+action, four for finishing an item, two for leaving a screen. A label nobody
+chose is a label nobody can defend, and the reader pays for it every time —
+two buttons doing the same thing in different words read as two different
+things.
+
+| word | what pressing it does |
+|---|---|
+| `Cancel` | leaves the screen without doing anything |
+| `Create` | commits the form it sits under |
+| `Add` | opens the thing a new item is written in |
+| `Delete` | destroys it |
+| `Done` | finishes it, and `Undone` lifts that again |
+| `Today` | picks it for today, and `Not today` drops the pick |
+| `Next` | makes it the project's next action, and `Parked` is its reverse |
+| `Save` | writes the open form's edits |
+
+- **a state toggle is named for the state, not for the act.** `Done`/`Undone`,
+  `Today`/`Not today` and `Next`/`Parked` each say what the item becomes, so a
+  pair reads as one setting with two positions. `Complete` against `Bring
+  back`, and `Mark as next` against `Park`, read as two unrelated verbs that
+  happen to sit near each other, which is what they were
+- **`Next`/`Parked` keeps both words positive** where the other two pairs
+  negate. The row badge already renders `parked` and the meta line already
+  takes `#parked` (see "The meta line"), so the button now says the word the
+  item is described by in two other places — spending `Not next` would have
+  thrown that away to buy symmetry nothing needed
+- **`Add` opens, `Create` commits.** The two had collided: the project branch
+  carries a control that opens the draft dialog directly above the one that
+  creates the project, and both wanted to be called the same thing. The opener
+  makes nothing, so it does not get the word that means "make it"
+- **`Delete` is the only word for destroying.** `Trash`, `Ignore` and `Throw
+  the request away` were one act wearing three coats — all three post to the
+  same branch. What the completion request's answer deletes is the request,
+  which is the only thing on that screen the reader could mean: the item is
+  named above it and stays open, and the screen says so (see "A completion
+  request asks one question")
+- **`Cancel` is the way out even where nothing is being edited.** A completed
+  item opens read-only (see "Reading a completed item") and its only other
+  control lifts the freeze, so there is no edit for `Cancel` to abandon. It
+  still says `Cancel`, because the alternative is one screen in the app where
+  leaving is called something else — which is the thing this section exists to
+  stop
+- **screens keep their own names.** A dialog titled "Add an action", a trail
+  reading "… / Create project", a page headed "New schedule": these say where
+  you are, not what a control does. Collapsing them to the control's one word
+  would cost the reader the only line on the screen that says what it is for
+- **the key bar follows the button.** Where a bar label named a renamed act it
+  was renamed with it, keeping the bar's lowercase (see "The keys"). The bar
+  and the button must never call the same press two things
 
 ## Create buttons
 
@@ -2133,7 +2189,7 @@ off it (see "Panels").
   on every screen (see "Panels"). Two headers saying the same number is one too
   many, and the one that goes is the one that only some screens had. The partial
   that rendered them (`counthead`) went with them; `pagehead` is left to the
-  headers that carry something else, like the Scheduler's "New schedule"
+  headers that carry something else, like the Scheduler's create button
 - **the key bar is tinted away from the page colour** and separated by a rule.
   It is chrome, and must not read as the last row of the list
 - **the bar offers only keys that will currently do something.** It is built
@@ -2626,14 +2682,14 @@ elsewhere.
 - **so does Complete, for the same reason one level along.** It carried no
   `back` either, so `back()` fell to the Referer — this page — and completing
   an action left you standing on it: first as the edit form with the button
-  flipped to "Bring back", and since the freeze as the read-only record of what
+  flipped to "Undone", and since the freeze as the read-only record of what
   you had just finished (see "Reading a completed item"). Either way the press
   read as having failed while the action really was done, and either way the
   screen you were left on was not the one you were working in (design.md,
   "Editing items"). The doing screen's complete form carries `back` for exactly
   this reason (see "Doing"), and it is the same form posting to the same verb —
   so this is the page catching up rather than a new rule. It also makes
-  `Bring back` the one form on these screens that carries no destination, which
+  `Undone` the one form on these screens that carries no destination, which
   is what "Reading a completed item" says of it
 - **the project ask carries the destination on.** When the completion leaves
   the project with no next action, the redirect to `/project/{id}?ask=1` adds
@@ -2707,7 +2763,7 @@ second shape.
   written it is a `<textarea>`, which can hold no links, so the links it holds
   are chips beside it ("Links in item text"). With no box there is no need:
   `linkify` makes them live in the words themselves
-- **one button, and it is `Bring back`.** It carries no `back` field, unlike
+- **one button, and it is `Undone`.** It carries no `back` field, unlike
   every other form on these screens: the point of pressing it is to have the
   item open and editable, so the redirect falls through to the Referer and
   leaves you on the page you pressed it on — which has just become the form.
@@ -2850,7 +2906,21 @@ Rough edges that were looked at, understood, and left as they are for now. Kept
 so the next pass starts from the reasoning rather than rediscovering it — and
 so none of them reads as something nobody noticed.
 
-- **the Scheduler's "New schedule" button.** The Inbox's equivalent was
+- **the two `Apply` buttons.** The filter bar's and the Archive's own filter
+  form's are the same word on two unrelated controls, and the Archive's is not
+  even the same kind — it posts a whole form where the other applies a line.
+  Naming them apart means first deciding whether the Archive keeps a filter
+  form of its own (see "Interface density")
+- **`Inbox` on the someday item's page**, which is a destination used as a
+  verb. It is the one control in the app named for where the item lands rather
+  than for what happens to it, and the honest alternatives all describe a
+  decision — "reconsider", "decide again" — that the app has no other word for
+  yet
+- **the remove control on a remembered name is still `×`**, and the
+  unknown-name dialog still offers "Take @home out of the line". Neither is a
+  word, so neither is reachable by the rule above; they are the two places the
+  app removes something that is not an item
+- **the Scheduler's create button.** The Inbox's equivalent was
   replaced by keys (`p` and `z`, see "Processing from the Inbox"); the
   Scheduler's is the same shape of control and has not been through that yet
 - **the list views' header is still a bare number when there is one.** Dropping
