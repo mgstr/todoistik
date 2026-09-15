@@ -36,9 +36,9 @@
          you wanted to do to it happens. The Archive it was opened from no
          longer holds it. */}}
     <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline">
-      <button class="primary">Bring back</button>
+      <button class="primary">Undone</button>
     </form>
-    <a class="button" href="{{$d.Back}}">Back</a>
+    <a class="button" href="{{$d.Back}}">Cancel</a>
   </div>
 
   {{else}}
@@ -70,21 +70,21 @@
          read-only branch above — see implementation.md, "Writing an action" */}}
     <form method="post" action="/action/{{$a.ID}}/complete" class="inline">
       <input type="hidden" name="back" value="{{$d.Back}}">
-      <button>Complete</button>
+      <button>Done</button>
     </form>
-    <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Unpick from today{{else}}Pick for today{{end}}</button></form>
+    <form method="post" action="/action/{{$a.ID}}/pick" class="inline"><button>{{if hasTag $a.Tags "today"}}Not today{{else}}Today{{end}}</button></form>
     {{if $a.ProjectID}}
       {{if $a.BecameNextAt}}
-      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button>Park</button></form>
+      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button>Parked</button></form>
       {{else}}
-      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button>Mark as next</button></form>
+      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button>Next</button></form>
       {{end}}
       <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button>Detach</button></form>
     {{else}}
       {{/* the view this action was opened from goes with it, so the trail on
            the next screen still says where you are rather than restarting at
            the action */}}
-      <a class="button" href="/action/{{$a.ID}}/promote?from={{$d.Back}}">Promote to project</a>
+      <a class="button" href="/action/{{$a.ID}}/promote?from={{$d.Back}}">Promote</a>
     {{end}}
     {{/* delete says where to go afterwards, because the page it was pressed
          on is about to stop existing — see implementation.md, "Writing an
@@ -93,7 +93,7 @@
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button class="danger">Delete</button>
     </form>
-    <a class="button" href="{{$d.Back}}">Back</a>
+    <a class="button" href="{{$d.Back}}">Cancel</a>
   </div>
 
   {{end}}

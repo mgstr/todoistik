@@ -33,9 +33,9 @@
          project back first. No `back` on it, because a project brought back
          is one you are now standing on and about to do something to. */}}
     <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline">
-      <button class="primary">Bring back</button>
+      <button class="primary">Undone</button>
     </form>
-    <a class="button" href="{{$d.Back}}">Back</a>
+    <a class="button" href="{{$d.Back}}">Cancel</a>
   </div>
 
   {{else}}
@@ -48,7 +48,7 @@
       {{if not $p.OpenActions}}
       <form method="post" action="/project/{{$p.ID}}/complete" class="inline">
         <input type="hidden" name="back" value="{{$d.Back}}">
-        <button class="primary">Complete the project</button>
+        <button class="primary">Done</button>
       </form>
       {{end}}
       <span class="muted">…or mark an action as next / add one below. Doing nothing is allowed — the project will shout as stalled.</span>
@@ -78,7 +78,7 @@
        under the list it adds to. */}}
   <div class="actionsbar">
     <a class="button" href="/project/{{$p.ID}}/addaction"
-       data-key="^a" data-key-label="add action">Add an action</a>
+       data-key="^a" data-key-label="add">Add</a>
   </div>
 
   {{/* the same row of buttons an action's page carries, in the same order:
@@ -90,13 +90,13 @@
          "Writing a project" */}}
     <form method="post" action="/project/{{$p.ID}}/complete" class="inline">
       <input type="hidden" name="back" value="{{$d.Back}}">
-      <button>Complete</button>
+      <button>Done</button>
     </form>
     <form method="post" action="/project/{{$p.ID}}/delete" class="inline">
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button class="danger">Delete</button>
     </form>
-    <a class="button" href="{{$d.Back}}">Back</a>
+    <a class="button" href="{{$d.Back}}">Cancel</a>
   </div>
 
   {{end}}

@@ -9,14 +9,14 @@
   </div>
 
   <div class="branches">
-    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="trash">
-      <button>Trash</button>
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="delete">
+      <button>Delete</button>
     </form>
     <form method="post" action="/process/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
       <button title="not actionable, kept outside the app">Reference material</button>
     </form>
-    <form method="post" action="/process/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="done">
-      <button title="under two minutes: do it now, record it done">Two-minute rule — done</button>
+    <form method="post" action="/process/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="two-minute rule">
+      <button title="under two minutes: do it now, record it done">Two-minute rule</button>
     </form>
   </div>
 

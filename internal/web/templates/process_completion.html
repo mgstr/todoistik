@@ -18,11 +18,11 @@
        Ignoring stays one keystroke away and the same size, because a wider
        button would read as the safer answer (see implementation.md) */}}
   <div class="branches answers">
-    <form method="post" action="/process/{{$d.ID}}/confirm{{$q}}" data-key="c" data-key-label="complete">
-      <button class="primary" autofocus title="complete it, stamped with the time it was finished">Complete it</button>
+    <form method="post" action="/process/{{$d.ID}}/confirm{{$q}}" data-key="c" data-key-label="done">
+      <button class="primary" autofocus title="complete it, stamped with the time it was finished">Done</button>
     </form>
-    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" data-key="t" data-key-label="ignore">
-      <button title="it is not done; the request goes and the item stays open">Ignore</button>
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" data-key="t" data-key-label="delete">
+      <button title="it is not done; the request goes and the item stays open">Delete</button>
     </form>
   </div>
   {{else}}
@@ -36,8 +36,8 @@
     {{end}}
   </p>
   <div class="branches">
-    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="throw away">
-      <button>Throw the request away</button>
+    <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline" data-key="t" data-key-label="delete">
+      <button>Delete</button>
     </form>
   </div>
   {{end}}
