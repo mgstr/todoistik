@@ -299,10 +299,15 @@ func (a *App) fireSchedules(tx *sql.Tx) error {
 		fired := false
 		for _, day := range occ {
 			text := applySuffix(s.Text, s.Suffix, day)
-			if _, _, err := a.captureTx(tx, text); err != nil {
+			_, accepted, err := a.captureTx(tx, text)
+			if err != nil {
 				return err
 			}
-			fired = true
+			// a capture dropped as a duplicate put nothing anywhere, so it is
+			// not a firing: lastFiredAt is "when it last put something in the
+			// inbox" (design.md, "Schedule"), and an occurrence that collapsed
+			// stays outstanding until one of them lands.
+			fired = fired || accepted
 		}
 		if fired {
 			if _, err := tx.Exec(`UPDATE schedules SET last_fired_at=? WHERE id=?`, ts(a.now()), s.ID); err != nil {

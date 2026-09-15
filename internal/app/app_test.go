@@ -259,6 +259,69 @@ func TestOneShotFiresOnceAndDeletesItself(t *testing.T) {
 	}
 }
 
+// A firing whose capture collapsed put nothing anywhere, so it is not a
+// firing: lastFiredAt is the field the weekly review reads to see that a
+// schedule is working (design.md, "Schedule"), and the occurrence stays
+// outstanding until one of them lands.
+func TestCollapsedFiringIsNotAFiring(t *testing.T) {
+	a, now := newTestApp(t)
+	if _, err := a.CreateSchedule("Empty the dishwasher", "* * *", ""); err != nil {
+		t.Fatal(err)
+	}
+	*now = now.AddDate(0, 0, 1)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	ss, _ := a.Schedules("")
+	firstFire := ss[0].LastFiredAt
+	if firstFire == nil {
+		t.Fatal("a schedule that put an item in the inbox must record firing")
+	}
+	// the next day, with the item still sitting in the inbox, unprocessed
+	*now = now.AddDate(0, 0, 1)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	if items, _ := a.Inbox(); len(items) != 1 {
+		t.Fatalf("identical captures must collapse: %v", itemTexts(items))
+	}
+	ss, _ = a.Schedules("")
+	if got := ss[0].LastFiredAt; got == nil || !got.Equal(*firstFire) {
+		t.Errorf("lastFiredAt moved on a firing that put nothing in the inbox: %v, want %v", got, firstFire)
+	}
+	if n := countAudit(t, a, EvFired, "schedule"); n != 1 {
+		t.Errorf("audit log holds %d firings, want 1: a collapsed capture is not one", n)
+	}
+	// once the inbox is empty the outstanding occurrences land, as one item
+	items, _ := a.Inbox()
+	if err := a.ProcessTrash(items[0].ID); err != nil {
+		t.Fatal(err)
+	}
+	*now = now.AddDate(0, 0, 1)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	items, _ = a.Inbox()
+	if got := itemTexts(items); !reflect.DeepEqual(got, []string{"Empty the dishwasher"}) {
+		t.Errorf("after the inbox was emptied the chore must come back once, got %v", got)
+	}
+}
+
+func countAudit(t *testing.T, a *App, event, itemType string) int {
+	t.Helper()
+	entries, err := a.AuditLog(1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, e := range entries {
+		if e.Event == event && e.ItemType == itemType {
+			n++
+		}
+	}
+	return n
+}
+
 func TestTodayTagClears(t *testing.T) {
 	a, now := newTestApp(t)
 	if err := a.DayStart(); err != nil { // the day is opened before anything else happens
