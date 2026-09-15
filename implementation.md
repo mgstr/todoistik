@@ -1742,6 +1742,35 @@ notation, and a list is read, not decoded.
   that without lying about it. The expression itself is the honest answer, and
   it is the one thing here that is not prose on purpose
 
+### A firing is what the inbox accepted, not what the loop attempted
+
+`fireSchedules` walks the outstanding occurrences and captures one text per
+occurrence; `captureTx` answers with whether the inbox took it. That answer
+was thrown away, so a firing whose capture collapsed as a duplicate still
+stamped `lastFiredAt` and still wrote a `fired` row to the audit log — a
+schedule recording that it had put something somewhere when it had not.
+
+- **`lastFiredAt` is a claim about the inbox, not about the loop.** design.md,
+  "Schedule" gives it two jobs: the floor that closes a day the schedule has
+  already fired on, and the evidence at review time that a schedule is
+  actually working. Stamping it for a capture that collapsed made it lie in
+  the second job to do a first one it did not need doing — a schedule firing
+  every day into an inbox that never emptied would have carried a fresh
+  timestamp the whole time, which is precisely the state it exists to expose
+- **the audit log is the same claim, kept.** `EvFired` rows are what "when did
+  this last actually reach me" is answered from once the schedule itself is
+  gone (it deletes itself when it can fire no more), so a row that stands for
+  nothing is worse there than anywhere else
+- **the occurrence stays outstanding, and that is free.** Nothing tracks
+  instances, so an occurrence not recorded is simply offered again at the next
+  day start. The texts that collapsed are identical by definition, so a run of
+  outstanding ones produces exactly one item whenever the inbox is next empty
+  — the same arithmetic "every missed occurrence fires" already relies on
+- **the condition is `fired = fired || accepted`, not the last capture's
+  answer.** A run can be part accepted and part collapsed — a suffixed
+  schedule catching up across a day whose item is still in the inbox — and one
+  item having landed is a firing
+
 ## Links in item text
 
 design.md, "Following a link" asks for a link in an item's text to be pressable
