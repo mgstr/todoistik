@@ -1,6 +1,9 @@
 package app
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // The remembered lists as the Settings page needs them: every name, what
 // carries it, and whether it is one of the app's own.
@@ -137,6 +140,111 @@ func (a *App) count(query string) (int, error) {
 	var n int
 	err := a.db.QueryRow(query).Scan(&n)
 	return n, err
+}
+
+// NameCloud is the two remembered lists as the Settings screen shows them
+// through its filter line: what is left of each, and how many names are on
+// the screen out of how many there are. A parameter counts as a name of its
+// own, because it is removed on its own.
+type NameCloud struct {
+	Tags, Contexts []NameUse
+	Shown, Total   int
+}
+
+// NarrowNames narrows both lists by a filter line. Every word has to match,
+// the rule the name filter uses everywhere else (see matchName). A word with
+// # asks about tags only and one with @ about contexts only, so the notation
+// that writes a name also says which list it is looked for on; a bare word
+// asks both. `@person(mar` asks about the parameters under a context.
+//
+// A context whose own name does not match is still shown when one of its
+// parameters does, with only those parameters under it: a parameter read
+// without its context is a bare word, and `Marju` means nothing until it is
+// `@person(Marju)` (design.md, "Contexts").
+func NarrowNames(tags, contexts []NameUse, line string) NameCloud {
+	var words []nameWord
+	for _, w := range strings.Fields(strings.ToLower(line)) {
+		words = append(words, parseNameWord(w))
+	}
+	all := func(match func(nameWord) bool) bool {
+		for _, w := range words {
+			if !match(w) {
+				return false
+			}
+		}
+		return true
+	}
+	var c NameCloud
+	for _, t := range tags {
+		c.Total++
+		if all(func(w nameWord) bool { return w.tag(t.Name) }) {
+			c.Tags = append(c.Tags, t)
+		}
+	}
+	for _, ctx := range contexts {
+		c.Total += 1 + len(ctx.Params)
+		own := all(func(w nameWord) bool { return w.context(ctx.Name) })
+		var params []NameUse
+		for _, p := range ctx.Params {
+			if all(func(w nameWord) bool { return w.paramOf(ctx.Name, p.Name) }) {
+				params = append(params, p)
+			}
+		}
+		if !own && len(params) == 0 {
+			continue
+		}
+		shown := ctx
+		shown.Params = params
+		c.Contexts = append(c.Contexts, shown)
+	}
+	c.Shown = len(c.Tags)
+	for _, ctx := range c.Contexts {
+		c.Shown += 1 + len(ctx.Params)
+	}
+	return c
+}
+
+// nameWord is one word of the Settings filter line, taken apart.
+type nameWord struct {
+	sigil    string // "#", "@", or "" for either list
+	name     string // what the name has to contain
+	param    string // what the parameter has to contain, after a (
+	hasParam bool
+}
+
+func parseNameWord(w string) nameWord {
+	var nw nameWord
+	if strings.HasPrefix(w, "#") || strings.HasPrefix(w, "@") {
+		nw.sigil, w = w[:1], w[1:]
+	}
+	if i := strings.Index(w, "("); i >= 0 {
+		nw.hasParam = true
+		nw.param = strings.TrimSuffix(w[i+1:], ")")
+		w = w[:i]
+	}
+	nw.name = w
+	return nw
+}
+
+func (w nameWord) tag(name string) bool {
+	return w.sigil != "@" && !w.hasParam && strings.Contains(strings.ToLower(name), w.name)
+}
+
+func (w nameWord) context(name string) bool {
+	return w.sigil != "#" && !w.hasParam && strings.Contains(strings.ToLower(name), w.name)
+}
+
+// A parameter is found by its own text or by the context it sits under, so
+// `person` shows every person and `mar` shows Marju under @person.
+func (w nameWord) paramOf(ctx, value string) bool {
+	if w.sigil == "#" {
+		return false
+	}
+	ctx, value = strings.ToLower(ctx), strings.ToLower(value)
+	if w.hasParam {
+		return strings.Contains(ctx, w.name) && strings.Contains(value, w.param)
+	}
+	return strings.Contains(ctx, w.name) || strings.Contains(value, w.name)
 }
 
 func (a *App) countBy(query string) (map[string]int, error) {

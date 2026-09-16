@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -144,6 +145,66 @@ func (a *App) AddContext(name, param string) error {
 	return a.tx(func(tx *sql.Tx) error {
 		return a.rememberContextTx(tx, name, strings.TrimSpace(param))
 	})
+}
+
+// nameTokenRe is one name as the Settings line writes it: #name, @name or
+// @name(parameter), and nothing else on the line.
+var nameTokenRe = regexp.MustCompile(`^([@#])([^\s()]+)(\(([^()]*)\))?$`)
+
+// CreateName learns the one name a line spells. It is the Settings screen's
+// Create, and it takes the notation rather than a kind and a name because the
+// sigil is the only thing on that screen saying which list is meant.
+//
+// Three refusals are its own. A name that differs from one already on the list
+// only by case is the drift the list exists to stop (design.md, "Contexts"). A
+// tag has no parameter. And a parameter needs its context to exist first: the
+// kind of place is the deliberate name, and learning it as a side effect of one
+// value under it would add two names where one was typed.
+func (a *App) CreateName(line string) error {
+	line = strings.TrimSpace(line)
+	m := nameTokenRe.FindStringSubmatch(line)
+	if m == nil {
+		return fmt.Errorf("%q is not one name: #name, @name or @name(parameter)", line)
+	}
+	sigil, name, hasParam, param := m[1], m[2], m[3] != "", strings.TrimSpace(m[4])
+	if sigil == "#" {
+		if hasParam {
+			return fmt.Errorf("#%s: a tag has no parameter", name)
+		}
+		return a.AddTag(name)
+	}
+	contexts, err := a.Contexts()
+	if err != nil {
+		return err
+	}
+	have := ""
+	for _, c := range contexts {
+		if strings.EqualFold(c, name) {
+			have = c
+		}
+	}
+	if have != "" && have != name {
+		return fmt.Errorf("@%s is already on the list as @%s", name, have)
+	}
+	if !hasParam {
+		return a.AddContext(name, "")
+	}
+	if param == "" {
+		return fmt.Errorf("@%s(): a parameter needs a value", name)
+	}
+	if have == "" {
+		return fmt.Errorf("@%s is not a context yet", name)
+	}
+	params, err := a.ContextParams(name)
+	if err != nil {
+		return err
+	}
+	for _, p := range params {
+		if strings.EqualFold(p, param) && p != param {
+			return fmt.Errorf("@%s(%s) is already on the list as @%s(%s)", name, param, name, p)
+		}
+	}
+	return a.AddContext(name, param)
 }
 
 // plainName keeps a name to what the notation can carry back out of a written

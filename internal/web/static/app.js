@@ -39,10 +39,11 @@
     document.querySelectorAll(".ghint").forEach(function (h) { h.remove(); });
   }
 
-  // ctrl-j is g one level in: g goes to a view, ctrl-j goes to a control on
+  // ctrl-n is g one level in: g goes to a view, ctrl-n goes to a control on
   // the screen already open. Ctrl, because the whole point is reaching another
   // box without leaving the one the hands are in — a bare letter could not,
-  // since it would be typed into the box instead.
+  // since it would be typed into the box instead. It was ctrl-j until ctrl-j
+  // and ctrl-k became the list's own keys (see moveKey).
   let jPending = false;
   let jumpMap = {};
 
@@ -259,7 +260,7 @@
     const keys = [["q", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
-    if (jumpTargets().length) keys.push(["^j", "jump"]);
+    if (jumpTargets().length) keys.push(["^n", "jump"]);
     if (document.getElementById("help")) keys.push(["?", "help"]);
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -311,7 +312,11 @@
       return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
     }
     if (filterBox() && document.activeElement === filterBox()) {
-      return { view: [["\u21b5", "apply"], ["^f", "no filter"], ["esc", "leave the box"]], global: globalKeys() };
+      const keys = [["\u21b5", "apply"]];
+      if (createForm()) keys.push(["^\u21b5", "create"]);
+      if (rows().length) keys.push(["^j ^k", "to the list"]);
+      keys.push(["^f", "no filter"], ["esc", "leave the box"]);
+      return { view: keys, global: globalKeys() };
     }
     const closed = document.querySelector("[data-picker] .pickerbox");
     if (closed && closed === document.activeElement) {
@@ -352,6 +357,7 @@
     if (!zero) pushRowKeys(view, row);
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
+    if (createForm()) view.push(["^↵", "create"]);
     branchKeys().forEach(function (k) { view.push(k); });
     // offered only where the item under the cursor actually holds one, the way
     // every other entry here is derived from the page rather than written down
@@ -674,6 +680,17 @@
     if (row.querySelector("form.kb-complete")) into.push(["c", "done"]);
     if (canDo(row)) into.push(["d", "doing"]);
     if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
+    if (deleteForm(row)) into.push(["⌫", "delete"]);
+  }
+
+  // The row's own delete, and only one that can be pressed: a name still
+  // carried keeps its control disabled, and the bar must not offer a key the
+  // control would refuse. :scope, because a context's chip holds the chips of
+  // its parameters, and their deletes are not its own.
+  function deleteForm(row) {
+    const form = row && row.querySelector(":scope > form.kb-delete");
+    const btn = form && form.querySelector("button");
+    return btn && !btn.disabled ? form : null;
   }
 
   // What the create button in this scope offers, said the way the screen says
@@ -990,6 +1007,9 @@
     "filter-due": { contexts: 0, fields: [], dates: { due: WHEN_WINDOW }, prose: true },
     "filter-completed": { contexts: 0, fields: [], dates: { completed: WHEN_DONE }, prose: true },
     "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
+    // the Settings line asks about names rather than items, so a name nobody
+    // has heard of is not a mistake there: it is the one that may be created
+    "filter-names": { names: true, contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: {}, prose: true, waiting: true },
     action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE }, prose: false, waiting: true },
     project: { contexts: 0, fields: [], dates: { snooze: WHEN_SNOOZE }, prose: false },
     // an idea carries tags and nothing else — not even its own snooze, which
@@ -1042,6 +1062,7 @@
   // names the app has never been told about can be answered by creating one.
   function problemsIn(box) {
     const text = box.value, rules = rulesFor(box);
+    if (rules.names) return [];
     const out = [];
     const taken = [];
     let contexts = 0;
@@ -1134,6 +1155,39 @@
     mirror.appendChild(document.createTextNode(text.slice(at)));
     mirror.scrollLeft = box.scrollLeft;
     gateApply(box);
+    syncCreate();
+  }
+
+  // ---- Create, on the Settings line --------------------------------------
+  //
+  // The line is the name: `#bike` typed and matching nothing is what creating
+  // #bike looks like. The button is offered for exactly one #name or @name that
+  // neither list holds, compared without case — `#Car` beside #car is the drift
+  // the list is there to stop, so it is not something to offer. A bare word
+  // says neither list and gets nothing. What the page cannot tell is whether
+  // @shop(Lidl) has a context to go under; that is the server's refusal to say.
+  const CREATABLE = /^([@#])[\p{L}\p{N}_-]+(\([^()]+\))?$/u;
+
+  function createForm() {
+    const form = document.querySelector("form[data-create]");
+    return form && !form.hidden && keyLive(form) ? form : null;
+  }
+
+  function syncCreate() {
+    const form = document.querySelector("form[data-create]");
+    const box = filterBox();
+    if (!form || !box) return;
+    const line = box.value.trim();
+    const holder = document.querySelector("[data-names]");
+    const names = (holder ? holder.dataset.names : "").toLowerCase().split("\n");
+    const m = CREATABLE.exec(line);
+    const ok = !filterBar().hidden && !!m && !(m[1] === "#" && m[2]) &&
+      names.indexOf(line.toLowerCase()) < 0;
+    form.hidden = !ok;
+    if (ok) {
+      form.querySelector("[name=q]").value = line;
+      form.querySelector("button").textContent = "Create " + line;
+    }
   }
 
   function paintAll() { tokenBoxes().forEach(paintBox); }
@@ -1258,6 +1312,7 @@
     hideSuggest();
     if (filterBox().defaultValue === "") {
       bar.hidden = true;
+      syncCreate();
       renderKeybar();
       return;
     }
@@ -1570,6 +1625,15 @@
     if (row) select(row);
   }
 
+  // A row the server says to arrive on: the name Settings has just created,
+  // so that the key after ctrl-enter is already about it. Only when nothing
+  // else claimed the cursor, and only a row the page marked.
+  function arrive() {
+    if (selected()) return;
+    const row = document.querySelector("[data-kb-arrive]");
+    if (row) select(row);
+  }
+
   function submitIn(row, cls) {
     const form = row.querySelector("form." + cls);
     if (!form) return;
@@ -1606,6 +1670,27 @@
     const row = e.target.closest && e.target.closest("[data-kb-row]");
     if (row && row === selected()) handSelectionOn(row);
   }, true);
+
+  // ctrl-j and ctrl-k are j and k with the letters spoken for: the form vim
+  // itself uses, and the one the project picker already took. In a list they
+  // move, like j and k do. From the filter line they are the way out of the box
+  // and into the list it narrows — j and k cannot be, being letters the line is
+  // typed in — and the caret goes with them, or the next j would be typed into
+  // the filter. In any other box they are left alone: nothing is under a meta
+  // line to move to, and ctrl-k is the line's own kill-to-end on this machine.
+  function moveKey(e, delta) {
+    if (!rows().length) return false;
+    const box = filterBox();
+    if (box && e.target === box) {
+      hideSuggest();
+      box.blur();
+      move(delta);
+      return true;
+    }
+    if (typing(e)) return false;
+    move(delta);
+    return true;
+  }
 
   // Only a field you can put text into counts as typing. A radio or a
   // checkbox is an <input> too, and treating those as typing meant that
@@ -1698,13 +1783,18 @@
       return;
     }
 
-    // ctrl-j marks every control on the screen with a letter and takes the
+    // ctrl-n marks every control on the screen with a letter and takes the
     // next key as the one to go to. It is read after the screen's own declared
-    // keys, so a screen that wanted ^j for something of its own would keep it,
+    // keys, so a screen that wanted ^n for something of its own would keep it,
     // and it is not inside the block above because that one stands down for a
     // dialog — a form in a dialog is exactly where a jump is wanted.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "j") {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "n") {
       if (setJumping(true)) e.preventDefault();
+      return;
+    }
+
+    if (e.ctrlKey && !e.metaKey && !e.altKey && (keyOf(e) === "j" || keyOf(e) === "k")) {
+      if (moveKey(e, keyOf(e) === "j" ? 1 : -1)) e.preventDefault();
       return;
     }
 
@@ -1787,7 +1877,7 @@
       // enter applies the filter line; on a meta line it submits the form it
       // is in, which is the browser's own answer and is checked on the way
       // out like any other submit
-      if (e.key === "Enter" && box === filterBox()) { e.preventDefault(); applyFilter(); return; }
+      if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && box === filterBox()) { e.preventDefault(); applyFilter(); return; }
       // esc unwinds one step at a time, the way the project picker does: the
       // list first, then the box. It never closes the filter box — that is
       // ctrl-f, and it would take the filters with it
@@ -1801,6 +1891,9 @@
       // what the form's own submit button does, or nothing.
       if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
+        // the filter line's form is the filter, and applying it is plain
+        // Enter's; what ctrl-enter commits there is the name the line spells
+        if (e.target === filterBox()) { const make = createForm(); if (make) press(make); return; }
         submitScope(e.target);
         return;
       }
@@ -1821,6 +1914,8 @@
     // is inside — on every other screen a selected row is a link row sitting
     // in no form at all, so there is nothing there for this to reach.
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      const make = createForm();
+      if (make) { e.preventDefault(); press(make); return; }
       const row = selected();
       const here = (row && row.closest("form")) ||
         (document.activeElement && document.activeElement.closest &&
@@ -1887,6 +1982,16 @@
         break;
       case "r": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); removeDraft(row); } break;
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
+      // the key labelled delete on this keyboard, which the browser calls
+      // Backspace; forward-delete means the same. Straight away, with no
+      // question: only a name nothing carries can be deleted, so nothing an
+      // item says is lost by it
+      case "Backspace":
+      case "Delete": {
+        const form = deleteForm(row);
+        if (form) { e.preventDefault(); handSelectionOn(row); form.submit(); }
+        break;
+      }
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
       case "q": e.preventDefault(); openCapture(); break;
       case "?": {
@@ -2373,6 +2478,7 @@
     renderKeybar(); setupPickers(); gateAll();
     growAll();
     claimSelection();
+    arrive();
   });
 
   // A refused post must never be silent. htmx does not swap a 4xx, so a
@@ -2446,4 +2552,5 @@
   paintAll();
   renderKeybar();
   claimSelection();
+  arrive();
 })();

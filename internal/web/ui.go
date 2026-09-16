@@ -30,7 +30,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
 	"archive":   {"Archive", "finished commitments, newest first"},
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
-	"settings":  {"Settings", "the remembered tags and contexts — a name still in use cannot be removed"},
+	"settings":  {"Settings", "the remembered tags and contexts — a name has to be here before #car or @home means anything, which is what stops #car and #Car becoming two. The count is what carries it, and a name still carried cannot be removed. A parameter, @person(Marju), is its own name under its context. Filtering by #bike or @garage that matches nothing is how a name is created."},
 
 	// Reached only from the Inbox, so it has no nav entry — but it is a screen
 	// with a name, which the title bar's trail says out loud and zen.views can
@@ -1676,24 +1676,79 @@ func (s *Server) reviewDone(w http.ResponseWriter, r *http.Request) {
 // --- settings ------------------------------------------------------------
 
 type settingsData struct {
-	Tags     []app.NameUse
-	Contexts []app.NameUse
+	Cloud app.NameCloud
+	// Names is every name on both lists as the line writes it, one per line,
+	// whatever the filter hides: the key layer offers Create only for a line
+	// that is none of them (implementation.md, "The remembered lists")
+	Names string
+	// Made is the name just created, which the page selects on arrival so
+	// that the next key can already be about it
+	Made string
+}
+
+const settingsState = "filters:settings"
+
+// settingsLine is the Settings filter line, remembered the way every view's
+// filter set is. Only the line is kept: the address also carries err and made,
+// which say what just happened rather than what is being looked at.
+func (s *Server) settingsLine(r *http.Request) string {
+	q := r.URL.Query()
+	if q.Get("f") == "1" {
+		line := strings.TrimSpace(q.Get("q"))
+		s.app.SetState(settingsState, line)
+		return line
+	}
+	line, _ := s.app.GetState(settingsState)
+	return line
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
-	d := &settingsData{}
-	var err error
-	if d.Tags, err = s.app.TagList(); err != nil {
+	tags, err := s.app.TagList()
+	if err != nil {
 		httpError(w, err)
 		return
 	}
-	if d.Contexts, err = s.app.ContextList(); err != nil {
+	contexts, err := s.app.ContextList()
+	if err != nil {
 		httpError(w, err)
 		return
 	}
+	line := s.settingsLine(r)
+	d := &settingsData{Cloud: app.NarrowNames(tags, contexts, line), Made: r.URL.Query().Get("made")}
+	var names []string
+	for _, t := range tags {
+		names = append(names, "#"+t.Name)
+	}
+	for _, c := range contexts {
+		names = append(names, "@"+c.Name)
+		for _, v := range c.Params {
+			names = append(names, "@"+c.Name+"("+v.Name+")")
+		}
+	}
+	d.Names = strings.Join(names, "\n")
 	p := s.newPage("Settings", "settings", r)
+	// the line narrows names rather than items, so it is carried as the name
+	// filter: that is what opens the bar on a filtered visit
+	p.Filters = app.Filters{Name: line}
+	p.FilterMode = "filter-names"
+	p.Query = line
+	p.Shown, p.Total = d.Cloud.Shown, d.Cloud.Total
 	p.Data = d
 	s.render(w, "settings.html", p)
+}
+
+// settingsCreate is the Settings screen's Create: the line itself is the name,
+// and the screen comes back filtered by it, so the one name on it is the one
+// just made — or, refused, the line is still there to be corrected.
+func (s *Server) settingsCreate(w http.ResponseWriter, r *http.Request) {
+	line := strings.TrimSpace(r.FormValue("q"))
+	to := "/settings?f=1&q=" + url.QueryEscape(line)
+	if err := s.app.CreateName(line); err != nil {
+		to += "&err=" + url.QueryEscape(err.Error())
+	} else {
+		to += "&made=" + url.QueryEscape(line)
+	}
+	http.Redirect(w, r, to, http.StatusSeeOther)
 }
 
 // settingsAdd is where a name is learned. Nothing else teaches the app one:

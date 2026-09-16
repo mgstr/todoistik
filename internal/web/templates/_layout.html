@@ -510,10 +510,10 @@
      will make it removable. A dim button would suggest otherwise. */}}
 {{$u := .Use}}
 {{if not $u.Builtin}}
-<form method="post" action="{{.Action}}" class="inline">
+<form method="post" action="{{.Action}}" class="inline kb-delete">
   {{range $k, $v := .Fields}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}
   <button class="small danger" {{if not $u.Removable}}disabled{{end}}
-    title="{{if $u.Count}}still carried by {{$u.Count}} item(s){{else}}remove{{end}}">×</button>
+    title="{{if $u.Count}}still carried by {{$u.Count}} item(s){{else}}delete{{end}}">×</button>
 </form>
 {{end}}
 {{end}}
