@@ -244,6 +244,20 @@ titles, not a view, and processing and reviewing still happen at the desk
   the whole batch, and a batch with nothing in it makes no visit at all. A run
   cut off in the middle then leaves the list holding too much rather than too
   little, and too much is what the next run can fix
+- **`-view today` is one list, out of time first and then picked, and an
+  action in both is on it once.** The read API answers Today as its two groups
+  (design.md, "Today"), because the screen shows them apart; a Reminders list
+  has nowhere to show a group, so the client reads them back into one in the
+  screen's own order. The screen shows an action that is both due and picked
+  twice because each group answers its own question — on a list the second
+  copy would be a second reminder for one action, and ticking one would leave
+  the other still saying it is to do. Flattening happens in `internal/apiclient`,
+  where every view is read, so no caller has to know which views come grouped
+- **`-q` is refused with `-view today`.** Today carries no filters, so the app
+  answers the whole view whatever the line says. Accepting it would leave a
+  config line claiming the list is `#gc` while the list held everything picked,
+  and an error on the first run is cheaper than that being noticed on the
+  phone
 
 ### The completion channel
 

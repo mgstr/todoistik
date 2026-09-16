@@ -31,6 +31,12 @@ func syncRun(args []string, eh flag.ErrorHandling) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	// Today carries no filters (design.md, "Today"), so the app answers the
+	// whole view whatever the line says. Taking the line anyway would leave a
+	// list holding more than the line that fills it claims to ask for
+	if *view == "today" && strings.TrimSpace(*query) != "" {
+		return 0, fmt.Errorf("the today view carries no filters; drop -q %q", *query)
+	}
 	return sync(list, apiclient.Base(*f.base), *f.token, *view, *query, *f.dry)
 }
 
