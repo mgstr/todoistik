@@ -370,6 +370,7 @@
     if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
     const bar = filterBar();
     if (bar) view.push(["^f", bar.hidden ? "filter" : "no filter"]);
+    if (bar && !bar.hidden) view.push(["esc", "to the filter"]);
     return { view: view, global: globalKeys() };
   }
 
@@ -2105,6 +2106,17 @@
         const cancel = document.querySelector("[data-cancel]");
         if (cancel) { e.preventDefault(); window.location.href = cancel.dataset.cancel; break; }
         select(null);
+        // with the filter line up, leaving the list goes back to the line: the
+        // way back from ctrl-j, and the same one step out that esc in the box
+        // already is. With the bar down there is nowhere to go back to
+        const bar = filterBar();
+        if (bar && !bar.hidden) {
+          e.preventDefault();
+          const box = filterBox();
+          box.focus();
+          box.setSelectionRange(box.value.length, box.value.length);
+          renderKeybar();
+        }
         break;
       }
     }
