@@ -273,14 +273,40 @@ then deleted.
   because everything that reads this line splits it on whitespace
 - **the reminder is deleted once the request is filed.** The tick is a message,
   and a message left in the outbox is sent again on every run — nothing
-  anywhere remembers that a request was already made, and design.md keeps it
+  remembers that a request was made once it has been answered, and design.md keeps it
   that way deliberately, because "not done" is a state and not a decision.
   Deleting it closes the loop with no stored state at all: accepting means the
   reminder never returns, and ignoring means the next run finds the action still
-  in the view and writes a fresh open reminder, which is the truthful answer to
-  "no, I have not done that". The cost is a window where the item is neither on
-  the phone nor finished, and that is only the safe direction to be wrong in
-  because the item is in the app throughout
+  in the view with nothing waiting on it and writes a fresh open reminder, which
+  is the truthful answer to "no, I have not done that". The cost is that the
+  item is neither on the phone nor finished until the request is answered, and
+  that is only the safe direction to be wrong in because the item is in the app
+  throughout
+- **an item a request in the inbox names is held back from the list** until the
+  request is answered. The first version only held it back on the run that
+  filed the request, on the assumption that the answer would come before the
+  next one; with `loop` running every five minutes it never did, and the ticked
+  item was back on the phone, open, long before anyone reached the desk. So
+  each run reads `GET /api/view/inbox` as well as its view, and an item any
+  unanswered request names counts as not in the view. The unanswered request
+  is the memory — nothing else here has to keep one, and deleting it at the
+  desk is exactly what lets the item come back. Beyond that:
+  - **it is taken out of the view, not only spared a new reminder**, so an open
+    reminder it still has — on another list, or written back before this rule —
+    is deleted like any other stranger. The request is about the action, not
+    about the list it was ticked on
+  - **a request from any source counts.** Only `reminders` files one today, but
+    anything saying "this looks done" is the same reason not to show the item
+    as undone
+  - **the line is read with `internal/request`**, the grammar it was written
+    with. The inbox carries `::15`, not the `(::15)` a title does, and matching
+    it by pattern here would be a second copy of the grammar to drift
+  - **a run that cannot read the inbox stops**, as it does when it cannot read
+    the view. Carrying on would write every held item back as open, which is
+    the one thing the read is for
+  - **holding back prints nothing in a real run**, because nothing moved. A dry
+    run names each held item, since it was asked why the list will look the
+    way it will
 - **a ticked reminder files its request whether or not its action is still in
   the view.** The marker is an identity and the app resolves one without a view,
   so an action snoozed, parked or untagged between the tick and the run does not
