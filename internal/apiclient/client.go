@@ -109,20 +109,63 @@ func (c *Client) View(name, query string) ([]Item, error) {
 	}
 
 	var answer struct {
-		Items []Item `json:"items"`
-		Error string `json:"error"`
+		Items json.RawMessage `json:"items"`
+		Error string          `json:"error"`
 	}
-	decodeErr := json.Unmarshal(payload, &answer)
+	json.Unmarshal(payload, &answer)
 
 	if err := refused(resp, answer.Error, payload); err != nil {
 		return nil, err
 	}
-	if decodeErr != nil {
+	items, ok := itemsOf(answer.Items)
+	if !ok {
 		// a view that answers with counts rather than a list of items — the
 		// weekly review does — is a mistake worth naming, not an empty run
 		return nil, fmt.Errorf("%w: the %s view did not answer with a list of items", ErrFatal, name)
 	}
-	return answer.Items, nil
+	return items, nil
+}
+
+// itemsOf reads a view's items as one list, whichever shape they came in.
+//
+// Every view answers with a list but "Today", which answers with its two
+// groups — what has run out of time and what was picked — because the screen
+// shows them apart (design.md, "Today"). A list has nowhere to show a group,
+// so here they are one list again: out of time first, the way the screen
+// orders them, and an action that is both due and picked once. It appears
+// twice on the screen because each group is answering its own question; on a
+// list the second copy would be a second reminder for one action, and ticking
+// one would leave the other saying it is still to do.
+func itemsOf(raw json.RawMessage) ([]Item, bool) {
+	var list []Item
+	if json.Unmarshal(raw, &list) == nil && (list != nil || string(raw) == "null") {
+		return list, true
+	}
+	// the groups are named rather than guessed at: an empty one arrives as
+	// null, and an answer that merely is an object — the review's counts — has
+	// to stay a refusal
+	var groups map[string]json.RawMessage
+	if json.Unmarshal(raw, &groups) != nil {
+		return nil, false
+	}
+	var all []Item
+	for _, g := range []string{"outOfTime", "picked"} {
+		part, named := groups[g]
+		var its []Item
+		if !named || json.Unmarshal(part, &its) != nil {
+			return nil, false
+		}
+		all = append(all, its...)
+	}
+	seen := map[int64]bool{}
+	for _, it := range all {
+		if seen[it.ID] {
+			continue
+		}
+		seen[it.ID] = true
+		list = append(list, it)
+	}
+	return list, true
 }
 
 func (c *Client) do(req *http.Request) ([]byte, *http.Response, error) {
