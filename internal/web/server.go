@@ -58,30 +58,6 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 			}
 			return strings.Join(out, " ")
 		},
-		"has": func(list any, item any) bool {
-			want := ""
-			switch v := item.(type) {
-			case string:
-				want = v
-			case app.Duration:
-				want = string(v)
-			}
-			switch l := list.(type) {
-			case []string:
-				for _, s := range l {
-					if s == want {
-						return true
-					}
-				}
-			case []app.Duration:
-				for _, d := range l {
-					if string(d) == want {
-						return true
-					}
-				}
-			}
-			return false
-		},
 		"hasTag": func(tags []string, tag string) bool {
 			for _, t := range tags {
 				if t == tag {
@@ -305,7 +281,7 @@ func parseFilters(q url.Values) app.Filters {
 		Name:      strings.TrimSpace(q.Get("name")),
 		Focus:     q.Get("focus"),
 		Due:       q.Get("due"),
-		Completed: q.Get("completed"),
+		Completed: strings.ToLower(q.Get("completed")),
 		Sort:      q.Get("sort"),
 		Desc:      q.Get("desc") == "1",
 	}
@@ -326,6 +302,13 @@ func parseFilters(q url.Values) app.Filters {
 	}
 	if f.Focus != "exclude" && f.Focus != "only" {
 		f.Focus = ""
+	}
+	// a window that cannot be read is dropped rather than kept: kept, it would
+	// match nothing and read back out of the box as a filter nobody can see
+	// why is empty. It is also what retires `lastweek`, which a remembered
+	// filter set from before `completed:` took periods may still say
+	if f.Completed != "" && !app.ValidCompleted(f.Completed) {
+		f.Completed = ""
 	}
 	return f
 }

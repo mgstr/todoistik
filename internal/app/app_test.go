@@ -955,8 +955,89 @@ func TestParseQueryWindows(t *testing.T) {
 	if _, problems = ParseQuery("snooze:2026-09-20", v); len(problems) != 1 || problems[0].Kind != ProblemNotAFilter {
 		t.Errorf("snooze: on a filter line gave %+v", problems)
 	}
-	if f, _ = ParseQuery("completed:lastweek", v); f.Completed != "lastweek" {
-		t.Errorf("completed = %q", f.Completed)
+	if f, _ = ParseQuery("completed:Monday", v); f.Completed != "monday" {
+		t.Errorf("completed = %q — a day name reads in any case and comes back lowercased", f.Completed)
+	}
+	// lastweek was a window before completed: took periods, and is not one now
+	if _, problems = ParseQuery("completed:lastweek", v); len(problems) != 1 || problems[0].Kind != ProblemWindow {
+		t.Errorf("completed:lastweek gave %+v", problems)
+	}
+}
+
+// A completed window is a calendar period and never a rolling one, and a day
+// name looks back without landing on today (design.md, "Archive"). Worked
+// from a Wednesday, so that a week back and the week you are in differ.
+func TestCompletedRange(t *testing.T) {
+	const today = "2026-09-16" // a Wednesday
+	for _, tc := range []struct{ val, from, to string }{
+		{"2026-09-13", "2026-09-13", "2026-09-13"},
+		{"today", "2026-09-16", "2026-09-16"},
+		{"yesterday", "2026-09-15", "2026-09-15"},
+		{"monday", "2026-09-14", "2026-09-14"},
+		{"Thursday", "2026-09-10", "2026-09-10"},
+		{"wednesday", "2026-09-09", "2026-09-09"}, // never today: that is `today`
+		{"week", "2026-09-14", "2026-09-20"},
+		{"1week", "2026-09-14", "2026-09-20"},
+		{"2weeks", "2026-09-07", "2026-09-20"},
+		{"month", "2026-09-01", "2026-09-30"},
+		{"3months", "2026-07-01", "2026-09-30"},
+		{"year", "2026-01-01", "2026-12-31"},
+		{"2years", "2025-01-01", "2026-12-31"},
+	} {
+		from, to, ok := CompletedRange(tc.val, today)
+		if !ok || from != tc.from || to != tc.to {
+			t.Errorf("%s: got %s..%s ok=%v, want %s..%s", tc.val, from, to, ok, tc.from, tc.to)
+		}
+	}
+	for _, bad := range []string{"lastweek", "thisweek", "0weeks", "weeks", "2days", "2026-13-01", ""} {
+		if _, _, ok := CompletedRange(bad, today); ok {
+			t.Errorf("%q should not be a completed window", bad)
+		}
+	}
+}
+
+// The Archive narrows by the day the work was finished.
+func TestArchiveCompletedFilter(t *testing.T) {
+	a, now := newTestApp(t) // Friday 2026-09-04
+	done := func(title string, at time.Time) {
+		*now = at
+		act, err := a.CreateAction(0, ActionFields{Title: title}, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := a.CompleteAction(act.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	done("last month", time.Date(2026, 8, 20, 10, 0, 0, 0, time.UTC))
+	done("last week", time.Date(2026, 8, 26, 10, 0, 0, 0, time.UTC))
+	done("monday", time.Date(2026, 8, 31, 10, 0, 0, 0, time.UTC))
+	done("today", time.Date(2026, 9, 4, 9, 0, 0, 0, time.UTC))
+	*now = time.Date(2026, 9, 4, 10, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		window string
+		want   []string
+	}{
+		{"today", []string{"today"}},
+		{"monday", []string{"monday"}},
+		{"2026-08-26", []string{"last week"}},
+		{"week", []string{"today", "monday"}},
+		{"2weeks", []string{"today", "monday", "last week"}},
+		{"month", []string{"today"}},
+		{"2months", []string{"today", "monday", "last week", "last month"}},
+	} {
+		entries, err := a.Archive(Filters{Completed: tc.window})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := []string{}
+		for _, e := range entries {
+			got = append(got, e.Action.Title)
+		}
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("completed:%s = %v, want %v", tc.window, got, tc.want)
+		}
 	}
 }
 

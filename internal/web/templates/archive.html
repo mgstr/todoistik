@@ -1,22 +1,5 @@
 {{template "top" .}}
-{{$f := .Filters}}
-<form method="get" action="/archive" class="filters" data-autosubmit>
-  <input type="hidden" name="f" value="1">
-  <input name="name" value="{{$f.Name}}" placeholder="what did I do about… (/)" class="namebox">
-  <select name="completed">
-    <option value="">completed: anytime</option>
-    <option value="today" {{if eq $f.Completed "today"}}selected{{end}}>completed: today</option>
-    <option value="yesterday" {{if eq $f.Completed "yesterday"}}selected{{end}}>completed: yesterday</option>
-    <option value="thisweek" {{if eq $f.Completed "thisweek"}}selected{{end}}>completed: this week</option>
-    <option value="lastweek" {{if eq $f.Completed "lastweek"}}selected{{end}}>completed: last week</option>
-  </select>
-  <fieldset><legend>Tags</legend>
-    {{range .TagCloud}}<label class="chip"><input type="checkbox" name="tag" value="{{.}}" {{if has $f.Tags .}}checked{{end}}>#{{.}}</label>{{end}}
-  </fieldset>
-  <button>Apply</button>
-  <a href="/archive?f=1" class="reset">Reset all</a>
-</form>
-{{template "filterloud" .}}
+{{template "filterbar" .}}
 {{if not .Data}}<p class="empty">Nothing finished yet — or the filters are hiding it.</p>{{end}}
 {{range .Data}}
   {{if .Project}}

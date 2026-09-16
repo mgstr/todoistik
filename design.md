@@ -408,7 +408,7 @@ Filtering is one line, typed, and there is nothing on the screen until it is ask
 The bar holds three things and no labels: **how many items are on the screen**, the **line**, and **apply**.
 
 - **the count is the first thing, and it is one number when nothing is filtered.** Filtered, it reads `3 of 41` - what you are looking at, out of what the view holds. That is the loudness "Views" asks for, said in the place you are already looking rather than in a sentence underneath
-- **the line is written in the notation an item is written in** (see "Writing an action"): `@home` for the context, `#car` for a tag, `#short` and `#focus` for the fields that wear a tag's notation, `due:thisweek` for a window of time, and everything else is words to match the name by. One notation for describing a thing and for asking for it, so there is nothing extra to learn and no second set of names
+- **the line is written in the notation an item is written in** (see "Writing an action"): `@home` for the context, `#car` for a tag, `#short` and `#focus` for the fields that wear a tag's notation, `due:thisweek` or `completed:month` for a window of time, and everything else is words to match the name by. One notation for describing a thing and for asking for it, so there is nothing extra to learn and no second set of names
 - **a line may only say what its view filters by.** Each view offers a subset (see the view's own section), and the line offers exactly that subset: `@home` on "Tasks" is a question rather than a token quietly ignored, because a filter that silently did nothing would be a list you cannot trust for the same reason a hidden filter is
 - **apply is dead until the line has changed.** A button that can always be pressed says nothing about whether pressing it would do anything; this one says whether what you see is what you asked for
 - **the app completes the names it knows**, because they are the names it will accept - see "Contexts" and "Tags", where the rule that a name comes off a remembered list rather than being typed fresh comes from
@@ -577,11 +577,18 @@ The completed commitments: projects and standalone actions whose `completedAt` i
 - neither are the things done under the two minute rule. They never became items, so the audit log is their only record
 
 #### Filters
-The archive exists to answer "what did I do about X", and unfiltered it is only a pile that grows forever. The filters combine with **AND**, and reset the way they do everywhere else: each one on its own, plus a single control that clears them all.
+The archive exists to answer "what did I do about X", and unfiltered it is only a pile that grows forever. It is still filtered by the same line every long view is filtered by, and opens bare like the rest of them (see "The filter line"): what it is searched for is not a reason to keep a panel open on the one view nobody works through. The filters combine with **AND**:
 
-- **name** - the shared name filter, matching a standalone action by its title and a project by its title or by the title of any action it was completed with - see "Filtering by name"
-- **completed** - when it was finished, picked from a fixed list: **anytime** (the default), **today**, **yesterday**, **this week**, **last week**. These are calendar periods and not rolling windows - "this week" is the week you are in, Monday to Sunday, and "last week" the one before it, neither of them the last seven days. Anytime is how this filter resets. The list is short on purpose and there is no custom range: the archive is searched by what a thing was called far more often than by when it happened, and the near buckets are there mostly to answer "what did I actually get done today".
-- **tags** - the shared tag cloud - see "Filtering by tag"
+- **name** - every word of the line that is not notation, matching a standalone action by its title and a project by its title or by the title of any action it was completed with - see "Filtering by name"
+- **completed** - when it was finished, one window per line; leaving it out is anytime, which is how it resets. It takes:
+  - **a date**, `completed:2026-09-13` - that day. Unlike "what is coming at me", the past does not move with the day, so the question "what did I do on the 13th" has a fixed answer and is asked in the date it is about
+  - **today** and **yesterday**
+  - **a day name**, `completed:monday` - the most recent Monday before today, never today itself. Today already has its word, and a day name meaning the one ahead on a due date and the one behind here is the same rule facing the other way: the nearest day of that name that is not the one you are standing in
+  - **week**, **month**, **year** - the one you are in. Calendar periods and not rolling windows, as on the "Calendar": the week is Monday to Sunday, and "this month" on the 3rd is three days, not thirty
+  - **2weeks**, **3months**, **2years** - the period you are in and the ones before it, so `1week` is `week` and `2weeks` is this week and last. Counting whole periods back rather than days back keeps every window here the same kind of thing, and it is how the question is asked - "what did I get done this month and last" - rather than "since the 16th of August". It is also what replaced the fixed **last week**: that asked for the previous week alone, which nobody searching a finished pile needs apart from this one
+- **tags** - `#car`, as many as you like - see "Filtering by tag"
+
+The window used to be a fixed list - today, yesterday, this week, last week - on the argument that the archive is searched by name far more often than by date. That is still true, and is why name comes first; but a list of four answered "what did I do today" and nothing further back, which left the archive unable to say what happened in a month once the week it happened in had passed. A word typed on the line costs nothing when it is not used, which a longer dropdown did not.
 
 The archive carries neither context, nor duration, nor needs focus: those three ask whether something can be done right now, which is not a question the finished have.
 

@@ -109,13 +109,12 @@ type page struct {
 	When        bool   // the ? panel also explains what a schedule's When takes
 	Vocab       struct{ Contexts, Tags []string }
 	Filters     app.Filters
-	FilterQuery string   // current filter query string (for sort/order links)
-	Hidden      int      // how many items the filters hide
-	TagCloud    []string // every tag in use, for the views whose filter panel is still the old one
-	Query       string   // the filter set as a line, for the filter box
-	FilterMode  string   // which notation that line may use
-	Shown       int      // items on the screen
-	Total       int      // items the view holds with no filters at all
+	FilterQuery string // current filter query string (for sort/order links)
+	Hidden      int    // how many items the filters hide
+	Query       string // the filter set as a line, for the filter box
+	FilterMode  string // which notation that line may use
+	Shown       int    // items on the screen
+	Total       int    // items the view holds with no filters at all
 	Durations   []app.Duration
 	Nav         *app.NavCounts
 	Today       string
@@ -181,7 +180,6 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	} else {
 		p.Trail = []crumb{{Name: title}}
 	}
-	p.TagCloud, _ = s.app.TagsInUse()
 	p.Durations = app.Durations
 	// the remembered lists ride on every page: any screen may hold a box that
 	// completes a name as it is typed (see implementation.md, "Token boxes"),
@@ -485,6 +483,11 @@ func (s *Server) archivePage(w http.ResponseWriter, r *http.Request) {
 			p.Hidden = len(all) - len(entries)
 		}
 	}
+	// the finished are narrowed by when, by tag and by name (design.md,
+	// "Archive"), so that is all its line may say
+	p.FilterMode = "filter-completed"
+	p.Shown, p.Total = len(entries), len(entries)+p.Hidden
+	p.Query = f.Query()
 	p.Data = entries
 	s.render(w, "archive.html", p)
 }

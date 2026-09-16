@@ -358,7 +358,6 @@
     if (itemLinks(linkScope()).length) view.push(["^o", "open link"]);
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
-    if (document.querySelector(".namebox")) view.push(["/", "filter"]);
     const bar = filterBar();
     if (bar) view.push(["^f", bar.hidden ? "filter" : "no filter"]);
     return { view: view, global: globalKeys() };
@@ -957,6 +956,9 @@
   const DATE_OK = /^\d{4}-\d{2}-\d{2}$/;
   const NDAYS_OK = /^\d+(d|days?)$/;
   const NDAYS_ZERO = /^0+(d|days?)$/;
+  // `2weeks`: the period you are in and the ones before it — CompletedRange
+  // in query.go is what reads it, and this only knows the shape
+  const PERIODS_OK = /^0*[1-9]\d*(week|month|year)s?$/;
 
   // Each box says what it takes. contexts is how many an item can have, fields
   // are the #names that stand for fields rather than tags, dates are the two
@@ -975,6 +977,10 @@
   const WHEN_DUE = { date: true, days: true, words: ["today", "tomorrow"].concat(DAY_NAMES) };
   const WHEN_SNOOZE = { date: true, days: true, ahead: true, words: ["tomorrow"].concat(DAY_NAMES) };
   const WHEN_WINDOW = { date: false, days: false, words: DUE_WINDOWS };
+  // what was finished is asked about looking back: a day, a day name, or a
+  // period. Any case, since `Monday` is how the word is written in prose
+  const WHEN_DONE = { date: true, days: false, periods: true, anycase: true,
+    words: ["today", "yesterday", "week", "month", "year"].concat(DAY_NAMES) };
   const BOX_RULES = {
     filter: { contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: {}, prose: true },
     // some views filter by tag and by name and by nothing else — design.md
@@ -982,6 +988,7 @@
     // the rest would be the app pretending to have narrowed something
     "filter-tags": { contexts: 0, fields: [], dates: {}, prose: true },
     "filter-due": { contexts: 0, fields: [], dates: { due: WHEN_WINDOW }, prose: true },
+    "filter-completed": { contexts: 0, fields: [], dates: { completed: WHEN_DONE }, prose: true },
     "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
     action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE }, prose: false, waiting: true },
     project: { contexts: 0, fields: [], dates: { snooze: WHEN_SNOOZE }, prose: false },
@@ -1097,7 +1104,9 @@
   // reason the server leaves it alone — it is a claim that went stale, and the
   // weekly review is what catches it.
   function dateProblem(spec, val) {
+    if (spec.anycase) val = val.toLowerCase();
     if (spec.date && DATE_OK.test(val)) return "";
+    if (spec.periods && PERIODS_OK.test(val)) return "";
     if (spec.ahead && (val === "today" || NDAYS_ZERO.test(val))) return "not-ahead";
     if (spec.words.indexOf(val) >= 0) return "";
     if (spec.days && NDAYS_OK.test(val)) return "";
@@ -1166,6 +1175,7 @@
     const digits = /^\d+$/.test(t.prefix);
     const zero = digits && Number(t.prefix) === 0;
     if (spec.days && digits && !(spec.ahead && zero)) words.unshift(t.prefix + "days");
+    if (spec.periods && digits && !zero) words.unshift(t.prefix + "weeks", t.prefix + "months", t.prefix + "years");
     return words;
   }
 
@@ -1365,6 +1375,11 @@
     "filter-due": {
       "no-context": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
       "not-here": function (p) { return "this view filters by when something is due, by tag and by name; " + p.text + " has nothing to narrow here"; },
+    },
+    "filter-completed": {
+      "no-context": function (p) { return "this view filters by when something was finished, by tag and by name; " + p.text + " has nothing to narrow here"; },
+      "not-here": function (p) { return "this view filters by when something was finished, by tag and by name; " + p.text + " has nothing to narrow here"; },
+      "bad-date": function (p) { return p.text + " is not a day or a period — write it as completed:2026-09-13, completed:yesterday, completed:monday, completed:month or completed:3weeks"; },
     },
     // an idea carries the area it is about and nothing else — not a field an
     // action has, and not a date: the two refusals differ only in the wording
@@ -1874,12 +1889,6 @@
       case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
       case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
       case "q": e.preventDefault(); openCapture(); break;
-      case "/": {
-        e.preventDefault();
-        const box = document.querySelector(".namebox");
-        if (box) box.focus();
-        break;
-      }
       case "?": {
         e.preventDefault();
         const help = document.getElementById("help");
@@ -2437,10 +2446,4 @@
   paintAll();
   renderKeybar();
   claimSelection();
-
-  // filter forms apply themselves on any change
-  document.addEventListener("change", function (e) {
-    const form = e.target.closest("form[data-autosubmit]");
-    if (form) form.submit();
-  });
 })();

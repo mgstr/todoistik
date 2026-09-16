@@ -16,7 +16,7 @@ type Filters struct {
 	Durations []Duration `json:"durations,omitempty"`
 	Focus     string     `json:"focus,omitempty"`     // "", "exclude", "only"
 	Due       string     `json:"due,omitempty"`       // "", today, tomorrow, thisweek, nextweek
-	Completed string     `json:"completed,omitempty"` // "", today, yesterday, thisweek, lastweek
+	Completed string     `json:"completed,omitempty"` // "", or what CompletedRange reads
 	Sort      string     `json:"sort,omitempty"`      // "age" (default) or "title"
 	Desc      bool       `json:"desc,omitempty"`
 }
@@ -152,29 +152,22 @@ func (a *App) matchDue(bucket, due, today string) bool {
 	return true
 }
 
-func (a *App) matchCompleted(bucket string, completedAt *time.Time) bool {
-	if bucket == "" {
+// matchCompleted: the finished day falls inside the window the filter names.
+// A window that cannot be read matches nothing, because a filter that quietly
+// matched everything would be a list claiming to be narrowed that is not.
+func (a *App) matchCompleted(window string, completedAt *time.Time) bool {
+	if window == "" {
 		return true
 	}
 	if completedAt == nil {
 		return false
 	}
-	day := completedAt.In(a.loc).Format(DateFormat)
-	today := a.Today()
-	now, _ := time.Parse(DateFormat, today)
-	switch bucket {
-	case "today":
-		return day == today
-	case "yesterday":
-		return day == now.AddDate(0, 0, -1).Format(DateFormat)
-	case "thisweek":
-		from, to := weekOf(now)
-		return day >= from && day <= to
-	case "lastweek":
-		from, to := weekOf(now.AddDate(0, 0, -7))
-		return day >= from && day <= to
+	from, to, ok := CompletedRange(window, a.Today())
+	if !ok {
+		return false
 	}
-	return true
+	day := completedAt.In(a.loc).Format(DateFormat)
+	return day >= from && day <= to
 }
 
 // --- loading -------------------------------------------------------------
@@ -590,10 +583,4 @@ func (a *App) Archive(f Filters) ([]*ArchiveEntry, error) {
 	}
 	sort.SliceStable(entries, func(i, j int) bool { return entries[i].CompletedAt.After(entries[j].CompletedAt) })
 	return entries, nil
-}
-
-// TagsInUse returns every tag currently carried by at least one item — the
-// tag cloud (without #today).
-func (a *App) TagsInUse() ([]string, error) {
-	return a.stringList(`SELECT DISTINCT tag FROM item_tags WHERE tag != '` + TodayTag + `' ORDER BY tag`)
 }

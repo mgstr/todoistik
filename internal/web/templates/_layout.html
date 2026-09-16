@@ -184,10 +184,6 @@
      cannot drift from it. */}}
 {{define "count"}}{{if .}}<span class="count">{{.}}</span>{{end}}{{end}}
 
-{{define "filterloud"}}
-{{if .Filters.Active}}<p class="filtered">Filtered — {{.Hidden}} item(s) hidden. <a href="?f=1">Reset all filters</a></p>{{end}}
-{{end}}
-
 {{/* The filter box: one line that says what you want to see, summoned with
      ctrl-f and gone otherwise (design.md, "Filtering"). It is a partial rather
      than part of one page because it is meant to be the way every long view

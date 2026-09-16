@@ -30,7 +30,10 @@ body:not(.login) { display: flex; height: 100dvh; }
    under the rail, so its left edge lines up with the content whose keys it is
    listing rather than with the navigation */
 .pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-nav, #keybar, .error-banner { flex: 0 0 auto; }
+/* the title bar too: it scrolls sideways, which gives it a minimum height of
+   zero, so a list much taller than the window squeezed it in proportion to its
+   own height and the longest view — the Archive — lost most of the bar */
+nav, #keybar, #titlebar, .error-banner { flex: 0 0 auto; }
 /* min-height:0 is what lets a flex child actually scroll instead of stretching */
 main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 /* the scrollbar belongs to the window edge, so centre by padding rather than
@@ -282,16 +285,6 @@ section.project { border: 1px solid var(--line); border-radius: 10px; padding: .
 section.project h2 { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 section.project.done { opacity: .8; }
 
-.filters {
-  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
-  padding: .5rem; border: 1px solid var(--line); border-radius: 10px; margin: .5rem 0;
-  font-size: .88rem;
-}
-.filters fieldset { border: none; margin: 0; padding: 0; display: flex; gap: .3rem; flex-wrap: wrap; align-items: center; }
-.filters legend { float: left; color: var(--muted); margin-right: .3rem; padding: 0; }
-.chip { display: inline-flex; align-items: center; gap: .2rem; background: var(--badge-bg); border-radius: 8px; padding: .1rem .45rem; cursor: pointer; }
-.chip:has(input:checked) { background: var(--select); outline: 1px solid var(--accent); }
-.namebox { min-width: 14rem; }
 /* The filter box: a count, a line to type, and Apply. One row, no labels —
    what the box is for is the only thing on the screen that was not there a
    moment ago, and the count in front of it says what it is doing. See
@@ -388,7 +381,6 @@ section.project.done { opacity: .8; }
    not propagate into an atomic inline, which is the only way a child of an
    underlined link gets out of being underlined. */
 #links-dialog .lkey { display: inline-block; width: 1.1rem; color: var(--muted); text-decoration: none; }
-.filtered { color: var(--danger); font-weight: 600; }
 .reset { margin-left: .25rem; }
 
 input, textarea, select, button {

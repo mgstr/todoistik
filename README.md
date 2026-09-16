@@ -83,7 +83,7 @@ Views: `inbox someday projects tasks next today waiting calendar archive schedul
 Filter parameters (each view accepts the ones its screen offers): `name`,
 `tag` (repeatable), `context` (repeatable), `duration` (repeatable), `focus`
 (`exclude`/`only`), `due` (`today`/`tomorrow`/`thisweek`/`nextweek`),
-`completed` (`today`/`yesterday`/`thisweek`/`lastweek`), `sort` (`age`/`title`), `desc`.
+`completed` (`2026-09-13`, `today`/`yesterday`, a day name, `week`/`month`/`year`, `2weeks`/`3months`/`2years`), `sort` (`age`/`title`), `desc`.
 
 `q` is the same set written as one line, the way it is typed on the screen —
 `?q=@home %23car %23short milk` is `@home` and `#car` and `#short` and a title
