@@ -564,7 +564,7 @@ wrong shape.
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
-- `/` toggles the filter panel open (see "Interface density") and focuses the name box; filters stay reachable and resettable from the keyboard, as design.md requires
+- `/` is not a key any more. It focused the Archive's name box, the last filter panel left, and went with it: every view's filters are `ctrl-f` now (see "Token boxes"), and a second key for the same box on one view would be a key that means something in one place only
 
 ### Which key is which
 
@@ -1382,11 +1382,14 @@ key and gone otherwise — the progressive disclosure this section argues for,
 taken as far as it goes: not a collapsed panel but no panel at all. See "The
 filter box" for how it is built, and design.md, "The filter line" for why.
 
-- **one view still has its panel**, open on every visit: the Archive. It
-  filters by a completed window, which the line can already say
-  (`completed:lastweek` parses), so what is left there is the template.
-  Written down because the app is in two states about filtering until it
-  moves, and the half that has not moved is not the intended one
+- **the Archive was the last view with a panel**, open on every visit, and
+  took the line the way the Scheduler did: `{{template "filterbar" .}}` in
+  place of the form, and `Shown`, `Total`, `Query` and `FilterMode` in its
+  handler. Its mode is `filter-completed`. What only the panel used went with
+  it — the `/` key, `data-autosubmit`, the page's tag cloud (`TagCloud`,
+  `TagsInUse`, the `has` template function) and the `filterloud` banner,
+  since the bar's count is what says a view is filtered now. Nothing left in
+  the app filters any other way
 - **the Scheduler was the cheap half of that**, and went the way the partial
   promised: `{{template "filterbar" .}}` in place of the old form, four lines
   in its handler for `Shown`, `Total`, `Query` and `FilterMode`. It takes
@@ -1547,7 +1550,8 @@ which notation this one accepts.
   is what says so out loud
 - **a `key:value` notation says what its value may be**, per mode: one small
   object per key saying whether an ISO date is allowed, whether a count of days
-  is, and which words are — `WHEN_DUE`, `WHEN_SNOOZE` and `WHEN_WINDOW`.
+  is, and which words are — `WHEN_DUE`, `WHEN_SNOOZE`, `WHEN_WINDOW` and
+  `WHEN_DONE`.
   `due:thisweek` is a word rather than a date because the question is what is
   coming at me and the answer moves with the day — and `snooze:` is recognised
   on a filter line only so that it can be refused, rather than silently matched
@@ -1557,6 +1561,24 @@ which notation this one accepts.
   unreadable-date one. The browser does not resolve any of these — it has no
   business knowing which day the app is on — so it checks the shape and lets
   the server say what date the word came to
+- **`completed:` is read by one function, `CompletedRange` in `query.go`**,
+  which turns a value into the first and last day it covers. `ParseQuery`
+  asks it whether a value is readable and `Archive` asks it which days to
+  keep, so the line and the list cannot disagree about what `3months` means.
+  The browser's `WHEN_DONE` knows only the shape — a date, one of the words,
+  or `PERIODS_OK` — for the same reason it does not resolve `due:friday`: it
+  has no business knowing which day the app is on. Two things differ from
+  the other date keys. The value is read in any case and written back
+  lowercased, because `Monday` is how a day is written in prose and the codec
+  already normalises everything else it writes back. And a number completes
+  to `3weeks`, `3months` and `3years` rather than `3days`, a count of days
+  being the rolling window this filter deliberately does not have
+- **a value that stopped being a window is dropped, not kept.**
+  `parseFilters` clears a `completed` it cannot read, which is what a filter
+  set remembered from before this saying `lastweek` arrives as. Kept, it would
+  match nothing — `matchCompleted` refuses what it cannot read rather than
+  matching everything — and come back into the box as a filter that empties
+  the view for no visible reason
 - **a box may put a problem in its own words.** "A project has no context" and
   "this view filters by tag and by name" are the same refusal with different
   reasons behind it, and the reason is the useful half. `BOX_SAYS` overrides
