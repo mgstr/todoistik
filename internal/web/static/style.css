@@ -30,7 +30,10 @@ body:not(.login) { display: flex; height: 100dvh; }
    under the rail, so its left edge lines up with the content whose keys it is
    listing rather than with the navigation */
 .pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-nav, #keybar, .error-banner { flex: 0 0 auto; }
+/* the title bar too: it scrolls sideways, which gives it a minimum height of
+   zero, so a list much taller than the window squeezed it in proportion to its
+   own height and the longest view — the Archive — lost most of the bar */
+nav, #keybar, #titlebar, .error-banner { flex: 0 0 auto; }
 /* min-height:0 is what lets a flex child actually scroll instead of stretching */
 main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 /* the scrollbar belongs to the window edge, so centre by padding rather than
