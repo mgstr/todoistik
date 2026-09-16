@@ -547,8 +547,22 @@ wrong shape.
   one letter each, and a second `ctrl-v` presses zen — see "Panels"
 - `ctrl-f` puts up the filter line on a view that has one, and takes it and
   every filter away when pressed again — see "Token boxes"
-- `ctrl-j` then a letter moves the focus to a control on the screen already
+- `ctrl-n` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
+- `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
+  the filter line they are the way into the list it narrows: the caret leaves
+  the box and the first row (or, with `ctrl-k`, the last) is selected. They
+  are the form vim uses when the letters are spoken for, which is why the
+  project picker had already taken them — and a filter line is the one place
+  in the app where a list sits under a box whose letters are all spoken for.
+  In any other box they are left to the browser: nothing is under a meta line
+  to move to, and `ctrl-k` is the line's own kill-to-end on this machine. They
+  took the jump's old key, because moving through a list is pressed a hundred
+  times for every jump
+- `⌫` (the key labelled delete here, `Backspace` to the browser; forward
+  delete means the same) deletes the selected row where the row carries a
+  delete that can be pressed. Today that is only a name on Settings — see "The
+  remembered lists"
 - `ctrl-o` follows a link in the item under the cursor — the selected row, or
   the one item the screen is about. Ctrl for the reason the declared `^` keys
   spend one: the link is most often wanted with the item open and a box being
@@ -674,7 +688,7 @@ layout types, and noticing after the sentence is a line to delete.
 
 ### Jumping to a control
 
-`g` goes to a view; `ctrl-j` goes to something on the view already open. It
+`g` goes to a view; `ctrl-n` goes to something on the view already open. It
 marks every control on the screen with a letter, the way `g` marks the rail,
 and the next key pressed goes there — which means whatever that thing is for:
 a box is focused, a button is pressed, and a list is arrived at by selecting
@@ -717,7 +731,7 @@ line from the description meant the mouse, or tabbing past everything between.
 - **arriving at a list takes the focus off whatever had it**, which is the one
   thing "arriving" had to be told to do. A jump made from inside a box left the
   caret in that box, so the row keys that had just been put in reach were typed
-  into it instead — `ctrl-j` out of an open filter line selected a row and then
+  into it instead — a jump out of an open filter line selected a row and then
   `j` wrote a `j` into the filter. Nothing else needs this: a box takes the
   focus by being focused and a button takes it by being pressed, and a list is
   the one destination that is neither
@@ -751,9 +765,12 @@ line from the description meant the mouse, or tabbing past everything between.
   would otherwise take the same key as "close me", so the key is spent here and
   not passed on. A modifier pressed on its own is not an answer and does not
   count as one — holding shift to reach a key must not throw the jump away
-- **inside the project picker `ctrl-j` still means "next project".** The picker
-  stops the event, so the page never sees it — an open list is being moved
-  through, and that is what the key means there
+- **it was `ctrl-j` until `ctrl-j` became a list key.** Every list now moves
+  on `ctrl-j` / `ctrl-k` as well as `j` / `k` (see "Keyboard"), which is what
+  the project picker had always used them for, so the jump moved to `ctrl-n`
+  rather than leave one key meaning "next row" in the picker and "mark the
+  controls" one box away. The picker still stops the event itself, because its
+  list is not made of `data-kb-row` rows
 
 ## Capture
 
@@ -1343,6 +1360,55 @@ The Settings page is where a name is learned and unlearned. Both lists are
 shown as clouds rather than rows: a vocabulary is read as a set, and a set of
 short names in a column wastes a screen saying nothing.
 
+- **two clouds and nothing else.** No headings — every chip already starts
+  with `#` or `@`, which says which list it is on better than a word over it —
+  and a gap between the two so they read as two. The paragraphs that explained
+  the lists moved to the `?` panel (see "View help"), and the two add forms
+  are gone: a name is created from the filter line, below
+- **the filter line is the view's `filterbar`, in mode `filter-names`.** The
+  server narrows with `app.NarrowNames`, which is design.md's "Filtering the
+  remembered lists" as code, and the count is names and parameters on screen
+  out of all of them. The line is kept in state under `filters:settings` like
+  any view's filter set, but as the line itself: there is no `Filters` for a
+  list of names to parse into, and the address also carries `err` and `made`,
+  which say what just happened rather than what is being looked at. The page
+  sets the line as the name filter only so the bar opens on a filtered visit,
+  which is the one thing the partial reads it for
+- **the line never asks about a name.** `filter-names` makes `problemsIn`
+  answer nothing, so there is no unknown-name dialog here: on every other line
+  an unknown name is a question, and on this one it is the name being created
+- **Create is a form under the bar holding the line as it stands**, posted to
+  `/settings/create`, and shown only while the typed line is one `#name` or
+  `@name` that is on neither list. The page knows the lists from `data-names`,
+  every name as the line writes it whatever the filter hides, compared without
+  case — `#Car` beside `#car` is not offered. It follows the typing rather than
+  the applied line, so `#bike` does not have to be applied first to find out
+  it matches nothing; `ctrl-enter` presses it from the box or from the list,
+  and plain `↵` still applies. Whether `@shop(Lidl)` has a context to go under
+  the page cannot tell, and the server's refusal says so on the page it
+  redirects back to
+- **`app.CreateName` takes the notation**, not a kind and a name, since the
+  sigil is the only thing on the screen that says which list is meant. The
+  refusals it adds to `AddTag` / `AddContext` are the ones only this path
+  meets: a bare word, a tag with a parameter, a case variant of a name or a
+  parameter already there, and a parameter under a context that does not
+  exist. The meta line's create in the unknown-name dialog still goes through
+  `/settings/{kind}/add`, which learns a context with its parameter in one go —
+  there the context was typed deliberately too
+- **the screen comes back filtered by what was created**, `?f=1&q=…&made=…`,
+  and the chip `made` names is marked `data-kb-arrive` and selected on arrival
+  when nothing else claimed the cursor — so the key after `ctrl-enter` is
+  already about the new name. Only after a create: a chip selected just
+  because the line matched it would put `⌫` one keystroke from a mistaken
+  delete every time a filter was applied
+- **every chip is a row, and so is every parameter.** `data-kb-row` on both,
+  so `j` / `k` walk them in reading order, a context's parameters straight
+  after it. The selection is drawn on the chip. The delete control is the
+  row's `form.kb-delete`, read with `:scope >` because a context's chip holds
+  its parameters' chips and their deletes are not its own. `⌫` submits it and
+  hands the selection on by position, as `c` does; the bar offers it only
+  where the button is enabled, so a name in use and a built-in never show it
+
 - **every name carries its count**, built-in ones included. The count comes
   from wherever the name actually lives, which for a built-in is a column
   rather than the tag table — `#short` counts actions whose duration is short,
@@ -1636,6 +1702,12 @@ which notation this one accepts.
 - **`↓`/`↑` move, `↵` or `tab` takes, `esc` closes the list**, and `esc` never
   closes the box — that is `ctrl-f`, and it would take the filters with it.
   One unwind at a time, the way the project picker's `esc` behaves
+- **`ctrl-j` / `ctrl-k` leave the box for the list under it**, blurring the
+  box and selecting the first or last row, and the bar offers it while the
+  caret is in the box and there are rows to go to. `esc` only gave the focus
+  up, which left the next `j` to find the first row on its own — two keys for
+  the move this whole line exists to set up. Not the arrows: `↓` already
+  opens the completion list, and taking it would cost the box its suggestions
 - **`ctrl-f`, because it is the key every other program uses for finding
   things**, and what this app has to find is its own list rather than the page.
   Pressed again it closes the box and clears the filters in one act, which is
