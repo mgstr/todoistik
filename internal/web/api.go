@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"todoistik/internal/app"
@@ -94,11 +95,44 @@ func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	writeJSON(w, map[string]any{
+	answer := map[string]any{
 		"view":    name,
 		"filters": f,
 		"items":   data,
-	})
+	}
+	// a line the app could only partly read is still answered with what it
+	// could, the way the screen narrows by the rest of the line — but the
+	// screen marks the part it left out, and a caller has no mark to see
+	// unless it is told. Without this, `#cra` for `#car` is a read of the whole
+	// view that looks exactly like a read of the filtered one
+	if problems := s.queryProblems(r.URL.Query()); len(problems) > 0 {
+		answer["problems"] = problems
+	}
+	writeJSON(w, answer)
+}
+
+// apiProblem is one part of a filter line a read left out: the token as it was
+// written, and why, in app.QueryProblem's kinds.
+type apiProblem struct {
+	Token string `json:"token"`
+	Kind  string `json:"kind"`
+}
+
+func (s *Server) queryProblems(q url.Values) []apiProblem {
+	line := q.Get("q")
+	if strings.TrimSpace(line) == "" {
+		return nil
+	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		v = &app.Vocabulary{}
+	}
+	_, problems := app.ParseQuery(line, v)
+	var out []apiProblem
+	for _, p := range problems {
+		out = append(out, apiProblem{Token: p.Token, Kind: p.Kind})
+	}
+	return out
 }
 
 var _ = app.Filters{} // keep the import when the switch changes

@@ -88,7 +88,9 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 `q` is the same set written as one line, the way it is typed on the screen —
 `?q=@home %23car %23short milk` is `@home` and `#car` and `#short` and a title
 containing "milk". Given `q`, the parameters above are not also read (`sort`
-and `desc` are, since the line cannot say them).
+and `desc` are, since the line cannot say them). A name in the line the app
+does not know is left out of the filter and named in the answer, beside the
+items: `"problems": [{"token": "#cra", "kind": "tag"}]`.
 
 ## Reminders, both ways
 
@@ -304,6 +306,55 @@ it is a duplicate, and takes the label off then.
 It prints a line per message and exits non-zero if it had to leave anything
 behind. See implementation.md, "Mail into the inbox".
 
+## Telegram
+
+`telegrambot` is the app in one Telegram chat: a message goes into the inbox,
+and a command reads a view. It runs beside the app and polls Telegram, so
+nothing has to be reachable from the internet.
+
+```sh
+go build -o telegrambot ./cmd/telegrambot
+TELEGRAM_TOKEN=$(cat ~/.telegrambot-token) ./telegrambot -chat 123456789 -token "$TOK"
+```
+
+| flag          | env               | default                 |                                                     |
+|---------------|-------------------|-------------------------|-----------------------------------------------------|
+| `-chat`       | `TELEGRAM_CHAT`   | *(empty)*               | the one chat id answered; empty answers nobody       |
+| `-token-file` |                   | *(empty)*               | a file holding the bot token; otherwise `TELEGRAM_TOKEN` |
+| `-url`        | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                     |
+| `-token`      | `TODOISTIK_TOKEN` | *(empty)*               | the app's bearer token; empty for a server started without one |
+
+**Setting it up.** Make a bot with @BotFather and keep the token it gives you
+in a file. Start `telegrambot` without `-chat`, write anything to the bot, and
+the log prints `ignored a message from chat 123456789`; that number is your
+`-chat`. Restart with it. The bot token is never a flag, for the reason the
+mail password is not one.
+
+**In the chat:**
+
+```
+Book the tyre change @garage #car      → Added to the inbox
+/today                                 → Today · 3, then Out of time and Picked
+/next @home #car                       → Next actions · @home #car · 2
+/archive completed:week
+```
+
+- a message that is not a command is captured whole, every line of it, and the
+  reply says `Added to the inbox`, `Already in the inbox`, or `Not saved:` and
+  why
+- `/inbox /today /next /tasks /projects /waiting /calendar /someday /scheduler
+  /archive` read a view; they are in the menu `/` opens. What follows is the
+  filter line as typed on the screen. The inbox and Today take none
+- a line naming a tag or context the app does not know is not answered with a
+  list: `Not read: #cra is no tag`
+- a reply is one line per item, the title and the date the view is about; a long
+  view comes in several messages, never cut short
+- an unknown command is refused, not captured
+
+Nothing is processed, completed or reviewed from the chat — see design.md,
+"Design principles". Everything sent passes through Telegram's servers. See
+implementation.md, "Telegram".
+
 ## Source layout
 
 ```
@@ -325,6 +376,13 @@ cmd/mailsync/             a Gmail label into the inbox, through the capture API
   capture.go              the capture a message makes — subject, sender, and the link back
   capture_test.go
   run_test.go             a whole run, against go-imap's in-memory server and a stub capture API
+
+cmd/telegrambot/          one Telegram chat: a message is a capture, a command reads a view
+  main.go                 the flags, the token, and the poll loop that answers the one chat
+  telegram.go             the Bot API: getUpdates, sendMessage, the command menu; the token kept out of errors
+  bot.go                  what a message means, and a view written as lines split into messages
+  bot_test.go             against stubs of Telegram and of the app
+  app_test.go             the views as the real server answers them
 
 internal/apiclient/
   client.go               the app as seen from outside: capture on the way in, a view on the way out

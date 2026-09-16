@@ -95,6 +95,38 @@ type Item struct {
 // the screen — `#gc #sync` — because that is where the filter being mirrored
 // was worked out.
 func (c *Client) View(name, query string) ([]Item, error) {
+	answer, err := c.Read(name, query)
+	if err != nil {
+		return nil, err
+	}
+	items, ok := itemsOf(answer.Items)
+	if !ok {
+		// a view that answers with counts rather than a list of items — the
+		// weekly review does — is a mistake worth naming, not an empty run
+		return nil, fmt.Errorf("%w: the %s view did not answer with a list of items", ErrFatal, name)
+	}
+	return items, nil
+}
+
+// Answer is a view as the read API sends it, before anything is made of it.
+// View flattens it into what a Reminders list can hold; a caller that shows
+// more than a list — Today's two groups, a project marked stalled — reads the
+// items itself.
+type Answer struct {
+	Items json.RawMessage `json:"items"`
+	// Problems is what the app left out of the filter line, because it could
+	// not read it: a name on no remembered list, a window that is not one.
+	Problems []Problem `json:"problems"`
+	Error    string    `json:"error"`
+}
+
+type Problem struct {
+	Token string `json:"token"` // as written, "#cra"
+	Kind  string `json:"kind"`  // "tag", "context", "second-context", "not-a-filter", "window"
+}
+
+// Read reads one view with a filter line and hands the answer back whole.
+func (c *Client) Read(name, query string) (*Answer, error) {
 	u := c.base + "/api/view/" + url.PathEscape(name)
 	if strings.TrimSpace(query) != "" {
 		u += "?" + url.Values{"q": {query}}.Encode()
@@ -108,22 +140,13 @@ func (c *Client) View(name, query string) ([]Item, error) {
 		return nil, err
 	}
 
-	var answer struct {
-		Items json.RawMessage `json:"items"`
-		Error string          `json:"error"`
-	}
+	var answer Answer
 	json.Unmarshal(payload, &answer)
 
 	if err := refused(resp, answer.Error, payload); err != nil {
 		return nil, err
 	}
-	items, ok := itemsOf(answer.Items)
-	if !ok {
-		// a view that answers with counts rather than a list of items — the
-		// weekly review does — is a mistake worth naming, not an empty run
-		return nil, fmt.Errorf("%w: the %s view did not answer with a list of items", ErrFatal, name)
-	}
-	return items, nil
+	return &answer, nil
 }
 
 // itemsOf reads a view's items as one list, whichever shape they came in.

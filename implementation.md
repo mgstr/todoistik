@@ -91,6 +91,7 @@ The endpoints, matching design.md exactly:
 
 - `POST /api/capture` — text payload in, an inbox item out. Replies distinctly for **accepted** and **duplicate**, so a script can tell the two apart (see design.md, "Duplicate captures")
 - `GET /api/view/<name>` — one endpoint per view, returning the view as JSON. The caller passes its own filters as query parameters (e.g. `?context=home&tag=car&name=tyre`) — exactly the filters that view offers on screen, same semantics, nothing more. No parameters returns the complete view. Independent of the UI's filter state in both directions (see design.md, "The read API")
+  - a `q` with tokens the app could not read adds `"problems": [{"token": "#cra", "kind": "tag"}]` beside the items, in `app.QueryProblem`'s kinds. It is a field beside the answer rather than a refusal, so a caller that ignores it reads exactly what it read before the field existed: `remindersync sync` is unchanged by it. The line is parsed a second time for this, in `queryProblems`, because `parseFilters` is shared with every screen and none of them wants the problems back from it
 
 Nothing else. The read API is read only, and capture is the only way in.
 
@@ -515,6 +516,115 @@ wrong shape.
   this program most needs and could otherwise only be eyeballed: after a run,
   the label is empty **and All Mail still holds the mail**. Losing mail is the
   one mistake here that cannot be undone
+
+## Telegram
+
+`cmd/telegrambot` is the app in one Telegram chat: a message is a capture, and
+a command reads a view. It is what "captures and reads, and never processes or
+reviews" looks like on a phone (design.md, "Design principles"), and it is
+built so that it cannot be anything more — it talks to the app through the
+capture API and the read API under the bearer token, like every other program
+outside it, and neither of those can decide anything.
+
+- **a chat rather than a phone layout.** A reply is a list of lines, which is
+  all a phone is for reading here, and Telegram is already on the phone, the
+  watch and the laptop with nothing to install or keep true against the app's
+  screens. Everything sent and read passes through Telegram's servers, and bot
+  chats are never end-to-end encrypted; for a personal list with nothing
+  sensitive in it, that was accepted as the price
+- **its own program, not a part of the server.** The app offers its two APIs
+  and each way of reaching them from outside lives in a program of its own, as
+  `remindersync` and `mailsync` do. A Telegram outage or a wrong bot token is
+  this program's failure and never the app's
+- **it polls Telegram rather than being called by it.** `getUpdates` is held
+  open for fifty seconds at a time, so an idle bot is one request a minute. A
+  webhook would need an address on the internet with HTTPS in front of it; a
+  poll needs nothing, so the bot runs beside the app and reaches it on
+  `127.0.0.1`, which is the same wherever the pair is moved. Telegram keeps a
+  message for a day until a poll takes it, so a capture sent while the machine
+  is asleep lands when it wakes; a read sent then gets its answer late, which
+  is the one thing the machine being away still costs
+- **an update is confirmed by asking for the ones after it**, which is how the
+  Bot API works, so a bot killed mid-batch answers the batch again on the next
+  start. On an ordinary stop it confirms what it answered before leaving. A
+  capture answered twice is collapsed by the inbox (design.md, "Duplicate
+  captures") as long as the first is still there, which is the same guarantee
+  every other caller of the capture API has
+- **it answers one chat id and ignores everyone else**, with no reply at all —
+  a bot is found by anyone who searches its name, and "not you" is still an
+  answer. A stranger's chat id is printed to stderr, which is also how the
+  owner's own id is found: start it without `-chat`, write to the bot, and copy
+  the id out of the log
+- **the bot token is never a flag**: `TELEGRAM_TOKEN`, or `-token-file`, for the
+  reason `mailsync`'s password is not one. It is also taken out of every error
+  before printing, because the Bot API puts the token in the URL and `net/http`
+  puts the URL in its errors
+- **a message that is not a command is captured whole**, every line of it: the
+  first line is the item (design.md, "Inbox item"). Notation in it stays text.
+  The reply says `Added to the inbox`, `Already in the inbox` or `Not saved:`
+  and why, because a capture that may have vanished is one that has to be
+  checked at the desk, which is exactly the trip it was meant to save. A
+  message with no text — a photo, a voice note — is refused rather than
+  captured by its caption, which would keep the words and lose what they were
+  about. An edited message is not asked for: an edit is not a new thought, and
+  a second capture with no link to the first would be one
+- **a command is `/` and a name, and nothing else is.** `/usr/local is full` is
+  a capture. A command the bot does not have is refused, not captured: `/nxet`
+  in the inbox is an item nobody meant, found at the desk. `/start`, which
+  Telegram sends on the first open of a chat, and `/help` list the commands
+- **one command per view** — `/inbox /today /next /tasks /projects /waiting
+  /calendar /someday /scheduler /archive` — set as the bot's command menu at
+  every start, so a view is picked from the list `/` opens instead of spelled on
+  a phone keyboard. `/view next` would be one more word on every read. The
+  weekly review has no command: it answers with counts, and it is done at the
+  desk
+- **what follows the command is the filter line, exactly as the screen takes
+  it**: `/next @home #car`, `/archive completed:week`. Line breaks in it are
+  spaces. The inbox and Today take no filters (design.md, "Today"), and a line
+  given to either is refused by name rather than dropped
+- **a line the app could not wholly read is not answered with a list.** The
+  read API names what it left out (see "API authentication"), and the bot
+  replies `Not read: #cra is no tag` instead of a view that is longer than was
+  asked for and looks exactly like the right one. The screen can mark the name
+  and still show the rest; a reply cannot mark anything, so the honest reply is
+  none
+- **a reply opens with the view, the line and the count** —
+  `Next actions · @home #car · 3` — and is then one line per item: the title,
+  or an inbox item's or an idea's first line, and the one date the view is
+  about. That is the due date for an open action, when it next fires for a
+  schedule, and nothing for the archive, where a deadline is history. A project
+  with no next action says `stalled`, the one mark a list may never drop
+  (design.md, "Stalled projects"). Descriptions, tags and ages are not shown: a
+  list on a phone is scanned, and what an item holds besides is read at the
+  desk
+- **Today keeps its two groups**, `Out of time` and `Picked`, each with its
+  count, and an action that is both is in both, as on the screen. `remindersync`
+  merges them because a Reminders list has nowhere to put a heading; a reply
+  does, so it reads the answer itself (`apiclient.Read`) rather than through
+  the flattened `View`
+- **plain text, no Markdown.** A title is whatever was typed, and Telegram
+  refuses a Markdown message outright over one unbalanced `_`. Link previews
+  are off, or a list with one link in one item ends in a card bigger than the
+  list
+- **a view too long for one message is sent whole, across several**, split
+  between lines and never inside one, at Telegram's 4096 — counted in UTF-16
+  units, which is what Telegram counts, so a Cyrillic list is measured the way
+  it will be measured on arrival. A reply cut off with "and 40 more" would be a
+  list that cannot be trusted to be complete (design.md, "Goals"). A burst of
+  parts that runs into Telegram's rate limit waits the time Telegram names and
+  sends the rest
+- **its log is the loop's**: a line per message on stdout, a failure on stderr,
+  each with its time, and nothing at all while nothing happens. A network that
+  goes away is said once when it goes and once when it is back, not every five
+  seconds in between. A token Telegram does not know, or a second process
+  polling the same bot, stops the run: both fail identically forever, and a
+  bot retrying into a log nobody reads looks alive while answering nothing
+- **the tests drive it two ways.** Against stubs of Telegram and of the app,
+  for what it does with a message: the owner answered, a stranger ignored and
+  printed, the token in no error. And against the real server on a temporary
+  database, for what the views look like — because the stubs answer in the
+  shapes this program expects, and a view that changed its shape would
+  otherwise be found on the phone
 
 ## Keyboard
 
