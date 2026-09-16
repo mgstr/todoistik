@@ -1383,8 +1383,7 @@ short names in a column wastes a screen saying nothing.
   every name as the line writes it whatever the filter hides, compared without
   case — `#Car` beside `#car` is not offered. It follows the typing rather than
   the applied line, so `#bike` does not have to be applied first to find out
-  it matches nothing; `ctrl-enter` presses it from the box or from the list,
-  and plain `↵` still applies. Whether `@shop(Lidl)` has a context to go under
+  it matches nothing; `ctrl-enter` presses it from the box or from the list. Whether `@shop(Lidl)` has a context to go under
   the page cannot tell, and the server's refusal says so on the page it
   redirects back to
 - **`app.CreateName` takes the notation**, not a kind and a name, since the
@@ -1602,7 +1601,7 @@ which notation this one accepts.
   and two dialogs. Two short lists on every render is cheaper than an endpoint
   and a round trip per keystroke — the argument the project picker already made
 - **the filter bar is still a partial of its own** (`filterbar`), because it is
-  more than the box: the count and Apply belong to it. Adding the line to
+  more than the box: the count belongs to it. Adding the line to
   another view is one `{{template "filterbar" .}}`, once that view's handler
   fills in the same fields — `Shown`, `Total`, `Query` and `FilterMode`. The
   Projects view was the first to take it that way, and it took three lines
@@ -1719,9 +1718,33 @@ which notation this one accepts.
   that says. Openness decides nothing and stores nothing — the filters are the
   state, and they are the server's — which is the same test the selection
   handover had to pass (see "Keyboard")
-- **Apply reads the input's own `defaultValue`** to know whether the line has
-  changed since it was applied. That is the server-rendered value, so there is
-  no "last applied" to keep anywhere: the DOM already holds it
+- **the list follows the typing, and the server still does the filtering.**
+  150 ms after the last change the page asks for itself with the line —
+  exactly the `?f=1&q=` request Apply used to submit, so the filter set is
+  saved as it always was — and puts the new `main` around the bar rather than
+  replacing the bar, which is where the caret is. A response to a line that
+  has since been typed past is dropped by sequence number. The page takes the
+  whole view back rather than a fragment for the same reason the background
+  refresh does: an endpoint per view would have to be kept in step with it
+- **what is sent is the line as far as it can be read** (`readableLine`):
+  every problem `problemsIn` finds is taken out, and so are the pieces that
+  are not a token until the next key — a bare `@`, a `due:` with nothing
+  after it, a parameter whose bracket is still open. `@ho` therefore leaves
+  the list as it was, and `@home` narrows it. What was sent is kept on the bar
+  (`data-sent`), so a keystroke that leaves the readable line unchanged —
+  typing the rest of an unknown name — asks nothing
+- **three things follow the line besides the list**: the input's
+  `defaultValue`, which is how closing the bar knows there is something to
+  clear; the address, with `replaceState`, so a reload finds the same line;
+  and the background refresh's `hx-get`, re-processed with `htmx.process`
+  (htmx 2 re-binds an element whose attributes changed). Without the last one
+  the next idle tick would ask for the old line and save it back
+- **the question about an unknown name waits for Enter or for leaving the
+  box.** Leaving is read a tick after `focusout`, so the focus has landed: a
+  dialog opening over the box, the window losing focus and the bar being
+  closed are not leaving the line. Closing hides the bar before navigating
+  for that reason. The bar offers `↵` only while there is something to ask
+  about, and names it
 - **the unknown-name dialog is filled in by the key layer**, one problem at a
   time, and every route out of it ends in the same apply. Near names are plain
   edit distance over the remembered list, at most three and only close ones:
@@ -1748,8 +1771,8 @@ which notation this one accepts.
   is re-checked. The write is still the server's — this is the one request in
   the app the browser makes on its own, and it makes it because the alternative
   loses work
-- **answering the question resumes what it interrupted.** Apply and Save are
-  the same press either way: the dialog is opened with what to do next, and
+- **answering the question resumes what it interrupted.** Enter on the filter
+  line and Save are the same press either way: the dialog is opened with what to do next, and
   that runs as soon as the line comes out clean, however many problems were in
   it. Without it, being asked about a name would cost the press that asked
 - **every form holding a box is checked on the way out**, in the capture phase
@@ -3057,11 +3080,6 @@ Rough edges that were looked at, understood, and left as they are for now. Kept
 so the next pass starts from the reasoning rather than rediscovering it — and
 so none of them reads as something nobody noticed.
 
-- **the two `Apply` buttons.** The filter bar's and the Archive's own filter
-  form's are the same word on two unrelated controls, and the Archive's is not
-  even the same kind — it posts a whole form where the other applies a line.
-  Naming them apart means first deciding whether the Archive keeps a filter
-  form of its own (see "Interface density")
 - **`Inbox` on the someday item's page**, which is a destination used as a
   verb. It is the one control in the app named for where the item lands rather
   than for what happens to it, and the honest alternatives all describe a
