@@ -29,7 +29,7 @@
       value="{{if $d.Drafts}}1{{end}}">
 
     <div class="actionsbar">
-      <button type="button" data-draft-add data-key="^a" data-key-label="add action">Add action</button>
+      <button type="button" data-draft-add data-key="^a" data-key-label="add">Add</button>
     </div>
 
     {{/* after the button, because the button is what the eye goes to first on
@@ -39,8 +39,8 @@
     </ul>
 
     <div class="branches">
-      <button class="primary">Create project</button>
-      <a class="button" href="{{$d.Back}}">Back</a>
+      <button class="primary">Create</button>
+      <a class="button" href="{{$d.Back}}">Cancel</a>
     </div>
   </form>
 </div>
@@ -54,7 +54,7 @@
     {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
       "Fixed" "<this project>" "Focus" false)}}
     <div class="branches">
-      <button type="button" class="primary" data-draft-ok>Create action</button>
+      <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>
     </div>
   </div>

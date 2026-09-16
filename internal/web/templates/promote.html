@@ -15,7 +15,7 @@
     <input type="hidden" name="hasaction" data-label="an action" required value="1">
 
     <div class="actionsbar">
-      <button type="button" data-draft-add data-key="^a" data-key-label="add action">Add action</button>
+      <button type="button" data-draft-add data-key="^a" data-key-label="add">Add</button>
     </div>
     <ul class="list drafts" data-draft-list>
       {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
@@ -23,7 +23,7 @@
 
     <div class="actionsbar">
       <button class="primary">Promote</button>
-      <a class="button" href="{{$d.Back}}">Back</a>
+      <a class="button" href="{{$d.Back}}">Cancel</a>
     </div>
   </form>
 </div>
@@ -35,7 +35,7 @@
     {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
       "Fixed" "<this project>" "Focus" false)}}
     <div class="branches">
-      <button type="button" class="primary" data-draft-ok>Create action</button>
+      <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>
     </div>
   </div>

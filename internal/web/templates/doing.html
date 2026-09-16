@@ -15,7 +15,7 @@
        because the action is gone from this screen the moment it is done. */}}
   <form method="post" action="/action/{{$d.Action.ID}}/complete" data-key="c" data-key-label="done">
     <input type="hidden" name="back" value="{{$d.Back}}">
-    <button hidden>done</button>
+    <button hidden>Done</button>
   </form>
   <span class="timer" {{if not .Conf.ZenShowsTimer}}hidden{{end}}>00</span>
   {{/* "show me the time" is one key everywhere, and here it is the timer.
