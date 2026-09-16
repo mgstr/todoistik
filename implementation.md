@@ -2338,6 +2338,14 @@ the screen, and one answer that takes all three. This is how they are built.
   makes (see "Screen layout"): it is chrome, and must not read as part of the
   page. The extra size is the one thing it does not share with the bar, because
   it is read at a glance and the bar is read on purpose
+- **it never shrinks: `flex: 0 0 auto`, like the rail and the key bar.** It
+  was left out of that rule and was cut on the Archive. The bar scrolls
+  sideways so a long trail stays reachable, and a box that scrolls has a
+  minimum height of zero — so when a list was much taller than the window,
+  the pane's column shrank the bar in proportion to its own height alongside
+  `main`. Every view lost a little; the Archive, the longest list, lost most
+  of the bar. Only `main` may give up height, because it is the one thing
+  here that scrolls to get it back
 - **the title bar is a trail, and the server builds it.** Every page carries a
   list of steps (`page.Trail`): the view — with the same count the nav badge
   shows, read from `NavCounts.For` so the two numbers cannot come to differ —
