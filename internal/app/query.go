@@ -2,7 +2,9 @@ package app
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // The two windows a filter line can ask for, plus the one it cannot: `snooze:`
@@ -43,18 +45,92 @@ const (
 	// this line filters shows parked actions anyway.
 	ProblemNotAFilter = "not-a-filter"
 	// ProblemWindow: `due:` or `completed:` given something that is not one of
-	// the windows those filters have. The windows are words rather than dates
-	// because the question is "what is coming at me", and the answer moves
-	// with the day (design.md, "Calendar").
+	// the windows those filters have. The due windows are words rather than
+	// dates because the question is "what is coming at me", and the answer
+	// moves with the day (design.md, "Calendar"); a completed window is a word
+	// or a date — see CompletedRange.
 	ProblemWindow = "window"
 )
 
-// DueWindows and CompletedWindows are what those two filters accept, in the
-// order a person would say them.
-var (
-	DueWindows       = []string{"today", "tomorrow", "thisweek", "nextweek"}
-	CompletedWindows = []string{"today", "yesterday", "thisweek", "lastweek"}
-)
+// DueWindows is what the due filter accepts, in the order a person would say
+// it.
+var DueWindows = []string{"today", "tomorrow", "thisweek", "nextweek"}
+
+// periodsRe is `2weeks`, `3months`, `1year`: the period you are in and the
+// ones before it. The singular is accepted for the reason `1day` is on a meta
+// line — refusing grammar the app understood would only be pedantry.
+var periodsRe = regexp.MustCompile(`^(\d+)(week|month|year)s?$`)
+
+// CompletedRange reads a `completed:` value into the days it covers, first and
+// last inclusive, counted from today. Everything it takes is a calendar period
+// and never a rolling window (design.md, "Archive"):
+//
+//   - 2026-09-13 — that day
+//   - today, yesterday
+//   - monday … sunday — the most recent one before today, never today itself,
+//     which is `today`: the mirror of a due date's day name, which is never
+//     today either
+//   - week, month, year — the one you are in, weeks starting on Monday
+//   - 2weeks, 3months, 2years — the one you are in and the ones before it, so
+//     `1week` is `week` and `2weeks` on a Wednesday starts on last week's Monday
+//
+// Case does not matter; the caller writes the value back lowercased.
+func CompletedRange(val, today string) (from, to string, ok bool) {
+	val = strings.ToLower(val)
+	if ValidDate(val) {
+		return val, val, true
+	}
+	now, err := time.Parse(DateFormat, today)
+	if err != nil {
+		return "", "", false
+	}
+	day := func(t time.Time) string { return t.Format(DateFormat) }
+	if wd, isDay := weekdays[val]; isDay {
+		back := (int(now.Weekday()) - int(wd) + 7) % 7
+		if back == 0 {
+			back = 7
+		}
+		d := day(now.AddDate(0, 0, -back))
+		return d, d, true
+	}
+	n, unit := 1, val
+	switch val {
+	case "today":
+		return today, today, true
+	case "yesterday":
+		d := day(now.AddDate(0, 0, -1))
+		return d, d, true
+	case "week", "month", "year":
+	default:
+		m := periodsRe.FindStringSubmatch(val)
+		if m == nil {
+			return "", "", false
+		}
+		if n, err = strconv.Atoi(m[1]); err != nil || n < 1 {
+			return "", "", false
+		}
+		unit = m[2]
+	}
+	switch unit {
+	case "week":
+		mon, sun := weekOf(now)
+		start, _ := time.Parse(DateFormat, mon)
+		return day(start.AddDate(0, 0, -7*(n-1))), sun, true
+	case "month":
+		first := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
+		return day(first.AddDate(0, -(n - 1), 0)), day(first.AddDate(0, 1, -1)), true
+	default:
+		first := time.Date(now.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+		return day(first.AddDate(-(n - 1), 0, 0)), day(first.AddDate(1, 0, -1)), true
+	}
+}
+
+// ValidCompleted says whether a `completed:` value is one CompletedRange
+// reads. Which values are readable does not depend on the day.
+func ValidCompleted(val string) bool {
+	_, _, ok := CompletedRange(val, "2000-01-01")
+	return ok
+}
 
 func hasWord(list []string, w string) bool {
 	for _, s := range list {
@@ -89,19 +165,19 @@ func ParseQuery(q string, v *Vocabulary) (Filters, []QueryProblem) {
 			problems = append(problems, QueryProblem{Token: token, Name: key, Kind: ProblemNotAFilter})
 			continue
 		}
-		windows := DueWindows
 		if key == "completed" {
-			windows = CompletedWindows
+			if !ValidCompleted(val) {
+				problems = append(problems, QueryProblem{Token: token, Name: val, Kind: ProblemWindow})
+				continue
+			}
+			f.Completed = strings.ToLower(val)
+			continue
 		}
-		if !hasWord(windows, val) {
+		if !hasWord(DueWindows, val) {
 			problems = append(problems, QueryProblem{Token: token, Name: val, Kind: ProblemWindow})
 			continue
 		}
-		if key == "due" {
-			f.Due = val
-		} else {
-			f.Completed = val
-		}
+		f.Due = val
 	}
 
 	for _, m := range tokenRe.FindAllStringSubmatchIndex(q, -1) {
