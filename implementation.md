@@ -1175,10 +1175,11 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   line was actually for was the capture age, which now sits over the buttons in
   a `.stamps` line, the way an action's page carries its dates: the last thing
   read before Inbox is pressed, and hidden by `^t` with every other age
-- **Back is a link and `esc` is the same door.** `data-cancel="/someday"` on
-  the item, `data-cancel-label="back"`, exactly as an action's page does it, so
-  the key bar reads `esc back` and the mouse has a button that goes where the
-  key goes
+- **Cancel is a link and `esc` is the same door.** `data-cancel="/someday"` on
+  the item, exactly as an action's page does it, so the key bar reads `esc
+  cancel` and the mouse has a button that goes where the key goes. Neither
+  spells the word: the button takes it from "Button labels" and the bar from
+  the same fallback every other screen takes it from
 - **the redirect after Inbox goes to the Inbox, not back to the list.** The
   item is not on the someday list any more, and the honest answer to "then
   what?" is the place it went — which is also the place that now has one more
@@ -1238,6 +1239,14 @@ things.
 - **the key bar follows the button.** Where a bar label named a renamed act it
   was renamed with it, keeping the bar's lowercase (see "The keys"). The bar
   and the button must never call the same press two things
+- **which is why `esc` is not labelled per screen.** The bar takes its word
+  from one fallback in `app.js` — `dataset.cancelLabel || "cancel"` — and no
+  screen sets the attribute, so leaving is spelled in exactly one place and
+  eleven screens cannot drift from it. The six that did set it were how this
+  rule got broken the first time: the rename reached their buttons and not
+  their attributes, and each screen then answered `esc` with a word its own
+  button no longer used. A per-screen label is only worth writing where the
+  press genuinely does something else — and so far none does
 
 ## Create buttons
 
@@ -1993,9 +2002,9 @@ otherwise empty screen. `d` opens it, `c` completes, `esc` leaves.
   a local path falls back to `/next`
 - **`c` and `esc` are declared keys, not a special case.** The complete form
   carries `data-key="c"` and the section carries `data-cancel`, so the bar
-  reads `c done · esc back` off the page and the handler presses the control.
-  The label on the way out is the screen's own (`data-cancel-label`), because
-  "back" is what this one is
+  reads `c done · esc cancel` off the page and the handler presses the control.
+  The way out is not labelled here, because this screen leaves the way every
+  other screen does and the fallback already says so
 - **the app's keys keep working**, which is the visible half of the mode going
   away. It used to swallow every unmodified key; now `q`, `g`, `?` and the rest
   are live, and the bar's right-hand group is populated like anywhere else.
