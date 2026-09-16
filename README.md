@@ -160,8 +160,10 @@ Completion request from reminders ::15 ::2026-09-08T14:30 залогироват
 ```
 
 Processing that line asks one question instead of the usual six: complete
-action 15, stamped with the time you ticked it, or ignore the request. Ignoring
-leaves the action open, so the next run puts a fresh open reminder back on the
+action 15, stamped with the time you ticked it, or ignore the request. Until
+you answer, the action stays off every synced list, including any other list
+it was on, because the request is still in the inbox. Ignoring leaves the
+action open, so the run after that puts a fresh open reminder back on the
 phone. If the action has since been deleted, promoted into a project or
 completed at the desk, the screen says which and the request is thrown away.
 

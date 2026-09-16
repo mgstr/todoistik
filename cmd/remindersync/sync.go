@@ -95,6 +95,15 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 		want = append(want, d)
 	}
 
+	// the inbox is read before Reminders is touched, and a run that cannot read
+	// it stops: without it every item waiting on an answer would be written
+	// back onto the list as open, which is the one thing this read is for
+	inbox, err := c.View("inbox", "")
+	if err != nil {
+		return 0, err
+	}
+	want, held := holdBack(want, inbox)
+
 	have, err := readReminders(list)
 	if err != nil {
 		return 0, err
@@ -109,6 +118,9 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 	// reading are the ones where something moved
 
 	if dry {
+		for _, d := range held {
+			fmt.Fprintf(out, "would hold back: %s (request in the inbox)\n", d.Name)
+		}
 		for _, q := range p.Requests {
 			fmt.Fprintf(out, "would file: %s\n", q.line)
 		}
@@ -123,8 +135,8 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 		}
 		// a dry run always says something, even when the answer is "nothing":
 		// it was asked what it would do, and "nothing" is an answer
-		fmt.Fprintf(out, "\n%d to file, %d to create, %d to update, %d to delete, %d already there on %q; nothing was changed\n",
-			len(p.Requests), len(p.Create), len(p.Update), len(p.Delete), len(p.Unchanged), list)
+		fmt.Fprintf(out, "\n%d to file, %d to create, %d to update, %d to delete, %d already there, %d held back on %q; nothing was changed\n",
+			len(p.Requests), len(p.Create), len(p.Update), len(p.Delete), len(p.Unchanged), len(held), list)
 		return 0, nil
 	}
 
@@ -270,6 +282,45 @@ func requestLine(r reminder, id int64, now time.Time) string {
 	})
 }
 
+// holdBack takes out of the view every item a completion request in the inbox
+// is waiting on, and says which they were.
+//
+// **An item somebody has said looks done is not put back on the list as open
+// until the claim is answered.** The tick deleted its reminder, and nothing
+// here remembers that it did: the request sitting unanswered in the inbox is
+// the only record that the question is open, so it is where this looks. Read
+// that way the loop needs no state of its own. Accepting completes the item and
+// it leaves the view; deleting the request leaves the item open with nothing
+// waiting on it, and the next run writes its reminder again — which is still
+// how "no, not done" is said.
+//
+// A held item is taken out of the view rather than only spared a new reminder,
+// so an open reminder it still has — on another list, or written back before
+// this rule — is deleted like any other the view does not hold. The request is
+// about the action, not about the list it was ticked on. And a request from
+// any source counts: something else saying "this looks done" is the same
+// reason not to show it as undone here.
+//
+// The line is read with the grammar the request was written with, not matched
+// by eye: the inbox carries `::15`, not the `(::15)` a title does, and a
+// second reading of the line is a second copy to drift.
+func holdBack(want []desired, inbox []apiclient.Item) (keep, held []desired) {
+	asked := map[int64]bool{}
+	for _, it := range inbox {
+		if l, ok := request.Parse(it.Text); ok {
+			asked[l.ItemID] = true
+		}
+	}
+	for _, d := range want {
+		if asked[d.ItemID] {
+			held = append(held, d)
+			continue
+		}
+		keep = append(keep, d)
+	}
+	return keep, held
+}
+
 type syncPlan struct {
 	Requests  []pending
 	Create    []desired
@@ -287,7 +338,9 @@ type syncPlan struct {
 // one without a view, so an action snoozed or parked between the tick and the
 // run does not lose the tick. Deleting it is what makes ignoring a request
 // stick — nothing anywhere remembers that one was made, so a tick left in
-// place would be filed again on every run.
+// place would be filed again on every run. What keeps the item off the list on
+// the runs after, while the request waits, is that it no longer arrives here
+// as wanted (see holdBack).
 //
 // **The list is the view.** A reminder carrying no marker, or a marker no item
 // in the view holds, is deleted, whoever typed it. That is what makes the list
@@ -335,8 +388,9 @@ func plan(want []desired, have []reminder, now time.Time) syncPlan {
 				p.Unchanged = append(p.Unchanged, d.Name)
 			}
 		case len(rs) > 0:
-			// its only reminders were ticked: the request is in flight, and
-			// whether the item comes back to the phone is the answer to it
+			// its only reminders were ticked: the request is being filed on
+			// this run, and from the next one holdBack keeps the item out
+			// until the request is answered
 		default:
 			p.Create = append(p.Create, d)
 		}

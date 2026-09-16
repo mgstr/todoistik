@@ -228,6 +228,75 @@ func TestPlan(t *testing.T) {
 	})
 }
 
+// holdBack is what keeps a ticked item off the phone for as long as its
+// request waits in the inbox — and only that long.
+func TestHoldBack(t *testing.T) {
+	want := []desired{
+		{ItemID: 15, Name: "A", Title: "A (::15)"},
+		{ItemID: 16, Name: "B", Title: "B (::16)"},
+	}
+	ids := func(ds []desired) []int64 {
+		var out []int64
+		for _, d := range ds {
+			out = append(out, d.ItemID)
+		}
+		return out
+	}
+
+	t.Run("an item a request in the inbox names is held back", func(t *testing.T) {
+		inbox := []apiclient.Item{
+			{ID: 1, Text: "buy milk"},
+			{ID: 2, Text: "Completion request from reminders ::15 ::2026-09-08T14:30 A"},
+		}
+		keep, held := holdBack(want, inbox)
+		if len(keep) != 1 || keep[0].ItemID != 16 {
+			t.Errorf("keep = %v, want [16]", ids(keep))
+		}
+		if len(held) != 1 || held[0].ItemID != 15 {
+			t.Errorf("held = %v, want [15]", ids(held))
+		}
+	})
+
+	t.Run("once the request is answered the item comes back", func(t *testing.T) {
+		keep, held := holdBack(want, []apiclient.Item{{ID: 1, Text: "buy milk"}})
+		if len(keep) != 2 || len(held) != 0 {
+			t.Errorf("keep = %v, held = %v, want everything kept", ids(keep), ids(held))
+		}
+	})
+
+	t.Run("a request from another source holds it back too", func(t *testing.T) {
+		inbox := []apiclient.Item{{ID: 1, Text: "Completion request from calendar ::16 ::2026-09-08T14:30 B"}}
+		_, held := holdBack(want, inbox)
+		if len(held) != 1 || held[0].ItemID != 16 {
+			t.Errorf("held = %v, want [16]", ids(held))
+		}
+	})
+
+	t.Run("a marker in ordinary text is not a request", func(t *testing.T) {
+		inbox := []apiclient.Item{
+			{ID: 1, Text: "look at A (::15) again"},
+			{ID: 2, Text: "note\nCompletion request from reminders ::16 ::2026-09-08T14:30 B"},
+		}
+		keep, held := holdBack(want, inbox)
+		if len(keep) != 2 || len(held) != 0 {
+			t.Errorf("held = %v, want none: only a first line is read as a request", ids(held))
+		}
+	})
+
+	t.Run("a held item's open reminder leaves the list, and is not written again", func(t *testing.T) {
+		inbox := []apiclient.Item{{ID: 2, Text: "Completion request from reminders ::15 ::2026-09-08T14:30 A"}}
+		keep, _ := holdBack(want, inbox)
+		have := []reminder{{ID: "1", Name: "A (::15)"}, {ID: "2", Name: "B (::16)"}}
+		p := plan(keep, have, runAt)
+		if len(p.Delete) != 1 || p.Delete[0] != "1" {
+			t.Errorf("Delete = %v, want [1]", p.Delete)
+		}
+		if len(p.Create) != 0 {
+			t.Errorf("Create = %+v, want none", p.Create)
+		}
+	})
+}
+
 // dueDay is what a reminder's due date is compared as: an action's due date is
 // a day, so a reminder due at a moment has to answer with its day.
 func TestDueDay(t *testing.T) {
