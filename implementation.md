@@ -1707,6 +1707,15 @@ which notation this one accepts.
   up, which left the next `j` to find the first row on its own — two keys for
   the move this whole line exists to set up. Not the arrows: `↓` already
   opens the completion list, and taking it would cost the box its suggestions
+- **`esc` in the list goes back to the line**, while the bar is up: it drops
+  the selection, as `esc` in a list always did, and puts the caret at the end
+  of the line. It is the way back from `ctrl-j`, and the same one step out that
+  `esc` in the box already is, so `esc` means "out a level" on both sides of
+  the bar. With the bar down it only drops the selection, since there is no
+  line to go back to; and no filtered view has a `data-cancel`, so there was
+  no other meaning for the key to take the place of. Dropping the selection
+  still hands the background refresh back its turn — the box being focused
+  holds it instead, for as long as the typing does
 - **`ctrl-f`, because it is the key every other program uses for finding
   things**, and what this app has to find is its own list rather than the page.
   Pressed again it closes the box and clears the filters in one act, which is
