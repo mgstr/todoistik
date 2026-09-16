@@ -328,8 +328,6 @@ section.project.done { opacity: .8; }
   color: transparent; border-color: transparent; pointer-events: none;
 }
 .fmirror .bad { text-decoration: underline wavy var(--danger); text-decoration-skip-ink: none; }
-.filterbar .apply { padding: .25rem .7rem; }
-.filterbar .apply:disabled { opacity: .4; cursor: default; }
 
 /* Completion: the same shape the project picker's list has, for the same
    reason — it is a list of names under the thing you are typing into. */

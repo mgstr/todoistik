@@ -312,7 +312,11 @@
       return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
     }
     if (filterBox() && document.activeElement === filterBox()) {
-      const keys = [["\u21b5", "apply"]];
+      // Enter is only a key here while there is something to ask about: the
+      // list follows the rest of the line by itself
+      const keys = [];
+      const bad = problemsIn(filterBox());
+      if (bad.length) keys.push(["\u21b5", "ask about " + bad[0].text]);
       if (createForm()) keys.push(["^\u21b5", "create"]);
       if (rows().length) keys.push(["^j ^k", "to the list"]);
       keys.push(["^f", "no filter"], ["esc", "leave the box"]);
@@ -1154,7 +1158,7 @@
     });
     mirror.appendChild(document.createTextNode(text.slice(at)));
     mirror.scrollLeft = box.scrollLeft;
-    gateApply(box);
+    scheduleLive(box);
     syncCreate();
   }
 
@@ -1192,15 +1196,87 @@
 
   function paintAll() { tokenBoxes().forEach(paintBox); }
 
-  // Apply is dead until the line differs from the one that is applied. The
-  // input's own default value is that line, straight from the server, so
-  // there is nothing to remember here. A meta box has no button of its own —
-  // its form's Save is gated the same way, by gate()
-  function gateApply(box) {
-    const bar = filterBar();
-    if (!bar || !bar.contains(box)) return;
-    const apply = bar.querySelector(".apply");
-    if (apply) apply.disabled = box.value === box.defaultValue;
+  // ---- The filter line follows the typing ------------------------------
+  //
+  // There is no Apply. What the list shows is the line as far as the app can
+  // read it: every token it cannot use yet is left out of what is asked for,
+  // and stays marked where it is written, so a half-typed `@ho` leaves the
+  // list as it was and `@home` narrows it. The question about a name nobody
+  // knows is not asked mid-word — that would be every keystroke of every new
+  // name — but on Enter, or when the caret leaves the box.
+  //
+  // The server still does the filtering. The page asks for itself with the new
+  // line, exactly the request Apply used to make, and puts what came back
+  // around the bar rather than replacing the bar, which is where the caret is.
+
+  const LIVE_DELAY = 150;
+  let liveTimer = null;
+  let liveSeq = 0;
+
+  // The line with everything the app cannot read yet taken out: the problems
+  // problemsIn finds, and the pieces that are not a token at all until the
+  // next key — a bare sigil, a key with no value, a parameter still open.
+  function readableLine(box) {
+    const out = box.value.split("");
+    problemsIn(box).forEach(function (p) {
+      for (let i = p.start; i < p.end; i++) out[i] = " ";
+    });
+    return out.join("").split(/\s+/).filter(function (w) {
+      return w && !/^([@#]|[a-z]+:|\(.*)$/.test(w) && !/^[@#][^()]*\([^)]*$/.test(w);
+    }).join(" ");
+  }
+
+  function scheduleLive(box) {
+    if (box !== filterBox()) return;
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(liveApply, LIVE_DELAY);
+  }
+
+  function liveApply() {
+    clearTimeout(liveTimer);
+    const bar = filterBar(), box = filterBox();
+    const main = document.querySelector("main");
+    if (!bar || !box || !main || bar.hidden) return;
+    const line = readableLine(box);
+    const sent = bar.dataset.sent !== undefined ? bar.dataset.sent : box.defaultValue;
+    if (line === sent) return;
+    bar.dataset.sent = line;
+    const url = bar.getAttribute("action") + "?f=1&q=" + encodeURIComponent(line);
+    const seq = ++liveSeq;
+    fetch(url, { credentials: "same-origin" }).then(function (res) {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.text();
+    }).then(function (html) {
+      // an answer to a line that has since been typed past is not the list
+      if (seq !== liveSeq) return;
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const fresh = doc.querySelector("main");
+      const freshBar = fresh && fresh.querySelector("[data-filterbar]");
+      if (!freshBar || bar.parentElement !== main || freshBar.parentElement !== fresh) {
+        window.location.href = url;
+        return;
+      }
+      Array.from(main.children).forEach(function (c) { if (c !== bar) c.remove(); });
+      let before = true;
+      Array.from(fresh.children).forEach(function (c) {
+        if (c === freshBar) { before = false; return; }
+        if (before) main.insertBefore(c, bar); else main.appendChild(c);
+      });
+      bar.querySelector(".fcount").replaceWith(freshBar.querySelector(".fcount"));
+      // closing the bar asks the server to clear only when something is
+      // applied, and this is now what is applied
+      box.defaultValue = line;
+      // the address, and the refresh, are this line now: a reload or the
+      // background poll asking for the old one would put it back
+      history.replaceState(history.state, "", url);
+      document.querySelectorAll("[data-poll]").forEach(function (el) {
+        el.setAttribute("hx-get", url);
+        if (window.htmx) window.htmx.process(el);
+      });
+      if (window.htmx) window.htmx.process(main);
+      paintAll(); setupPickers(); gateAll(); growAll();
+      renderKeybar();
+    }).catch(function () { delete bar.dataset.sent; });
   }
 
   function typingToken(box) {
@@ -1316,6 +1392,9 @@
       renderKeybar();
       return;
     }
+    // hidden first, so leaving the box on the way out is not taken for leaving
+    // it to go on filtering, which would ask about a line being thrown away
+    bar.hidden = true;
     window.location.href = bar.getAttribute("action") + "?f=1";
   }
 
@@ -1327,14 +1406,31 @@
     if (open && open === viewKey()) bar.hidden = false;
   }
 
+  // Enter, and leaving the box: the moments to ask about what the list has
+  // been leaving out. With nothing to ask, what is typed is applied now
+  // rather than after the pause.
   function applyFilter() {
     const bar = filterBar();
     if (!bar) return;
     hideSuggest();
     const bad = problemsIn(filterBox());
     if (bad.length) { askAbout(filterBox(), bad[0], applyFilter); return; }
-    bar.submit();
+    liveApply();
   }
+
+  // Leaving is read a tick later, once the focus has landed: a dialog opening
+  // over the box, the window losing focus and the bar being closed are not
+  // leaving the line, and asking then would be a question about nothing.
+  document.addEventListener("focusout", function (e) {
+    const box = filterBox();
+    if (!box || e.target !== box) return;
+    setTimeout(function () {
+      if (!document.hasFocus() || document.activeElement === box || topDialog()) return;
+      if (filterBar().hidden) return;
+      const bad = problemsIn(box);
+      if (bad.length) askAbout(box, bad[0], applyFilter);
+    }, 0);
+  });
 
   // How near two names are, for "did you mean". Plain edit distance, because
   // what it is up against is a typo — a letter dropped, doubled or swapped.

@@ -222,7 +222,6 @@
     {{if lt .Shown .Total}}{{.Shown}} <span class="of">of</span> {{.Total}}{{else}}{{.Shown}}{{end}}
   </span>
   {{template "tokenbox" (dict "Name" "q" "Value" .Query "Mode" .FilterMode "Label" "filter")}}
-  <button class="apply" disabled>Apply</button>
 </form>
 {{end}}
 
