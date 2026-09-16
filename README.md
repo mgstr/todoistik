@@ -112,7 +112,7 @@ go build -o remindersync ./cmd/remindersync
 | `-token`   | `TODOISTIK_TOKEN` | *(empty)*               | bearer token; empty for a server started without one |
 | `-dry-run` |                   | *(off)*                 | print what would happen; change nothing on either side |
 | `-view`    |                   | `next`                  | *(sync)* which view to mirror                      |
-| `-q`       |                   | *(empty)*               | *(sync)* the view's filter line, as typed on the screen |
+| `-q`       |                   | *(empty)*               | *(sync)* the view's filter line, as typed on the screen; not with `-view today` |
 
 ### move — a Reminders list into the inbox
 
@@ -133,6 +133,11 @@ appears on a Reminders list, which is on the phone and the watch without
 anything having to be typed twice. `-q` is the filter line the view is filtered
 with on screen, so the list can be one filter's worth of it —
 `-q "#gc #sync"` is the list of what is tagged both.
+
+`-view today` puts the day on the phone: what has run out of time, then what
+was picked this morning, each action once even when it is both. Today has no
+filters, so it takes no `-q`. The picks expire overnight, and the first run of
+a new day takes their reminders off with them.
 
 **The list is the view.** Each reminder carries a marker, `(::15)`, which is
 the action's id and how it is recognised — so renaming an action in todoistik
@@ -197,6 +202,9 @@ move -list Inbox
 
 # a second list, from a different filter
 sync -list "к покупке" -q "@grocery"
+
+# the day, on the phone
+sync -list Today -view today
 EOF
 ```
 
