@@ -10,7 +10,7 @@
      The project is answered, not asked: this screen was opened from it, and
      there is nothing here to choose. Same as an action opened from a list,
      for the same reason — filing an action elsewhere is Detach and Attach. */}}
-<div class="item" data-cancel="{{$d.Back}}" data-cancel-label="back">
+<div class="item" data-cancel="{{$d.Back}}">
   <form method="post" action="/project/{{$d.ProjectID}}/addaction" class="stack">
     {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
       "Fixed" $d.ProjectTitle "Focus" true)}}

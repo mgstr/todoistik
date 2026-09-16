@@ -7,7 +7,7 @@
 {{/* the screen holds a title and nothing else, so ^o is the only way the
      description's link is reachable from here — and this is the screen the
      link is most often wanted on (design.md, "Following a link") */}}
-<section id="doing" data-cancel="{{$d.Back}}" data-cancel-label="back"
+<section id="doing" data-cancel="{{$d.Back}}"
   {{with itemlinks $d.Action.Description}}data-links="{{.}}"{{end}}>
   <p>{{$d.Action.Title}}</p>
   {{/* the same form the list's rows carry, so completing here is completing
