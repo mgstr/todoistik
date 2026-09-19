@@ -139,19 +139,27 @@ was picked this morning, each action once even when it is both. Today has no
 filters, so it takes no `-q`. The picks expire overnight, and the first run of
 a new day takes their reminders off with them.
 
-**The list is the view.** Each reminder carries a marker, `(::15)`, which is
-the action's id and how it is recognised — so renaming an action in todoistik
-retitles its reminder instead of stranding it. Then:
+**The list is the view, plus whatever you typed on it.** Each reminder carries
+a marker, `(::15)`, which is the action's id and how it is recognised — so
+renaming an action in todoistik retitles its reminder instead of stranding it.
+Then:
 
 - an item the list does not hold is added, with its description as the note and
   its due date as the reminder's own
-- a reminder carrying no marker, or a marker no item in the view holds, is
-  **deleted** — including one typed straight into Reminders. Point this at a
-  list kept for it, not at one you also write to by hand
+- a reminder carrying a marker no item in the view holds is **deleted**: an
+  action that left the filter takes its reminder with it
+- a reminder carrying **no** marker was typed into Reminders by hand, and is
+  left exactly where it is, ticked or not. The list is on the phone where the
+  app is not, so something remembered in the shop goes straight onto it,
+  skipping the inbox and the processing step that both want a desk. Removing it
+  is yours: tick it off, or move it onto the import list for normal processing
 - a reminder already there is not rewritten into a copy of the item. Only what
   todoistik knows is written: a due date or note the item does not carry leaves
   the reminder's own alone, and a reminder due at 14:30 on the right day keeps
   its time, because an action's due date is a day and nothing finer
+
+So the list reads in two halves — the rows with a marker are the view's answer,
+the rows without are yours — and the marker is what tells them apart.
 
 Running it again changes nothing — the second run prints `0 created, 0 updated,
 0 deleted`. The list has to exist; a name that is not there is an error naming

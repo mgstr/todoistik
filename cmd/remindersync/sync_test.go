@@ -120,11 +120,17 @@ func TestPlan(t *testing.T) {
 		}
 	})
 
-	t.Run("a reminder with no marker is deleted, whoever typed it", func(t *testing.T) {
-		have := []reminder{{ID: "1", Name: "typed straight into Reminders"}}
+	t.Run("a reminder with no marker was typed there by hand and is left alone", func(t *testing.T) {
+		have := []reminder{{ID: "1", Name: "молоко"}}
 		p := plan(nil, have, runAt)
-		if len(p.Delete) != 1 || len(p.Requests) != 0 {
-			t.Errorf("Delete = %v, Requests = %+v", p.Delete, p.Requests)
+		if len(p.Delete) != 0 {
+			t.Errorf("Delete = %v, want none: it is not ours to withdraw", p.Delete)
+		}
+		if len(p.Requests) != 0 || len(p.Update) != 0 {
+			t.Errorf("nothing is said to it either: %+v", p)
+		}
+		if len(p.Kept) != 1 || p.Kept[0] != "молоко" {
+			t.Errorf("Kept = %v, want the typed one", p.Kept)
 		}
 	})
 
@@ -158,14 +164,28 @@ func TestPlan(t *testing.T) {
 		}
 	})
 
-	t.Run("a ticked reminder with no marker names nothing and simply goes", func(t *testing.T) {
+	t.Run("a ticked reminder with no marker names nothing and is still left alone", func(t *testing.T) {
 		have := []reminder{{ID: "1", Name: "typed and ticked", Completed: true}}
 		p := plan(nil, have, runAt)
 		if len(p.Requests) != 0 {
 			t.Errorf("Requests = %+v, want none: there is no item to name", p.Requests)
 		}
-		if len(p.Delete) != 1 {
-			t.Errorf("Delete = %v, want [1]", p.Delete)
+		if len(p.Delete) != 0 {
+			t.Errorf("Delete = %v, want none: ticked or not, it is the list's own", p.Delete)
+		}
+		if len(p.Kept) != 1 {
+			t.Errorf("Kept = %v, want the typed one", p.Kept)
+		}
+	})
+
+	t.Run("the view is still withdrawn from a list that also holds typed ones", func(t *testing.T) {
+		have := []reminder{
+			{ID: "1", Name: "молоко"},
+			{ID: "2", Name: "old (::99)"},
+		}
+		p := plan(nil, have, runAt)
+		if len(p.Delete) != 1 || p.Delete[0] != "2" {
+			t.Fatalf("Delete = %v, want [2]: a marker no item holds still goes", p.Delete)
 		}
 	})
 

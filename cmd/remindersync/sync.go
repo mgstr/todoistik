@@ -140,9 +140,12 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 			fmt.Fprintf(out, "would delete: %s\n", titleOf(have, id))
 		}
 		// a dry run always says something, even when the answer is "nothing":
-		// it was asked what it would do, and "nothing" is an answer
-		fmt.Fprintf(out, "\n%d to file, %d to create, %d to update, %d to delete, %d already there, %d held back on %q; nothing was changed\n",
-			len(p.Requests), len(p.Create), len(p.Update), len(p.Delete), len(p.Unchanged), len(held), list)
+		// it was asked what it would do, and "nothing" is an answer. The typed
+		// ones are counted rather than named: a shopping list legitimately
+		// holds a dozen, and the count is the whole of what the run has to say
+		// about them — that it saw them and is leaving them there
+		fmt.Fprintf(out, "\n%d to file, %d to create, %d to update, %d to delete, %d already there, %d held back, %d typed here on %q; nothing was changed\n",
+			len(p.Requests), len(p.Create), len(p.Update), len(p.Delete), len(p.Unchanged), len(held), len(p.Kept), list)
 		return 0, nil
 	}
 
@@ -207,7 +210,7 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 	}
 
 	// what the app took, the list gives up: the spent ticks go with the
-	// strangers, in the one visit
+	// reminders whose actions left the view, in the one visit
 	going := append(p.Delete, spent...)
 	stuck, err = deleteReminders(list, going)
 	if err != nil {
@@ -333,6 +336,7 @@ type syncPlan struct {
 	Update    []update
 	Delete    []string // reminder ids
 	Unchanged []string // names already saying what the view says
+	Kept      []string // names of reminders carrying no marker, left untouched
 }
 
 // plan works out the whole difference before anything is written, so that a
@@ -348,10 +352,20 @@ type syncPlan struct {
 // the runs after, while the request waits, is that it no longer arrives here
 // as wanted (see holdBack).
 //
-// **The list is the view.** A reminder carrying no marker, or a marker no item
-// in the view holds, is deleted, whoever typed it. That is what makes the list
-// readable as an answer to "what is on this filter" rather than a pile that
-// only grows.
+// **A marker no item in the view holds is deleted.** That is what makes the
+// list readable as an answer to "what is on this filter": an action that left
+// the view takes its reminder with it, rather than leaving a pile that only
+// grows.
+//
+// **A reminder carrying no marker was typed there by hand, and is left alone.**
+// It is not one of ours to withdraw: the list is on the phone precisely where
+// the app is not, and something remembered in the shop goes onto it there,
+// skipping an inbox and a processing step that both need a desk. Deleting it
+// would make the list unsafe to write on at the moment it is most useful.
+// The cost is that the list is the view plus whatever you put there, and the
+// marker is what tells the two apart on screen; clearing a typed reminder is
+// yours to do, by ticking it off or by moving it into the inbox list for
+// normal processing.
 //
 // **A reminder already there is not rewritten into a copy of the item.** Only
 // what todoistik actually knows is written: a note or a due date the item does
@@ -404,10 +418,15 @@ func plan(want []desired, have []reminder, now time.Time) syncPlan {
 
 	for _, r := range have {
 		id, marked := request.ItemFromMarker(r.Name)
-		if marked && r.Completed {
+		if !marked {
+			// typed there by hand, ticked or not: not ours, either way
+			p.Kept = append(p.Kept, collapse(r.Name))
+			continue
+		}
+		if r.Completed {
 			continue // already leaving, as a request that was filed
 		}
-		if !marked || !wanted[id] {
+		if !wanted[id] {
 			p.Delete = append(p.Delete, r.ID)
 		}
 	}

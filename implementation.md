@@ -201,10 +201,10 @@ titles, not a view, and processing and reviewing still happen at the desk
   watch every day, and it is accepted: it is what makes the return channel
   possible at all (see "The completion channel"), and an identity has to sit
   where neither side rewrites it casually
-- **a reminder with no marker matches nothing**, and is therefore a stranger.
-  Reminders written before there were markers are replaced once, on the first
-  run, rather than matched by title as well: a fallback path for a one-off
-  event outlives the event and then has to be explained forever
+- **a reminder with no marker matches nothing**, and is therefore not ours.
+  Reminders written before there were markers are written again once, on the
+  first run, rather than matched by title as well: a fallback path for a
+  one-off event outlives the event and then has to be explained forever
 - **the title carries the item's name and the marker, and nothing else.** None
   of the notation the filter was written in goes across: a `#gc` in a
   reminder's name would be todoistik's vocabulary leaking into a program that
@@ -218,14 +218,31 @@ titles, not a view, and processing and reviewing still happen at the desk
   same thing. A tag, a context, a size, a project: todoistik keeps those. The
   reminder is a copy of what to do, not a copy of the item, and a phone that
   showed the whole item would invite editing it there
-- **the list is the view**: a reminder no item in the view is titled after is
-  deleted, whoever typed it. That is what makes the list readable as an answer
-  to "what is on this filter" rather than a pile that only grows. The marker
-  makes a stranger identifiable now — no marker, not ours — and it is deleted
-  anyway: sparing it would leave the list saying two things at once, some of it
-  the filter's answer and some of it whatever survived, with nothing on screen
-  to say which row is which. The list it points at is therefore a list kept for
-  it, which the README says plainly
+- **the list is the view, plus whatever you typed on it.** A reminder carrying
+  a marker no item in the view holds is deleted: an action that left the filter
+  takes its reminder with it, which is what keeps the list readable as an
+  answer to "what is on this filter" rather than a pile that only grows. A
+  reminder carrying **no** marker is left exactly where it is, ticked or not.
+  It was deleted at first, on the argument that a list saying two things at
+  once — some of it the filter's answer, some of it whatever survived — has
+  nothing on screen to say which row is which. That is true and it is the
+  smaller problem: the list is on the phone precisely where the app is not, so
+  something remembered in the shop goes onto it there, skipping an inbox and a
+  processing step that both want a desk (design.md, "the app is used at a
+  desk"). A list that silently eats what you write on it in the one place it is
+  most useful is worse than a list you have to read in two halves — and the
+  marker is what lets you read it in two halves, since the rows without one are
+  yours. Clearing a typed reminder stays yours to do: tick it off, or move it
+  onto the import list for normal processing
+- **a typed reminder that has been ticked is left alone too**, rather than
+  tidied away. There is no item to name in a completion request and nothing in
+  the app it could be about, so the only thing left to decide is whose row it
+  is — and it is the same row it was before it was ticked. Reminders hides
+  completed rows on its own, so nothing accumulates on screen
+- **the typed ones are counted in a dry run, not named.** A shopping list
+  legitimately holds a dozen, and the count is the whole of what the run has to
+  say about them: that it saw them and is leaving them there. A real run says
+  nothing at all, because nothing moved
 - **a reminder that has been ticked off is not an item on the list any more,
   it is a message**: it files a completion request and is deleted (see "The
   completion channel"). It is never re-opened in place and never rewritten,
@@ -307,8 +324,8 @@ then deleted.
   desk is exactly what lets the item come back. Beyond that:
   - **it is taken out of the view, not only spared a new reminder**, so an open
     reminder it still has — on another list, or written back before this rule —
-    is deleted like any other stranger. The request is about the action, not
-    about the list it was ticked on
+    is deleted like any other marker the view does not hold. The request is
+    about the action, not about the list it was ticked on
   - **a request from any source counts.** Only `reminders` files one today, but
     anything saying "this looks done" is the same reason not to show the item
     as undone
