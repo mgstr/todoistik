@@ -94,7 +94,75 @@ type Item struct {
 // API offers it (design.md, "The read API"). The line is the same one typed on
 // the screen — `#gc #sync` — because that is where the filter being mirrored
 // was worked out.
+//
+// A line the app could not read whole is refused here rather than answered:
+// what this returns is mirrored somewhere — a list on a phone, a reply in a
+// chat — and a mistyped `#cra` would put the *whole* view there, looking
+// exactly like the filtered one. A caller that wants the partial answer and
+// the problems with it reads them itself, through Read.
 func (c *Client) View(name, query string) ([]Item, error) {
+	answer, err := c.Read(name, query)
+	if err != nil {
+		return nil, err
+	}
+	if len(answer.Problems) > 0 {
+		var parts []string
+		for _, p := range answer.Problems {
+			parts = append(parts, p.String())
+		}
+		// fatal: a filter line comes from a flag or a config file, so the next
+		// item, and the next run, would be refused for the same reason
+		return nil, fmt.Errorf("%w: the filter line was not read whole: %s", ErrFatal, strings.Join(parts, ", "))
+	}
+	items, ok := itemsOf(answer.Items)
+	if !ok {
+		// a view that answers with counts rather than a list of items — the
+		// weekly review does — is a mistake worth naming, not an empty run
+		return nil, fmt.Errorf("%w: the %s view did not answer with a list of items", ErrFatal, name)
+	}
+	return items, nil
+}
+
+// Answer is a view as the read API sends it, before anything is made of it.
+// View flattens it into what a Reminders list can hold; a caller that shows
+// more than a list — Today's two groups, a project marked stalled — reads the
+// items itself.
+type Answer struct {
+	Items json.RawMessage `json:"items"`
+	// Problems is what the app left out of the filter line, because it could
+	// not read it: a name on no remembered list, a window that is not one.
+	Problems []Problem `json:"problems"`
+	Error    string    `json:"error"`
+}
+
+type Problem struct {
+	Token string `json:"token"` // as written, "#cra"
+	Kind  string `json:"kind"`  // "tag", "context", "second-context", "not-a-filter", "window", "not-in-view"
+}
+
+// String says what is wrong with the token in the words a person reads it in,
+// which is one wording for every caller: the same sentence reaches a terminal
+// and a chat.
+func (p Problem) String() string {
+	switch p.Kind {
+	case "tag":
+		return p.Token + " is no tag"
+	case "context":
+		return p.Token + " is no context"
+	case "second-context":
+		return p.Token + " is a second context, and an action has one"
+	case "not-a-filter":
+		return p.Token + " is not a filter"
+	case "window":
+		return p.Token + " is not a window"
+	case "not-in-view":
+		return p.Token + " is not a filter this view has"
+	}
+	return p.Token + " was not read"
+}
+
+// Read reads one view with a filter line and hands the answer back whole.
+func (c *Client) Read(name, query string) (*Answer, error) {
 	u := c.base + "/api/view/" + url.PathEscape(name)
 	if strings.TrimSpace(query) != "" {
 		u += "?" + url.Values{"q": {query}}.Encode()
@@ -108,22 +176,13 @@ func (c *Client) View(name, query string) ([]Item, error) {
 		return nil, err
 	}
 
-	var answer struct {
-		Items json.RawMessage `json:"items"`
-		Error string          `json:"error"`
-	}
+	var answer Answer
 	json.Unmarshal(payload, &answer)
 
 	if err := refused(resp, answer.Error, payload); err != nil {
 		return nil, err
 	}
-	items, ok := itemsOf(answer.Items)
-	if !ok {
-		// a view that answers with counts rather than a list of items — the
-		// weekly review does — is a mistake worth naming, not an empty run
-		return nil, fmt.Errorf("%w: the %s view did not answer with a list of items", ErrFatal, name)
-	}
-	return items, nil
+	return &answer, nil
 }
 
 // itemsOf reads a view's items as one list, whichever shape they came in.

@@ -50,7 +50,98 @@ const (
 	// moves with the day (design.md, "Calendar"); a completed window is a word
 	// or a date — see CompletedRange.
 	ProblemWindow = "window"
+	// ProblemNotInView: a filter the app has, asked of a view that does not
+	// offer it — `@home` on "Tasks". Design.md gives each view its own subset
+	// and says a token outside it is a question rather than something quietly
+	// ignored (see "The filter line").
+	ProblemNotInView = "not-in-view"
 )
+
+// ViewFilters is what one view's line may say. Every view offers a subset and
+// the line offers exactly that subset (design.md, "The filter line"), so this
+// is that table, in the domain rather than in a screen: the read API answers
+// the same views and may not offer more than the screen does (design.md, "The
+// read API").
+type ViewFilters struct {
+	Contexts  bool
+	Tags      bool
+	Durations bool
+	Focus     bool
+	Due       bool
+	Completed bool
+	Name      bool
+}
+
+// viewFilters says what each view narrows by. A view that is missing from it
+// takes no filters at all, which is the Inbox's answer and Today's: both are
+// short by construction, and narrowing a narrowing would only be a way to look
+// away from something (design.md, "Today").
+var viewFilters = map[string]ViewFilters{
+	// the one view that asks "what can I do now", so the only one that asks
+	// about where you are and how much time you have
+	"next": {Contexts: true, Tags: true, Durations: true, Focus: true, Name: true},
+	// tags and words only: what is here is not a question of what can be done
+	// now (design.md, "Tasks", "Waiting for", "Projects", "Someday/Maybe")
+	"tasks":    {Tags: true, Name: true},
+	"waiting":  {Tags: true, Name: true},
+	"projects": {Tags: true, Name: true},
+	"someday":  {Tags: true, Name: true},
+	// what is coming, and what was finished: each carries its own window
+	"calendar": {Tags: true, Due: true, Name: true},
+	"archive":  {Tags: true, Completed: true, Name: true},
+	// a schedule has no tag and no context — it is text and a rule
+	"scheduler": {Name: true},
+}
+
+// FiltersFor is what the named view's line may say.
+func FiltersFor(view string) ViewFilters { return viewFilters[view] }
+
+// NarrowToView drops what the view does not offer and says what it dropped, so
+// that a filter a view does not have is a refusal rather than a filter that
+// silently did nothing — which would be a list you cannot trust for the same
+// reason a hidden filter is (design.md, "The filter line").
+func NarrowToView(view string, f Filters) (Filters, []QueryProblem) {
+	offers := viewFilters[view]
+	var problems []QueryProblem
+	drop := func(token, name string) {
+		problems = append(problems, QueryProblem{Token: token, Name: name, Kind: ProblemNotInView})
+	}
+	if !offers.Contexts {
+		for _, c := range f.Contexts {
+			drop("@"+c, c)
+		}
+		f.Contexts = nil
+	}
+	if !offers.Tags {
+		for _, t := range f.Tags {
+			drop("#"+t, t)
+		}
+		f.Tags = nil
+	}
+	if !offers.Durations {
+		for _, d := range f.Durations {
+			drop("#"+string(d), string(d))
+		}
+		f.Durations = nil
+	}
+	if !offers.Focus && f.Focus != "" {
+		drop("#"+FocusTag, FocusTag)
+		f.Focus = ""
+	}
+	if !offers.Due && f.Due != "" {
+		drop("due:"+f.Due, f.Due)
+		f.Due = ""
+	}
+	if !offers.Completed && f.Completed != "" {
+		drop("completed:"+f.Completed, f.Completed)
+		f.Completed = ""
+	}
+	if !offers.Name && f.Name != "" {
+		drop(f.Name, f.Name)
+		f.Name = ""
+	}
+	return f, problems
+}
 
 // DueWindows is what the due filter accepts, in the order a person would say
 // it.
