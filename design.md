@@ -381,6 +381,8 @@ The flag covers an item opened in full as well as the lists, because an item sho
 
 **Except while you are working in it.** A list that reordered itself under a cursor, or replaced a row halfway through a decision about it, costs more than a stale number ever does - so the list holds still for as long as something is selected, being typed into, or being asked about in a dialog, and only the counts move. Letting the cursor go is what lets the list catch up, which makes holding it still something you can choose rather than something that happens to you.
 
+**And nothing moves the screen but you.** A list taller than the window is worked from wherever it has been scrolled to, and every mark put on a row there - picked for today, completed - is answered by the whole list being drawn again. The place in the list is kept across that answer rather than re-found: a screen that snapped back to the first row on every pick would make the tenth item down cost a scroll to reach and another to get back to, and would punish exactly the long lists the marks exist for. The refresh above is held to the same rule and more strictly, because nobody asked for it - a list that catches up must catch up where it stands.
+
 ### Panels
 Around every view sit three pieces of the app's own furniture, and each one answers a different question:
 

@@ -1697,6 +1697,48 @@
         i: rows().indexOf(row),
       }));
     } catch (err) { /* no session storage: the selection is lost, nothing else is */ }
+    // where the list was left goes with the row: the answer is a new page and
+    // the offset would go with the old one
+    handPlaceOn();
+  }
+
+  // Acting on a row must not cost the place in the list either. `main` is the
+  // scrollport, not the window (see style.css), so a page that arrives is a
+  // brand-new `main` with a scrollTop of zero: on a list taller than the
+  // window, picking an item halfway down answered by throwing the screen back
+  // to the first row. The selection cannot carry this on its own — a click on
+  // the pick dot or the checkbox is that control's click and does not take the
+  // cursor (see implementation.md, "Item lines") — so the offset is a
+  // handover of its own, stored and claimed by the same rules.
+  const PLACE = "kb-place-handover";
+
+  function handPlaceOn() {
+    const main = document.querySelector("main");
+    if (!main) return;
+    try {
+      sessionStorage.setItem(PLACE, JSON.stringify({ view: viewKey(), top: main.scrollTop }));
+    } catch (err) { /* no session storage: the place is lost, nothing else is */ }
+  }
+
+  function claimPlace() {
+    let raw = null;
+    try { raw = sessionStorage.getItem(PLACE); } catch (err) { return; }
+    if (!raw) return;
+    // a page with no list cannot claim a place in one, and must not swallow it
+    // either — the same rule the selection is claimed under, for the same
+    // screen: doing is reached from a row and comes straight back to the list
+    if (!rows().length) return;
+    try { sessionStorage.removeItem(PLACE); } catch (err) { /* nothing to undo */ }
+    let want;
+    try { want = JSON.parse(raw); } catch (err) { return; }
+    // and only on the screen it was handed from: completing an action can
+    // answer with the project page, where an offset down the list it was
+    // completed on means nothing
+    if (!want || want.view !== viewKey()) return;
+    const main = document.querySelector("main");
+    // a list that is now shorter clamps this itself, which is the answer
+    // wanted: the end of what is left rather than an offset past it
+    if (main) main.scrollTop = want.top;
   }
 
   function claimSelection() {
@@ -1767,7 +1809,12 @@
     }
     if (e.target === filterBar()) return;
     const row = e.target.closest && e.target.closest("[data-kb-row]");
-    if (row && row === selected()) handSelectionOn(row);
+    if (!row) return;
+    // the place is kept whichever row was pressed, though: the cursor is a
+    // thing you put somewhere and the scroll offset is not — a dot clicked
+    // without one is still a list you are standing halfway down
+    handPlaceOn();
+    if (row === selected()) handSelectionOn(row);
   }, true);
 
   // ctrl-j and ctrl-k are j and k with the letters spoken for: the form vim
@@ -2550,11 +2597,25 @@
   // followed — carries no <main> at all, and a select that matches nothing
   // swaps in nothing. Blanking the screen is a far worse answer than leaving
   // it as it was, so a poll only swaps a response that is a page.
+  //
+  // A poll is known by what it swaps, and not by the element that asked:
+  // htmx's own `triggerEvent` overwrites `detail.elt` with whatever the event
+  // is dispatched on, and a swap event is dispatched on the target — so `elt`
+  // here is `main` or `nav` and never the poll div, which is how this test
+  // used to pass on every response and blank the screen anyway. The two
+  // targets are exact, everything else on the page being hx-boost and swapping
+  // the body: `main` is the list poll and `nav` is the rail's.
   document.addEventListener("htmx:beforeSwap", function (e) {
-    const el = e.detail && e.detail.elt;
-    if (!el || !el.hasAttribute("data-poll")) return;
+    const target = e.detail && e.detail.target;
+    if (!target || (target.tagName !== "MAIN" && target.tagName !== "NAV")) return;
     const said = e.detail.serverResponse || "";
-    if (said.indexOf("<main>") < 0) e.detail.shouldSwap = false;
+    if (said.indexOf("<main>") < 0) { e.detail.shouldSwap = false; return; }
+    // The list refresh replaces `main`, which is the scrollport, so the same
+    // list arriving again would arrive at the top of itself. This is the one
+    // page change nobody asked for — a timer asked for it — so it must move
+    // the screen least of all. The place is handed on the way a row action
+    // hands it, since the swap is what destroys the element holding it.
+    if (target.tagName === "MAIN") handPlaceOn();
   });
 
   // hx-boost swaps the body, taking the rendered bar with it
@@ -2587,6 +2648,10 @@
     paintAll();
     renderKeybar(); setupPickers(); gateAll();
     growAll();
+    // the place before the cursor: a row claimed onto a screen that is already
+    // scrolled where it was is in view, and `scrollIntoView({block:"nearest"})`
+    // on a row in view moves nothing
+    claimPlace();
     claimSelection();
     arrive();
   });
@@ -2661,6 +2726,7 @@
   restoreFilter();
   paintAll();
   renderKeybar();
+  claimPlace();
   claimSelection();
   arrive();
 })();

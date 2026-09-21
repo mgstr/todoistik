@@ -540,6 +540,23 @@ wrong shape.
   the one thing the key layer keeps across a page load, and it keeps it in
   `sessionStorage` rather than on the server, because it decides nothing and
   survives nothing — losing it costs a keystroke (see "Stack")
+- **the place in the list survives it too**, and is handed on the same way and
+  under the same rules. `main` is the scrollport and not the window (see
+  "Screen layout"), so every answer arrives as a brand-new `main` scrolled to
+  the top of itself: picking an item halfway down a "Next actions" taller than
+  the window threw the screen back to the first row, which is the jump
+  design.md, "Views" now rules out. The selection could not carry it — a click
+  on the pick dot or the checkbox is that control's own click and deliberately
+  does not take the cursor (see "Item lines") — so the offset is a second
+  handover, kept in `sessionStorage` beside the first one and claimed on
+  arrival, on the screen it was handed from and nowhere else. It is kept for
+  *whichever* row was pressed, unlike the selection: a cursor is somewhere you
+  put it and a scroll offset is not, so a dot clicked with no cursor anywhere
+  is still a list you are standing halfway down. A list that is now shorter
+  clamps the offset itself, which is the answer wanted — the end of what is
+  left, rather than a gap past it. It is claimed before the selection is, so
+  that the cursor lands on a row that is already on screen and
+  `scrollIntoView({ block: "nearest" })` has nothing left to move
 - single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
@@ -2671,6 +2688,21 @@ thing a count in the corner of the screen must never do.
   follows the redirect to the login screen, which has no `<main>` at all, and a
   select that matches nothing swaps in nothing. Leaving the screen as it was
   beats blanking it
+- **a poll is recognised by what it swaps, not by the element that asked.**
+  `htmx:beforeSwap` is dispatched on the target and htmx's own `triggerEvent`
+  overwrites `detail.elt` with whatever it dispatches on, so the test above
+  read `data-poll` off `<main>` or `<nav>`, never found it, and let every
+  response through — including the login page, which duly blanked the screen
+  the test was written to protect. The targets answer it exactly instead:
+  `main` is the list poll, `nav` is the rail's, and everything else on the page
+  is `hx-boost` and swaps the body
+- **and it leaves the screen where it stands.** The list poll swaps `<main>`
+  itself, which is the scrollport, so the same list arriving again arrived at
+  the top of itself — on a list taller than the window, standing still for 30
+  seconds was enough to lose your place in it. The offset is handed across the
+  swap by the same handover a row action uses (see "Keyboard"), which is the
+  same argument twice: a page change nobody asked for must move the screen
+  least of all
 - **a screen that is a step inside a view never refreshes its `<main>`**, and
   the answer comes off the trail rather than off a second list of view names: a
   second crumb *is* what "this is a step, not a list" means, so the two cannot
