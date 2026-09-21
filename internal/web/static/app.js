@@ -39,11 +39,13 @@
     document.querySelectorAll(".ghint").forEach(function (h) { h.remove(); });
   }
 
-  // ctrl-n is g one level in: g goes to a view, ctrl-n goes to a control on
+  // ctrl-m is g one level in: g goes to a view, ctrl-m goes to a control on
   // the screen already open. Ctrl, because the whole point is reaching another
   // box without leaving the one the hands are in — a bare letter could not,
   // since it would be typed into the box instead. It was ctrl-j until ctrl-j
-  // and ctrl-k became the list's own keys (see moveKey).
+  // and ctrl-k became the list's own keys (see moveKey), and ctrl-n until the
+  // letters made the commonest jump ctrl-n m — the meta line is always m, so
+  // the prefix may as well be the same key (implementation.md).
   let jPending = false;
   let jumpMap = {};
 
@@ -260,7 +262,7 @@
     const keys = [["q", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
-    if (jumpTargets().length) keys.push(["^n", "jump"]);
+    if (jumpTargets().length) keys.push(["^m", "jump"]);
     if (document.getElementById("help")) keys.push(["?", "help"]);
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -1880,12 +1882,12 @@
       return;
     }
 
-    // ctrl-n marks every control on the screen with a letter and takes the
+    // ctrl-m marks every control on the screen with a letter and takes the
     // next key as the one to go to. It is read after the screen's own declared
-    // keys, so a screen that wanted ^n for something of its own would keep it,
+    // keys, so a screen that wanted ^m for something of its own would keep it,
     // and it is not inside the block above because that one stands down for a
     // dialog — a form in a dialog is exactly where a jump is wanted.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "n") {
+    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "m") {
       if (setJumping(true)) e.preventDefault();
       return;
     }

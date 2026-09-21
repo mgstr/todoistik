@@ -564,7 +564,7 @@ wrong shape.
   one letter each, and a second `ctrl-v` presses zen — see "Panels"
 - `ctrl-f` puts up the filter line on a view that has one, and takes it and
   every filter away when pressed again — see "Token boxes"
-- `ctrl-n` then a letter moves the focus to a control on the screen already
+- `ctrl-m` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
 - `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
   the filter line they are the way into the list it narrows: the caret leaves
@@ -705,7 +705,7 @@ layout types, and noticing after the sentence is a line to delete.
 
 ### Jumping to a control
 
-`g` goes to a view; `ctrl-n` goes to something on the view already open. It
+`g` goes to a view; `ctrl-m` goes to something on the view already open. It
 marks every control on the screen with a letter, the way `g` marks the rail,
 and the next key pressed goes there — which means whatever that thing is for:
 a box is focused, a button is pressed, and a list is arrived at by selecting
@@ -784,10 +784,16 @@ line from the description meant the mouse, or tabbing past everything between.
   count as one — holding shift to reach a key must not throw the jump away
 - **it was `ctrl-j` until `ctrl-j` became a list key.** Every list now moves
   on `ctrl-j` / `ctrl-k` as well as `j` / `k` (see "Keyboard"), which is what
-  the project picker had always used them for, so the jump moved to `ctrl-n`
-  rather than leave one key meaning "next row" in the picker and "mark the
-  controls" one box away. The picker still stops the event itself, because its
-  list is not made of `data-kb-row` rows
+  the project picker had always used them for, so the jump moved off it rather
+  than leave one key meaning "next row" in the picker and "mark the controls"
+  one box away. The picker still stops the event itself, because its list is
+  not made of `data-kb-row` rows
+- **and it was `ctrl-n` until the meta line named the key.** The letters are
+  the controls' own initials, so the destination asked for far more than any
+  other — the meta line — is always `m`. Under `ctrl-n` the commonest jump in
+  the app was `ctrl-n` `m`, two neighbouring keys for one hand; under `ctrl-m`
+  it is `ctrl-m` `m`, the same finger twice. A prefix key is pressed for
+  whatever follows it, so it may as well be cheap to reach from there
 
 ## Capture
 
