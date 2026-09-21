@@ -271,6 +271,18 @@ titles, not a view, and processing and reviewing still happen at the desk
   copy would be a second reminder for one action, and ticking one would leave
   the other still saying it is to do. Flattening happens in `internal/apiclient`,
   where every view is read, so no caller has to know which views come grouped
+- **a `-q` the app could not read whole stops the run**, before Reminders is
+  visited at all, naming the token: `the filter line was not read whole: #cra
+  is no tag`. The read API answers such a line with the part it could read and
+  says what it left out (see "API authentication"), and for a mirror that
+  answer is the dangerous one — the list *is* the view, so `#cra` for `#car`
+  would write everything the view holds onto the phone and delete nothing that
+  disagreed, a list claiming to be one filter's worth while holding the lot.
+  The refusal lives in `apiclient.View`, so every caller that mirrors a view
+  has it; the reading it refuses is still available through `Read`, which is
+  what `telegrambot` uses to say what was wrong. It is fatal rather than a
+  skipped item: the line comes from a flag or a config file, so the next pass
+  would fail identically
 - **`-q` is refused with `-view today`.** Today carries no filters, so the app
   answers the whole view whatever the line says. Accepting it would leave a
   config line claiming the list is `#gc` while the list held everything picked,

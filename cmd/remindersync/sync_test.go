@@ -1,6 +1,10 @@
 package main
 
 import (
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -54,6 +58,30 @@ func TestReminderFor(t *testing.T) {
 				t.Errorf("reminderFor() = %+v, want %+v", got, c.want)
 			}
 		})
+	}
+}
+
+// A `-q` the app could not read whole stops the run before Reminders is
+// visited at all. The list is the view, so a mistyped `#cra` would otherwise
+// mirror everything the view holds onto the phone and delete nothing — a list
+// claiming to be one filter's worth while holding the lot.
+func TestAFilterLineTheAppCouldNotReadStopsTheRun(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"view":"next","items":[{"id":1,"title":"Everything"}],"problems":[{"token":"#cra","kind":"tag"}]}`))
+	}))
+	defer srv.Close()
+
+	// the list name is one nothing could match: reaching Reminders at all is
+	// the failure this is about, and it would fail there loudly
+	left, err := sync("no such list", srv.URL, "", "next", "#cra", false)
+	if err == nil {
+		t.Fatal("sync() accepted a line the app could not read whole")
+	}
+	if !errors.Is(err, apiclient.ErrFatal) || !strings.Contains(err.Error(), "#cra is no tag") {
+		t.Errorf("sync() error = %v, want it fatal and naming the token", err)
+	}
+	if left != 0 {
+		t.Errorf("sync() left %d behind, want the run stopped before anything was placed", left)
 	}
 }
 

@@ -155,6 +155,10 @@ Then:
   app is not, so something remembered in the shop goes straight onto it,
   skipping the inbox and the processing step that both want a desk. Removing it
   is yours: tick it off, or move it onto the import list for normal processing
+- a `-q` naming a tag or context the app does not know stops the run and says
+  which — `the filter line was not read whole: #cra is no tag` — before the
+  list is touched. The app would otherwise answer the line it could read, and
+  `#cra` for `#car` would put the whole view on the phone under a filter's name
 - a reminder already there is not rewritten into a copy of the item. Only what
   todoistik knows is written: a due date or note the item does not carry leaves
   the reminder's own alone, and a reminder due at 14:30 on the right day keeps

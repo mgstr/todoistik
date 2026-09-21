@@ -1,9 +1,11 @@
 package apiclient
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -73,5 +75,33 @@ func TestView(t *testing.T) {
 				t.Errorf("View() = %+v, want %+v", got, c.want)
 			}
 		})
+	}
+}
+
+// A view read through a line the app could only partly read is refused, not
+// mirrored: `#cra` for `#car` would otherwise put the whole view on a phone,
+// looking exactly like the filtered one.
+func TestAViewReadThroughAnUnreadableLineIsRefused(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"view":"next","items":[{"id":1,"title":"Everything"}],` +
+			`"problems":[{"token":"#cra","kind":"tag"},{"token":"due:sometime","kind":"window"}]}`))
+	}))
+	defer srv.Close()
+
+	items, err := New(srv.URL, "").View("next", "#cra due:sometime")
+	if items != nil {
+		t.Errorf("View() = %+v, want nothing", items)
+	}
+	if !errors.Is(err, ErrFatal) {
+		t.Fatalf("View() error = %v, want a fatal one: the same line fails the same way next run", err)
+	}
+	if !strings.Contains(err.Error(), "#cra is no tag") || !strings.Contains(err.Error(), "due:sometime is not a window") {
+		t.Errorf("View() error = %v, want it to name every token", err)
+	}
+
+	// the same answer is still readable by a caller that wants the problems
+	answer, err := New(srv.URL, "").Read("next", "#cra")
+	if err != nil || len(answer.Problems) != 2 {
+		t.Errorf("Read() = %+v, %v", answer, err)
 	}
 }

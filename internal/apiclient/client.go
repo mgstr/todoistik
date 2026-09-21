@@ -94,10 +94,25 @@ type Item struct {
 // API offers it (design.md, "The read API"). The line is the same one typed on
 // the screen — `#gc #sync` — because that is where the filter being mirrored
 // was worked out.
+//
+// A line the app could not read whole is refused here rather than answered:
+// what this returns is mirrored somewhere — a list on a phone, a reply in a
+// chat — and a mistyped `#cra` would put the *whole* view there, looking
+// exactly like the filtered one. A caller that wants the partial answer and
+// the problems with it reads them itself, through Read.
 func (c *Client) View(name, query string) ([]Item, error) {
 	answer, err := c.Read(name, query)
 	if err != nil {
 		return nil, err
+	}
+	if len(answer.Problems) > 0 {
+		var parts []string
+		for _, p := range answer.Problems {
+			parts = append(parts, p.String())
+		}
+		// fatal: a filter line comes from a flag or a config file, so the next
+		// item, and the next run, would be refused for the same reason
+		return nil, fmt.Errorf("%w: the filter line was not read whole: %s", ErrFatal, strings.Join(parts, ", "))
 	}
 	items, ok := itemsOf(answer.Items)
 	if !ok {
@@ -123,6 +138,25 @@ type Answer struct {
 type Problem struct {
 	Token string `json:"token"` // as written, "#cra"
 	Kind  string `json:"kind"`  // "tag", "context", "second-context", "not-a-filter", "window"
+}
+
+// String says what is wrong with the token in the words a person reads it in,
+// which is one wording for every caller: the same sentence reaches a terminal
+// and a chat.
+func (p Problem) String() string {
+	switch p.Kind {
+	case "tag":
+		return p.Token + " is no tag"
+	case "context":
+		return p.Token + " is no context"
+	case "second-context":
+		return p.Token + " is a second context, and an action has one"
+	case "not-a-filter":
+		return p.Token + " is not a filter"
+	case "window":
+		return p.Token + " is not a window"
+	}
+	return p.Token + " was not read"
 }
 
 // Read reads one view with a filter line and hands the answer back whole.

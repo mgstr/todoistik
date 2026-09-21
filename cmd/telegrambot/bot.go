@@ -136,7 +136,7 @@ func (b *bot) read(v view, line string) outcome {
 	if len(answer.Problems) > 0 {
 		var parts []string
 		for _, p := range answer.Problems {
-			parts = append(parts, p.Token+" "+problemText(p.Kind))
+			parts = append(parts, p.String())
 		}
 		return fail("Not read: " + strings.Join(parts, ", "))
 	}
@@ -154,22 +154,6 @@ func (b *bot) read(v view, line string) outcome {
 		replies: split(append([]string{head}, lines...), messageLimit),
 		log:     fmt.Sprintf("read %s: %d", label, count),
 	}
-}
-
-func problemText(kind string) string {
-	switch kind {
-	case "tag":
-		return "is no tag"
-	case "context":
-		return "is no context"
-	case "second-context":
-		return "is a second context, and an action has one"
-	case "not-a-filter":
-		return "is not a filter"
-	case "window":
-		return "is not a window"
-	}
-	return "was not read"
 }
 
 // row is as much of any item as a line of a list shows. Every view's items
