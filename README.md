@@ -90,7 +90,9 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 containing "milk". Given `q`, the parameters above are not also read (`sort`
 and `desc` are, since the line cannot say them). A name in the line the app
 does not know is left out of the filter and named in the answer, beside the
-items: `"problems": [{"token": "#cra", "kind": "tag"}]`.
+items: `"problems": [{"token": "#cra", "kind": "tag"}]`. So is a filter the view
+does not offer — `@home` on `tasks`, which filters by tag and name only — with
+the kind `not-in-view`. Each view answers by the same subset its screen does.
 
 ## Reminders, both ways
 

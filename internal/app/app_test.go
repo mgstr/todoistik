@@ -931,6 +931,65 @@ func TestParseQuery(t *testing.T) {
 	}
 }
 
+// Each view narrows by its own subset and by nothing else (design.md, "The
+// filter line"), so a filter a view does not have is dropped and said, never
+// quietly applied. This is the table the screen's boxes and the read API both
+// answer to; the one mistake worth guarding against is a view growing a filter
+// here that its screen does not offer.
+func TestNarrowToView(t *testing.T) {
+	everything := Filters{
+		Contexts: []string{"home"}, Tags: []string{"car"}, Durations: []Duration{DurShort},
+		Focus: "only", Due: "today", Completed: "week", Name: "milk",
+	}
+	for _, tc := range []struct {
+		view string
+		want Filters
+	}{
+		// what can I do now: where I am, how long I have, how much attention
+		{"next", Filters{Contexts: []string{"home"}, Tags: []string{"car"}, Durations: []Duration{DurShort}, Focus: "only", Name: "milk"}},
+		{"tasks", Filters{Tags: []string{"car"}, Name: "milk"}},
+		{"waiting", Filters{Tags: []string{"car"}, Name: "milk"}},
+		{"projects", Filters{Tags: []string{"car"}, Name: "milk"}},
+		{"someday", Filters{Tags: []string{"car"}, Name: "milk"}},
+		{"calendar", Filters{Tags: []string{"car"}, Due: "today", Name: "milk"}},
+		{"archive", Filters{Tags: []string{"car"}, Completed: "week", Name: "milk"}},
+		{"scheduler", Filters{Name: "milk"}},
+		// short by construction, and narrowing a narrowing is looking away
+		{"inbox", Filters{}},
+		{"today", Filters{}},
+		{"review", Filters{}},
+	} {
+		got, problems := NarrowToView(tc.view, everything)
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s kept %+v, want %+v", tc.view, got, tc.want)
+		}
+		for _, p := range problems {
+			if p.Kind != ProblemNotInView {
+				t.Errorf("%s: %+v, want every problem to say the view has no such filter", tc.view, p)
+			}
+		}
+		// everything dropped is named, and nothing else is
+		if want := countFilters(everything) - countFilters(got); len(problems) != want {
+			t.Errorf("%s dropped %d filters and named %d of them: %+v", tc.view, want, len(problems), problems)
+		}
+	}
+
+	// a view keeps what it offers with nothing to say about it
+	if _, problems := NarrowToView("archive", Filters{Tags: []string{"car"}, Completed: "week"}); len(problems) != 0 {
+		t.Errorf("the archive queried what it offers and answered %+v", problems)
+	}
+}
+
+func countFilters(f Filters) int {
+	n := len(f.Contexts) + len(f.Tags) + len(f.Durations)
+	for _, s := range []string{f.Focus, f.Due, f.Completed, f.Name} {
+		if s != "" {
+			n++
+		}
+	}
+	return n
+}
+
 // The windows are the one part of the filter line that is not a name: words
 // rather than dates, because "what is coming at me" moves with the day.
 func TestParseQueryWindows(t *testing.T) {

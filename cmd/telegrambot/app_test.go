@@ -33,6 +33,9 @@ func TestTheRealAppsViewsReadAsLists(t *testing.T) {
 	if err := a.AddTag("car"); err != nil {
 		t.Fatal(err)
 	}
+	if err := a.AddContext("home", ""); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay rent", DueDate: today}, false); err != nil {
 		t.Fatal(err)
 	}
@@ -67,6 +70,8 @@ func TestTheRealAppsViewsReadAsLists(t *testing.T) {
 		"/scheduler": {"• Pay the rent · fires "},
 		"/inbox":     {"Inbox · 1", "• Buy milk"},
 		"/next #cra": {"Not read: #cra is no tag"},
+		// each view narrows by its own subset: Tasks has no context filter
+		"/tasks @home": {"Not read: @home is not a filter this view has"},
 	} {
 		o := b.answer(cmd)
 		got := strings.Join(o.replies, "\n")

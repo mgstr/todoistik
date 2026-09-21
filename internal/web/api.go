@@ -58,8 +58,8 @@ func (s *Server) apiCapture(w http.ResponseWriter, r *http.Request) {
 // apiView is the read API: one endpoint per view, the caller's own filters
 // as query parameters, independent of the screen's filter state. Read only.
 func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
-	f := s.parseFilters(r.URL.Query())
 	name := r.PathValue("name")
+	f, problems := s.apiFilters(name, r.URL.Query())
 	var (
 		data any
 		err  error
@@ -100,12 +100,7 @@ func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
 		"filters": f,
 		"items":   data,
 	}
-	// a line the app could only partly read is still answered with what it
-	// could, the way the screen narrows by the rest of the line — but the
-	// screen marks the part it left out, and a caller has no mark to see
-	// unless it is told. Without this, `#cra` for `#car` is a read of the whole
-	// view that looks exactly like a read of the filtered one
-	if problems := s.queryProblems(r.URL.Query()); len(problems) > 0 {
+	if len(problems) > 0 {
 		answer["problems"] = problems
 	}
 	writeJSON(w, answer)
@@ -118,21 +113,34 @@ type apiProblem struct {
 	Kind  string `json:"kind"`
 }
 
-func (s *Server) queryProblems(q url.Values) []apiProblem {
-	line := q.Get("q")
-	if strings.TrimSpace(line) == "" {
-		return nil
+// apiFilters reads the caller's filters and reports what it could not use.
+//
+// A read is answered with what the app could make of the request, the way the
+// screen narrows by the rest of a line it could only partly read — but the
+// screen marks what it left out, and a caller has no mark to see unless it is
+// told. Two things get left out: a name the app does not know (`#cra` for
+// `#car`), and a filter this view does not offer (`@home` on "Tasks", which
+// design.md gives no context filter). Unsaid, either one is a read of a wider
+// view that looks exactly like a read of the narrow one.
+func (s *Server) apiFilters(view string, q url.Values) (app.Filters, []apiProblem) {
+	var problems []app.QueryProblem
+	if line := q.Get("q"); strings.TrimSpace(line) != "" {
+		v, err := s.app.Vocabulary()
+		if err != nil {
+			v = &app.Vocabulary{}
+		}
+		_, problems = app.ParseQuery(line, v)
 	}
-	v, err := s.app.Vocabulary()
-	if err != nil {
-		v = &app.Vocabulary{}
-	}
-	_, problems := app.ParseQuery(line, v)
+	// the filters themselves come from the shared reader, so the API and the
+	// screen never disagree about what a parameter means
+	f, dropped := app.NarrowToView(view, s.parseFilters(q))
+	problems = append(problems, dropped...)
+
 	var out []apiProblem
 	for _, p := range problems {
 		out = append(out, apiProblem{Token: p.Token, Kind: p.Kind})
 	}
-	return out
+	return f, out
 }
 
 var _ = app.Filters{} // keep the import when the switch changes

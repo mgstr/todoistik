@@ -137,7 +137,7 @@ type Answer struct {
 
 type Problem struct {
 	Token string `json:"token"` // as written, "#cra"
-	Kind  string `json:"kind"`  // "tag", "context", "second-context", "not-a-filter", "window"
+	Kind  string `json:"kind"`  // "tag", "context", "second-context", "not-a-filter", "window", "not-in-view"
 }
 
 // String says what is wrong with the token in the words a person reads it in,
@@ -155,6 +155,8 @@ func (p Problem) String() string {
 		return p.Token + " is not a filter"
 	case "window":
 		return p.Token + " is not a window"
+	case "not-in-view":
+		return p.Token + " is not a filter this view has"
 	}
 	return p.Token + " was not read"
 }
