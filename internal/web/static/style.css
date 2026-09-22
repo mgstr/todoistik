@@ -681,8 +681,36 @@ dialog .branches { display: flex; }
 details { margin: .6rem 0; border: 1px solid var(--line); border-radius: 8px; padding: .4rem .75rem; }
 summary { cursor: pointer; font-weight: 600; }
 
+/* The review's running order. One numbering, and it is the keyboard's: the
+   digit is drawn as its own mark so that what you press is what you read
+   (keys.md, "The review's digits"). The list had the browser's numbers as
+   well as a number written into every title, which made "1. 0 · Gather" and
+   left the reader to work out which of the two a key would answer to. */
+.review-steps { list-style: none; margin: .25rem 0; padding: 0; }
 .review-steps li { margin: .6rem 0; }
 .review-steps li.outstanding { font-weight: 500; }
+.review-steps .num {
+  display: inline-block; min-width: 1.35rem; margin-right: .1rem;
+  font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted);
+}
+.review-steps a:hover .num, .review-steps li.outstanding .num { color: var(--accent); }
+
+/* The mark at the head of a review row: ○ not walked yet, ● walked. It is a
+   button rather than a badge because it is the control — the row's "Reviewed"
+   button is gone, and the mark itself is what the pointer presses and what `r`
+   presses (keys.md, "The map"). The empty state is drawn rather than left
+   blank so that the column holds its width and nothing shifts sideways as the
+   walk goes down the list. */
+.row .mark {
+  border: 0; background: none; padding: 0; width: 1.1rem; flex: none;
+  font-size: .85rem; line-height: 1; color: var(--muted); cursor: pointer;
+}
+.row .mark:hover { color: var(--accent); }
+.row.reviewed .mark { color: var(--accent); }
+/* a walked row is quieted rather than struck through: it is still one of the
+   step's items and still open to a second look, which is not what a line
+   through it would say */
+.row.reviewed .title { color: var(--muted); }
 .ask { border: 2px solid var(--accent); border-radius: 10px; padding: .5rem .9rem; margin: .75rem 0; }
 
 /* the + that opens the capture dialog, and the dialog itself. It leads the

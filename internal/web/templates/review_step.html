@@ -1,23 +1,22 @@
 {{template "top" .}}
 {{$step := .Data.Step}}{{$items := .Data.Items}}
 <header class="pagehead" data-cancel="/review">
-  <h1>Review · {{$step}} {{template "count" (len $items)}}</h1>
+  <h1>{{.Data.Title}} <span class="count">{{.Data.Outstanding}}</span></h1>
   <a class="button" href="/review">Back</a>
 </header>
 {{if not $items}}
-<p class="empty">Nothing outstanding in this step. <a href="/review">Back to the review ✓</a></p>
+<p class="empty">Nothing in this step. <a href="/review">Back to the review ✓</a></p>
 {{else}}
-<p class="muted">Oldest-reviewed first. Open to edit; “Reviewed” stamps it as walked-through.</p>
 <ul class="list">
 {{range $items}}
-  <li class="row {{if .SnoozeUntil}}snoozed{{end}}" data-kb-row data-href="{{.Link}}">
+  <li class="row{{if .Reviewed}} reviewed{{end}}{{if .SnoozeUntil}} snoozed{{end}}" data-kb-row data-href="{{.Link}}">
+    <form method="post" action="/review/{{.Type}}/{{.ID}}/mark?step={{$step}}" class="inline kb-review">
+      <button class="mark" aria-label="reviewed" aria-pressed="{{if .Reviewed}}true{{else}}false{{end}}">{{if .Reviewed}}●{{else}}○{{end}}</button>
+    </form>
     <a class="title" href="{{.Link}}">{{.Name}}</a>
     {{if .Detail}}<span class="badge">{{.Detail}}</span>{{end}}
     {{if .SnoozeUntil}}<span class="badge">zzz until {{.SnoozeUntil}}</span>{{end}}
     <span class="age" title="last reviewed">{{age .LastReviewedAt}}</span>
-    <form method="post" action="/review/{{.Type}}/{{.ID}}/done?step={{$step}}" class="inline kb-complete">
-      <button class="primary small">Reviewed ✓</button>
-    </form>
   </li>
 {{end}}
 </ul>

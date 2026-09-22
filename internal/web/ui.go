@@ -1757,9 +1757,51 @@ func (s *Server) somedayItemToInbox(w http.ResponseWriter, r *http.Request) {
 
 // --- weekly review -------------------------------------------------------
 
+// reviewStep is one line of the review's running order. Num is both the
+// number printed on the line and the key that opens it: one field, because a
+// list that numbered its lines in one place and keyed them in another is a
+// list where the two eventually disagree (keys.md, "The review's digits").
+// The number is the line's position and nothing else — it used to be written
+// into the title as well, which put two numberings on every line.
 type reviewStep struct {
+	Num              int
 	Key, Title, Desc string
-	Count            int
+	// Link is where the number goes. Gather has none: it is a step you do in
+	// the calendar and the mail, not a screen this app can open, and a key
+	// that pressed nothing is the one thing the key bar may never advertise.
+	Link  string
+	Count int
+}
+
+// The steps, in the order the ritual runs them (design.md, "Weekly review").
+func reviewSteps(counts *app.ReviewCounts) []reviewStep {
+	steps := []reviewStep{
+		{Key: "gather", Title: "Gather", Desc: "Collect open loops from calendar, mail, messengers into the inbox. Check due dates against the external calendar."},
+		{Key: "inbox", Title: "Get clear", Desc: "Run Inbox Zero until the inbox is empty. Non-negotiable.", Link: "/process", Count: counts.Inbox},
+		{Key: "waiting", Title: "Waiting for", Desc: "Anything stale is chased, or gets a due date / snooze.", Count: counts.WaitingFor},
+		{Key: "projects", Title: "Projects", Desc: "Is the DOD still right, and is there a next action?", Count: counts.Projects},
+		{Key: "next", Title: "Next actions", Desc: "Still valid, still a real physical next action?", Count: counts.Next},
+		{Key: "someday", Title: "Someday/Maybe", Desc: "Promote, re-snooze or trash.", Count: counts.Someday},
+		{Key: "scheduler", Title: "Scheduler", Desc: "Still wanted, rule still right?", Count: counts.Schedules},
+	}
+	for i := range steps {
+		steps[i].Num = i + 1
+		if steps[i].Link == "" && steps[i].Key != "gather" {
+			steps[i].Link = "/review/" + steps[i].Key
+		}
+	}
+	return steps
+}
+
+// reviewStepTitle is what the step's own screen is called, read off the same
+// list the index draws, so a step is named the same in both places.
+func reviewStepTitle(key string) string {
+	for _, st := range reviewSteps(&app.ReviewCounts{}) {
+		if st.Key == key {
+			return st.Title
+		}
+	}
+	return key
 }
 
 func (s *Server) reviewPage(w http.ResponseWriter, r *http.Request) {
@@ -1768,21 +1810,12 @@ func (s *Server) reviewPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	steps := []reviewStep{
-		{"gather", "0 · Gather", "Collect open loops from calendar, mail, messengers into the inbox. Check due dates against the external calendar.", 0},
-		{"inbox", "1 · Get clear", "Run Inbox Zero until the inbox is empty. Non-negotiable.", counts.Inbox},
-		{"waiting", "2 · Waiting for", "Anything stale is chased, or gets a due date / snooze.", counts.WaitingFor},
-		{"projects", "3 · Projects", "Is the DOD still right, and is there a next action?", counts.Projects},
-		{"next", "4 · Next actions", "Still valid, still a real physical next action?", counts.Next},
-		{"someday", "5 · Someday/Maybe", "Promote, re-snooze or trash.", counts.Someday},
-		{"scheduler", "6 · Scheduler", "Still wanted, rule still right?", counts.Schedules},
-	}
 	p := s.newPage("Weekly review", "review", r)
-	p.Data = steps
+	p.Data = reviewSteps(counts)
 	s.render(w, "review.html", p)
 }
 
-// reviewItem is one outstanding item in a review step. SnoozeUntil is set
+// reviewItem is one item in a review step, walked or not. SnoozeUntil is set
 // only while the snooze is live: a snoozed item is walked like any other,
 // and its date is one of the things the walk checks (design.md, "Weekly
 // review"), so the row has to show it.
@@ -1792,24 +1825,27 @@ type reviewItem struct {
 	LastReviewedAt   time.Time
 	Detail           string
 	SnoozeUntil      string
+	// Reviewed is the mark at the head of the row: this one has been walked
+	// this cycle. The step lists the walked ones too, because a mark that can
+	// be taken off again has to stay somewhere you can reach it.
+	Reviewed bool
 }
 
 func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 	step := r.PathValue("step")
 	today := s.app.Today()
 	var items []reviewItem
+	outstanding := 0
 	add := func(typ, name, link string, id int64, reviewed time.Time, snooze, detail string) {
-		outstanding := s.app.Outstanding
-		if typ == "someday" {
-			outstanding = s.app.SomedayOutstanding
+		it := reviewItem{Type: typ, Name: name, Link: link, ID: id, LastReviewedAt: reviewed,
+			Detail: detail, Reviewed: !s.app.OutstandingFor(typ)(reviewed)}
+		if !it.Reviewed {
+			outstanding++
 		}
-		if outstanding(reviewed) {
-			it := reviewItem{Type: typ, Name: name, Link: link, ID: id, LastReviewedAt: reviewed, Detail: detail}
-			if snooze > today {
-				it.SnoozeUntil = snooze
-			}
-			items = append(items, it)
+		if snooze > today {
+			it.SnoozeUntil = snooze
 		}
+		items = append(items, it)
 	}
 	switch step {
 	case "waiting":
@@ -1848,15 +1884,29 @@ func (s *Server) reviewStepPage(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	// Oldest first, which puts what has waited longest at the top and carries
+	// the walked ones to the bottom on their own: a stamp made a minute ago
+	// is the newest date in the step.
 	sort.SliceStable(items, func(i, j int) bool { return items[i].LastReviewedAt.Before(items[j].LastReviewedAt) })
-	p := s.newPage("Review · "+step, "review", r).step(step, "")
-	p.Data = map[string]any{"Step": step, "Items": items}
+	title := reviewStepTitle(step)
+	p := s.newPage("Review · "+title, "review", r).step(title, "")
+	p.Data = map[string]any{"Step": step, "Title": title, "Items": items, "Outstanding": outstanding}
 	s.render(w, "review_step.html", p)
 }
 
-func (s *Server) reviewDone(w http.ResponseWriter, r *http.Request) {
-	if err := s.app.MarkReviewed(r.PathValue("type"), idParam(r)); err != nil {
+// reviewMark flips one item's mark and says which way it went. The answer is
+// JSON where the key layer asked for it: the step is a list being walked down,
+// and a page that reloaded and re-sorted at every press would move the next
+// row out from under the hands (implementation.md, "The weekly review screens").
+func (s *Server) reviewMark(w http.ResponseWriter, r *http.Request) {
+	on, err := s.app.ToggleReviewed(r.PathValue("type"), idParam(r))
+	if err != nil {
 		httpError(w, err)
+		return
+	}
+	if strings.Contains(r.Header.Get("Accept"), "application/json") {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{"reviewed": on})
 		return
 	}
 	step := r.URL.Query().Get("step")

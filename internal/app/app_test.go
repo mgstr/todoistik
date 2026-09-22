@@ -480,6 +480,75 @@ func TestReviewOutstanding(t *testing.T) {
 	}
 }
 
+// The mark goes both ways, and taking it off has to put back the date the
+// item actually had rather than invent one: a press that landed on the wrong
+// row must leave that row exactly as outstanding as it was (design.md,
+// "Weekly review").
+func TestReviewMarkFlipsBothWays(t *testing.T) {
+	a, now := newTestApp(t)
+	p, err := a.CreateProject(
+		ProjectFields{Title: "Shed built", DOD: "Roof on"},
+		[]ActionFields{{Title: "Buy the boards"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	created := *now
+	*now = created.Add(9 * 24 * time.Hour)
+
+	got, _ := a.Project(p.ID)
+	if !a.Outstanding(got.LastReviewedAt) {
+		t.Fatal("a project untouched for nine days is outstanding")
+	}
+	on, err := a.ToggleReviewed("project", p.ID)
+	if err != nil || !on {
+		t.Fatalf("first press marks: on=%v err=%v", on, err)
+	}
+	got, _ = a.Project(p.ID)
+	if a.Outstanding(got.LastReviewedAt) {
+		t.Fatal("a walked project is not outstanding")
+	}
+
+	on, err = a.ToggleReviewed("project", p.ID)
+	if err != nil || on {
+		t.Fatalf("second press unmarks: on=%v err=%v", on, err)
+	}
+	got, _ = a.Project(p.ID)
+	if !got.LastReviewedAt.Equal(created) {
+		t.Errorf("unmarking put back %v, want the stamp it replaced (%v)", got.LastReviewedAt, created)
+	}
+	if !a.Outstanding(got.LastReviewedAt) {
+		t.Error("an unmarked project is outstanding again")
+	}
+}
+
+// Someday/maybe items are marked on their own cadence: a month, not the week
+// everything else gets, so the same press must not read as walked one way and
+// outstanding the other.
+func TestReviewMarkFollowsTheSomedayCadence(t *testing.T) {
+	a, now := newTestApp(t)
+	if _, acc, err := a.Capture("Learn the banjo"); err != nil || !acc {
+		t.Fatalf("capture: acc=%v err=%v", acc, err)
+	}
+	items, _ := a.Inbox()
+	it, err := a.ProcessSomeday(items[0].ID, SomedayFields{Text: "Learn the banjo"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// nine days on, the week has run out but the month has not: the item is
+	// not outstanding, so the press takes the mark off rather than putting it
+	// on — which is the toggle reading the right cadence
+	*now = now.Add(9 * 24 * time.Hour)
+	on, err := a.ToggleReviewed("someday", it.ID)
+	if err != nil || on {
+		t.Fatalf("inside the month the item is already walked: on=%v err=%v", on, err)
+	}
+	*now = now.Add(31 * 24 * time.Hour)
+	on, err = a.ToggleReviewed("someday", it.ID)
+	if err != nil || !on {
+		t.Fatalf("past the month it is outstanding and the press marks it: on=%v err=%v", on, err)
+	}
+}
+
 func TestCompletionRules(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, err := a.CreateProject(

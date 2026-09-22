@@ -1,15 +1,20 @@
 {{template "top" .}}
-<ol class="review-steps">
+<ul class="review-steps">
 {{range .Data}}
   <li class="{{if .Count}}outstanding{{end}}">
-    {{if eq .Key "gather"}}
-      <b>{{.Title}}</b> — {{.Desc}}
-    {{else if eq .Key "inbox"}}
-      <a href="/process"><b>{{.Title}}</b></a> — {{.Desc}} {{if .Count}}<span class="badge error">{{.Count}} in inbox</span>{{else}}<span class="badge ok">empty ✓</span>{{end}}
+    {{if .Link}}
+      <a href="{{.Link}}" data-key="{{.Num}}" data-key-label="{{lower .Title}}"><span class="num">{{.Num}}</span> <b>{{.Title}}</b></a>
     {{else}}
-      <a href="/review/{{.Key}}"><b>{{.Title}}</b></a> — {{.Desc}} {{if .Count}}<span class="badge error">{{.Count}} outstanding</span>{{else}}<span class="badge ok">done ✓</span>{{end}}
+      <span class="num">{{.Num}}</span> <b>{{.Title}}</b>
+    {{end}}
+    — {{.Desc}}
+    {{if eq .Key "gather"}}
+    {{else if eq .Key "inbox"}}
+      {{if .Count}}<span class="badge error">{{.Count}} in inbox</span>{{else}}<span class="badge ok">empty ✓</span>{{end}}
+    {{else}}
+      {{if .Count}}<span class="badge error">{{.Count}} outstanding</span>{{else}}<span class="badge ok">done ✓</span>{{end}}
     {{end}}
   </li>
 {{end}}
-</ol>
+</ul>
 {{template "bottom" .}}
