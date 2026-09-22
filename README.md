@@ -438,6 +438,54 @@ Nothing is processed, completed or reviewed from the chat — see design.md,
 "Design principles". Everything sent passes through Telegram's servers. See
 implementation.md, "Telegram".
 
+## MCP
+
+`todoistikmcp` is todoistik as an MCP server: a model reads the views and files
+captures, over the same two endpoints everything else outside the app uses. It
+speaks over stdin and stdout, so the client starts it as a child process and
+nothing has to be reachable from the network.
+
+```sh
+go build -o todoistikmcp ./cmd/todoistikmcp
+```
+
+In Claude Code, `~/.claude.json` or a project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "todoistik": {
+      "command": "/path/to/todoistikmcp",
+      "env": { "TODOISTIK_URL": "http://127.0.0.1:8390", "TODOISTIK_TOKEN": "..." }
+    }
+  }
+}
+```
+
+| flag          | env               | default                 |                                                     |
+|---------------|-------------------|-------------------------|-----------------------------------------------------|
+| `-url`        | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                     |
+| `-token`      | `TODOISTIK_TOKEN` | *(empty)*               | the app's bearer token; empty for a server started without one |
+| `-token-file` |                   | *(empty)*               | a file holding the token, to keep it off the process list |
+
+**Three tools:**
+
+- `todoistik_context` — every view at once, the whole situation. `archive` says
+  how far back the archive section reaches
+- `todoistik_read_view` — one view, optionally filtered. `view` is one of the
+  eleven, as an enum, so a name the app does not have is refused by the client
+  before the app is asked; `q` is the filter line as it is typed on screen
+- `todoistik_capture` — text into the inbox
+
+**It can do nothing the read and capture APIs cannot**, and that is the point
+rather than a limitation. Nothing is completed, edited, processed or reviewed
+through it. A model with something to say — this looks like a duplicate of a
+project you finished last year, these five archived items look like a schedule
+waiting to be written — files a capture, and it is decided about by hand in
+Inbox Zero like anything else. That is the same round trip a reminder ticked
+off on a phone makes: the outside says "this looks like something", and you
+answer at the desk.
+
 ## Source layout
 
 ```
@@ -467,8 +515,13 @@ cmd/telegrambot/          one Telegram chat: a message is a capture, a command r
   bot_test.go             against stubs of Telegram and of the app
   app_test.go             the views as the real server answers them
 
+cmd/todoistikmcp/         the app as an MCP server, spoken over stdin and stdout
+  main.go                 the flags, the token, and the server on the stdio transport
+  tools.go                the three tools and their schemas: the situation, one view, and the way in
+  tools_test.go           the real protocol against the real server, over an in-memory transport
+
 internal/apiclient/
-  client.go               the app as seen from outside: capture on the way in, a view on the way out
+  client.go               the app as seen from outside: capture on the way in, a view on the way out, as items or as text
 
 internal/request/
   request.go              the completion-request line: the grammar the utility writes and the app reads
