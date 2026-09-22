@@ -1,8 +1,8 @@
 {{template "top" .}}
 {{$step := .Data.Step}}{{$items := .Data.Items}}
-<header class="pagehead">
+<header class="pagehead" data-cancel="/review">
   <h1>Review · {{$step}} {{template "count" (len $items)}}</h1>
-  <a href="/review">Cancel</a>
+  <a class="button" href="/review">Back</a>
 </header>
 {{if not $items}}
 <p class="empty">Nothing outstanding in this step. <a href="/review">Back to the review ✓</a></p>

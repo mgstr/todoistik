@@ -1,13 +1,16 @@
 {{template "top" .}}
 {{$s := .Data}}
-<div class="item">
+<div class="item" data-cancel="/scheduler">
   <p class="crumb"><a href="/scheduler">Scheduler</a></p>
   <h1>New schedule</h1>
   <form method="post" action="/schedule" class="stack">
     <label>Text <input name="text" value="{{$s.Text}}" required></label>
     <label>When <input name="rule" value="{{$s.Rule}}" required placeholder="2026-12-01, or 1 * *"></label>
     <label>Suffix <input name="suffix" value="{{$s.Suffix}}"></label>
-    <button class="primary">Create</button>
+    <div class="actionsbar">
+      <button class="primary" data-key="c" data-key-label="create" data-key-typing>Create</button>
+      <a class="button" href="/scheduler">Cancel</a>
+    </div>
   </form>
 </div>
 {{template "bottom" .}}

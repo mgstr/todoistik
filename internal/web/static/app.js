@@ -129,7 +129,19 @@
     // stepped into, and the list has j/k reaching it anyway.
     const isList = function (el) { return jumpKind(el) === "list"; };
     const ordered = els.filter(function (el) { return !isList(el); }).concat(els.filter(isList));
+    // A control may name its own letter, and a declared one is claimed before
+    // any computed letter can take it. Without this the six buttons that have
+    // no key of their own move under the hints: Delete was `l` inside a
+    // project and `e` standing alone, because Detach left the screen and
+    // every letter after it shifted up (keys.md, "Buttons that get no
+    // letter").
     ordered.forEach(function (el) {
+      const want = el.dataset.jump;
+      if (want && !used[want]) { used[want] = true; out.push([want, el]); }
+    });
+    ordered.forEach(function (el) {
+      if (el.dataset.jump && used[el.dataset.jump] &&
+          out.some(function (p) { return p[1] === el; })) return;
       const name = jumpName(el).toLowerCase();
       let key = null;
       for (let i = 0; i < name.length; i++) {
@@ -259,7 +271,7 @@
   // ? is offered only where there is a panel to open: a detail page sits under
   // no view, so it has no view help and the key would do nothing.
   function globalKeys() {
-    const keys = [["q", "add to inbox"], ["g", "go to"]];
+    const keys = [["g g", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
     if (jumpTargets().length) keys.push(["^m", "jump"]);
@@ -270,6 +282,26 @@
     // beside it when it does
     declaredKeys("[data-key][data-global]").forEach(function (k) { keys.push(k); });
     return keys;
+  }
+
+  // Whether the caret is in something that swallows a bare letter. While a
+  // box is being typed in, a bare letter is a character and not a command, so
+  // every key that is one is dead — and the bar's whole promise is that what
+  // it lists works right now.
+  function typingNow() {
+    const el = document.activeElement;
+    return !!(el && el.closest && typing({ target: el }));
+  }
+
+  // The entries that survive that: a chord, esc, and the "needs …" line,
+  // which is a reason rather than a key. Nothing is greyed out or annotated —
+  // a key that cannot be pressed is not shown, which is the same rule the bar
+  // follows everywhere else, and what the bar does say is then exactly what
+  // one press will do.
+  function chordOnly(pairs) {
+    return pairs.filter(function (p) {
+      return p[0].indexOf("^") >= 0 || p[0] === "esc" || p[0] === "\u2026";
+    });
   }
 
   // Every entry is derived from what is actually on the page and what is
@@ -361,6 +393,7 @@
     // run, so acting on the selection leads.
     if (zero) view.push(["z", "inbox zero"]);
     if (!zero) pushRowKeys(view, row);
+    if (!row) pushScreenKeys(view);
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
     if (createForm()) view.push(["^↵", "create"]);
@@ -369,10 +402,24 @@
     // every other entry here is derived from the page rather than written down
     if (itemLinks(linkScope()).length) view.push(["^o", "open link"]);
     const cancel = document.querySelector("[data-cancel]");
-    if (cancel) view.push(["esc", cancel.dataset.cancelLabel || "cancel"]);
+    if (cancel) {
+      view.push([renderKey("b"),
+        discardArmed ? "discard" : (cancel.dataset.cancelLabel || "back")]);
+    }
     const bar = filterBar();
     if (bar) view.push(["^f", bar.hidden ? "filter" : "no filter"]);
     if (bar && !bar.hidden) view.push(["esc", "to the filter"]);
+    // With the caret in a box the bar narrows to what a chord can still
+    // reach, and says the one key that gets the letters back. This is the
+    // mode made visible: in `command` almost everything goes and returns on
+    // esc, in `modifier` almost nothing does — which is the difference the
+    // two are being tried for (keys.md, "The bar while you are typing").
+    if (typingNow()) {
+      return {
+        view: chordOnly(view).concat([["esc", "leave the box"]]),
+        global: chordOnly(globalKeys()),
+      };
+    }
     return { view: view, global: globalKeys() };
   }
 
@@ -388,7 +435,7 @@
 
   function declaredKeys(sel) {
     return Array.from(document.querySelectorAll(sel)).filter(keyUsable).map(function (el) {
-      return [el.dataset.key, el.dataset.keyLabel || ""];
+      return [renderKey(el.dataset.key, el), el.dataset.keyLabel || ""];
     });
   }
 
@@ -431,6 +478,37 @@
   }
 
   function anyLayout() { return paneSays("data-keys-any-layout"); }
+
+  // ---- keys.mode ---------------------------------------------------------
+  //
+  // A control declares its letter and never its modifier (keys.md, "The three
+  // modes"); this is the one place that decides how that letter is pressed.
+  // A declaration that already carries `^` is a global — `^e`, `^o` — and is
+  // not the screen's to begin with, so no mode touches it.
+  //
+  // What hybrid puts ctrl on is the *control*, not the letter, and the control
+  // is the one that knows: data-key-typing marks a key that has to fire with
+  // the caret in a box. Keyed on the letter it was wrong the moment two
+  // buttons shared one — `a` is Add inside a project form and the Action
+  // branch on a screen with nothing to type into, and only the first of those
+  // is worth a modifier.
+  function keysMode() {
+    const pane = document.querySelector(".pane");
+    const m = pane && pane.getAttribute("data-keys-mode");
+    return m || "hybrid";
+  }
+
+  // What a declared key is actually pressed as, here, now. Everything that
+  // reads a data-key goes through this — the handler and the bar both — so
+  // the two can never disagree about what a screen is offering.
+  function renderKey(decl, el) {
+    if (!decl || decl.charAt(0) === "^") return decl;
+    if (decl.length !== 1) return decl;
+    const mode = keysMode();
+    if (mode === "command") return decl;
+    if (mode === "modifier") return "^" + decl;
+    return el && el.hasAttribute("data-key-typing") ? "^" + decl : decl;
+  }
   function layoutMarker() { return paneSays("data-keys-layout-marker"); }
 
   // ---- Which layout the keyboard is in --------------------------------
@@ -539,9 +617,13 @@
     const k = keyOf(e);
     if (k.length !== 1) return null;
     const want = (e.ctrlKey ? "^" : "") + k;
-    const all = document.querySelectorAll('[data-key="' + CSS.escape(want) + '"]');
+    // Every declaration is rendered through the mode and compared, rather
+    // than the pressed key being turned into a selector: the letter on the
+    // control is the same in all three modes and only the chord changes, so
+    // there is nothing to build a selector out of.
+    const all = document.querySelectorAll("[data-key]");
     for (let i = 0; i < all.length; i++) {
-      if (keyUsable(all[i])) return all[i];
+      if (renderKey(all[i].dataset.key, all[i]) === want && keyUsable(all[i])) return all[i];
     }
     return null;
   }
@@ -667,6 +749,17 @@
     return true;
   }
 
+  // The same three keys where the screen carries the form rather than a row:
+  // an action's own page, a project's, the completion request, the doing
+  // screen. Offered only with nothing under the cursor, because a row is what
+  // they act on whenever there is one — which is the rule the handler follows
+  // too, so the bar cannot offer a key that would act somewhere else.
+  function pushScreenKeys(into) {
+    if (screenForm("kb-complete")) into.push([renderKey("d"), "done"]);
+    if (screenForm("kb-pick")) into.push([renderKey("t"), "today"]);
+    if (screenForm("kb-delete")) into.push(["⌫", "delete"]);
+  }
+
   function pushRowKeys(into, row) {
     if (!row) return;
     // an action written before its project exists is not on the list yet, so
@@ -675,19 +768,135 @@
     // do something: no "up" on the first row, no "down" on the last.
     if (row.hasAttribute("data-draft")) {
       into.push(["\u21b5", "edit"]);
-      if (row.previousElementSibling) into.push(["u", "up"]);
-      if (row.nextElementSibling) into.push(["d", "down"]);
-      into.push(["r", "remove"]);
+      // Moving the row itself is the movement keys with shift held: `u` and
+      // `d` were spent on Undone and Done, and a draft is a row like any
+      // other, so the delete key removes it the way the delete key removes anything.
+      if (row.previousElementSibling) into.push(["K", "up"]);
+      if (row.nextElementSibling) into.push(["J", "down"]);
+      into.push(["⌫", "remove"]);
       return;
     }
-    // opening an inbox item is processing it, so the two keys share a label
-    if (row.hasAttribute("data-process")) into.push(["\u21b5 p", "process"]);
+    // opening an inbox item is processing it, so the key says so
+    if (row.hasAttribute("data-process")) into.push(["\u21b5", "process"]);
     else if (row.dataset.href) into.push(["\u21b5", "open"]);
     else if (row.querySelector("input[type=radio]")) into.push(["\u21b5", "pick"]);
-    if (row.querySelector("form.kb-complete")) into.push(["c", "done"]);
-    if (canDo(row)) into.push(["d", "doing"]);
-    if (row.querySelector("form.kb-pick")) into.push(["t", "today"]);
+    if (row.querySelector("form.kb-complete")) into.push([renderKey("d"), "done"]);
+    if (canDo(row)) into.push(["w", "doing"]);
+    if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today"]);
     if (deleteForm(row)) into.push(["⌫", "delete"]);
+  }
+
+  // ---- row and screen commands -------------------------------------------
+  //
+  // `d`, `t` and the delete key press the selected row's form, or — with no
+  // row under the cursor — the screen's own. One mechanism, so an action's
+  // page and a row of the list it was opened from answer the same key with
+  // the same form (keys.md, "The map"). A row under the cursor is never
+  // stepped over: if it carries no such form the key does nothing, rather
+  // than reaching past it to act on the screen behind.
+  function screenForm(cls) {
+    const all = document.querySelectorAll("form." + cls);
+    for (let i = 0; i < all.length; i++) {
+      if (all[i].closest("[data-kb-row]") || !keyLive(all[i])) continue;
+      const btn = all[i].querySelector("button");
+      if (!btn || !btn.disabled) return all[i];
+    }
+    return null;
+  }
+
+  function actOn(cls) {
+    const row = selected();
+    if (row) {
+      if (!row.querySelector("form." + cls)) return false;
+      submitIn(row, cls);
+      return true;
+    }
+    const form = screenForm(cls);
+    if (!form) return false;
+    if (form.requestSubmit) form.requestSubmit(); else form.submit();
+    return true;
+  }
+
+  // Whether this event is the press of a declared letter, whatever the mode
+  // renders that letter as.
+  function pressedIs(decl, e) {
+    return renderKey(decl) === (e.ctrlKey ? "^" : "") + keyOf(e);
+  }
+
+  // `b` leaves, and a form with unsaved work costs a second press: the first
+  // marks what would be lost and lets the bar say so, the second goes. No
+  // dialog and no confirmation, for the reason there is none anywhere else —
+  // design.md, "The protocol is followed, not enforced" — and no third state
+  // to learn, since the same key pressed again still means leave.
+  let discardArmed = false;
+
+  function dirtyForms() {
+    return Array.from(document.querySelectorAll("form")).filter(function (f) {
+      return keyLive(f) && changed(f);
+    });
+  }
+
+  // Only a screen that edits something gets the marks. One that creates is
+  // unsaved wholesale, so marking every filled box would mark the form and
+  // say nothing — it still costs the second press (keys.md, "Leaving a
+  // screen").
+  function markUnsaved(forms) {
+    forms.forEach(function (f) {
+      if (!f.hasAttribute("data-dirty-save")) return;
+      Array.from(f.querySelectorAll("input, textarea, select")).forEach(function (el) {
+        let diff;
+        if (el.type === "checkbox" || el.type === "radio") diff = el.checked !== el.defaultChecked;
+        else if (el.tagName === "SELECT") {
+          diff = Array.from(el.options).some(function (o) { return o.selected !== o.defaultSelected; });
+        } else diff = el.value !== el.defaultValue;
+        if (diff) el.classList.add("unsaved");
+      });
+    });
+  }
+
+  function disarmDiscard() {
+    if (!discardArmed) return;
+    discardArmed = false;
+    document.querySelectorAll(".unsaved").forEach(function (el) { el.classList.remove("unsaved"); });
+  }
+
+  function leave() {
+    const cancel = document.querySelector("[data-cancel]");
+    if (!cancel) return false;
+    const dirty = dirtyForms();
+    if (dirty.length && !discardArmed) {
+      discardArmed = true;
+      markUnsaved(dirty);
+      renderKeybar();
+      return true;
+    }
+    window.location.href = cancel.dataset.cancel;
+    return true;
+  }
+
+  // Read before the ctrl guard in the handler, because in modifier mode these
+  // are ctrl keys too: the letter on the control is the same in all three
+  // modes and only the chord changes.
+  function rowCommand(e) {
+    const row = selected();
+    if (e.key === "Backspace" || e.key === "Delete") {
+      if (row && row.hasAttribute("data-draft")) { removeDraft(row); return true; }
+      const form = row ? deleteForm(row) : screenForm("kb-delete");
+      if (!form) return false;
+      if (row) handSelectionOn(row);
+      form.submit();
+      return true;
+    }
+    if (pressedIs("d", e)) return actOn("kb-complete");
+    if (pressedIs("t", e)) return actOn("kb-pick");
+    if (pressedIs("b", e)) return leave();
+    // doing is navigation, so it is bare in every mode
+    if (!e.ctrlKey && keyOf(e) === "w" && canDo(row)) {
+      handSelectionOn(row);
+      window.location.href = doingHref(row);
+      return true;
+    }
+    return false;
   }
 
   // The row's own delete, and only one that can be pressed: a name still
@@ -706,7 +915,16 @@
   function makeKeys(scope) {
     const btn = makeButton(scope);
     if (!btn) return [];
-    if (!btn.disabled) return [["^\u21b5", btn.textContent.trim().toLowerCase()]];
+    if (!btn.disabled) {
+      // The button's own key is the better name for this when it has one and
+      // that key is a chord: `^s save` and `^\u21b5 save` are one answer said
+      // twice. In `command` mode the declared key is a bare letter and dead
+      // where this entry is read, so there ^enter is the only way out of the
+      // box and stays in the bar.
+      const own = btn.dataset.key;
+      if (own && renderKey(own, btn).indexOf("^") >= 0) return [];
+      return [["^\u21b5", btn.textContent.trim().toLowerCase()]];
+    }
     const need = missing(scope);
     if (!need.length) return [];
     return [["\u2026", "needs " + need.join(" and ")]];
@@ -832,6 +1050,13 @@
     document.querySelectorAll("form, dialog").forEach(gate);
     renderKeybar();
   }
+  // Moving into or out of a box changes which keys are live, so the bar is
+  // re-read on both. focusin/focusout because they bubble — the boxes come
+  // and go with every page swap — and focusout a tick later, once the focus
+  // has actually landed somewhere.
+  document.addEventListener("focusin", function () { renderKeybar(); });
+  document.addEventListener("focusout", function () { setTimeout(renderKeybar, 0); });
+
   document.addEventListener("input", function (e) {
     // a token box paints itself and offers what you may be typing — and then
     // falls through, because it is a field in a form like any other and the
@@ -840,6 +1065,7 @@
       paintBox(e.target);
       showSuggest(e.target);
     }
+    disarmDiscard();
     const scope = e.target.closest && e.target.closest("form, dialog");
     if (scope) { gate(scope); renderKeybar(); }
   });
@@ -1913,6 +2139,11 @@
     if (e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector("dialog[open]")) {
       const ctrlBranch = branchFor(e);
       if (ctrlBranch) { e.preventDefault(); press(ctrlBranch); return; }
+      // and the row and screen commands with it, which in modifier mode are
+      // ctrl keys like any other. Letters only: the delete key is never
+      // modified, and reading it here would take backspace away from the box
+      // being typed in.
+      if (keyOf(e).length === 1 && rowCommand(e)) { e.preventDefault(); return; }
     }
 
     // ^o follows a link in the item under the cursor. Read here rather than
@@ -2069,6 +2300,10 @@
       if (here) { e.preventDefault(); submitScope(here); }
       return;
     }
+    // The row and screen commands, read before the ctrl guard: in modifier
+    // mode `d`, `t` and `b` arrive with ctrl held.
+    if (!e.altKey && !e.metaKey && rowCommand(e)) { e.preventDefault(); return; }
+
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (gPending) {
@@ -2091,8 +2326,18 @@
     const row = selected();
     switch (keyOf(e)) {
       case "g": e.preventDefault(); setPending(true); break;
-      case "j": e.preventDefault(); move(1); break;
-      case "k": e.preventDefault(); move(-1); break;
+      // shift moves the row itself rather than the cursor, which is what a
+      // draft needs now that `u` and `d` are Undone and Done
+      case "j":
+        e.preventDefault();
+        if (e.shiftKey && row && row.hasAttribute("data-draft")) moveDraft(row, 1);
+        else move(1);
+        break;
+      case "k":
+        e.preventDefault();
+        if (e.shiftKey && row && row.hasAttribute("data-draft")) moveDraft(row, -1);
+        else move(-1);
+        break;
       case "Enter":
       case "o": {
         if (row && row.hasAttribute("data-draft")) { e.preventDefault(); openDraft(row); break; }
@@ -2101,12 +2346,6 @@
         if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
         break;
       }
-      case "p":
-        if (row && row.hasAttribute("data-process") && row.dataset.href) {
-          e.preventDefault();
-          window.location.href = row.dataset.href;
-        }
-        break;
       case "z": {
         // Inbox Zero is only p over and over: the same screen, fed the oldest
         // item each time instead of the selected one.
@@ -2114,32 +2353,6 @@
         if (list) { e.preventDefault(); window.location.href = list.dataset.inboxZero; }
         break;
       }
-      case "u": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, -1); } break;
-      // d moves a draft down and starts doing an action. The two never meet:
-      // a draft is an action that does not exist yet, so it has nothing to do
-      case "d":
-        if (row && row.hasAttribute("data-draft")) { e.preventDefault(); moveDraft(row, 1); break; }
-        if (canDo(row)) {
-          e.preventDefault();
-          // leaving doing puts you back on this row, because you were on it
-          handSelectionOn(row);
-          window.location.href = doingHref(row);
-        }
-        break;
-      case "r": if (row && row.hasAttribute("data-draft")) { e.preventDefault(); removeDraft(row); } break;
-      case "c": if (row) { e.preventDefault(); submitIn(row, "kb-complete"); } break;
-      // the key labelled delete on this keyboard, which the browser calls
-      // Backspace; forward-delete means the same. Straight away, with no
-      // question: only a name nothing carries can be deleted, so nothing an
-      // item says is lost by it
-      case "Backspace":
-      case "Delete": {
-        const form = deleteForm(row);
-        if (form) { e.preventDefault(); handSelectionOn(row); form.submit(); }
-        break;
-      }
-      case "t": if (row) { e.preventDefault(); submitIn(row, "kb-pick"); } break;
-      case "q": e.preventDefault(); openCapture(); break;
       case "?": {
         e.preventDefault();
         const help = document.getElementById("help");
@@ -2150,10 +2363,12 @@
       case "Escape": {
         const help = document.getElementById("help");
         if (help && !help.hidden) { help.hidden = true; renderKeybar(); break; }
-        // a screen that can be abandoned says so with data-cancel, and says
-        // where leaving it goes. Nothing is written on the way out.
-        const cancel = document.querySelector("[data-cancel]");
-        if (cancel) { e.preventDefault(); window.location.href = cancel.dataset.cancel; break; }
+        // esc unwinds one step and never navigates: leaving a screen is `b`
+        // (keys.md, "Leaving a screen"). It used to close things and then,
+        // with nothing left to close, follow data-cancel — two meanings on
+        // one key, which is tolerable until the keyboard is modal and leaving
+        // a box is the commonest press in the app.
+        disarmDiscard();
         select(null);
         // with the filter line up, leaving the list goes back to the line: the
         // way back from ctrl-j, and the same one step out that esc in the box

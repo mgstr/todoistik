@@ -641,6 +641,14 @@ outside it, and neither of those can decide anything.
 
 ## Keyboard
 
+**The map is in keys.md.** Which letter presses which button, what a modifier
+is spent on, how a screen is left, and which of those are built yet — all of
+it is there, in one place, because it was previously spread across this
+section, "The processing screen", "Doing" and "The remembered lists", and a
+letter could be spent twice without any one of them being wrong. What stays
+here is how the key layer is wired: how a keypress is resolved, what survives
+a page load, and what the bar derives itself from.
+
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
 - `j` / `k` move through the current list, `Enter` opens the selected item.
@@ -680,10 +688,8 @@ outside it, and neither of those can decide anything.
   left, rather than a gap past it. It is claimed before the selection is, so
   that the cursor lands on a row that is already on screen and
   `scrollIntoView({ block: "nearest" })` has nothing left to move
-- single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built. The map is settled a view at a time as each is worked on, rather than declared up front
+- single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built — keys.md, "What is built" is the ledger of which is which
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
-- `q`, and `g g` alongside the view jumps, open the capture dialog — see "Capture"
-- `p` processes the selected inbox item and `z` runs Inbox Zero over the whole inbox — see "Processing from the Inbox"
 - **a screen may declare keys on its own controls**, with `data-key` and
   `data-key-label` on the form, link or button the key presses. A declared key
   may ask for ctrl, written `^a` — the notation the bar already uses for
@@ -697,13 +703,20 @@ outside it, and neither of those can decide anything.
   link. Nothing in the JS knows what any of them mean. This is the same
   construction as the row keys and buys the same guarantee, that a key cannot
   be advertised without working, extended to a screen whose controls are not
-  rows. A declared key beats the standing map while that screen is up, which is
-  what lets `t` mean trash on the processing screen and today everywhere else
-- `d` opens the selected action alone on a screen of its own — see "Doing"
-- `ctrl-v` opens the panel chooser: title bar, navigation, key bar, zen mode,
-  one letter each, and a second `ctrl-v` presses zen — see "Panels"
-- `ctrl-f` puts up the filter line on a view that has one, and takes it and
-  every filter away when pressed again — see "Token boxes"
+  rows. A declared key beats the standing map while that screen is up — the
+  mechanism that used to let one letter mean two things on two screens, which
+  keys.md, "One letter, one button" now rules out. It stays because the
+  processing screen's six answers still need it: there the keys *are* the
+  screen rather than controls on it
+- **a control declares its letter, never its modifier.** `data-key="d"`, and
+  `keys.mode` decides whether that fires bare or with ctrl — see keys.md, "The
+  three modes". A template that wrote the modifier in would be putting a
+  policy decision in twelve places. A control reached with the caret still in
+  a box adds `data-key-typing`, which only hybrid reads: that is a fact about
+  where the control sits, and it is on the control rather than on the letter
+  because two buttons may share a letter without sharing a form to be typed
+  into — `a` is Add inside a project form and the Action branch on a screen
+  with no box on it
 - `ctrl-m` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
 - `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
@@ -718,15 +731,17 @@ outside it, and neither of those can decide anything.
   times for every jump
 - `⌫` (the key labelled delete here, `Backspace` to the browser; forward
   delete means the same) deletes the selected row where the row carries a
-  delete that can be pressed. Today that is only a name on Settings — see "The
-  remembered lists"
+  delete that can be pressed. It is the one key that is not a letter and so
+  takes no modifier in any mode — see keys.md, "The map" for what it reaches,
+  and "The remembered lists" for the one place it reaches today
 - `ctrl-o` follows a link in the item under the cursor — the selected row, or
   the one item the screen is about. Ctrl for the reason the declared `^` keys
   spend one: the link is most often wanted with the item open and a box being
   typed in. See "Links in item text" for what counts as being in the item,
   and for the settings key that narrows it to what is on the screen
-- `ctrl-t` is *show me the time*: the ages on every list, app-wide (see "Ages
-  are hidden by default"), and the timer on the doing screen (see "Doing"). The
+- `ctrl-e` is *show me the time*: the ages on every list, app-wide (see "Ages
+  are hidden by default"), and the timer on the doing screen (see "Doing"). It
+  held `ctrl-t` until Today wanted it — keys.md, "The map" has the trade. The
   one key that sets a flag rather than doing something, which is why the bar
   reads its state back out rather than naming an action. Two flags and one key,
   because the screen with a timer on it has no ages and every screen with ages
@@ -735,6 +750,7 @@ outside it, and neither of those can decide anything.
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
+- **and nothing advertises a key that does not work *now*.** The same promise, one step further in: with the caret in a box every bare letter is a character, so the bar drops to the chords, the "needs …" line and `esc leave the box` — see keys.md, "The bar while you are typing". It is re-read on `focusin` and `focusout`, which is what makes the narrowing visible at the moment it becomes true. Greying the dead keys out was the other answer and is worse: a key shown with a note saying it does not work is still a key shown
 - `/` is not a key any more. It focused the Archive's name box, the last filter panel left, and went with it: every view's filters are `ctrl-f` now (see "Token boxes"), and a second key for the same box on one view would be a key that means something in one place only
 
 ### Which key is which
@@ -846,6 +862,9 @@ layout types, and noticing after the sentence is a line to delete.
 ### Jumping to a control
 
 `g` goes to a view; `ctrl-m` goes to something on the view already open. It
+is also the whole of how six rare buttons are reached — keys.md, "Buttons that
+get no letter" says which, and why a control may declare its letter rather
+than taking the first free one. It
 marks every control on the screen with a letter, the way `g` marks the rail,
 and the next key pressed goes there — which means whatever that thing is for:
 a box is focused, a button is pressed, and a list is arrived at by selecting
@@ -998,11 +1017,14 @@ they apply.
   argument that leaves the write boxes without placeholders (see "The meta
   line")
 
-- **`p` processes the selected item**, at `/process?item=<id>&one=1`, and
-  returns to the list afterwards. **`z` runs Inbox Zero**, at `/process`, which
-  takes the oldest item, comes back for the next one after each answer, and
-  ends on the inbox. `z` is exactly `p` repeated: the same screen, fed the
-  oldest item instead of the selected one. **`g z` is that same run from
+- **`↵` processes the selected item**, at `/process?item=<id>&one=1`, and
+  returns to the list afterwards — opening an inbox item *is* processing it,
+  which is why the two share one label in the bar. `p` aliased `↵` here and is
+  gone: the alias was the cheapest way to hand that letter to the project
+  branch, which needed it more (keys.md, "The map"). **`z` runs Inbox Zero**,
+  at `/process`, which takes the oldest item, comes back for the next one
+  after each answer, and ends on the inbox. `z` is exactly `↵` repeated: the
+  same screen, fed the oldest item instead of the selected one. **`g z` is that same run from
   anywhere**, without stopping at the list on the way (see "Keyboard view-jump
   overlay")
 - **one flag distinguishes them**, `?one=1`, carried on the screen's own URL and
@@ -1136,11 +1158,15 @@ and all eight branches on screen at once — three buttons and five forms in
 
 Six, one per answer, listed in the bar in the order the rows present them:
 `t` trash, `r` reference, `2` two-minute, `s` someday, `a` action, `p` project,
-then `esc`. Each is the branch's own first letter except the two-minute rule,
-which is the rule's own number — `c` would have matched "done" elsewhere in the
-app, but there `c` completes an action that exists, and this branch records
-something done that never became one. Three of the six now open a stage rather
-than posting an answer: `s` went from a form's submit to a link the moment
+then `esc`. Three of those move — trash to `⌫`, someday to `y`, and `p` to the
+project branch once the inbox row's alias goes — and `esc` stops leaving the
+screen. keys.md, "The map" owns those letters and gives the derivation; its
+"What is built" says where the code still stands. Each is the branch's own first letter except the two-minute rule,
+which is the rule's own number, and someday/maybe, which took the one letter
+of its name still free. The two-minute rule could not take a letter of "done":
+`d` is Done app-wide and this branch records something finished that never
+became an action at all, so the two would have read as the same answer. Three of the six now open a stage rather
+than posting an answer: the someday branch went from a form's submit to a link the moment
 Someday/Maybe grew a stage two, and the key layer never noticed — `data-key` on
 a link is a link being followed, the way `a` and `p` already were.
 
@@ -2298,7 +2324,10 @@ settings key saying how far the key sees.
 ## Doing
 
 design.md, "Doing one action" asks for the selected action alone on an
-otherwise empty screen. `d` opens it, `c` completes, `esc` leaves.
+otherwise empty screen. `d` opens it, `c` completes, `esc` leaves — becoming
+`w` opens it, `d` completes, `b` leaves, since `d` is Done everywhere now and
+`esc` no longer navigates. keys.md owns those letters; what follows is why the
+screen is shaped the way it is.
 
 - **it is a page: `GET /doing/{id}`.** The first version built it in the
   browser out of the row, on the argument that it was not a view and held
@@ -3237,6 +3266,9 @@ register so a gap reads as scheduled rather than as an oversight — a reader wh
 finds one of these and takes it for a bug will "fix" a decision that was made
 on purpose.
 
+- **the keyboard map** — every gap between keys.md and the code is registered
+  in that file's own "What is built" rather than duplicated here, since the
+  rule and the gap have to be read together to make sense of either
 - **an action's title must start with a verb and be self-descriptive**
   (design.md, "Inbox Zero", the Action branch). Today it is guidance rather
   than validation: the title field carries it as its placeholder — *"Starts
