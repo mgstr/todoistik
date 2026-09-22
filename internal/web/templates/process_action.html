@@ -8,6 +8,12 @@
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
+  {{/* The boxes below hold the finished item's words and not the capture's,
+       which is a substitution the screen has to own up to — it is state and
+       not instruction, so it is one line and it names which one was pressed
+       (design.md, "Copying a finished one"). */}}
+  {{if $d.Copied}}<p class="cap">copied from a finished action<span class="agetext">, {{age $d.Copied.At}}</span></p>{{end}}
+
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   <form method="post" action="/process/{{$d.ID}}/action{{$d.Q}}" class="stack">

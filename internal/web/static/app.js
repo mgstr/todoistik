@@ -463,8 +463,32 @@
   // exist here if the thing it presses exists, and it can never be advertised
   // without working. Document order is the bar's order, which lets the template
   // decide how the answers read rather than this file.
+  // A list that draws its own keys is summarised in the bar as a range rather
+  // than listed key by key: the match list on the processing screen numbers
+  // its own rows, which is where those numbers are read, and nine entries
+  // saying "copy" would bury the six answers under them. The entry presses
+  // nothing — it says how to steer, exactly as the bookmarks' `^1…9` does —
+  // and a run of them ends the moment an ordinary key comes between, so the
+  // bar can never claim a range that is not one.
   function branchKeys() {
-    return declaredKeys("[data-key]:not([data-global])");
+    const out = [];
+    let run = null;
+    Array.from(document.querySelectorAll("[data-key]:not([data-global])")).filter(keyUsable).forEach(function (el) {
+      if (!el.hasAttribute("data-key-quiet")) {
+        run = null;
+        out.push(keyEntry(el));
+        return;
+      }
+      const k = renderKey(el.dataset.key, el);
+      if (run) {
+        run[0] = run.first + "…" + k;
+        return;
+      }
+      run = [k, el.dataset.keyLabel || ""];
+      run.first = k;
+      out.push(run);
+    });
+    return out;
   }
 
   // The press is the control itself, through the same press() the key goes
@@ -472,10 +496,15 @@
   // things, which is the reason press() clicks a button rather than submitting
   // the form around it.
   function declaredKeys(sel) {
-    return Array.from(document.querySelectorAll(sel)).filter(keyUsable).map(function (el) {
-      return [renderKey(el.dataset.key, el), el.dataset.keyLabel || "",
-        function () { press(el); }, tone(el)];
-    });
+    return Array.from(document.querySelectorAll(sel)).filter(keyUsable).map(keyEntry);
+  }
+
+  // One control as the bar's four fields. Split out of declaredKeys because
+  // the bar also walks the page itself, to collapse a numbered list into a
+  // range (see branchKeys), and the two must build an entry the same way.
+  function keyEntry(el) {
+    return [renderKey(el.dataset.key, el), el.dataset.keyLabel || "",
+      function () { press(el); }, tone(el)];
   }
 
   // What the control already says about itself. A style that paints tones
@@ -567,8 +596,8 @@
     if (!decl || decl.charAt(0) === "^") return decl;
     // A key that is not a letter is itself in all three modes (keys.md, "The
     // map"): there is nothing for a mode to change about it, and modifier
-    // mode turning the two-minute branch into ^2 would have spent a digit the
-    // bookmarks now answer to.
+    // mode turning the match list's `3` into `^3` would have spent a digit
+    // the bookmarks already answer to.
     if (!/^[a-z]$/.test(decl)) return decl;
     const mode = keysMode();
     if (mode === "command") return decl;

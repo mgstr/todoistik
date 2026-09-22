@@ -630,3 +630,36 @@ func (a *Action) PromotedMeta() string {
 	}
 	return WriteProjectMeta(&Project{Tags: tags})
 }
+
+// CopyMeta is the meta line a copy of this action starts from: what describes
+// the *work* — where it is done, how big it is, whether it needs quiet, and
+// which areas it belongs to (design.md, "Copying a finished one").
+//
+// Four of an action's fields are deliberately not in it, and they are the four
+// that describe an occasion rather than a job: a deadline and a snooze were
+// dates in a month that has passed, #today was a morning's pick, and #parked
+// is a position in a project this copy is not in yet. Delegation goes with
+// them — who does it is settled by the form being filled in now, which is
+// exactly what design.md says the Action branch decides (see "Inbox Zero").
+func (a *Action) CopyMeta() string {
+	var tags []string
+	for _, t := range a.Tags {
+		if t != TodayTag {
+			tags = append(tags, t)
+		}
+	}
+	return MetaFields{
+		Context:      a.Context,
+		ContextParam: a.ContextParam,
+		Duration:     a.Duration,
+		NeedsFocus:   a.NeedsFocus,
+		Tags:         tags,
+	}.String()
+}
+
+// CopyMeta is the project version: its tags, and not the snooze it happened to
+// be wearing. A snooze is "do not bug me until", which is a thing said about a
+// moment in time and not about an outcome (design.md, "Time fields").
+func (p *Project) CopyMeta() string {
+	return WriteProjectMeta(&Project{Tags: p.Tags})
+}

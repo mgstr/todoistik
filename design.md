@@ -735,6 +735,42 @@ The screen can also be left at any point, on any item, without answering the que
 
 Neither escape hatch weakens the rule that the inbox must be emptied. That rule is kept by the person and not by the software - see "The protocol is followed, not enforced" - and what the app owes it is a state that cannot be misread and a cheap way to act, which is the loud inbox, the count on the nav, and the review step that asks.
 
+#### Matches while processing
+An item put on the processing screen is compared with everything the app already holds, and what it looks like is shown beside it: the actions and projects whose titles say much the same thing, still open or long finished.
+
+**This is not the duplicate collapse capture does, and the two are not in each other's way.** That one compares the whole text exactly, against the open inbox only, and drops what it finds - it has to be certain, because nothing is shown and nobody is asked (see "Duplicate captures"). This one looks at everything ever committed to, decides nothing, and speaks. A rule that acts by itself must be exact; a rule that only speaks can afford to be generous, because the person is already reading the screen when it does.
+
+**The moment is the point.** A chore captured three weeks after the last one was processed arrives as something genuinely new: the inbox it would have collapsed into is long empty. The one moment the repeat can be noticed is the one moment the item is being looked at deliberately, which is exactly the moment the question "what is it?" is asked. Anywhere else it would be a search you would have to think to run, and the whole value here is that nobody thought to run it.
+
+- **the first line is compared, stripped of its notation.** `Book the tyre change @garage #car #short` is compared as *Book the tyre change*, against titles - the same first-line-only rule the branch forms read notation by, for the same reason: a body arrives from wherever the capture came from and was never written to identify anything (see "Inbox item")
+- **what is compared against is every action and every project**, open and completed, and an action is matched whether it stands alone or sits under a project. The "Archive" leaves a finished step inside a finished project unlisted, because a step is not a commitment; here it is listed and says whose step it was, because the question is "have I written this before" and a step is something that was written
+- **the open ones and the finished ones are two different answers, so they are shown apart.** An open match is a warning: the loop is already on a list and this capture is probably the same loop arriving twice, which is answered by one of the six branches - usually Delete. A finished match is an offer: the thing came back, and what it was last time is worth having (see "Copying a finished one")
+- **an open match is shown and cannot be copied.** Copying something already open would write exactly the duplicate this list exists to point out
+- **nine of each, and the list says when there are more.** Nine because that is how many digits there are to press them with; a list that quietly showed some of what it found would read as all of it, which is the one thing a view may never do (see "Views")
+- **nothing is marked in the inbox and nothing is counted on the way in.** The inbox is emptied whole and every item is opened, so knowing before you look buys nothing - the same argument that leaves a capture with a body unmarked and a completion request unmarked (see "Inbox item")
+- **it changes none of the six answers.** The list is something to have read before giving one, and giving one is unchanged. Nothing is decided by it, in the same sense that reading a captured line as notation decides nothing
+
+#### What counts as a match
+There is no single honest answer to what "much the same thing" means, so it is a setting with two, and the question can be turned off entirely (see implementation.md, "Settings file"):
+
+- **a share of the words.** Both titles are cut into words, case and punctuation ignored, and they match when enough of the shorter title's words appear in the longer one. The shorter title is what is measured, so `Call dentist` finds `Call the dentist about the crown` - the commonest real repeat there is, one line written short once and long another time. The threshold is a number in the file; the default asks for every word of a title of three words or fewer, and lets a longer one differ by an article
+- **a share of the characters.** The two titles are compared as the character pairs they are made of. This is the rule that sees a typo - `Renew passpport` against `Renew passport` - and a rewording that shares no whole word. It is also the rule that misses the short capture against the long title, which the other one is best at
+- the two are wrong in different directions and only use can settle which is worse, which is exactly what this app's settings file is for. It is not a rule in this file because it is not a claim about what the app *means* - it is a claim about which mistake is cheaper to live with, and that is a fact about a person
+- **neither is fuzzy in the sense "Duplicate captures" rejects.** That rule refuses fuzziness because it drops things unseen; here both titles are on the screen together, so why something matched is visible rather than argued about
+
+#### Copying a finished one
+Each finished match is numbered, and its number copies it: the branch's ordinary form opens, of the same kind as the item copied, filled in from it.
+
+What this answers is the case the inbox is worst at. Something came back - the rent, the tyres, the annual declaration - and the answer is not "decide what this is" but "this again". Everything that made it answerable last time is already written down, and without this the only way to get it back is to remember it, which is the thing the app exists not to require.
+
+- **it copies what describes the work, not the occasion it was done on.** The context, the size, whether it needs quiet, and the areas it belongs to are all still true. The due date and the snooze were dates in a month that has passed, `#today` was one morning's pick, and who it was delegated to is answered by the form being filled in now - it is one of the two things the Action branch settles, and a copy is not a reason to stop settling it (see "Inbox Zero")
+- **it does not copy where the action lived.** A copy is created standalone like every other action written here, and a project is chosen if one is wanted. The finished action's project is finished too, and a completed project is not a valid home for anything (see "Inbox Zero")
+- **a copied project brings its actions and its definition of done.** The plan is the thing being copied, and a project without its steps is a title. The DOD is the one field no other route to this form may pre-fill, and the exception holds for exactly one reason: this sentence is not prose that happened to be in a capture, it is the definition of done you wrote for this outcome and then met. It is still a box on a form and still edited by hand
+- **the completed steps come with it.** What a finished plan turned out to be is most of what makes it worth copying, and a project is created here with every action a next action, exactly as the Project branch always creates one
+- **what the capture itself carried is not lost.** Its body goes under the copied description rather than instead of it: both were written about this job, and dropping either would drop it invisibly, which is the failure the notation reading is careful about too
+- **nothing exists until the form is submitted**, and the submit is an ordinary answer to "what is it?" - the item leaves the inbox and the audit entry is the one that branch always writes. A copy is not a seventh answer; it is the same answer, arriving with the words already in it
+- **the finished item is not touched.** It stays completed, in the "Archive", exactly as it was - what came back is a new commitment, and the old one is still a thing that was finished (see "A completed item is frozen")
+
 ### Doing one action
 Every list in this app is a list of things not yet done, and reading one is deciding. Doing is the opposite of deciding, and the screen that is right for choosing is wrong for working: with an action selected in any view that shows actions, one key puts that action alone on the screen, large, and takes everything else off it - the other items, the counts, the filters, the badges on its own row.
 

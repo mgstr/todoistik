@@ -617,6 +617,36 @@ dialog .branches { display: flex; }
    the item. */
 .capture-body { white-space: pre-wrap; margin: .5rem 0 .6rem; color: var(--fg); font-size: 1rem; }
 .process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
+/* What the capture looks like: two short lists between the subject and the
+   answers (design.md, "Matches while processing"). Set at reading size and
+   indented to the quotation rule's text, so it reads as something said about
+   the capture rather than as a third thing on the screen — and it borrows the
+   list rows the whole app uses, because these are items and that is what an
+   item looks like here. */
+.matches { margin: .6rem 0 .2rem .8rem; max-width: var(--form-width); }
+.matches .cap { margin: .5rem 0 0; }
+.matches .row { padding-left: 0; }
+/* a row that says what is not being shown, and is not an item: it never
+   highlights, because there is nothing there to act on */
+.matches .row.more { color: var(--muted); font-size: .9rem; }
+.matches .row.more:hover { background: none; }
+/* the copy link is the row's own left-hand run — the digit, the tick and the
+   title — so that pressing the key and clicking what it points at are the one
+   control. What is left outside it says which kind of thing it was and when,
+   which is read rather than pressed. */
+.matches .matchcopy {
+  display: flex; align-items: center; gap: .45rem;
+  color: inherit; text-decoration: none; min-width: 0;
+}
+.matches .matchcopy:hover .title { color: var(--accent); }
+/* the digit is drawn as the key it is, the way the key bar's keycap style
+   draws one: it is the only thing on this screen that is a number, and a bare
+   1 beside a tick would read as a count */
+.matches .matchkey {
+  min-width: 1.2rem; text-align: center; font-size: .8rem;
+  border: 1px solid var(--line); border-radius: 4px; color: var(--muted);
+}
+
 /* shape only — whether this row is drawn at all was decided above, and a
    `display` here would be read last and quietly undo it. What it is when it
    is drawn (in a dialog, or on a barless pane) is a flex row. */

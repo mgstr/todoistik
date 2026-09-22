@@ -327,3 +327,42 @@ func TestTheme(t *testing.T) {
 		t.Errorf("after a theme nobody knows comes %q, want %q", got, Themes[0])
 	}
 }
+
+func TestDuplicates(t *testing.T) {
+	d := Defaults()
+	if d.DupMatch != MatchOverlap || d.DupOverlap != 70 || d.DupSimilar != 75 {
+		t.Errorf("defaults are %q %d %d, want overlap 70 75 — words by default, characters on request",
+			d.DupMatch, d.DupOverlap, d.DupSimilar)
+	}
+	c, err := Load(write(t, "duplicates.match = similar\nduplicates.similar = 80\n"))
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if c.DupMatch != MatchSimilar || c.DupSimilar != 80 {
+		t.Errorf("read %q %d, want similar 80", c.DupMatch, c.DupSimilar)
+	}
+	if c.DupOverlap != d.DupOverlap {
+		t.Errorf("the threshold not named kept %d, want its default %d", c.DupOverlap, d.DupOverlap)
+	}
+	// a fourth word would read as a fourth way of comparing and get none
+	for _, bad := range []string{"", "fuzzy", "Overlap", "words"} {
+		if _, err := Load(write(t, "duplicates.match = "+bad+"\n")); err == nil {
+			t.Errorf("duplicates.match = %q was accepted", bad)
+		}
+	}
+	// both thresholds are shares, so both refuse zero: a share of nothing
+	// would make everything in the app a match for every capture, which is not
+	// more answers but no answer
+	for _, bad := range []string{"0", "-1", "101", "half"} {
+		for _, key := range []string{"duplicates.overlap", "duplicates.similar"} {
+			if _, err := Load(write(t, key+" = "+bad+"\n")); err == nil {
+				t.Errorf("%s = %q was accepted", key, bad)
+			}
+		}
+	}
+	// and the threshold that is not in use is checked too: a typo that only
+	// bites the day you change your mind is what this file is loud about
+	if _, err := Load(write(t, "duplicates.match = none\nduplicates.overlap = 0\n")); err == nil {
+		t.Error("a bad threshold beside match = none was accepted")
+	}
+}

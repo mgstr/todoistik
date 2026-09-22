@@ -101,6 +101,28 @@ type Config struct {
 	// remembers what it was told, the way the panels remember what ctrl-v was
 	// told, and a remembered answer wins (implementation.md, "Theme").
 	Theme string
+	// DupMatch: how a capture being processed is compared against the actions
+	// and projects that already exist, so that writing down a thing you have
+	// written down before is noticed at the one moment it can be (design.md,
+	// "Matches while processing"). MatchNone asks nothing and shows nothing.
+	//
+	// It is a setting rather than a rule because the two answers are wrong in
+	// different directions and only use settles which is worse here: words
+	// miss a rewording, characters miss the short capture against the long
+	// title. Both are one line away.
+	DupMatch string
+	// DupOverlap: with MatchOverlap, the share of the shorter title's words
+	// that has to appear in the other one, as a percentage. 100 is "every
+	// word of it"; the default is the lowest number that still says that of a
+	// title of three words or fewer, and lets a four-word one differ by an
+	// article — which is the shape a reworded repeat actually has.
+	DupOverlap int
+	// DupSimilar: with MatchSimilar, the share of the two titles' character
+	// pairs that has to be shared, as a percentage. A separate key from
+	// DupOverlap and not one number used by both: a share of words and a
+	// share of characters are not the same quantity, and one key would move
+	// the threshold you are not tuning every time you tune the one you are.
+	DupSimilar int
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -206,6 +228,19 @@ func NextTheme(cur string) string {
 	return Themes[0]
 }
 
+// The three answers duplicates.match takes. Overlap is the default because it
+// is the one that catches the commonest real repeat — the short capture
+// against the longer title it was written as before, "Call dentist" against
+// "Call dentist about the crown" — which character similarity scores as a
+// stranger. Similar is here because it catches what words cannot: a typo and
+// a rewording. None is here because a person who does not want to be asked
+// should not have to be, and it is the answer that costs nothing at all.
+const (
+	MatchNone    = "none"
+	MatchOverlap = "overlap"
+	MatchSimilar = "similar"
+)
+
 // animTakes is what each of the three keys is allowed to be set to, and the
 // three lists are deliberately not the same. A settings file is read once, so
 // a value that means nothing on the key it is written against would be a
@@ -268,6 +303,9 @@ func Defaults() Config {
 		AnimBack:          AnimSweep,
 		AnimMS:            160,
 		Theme:             ThemeAuto,
+		DupMatch:          MatchOverlap,
+		DupOverlap:        70,
+		DupSimilar:        75,
 	}
 }
 
@@ -309,6 +347,8 @@ func (c *Config) ints() map[string]*int {
 		"backup.days":         &c.BackupDays,
 		"review.someday_days": &c.ReviewSomedayDays,
 		"anim.ms":             &c.AnimMS,
+		"duplicates.overlap":  &c.DupOverlap,
+		"duplicates.similar":  &c.DupSimilar,
 	}
 }
 
@@ -334,6 +374,26 @@ var intChecks = map[string]func(int) error{
 		}
 		return nil
 	},
+	// Both thresholds are shares, so both run 1 to 100 and neither takes
+	// zero: a share of nothing would make every item in the app a match for
+	// every capture, which is not "show me more", it is a list that says
+	// nothing. Turning the question off is `duplicates.match = none`, which
+	// says so in the key that is about whether it is asked at all.
+	"duplicates.overlap": pct("duplicates.overlap", "every word of the shorter title"),
+	"duplicates.similar": pct("duplicates.similar", "the same characters end to end"),
+}
+
+// pct is the check both thresholds take: a percentage, 1 to 100, with the top
+// of the range named in words — because what 100 means differs between them
+// and a message reading "the range is 1 to 100" would not say what asking for
+// 100 would get you.
+func pct(key, whole string) func(int) error {
+	return func(n int) error {
+		if n < 1 || n > 100 {
+			return fmt.Errorf("it is %d, and the range is 1 to 100 (%s)", n, whole)
+		}
+		return nil
+	}
 }
 
 // strs are the settings that take words rather than true/false. Each brings
@@ -349,6 +409,7 @@ func (c *Config) strs() map[string]*string {
 		"anim.delete":      &c.AnimDelete,
 		"anim.back":        &c.AnimBack,
 		"theme":            &c.Theme,
+		"duplicates.match": &c.DupMatch,
 	}
 }
 
@@ -371,6 +432,7 @@ var checks = map[string]func(string) error{
 	"anim.delete":      checkAnim("anim.delete"),
 	"anim.back":        checkAnim("anim.back"),
 	"theme":            checkTheme,
+	"duplicates.match": checkMatch,
 }
 
 // checkAnim: one of the effects *this* key takes, which is not the same list
@@ -385,6 +447,18 @@ func checkAnim(key string) func(string) error {
 		}
 		return fmt.Errorf("%q is not an effect %s takes: they are %s", v, key, strings.Join(animTakes[key], ", "))
 	}
+}
+
+// checkMatch: one of three words, for the reason every other string setting
+// here is checked — a fourth would read as a fourth way of comparing and get
+// none.
+func checkMatch(v string) error {
+	switch v {
+	case MatchNone, MatchOverlap, MatchSimilar:
+		return nil
+	}
+	return fmt.Errorf("%q is not a way of matching: it is %q (nothing is compared), %q (a share of the words) or %q (a share of the characters)",
+		v, MatchNone, MatchOverlap, MatchSimilar)
 }
 
 // checkTheme: one of three words, for the reason every other string setting
