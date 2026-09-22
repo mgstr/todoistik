@@ -557,7 +557,10 @@ dialog .branches { display: flex; }
    the item. */
 .capture-body { white-space: pre-wrap; margin: .5rem 0 .6rem; color: var(--fg); font-size: 1rem; }
 .process .cap { color: var(--muted); font-size: .9rem; margin: .3rem 0 0; }
-.branches { display: flex; gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
+/* shape only — whether this row is drawn at all was decided above, and a
+   `display` here would be read last and quietly undo it. What it is when it
+   is drawn (in a dialog, or on a barless pane) is a flex row. */
+.branches { gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
 /* The two answers to a completion request are one question's yes and no, so
    they are the same width: a wider button reads as the safer answer, and which
    answer is safe here depends only on whether the work was actually done. The

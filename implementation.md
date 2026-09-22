@@ -2715,6 +2715,14 @@ the default way through rather than the alternative to a row of buttons.
   and the key cannot come to mean different things. It also lets the bar go on
   deriving itself from the page rather than from a list somebody has to keep
   in step — which is the promise everything else in "Keyboard" rests on
+- **the rule that hides them is the last word on `display`, and has to be.**
+  `.actionsbar` and `.branches` are both styled elsewhere in the sheet as the
+  flex rows they are when they *are* drawn, and a `display` in one of those
+  shape rules is read after the hide and quietly undoes it — which is exactly
+  what happened to `.branches`, leaving every processing screen still wearing
+  the row of answers this section says is gone. The shape rules carry gap,
+  wrapping and margin only: whether the row is drawn is decided in one place,
+  and what it looks like when it is, in another
 - **the app already did this once.** The ages flag is a hidden form whose one
   control is reached only from the bar (`_layout.html`), with the note that it
   "has nothing to show that the bar does not already say". This is that,
