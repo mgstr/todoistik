@@ -1,5 +1,11 @@
 {{define "top"}}<!doctype html>
-<html lang="en">
+{{/* The palette is worn by the document, so that the page is already the right
+     colour the first time it is painted rather than a flash of the other one
+     (implementation.md, "Theme"). hx-boost swaps the body and never this
+     element, so the pane below carries the same word and the key layer copies
+     it back up here after a swap — server-rendered on the way in, kept in step
+     on the way through. */}}
+<html lang="en" data-theme="{{.Theme}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -61,7 +67,8 @@
   data-anim-done="{{.Conf.AnimDone}}"
   data-anim-delete="{{.Conf.AnimDelete}}"
   data-anim-back="{{.Conf.AnimBack}}"
-  data-anim-ms="{{.Conf.AnimMS}}">
+  data-anim-ms="{{.Conf.AnimMS}}"
+  data-theme="{{.Theme}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
      the same count the nav badge carries, and every step inside it follows —

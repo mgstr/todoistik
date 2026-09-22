@@ -245,6 +245,8 @@ func (s *Server) routes() {
 
 	// the panels around a view, toggled from the ctrl-v dialog
 	m.HandleFunc("POST /panels/{which}", s.panelsToggle)
+	// which palette the screen is painted in, chosen on the Settings screen
+	m.HandleFunc("POST /theme/{name}", s.themeSet)
 
 	// the nine filter lines under the digits: ctrl-N keeps one, and the
 	// ctrl-0 dialog is where they are read and cleared

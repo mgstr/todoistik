@@ -90,6 +90,17 @@ type Config struct {
 	// "none" on all three at once, which is how the file turns the whole of it
 	// off in one line.
 	AnimMS int
+	// Theme: which palette the screen is painted in before anything has been
+	// chosen by hand. ThemeAuto follows the system, which is what the app did
+	// when the scheme was not a question at all. It is the default rather than
+	// the only answer because the light one is right at a desk in daylight and
+	// the dark one at night, and the machine already knows which of those it
+	// is — see design.md, "Theme".
+	//
+	// The file is the *default*, not the last word: the Settings screen
+	// remembers what it was told, the way the panels remember what ctrl-v was
+	// told, and a remembered answer wins (implementation.md, "Theme").
+	Theme string
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -163,6 +174,38 @@ const (
 	AnimStamp    = "stamp"
 )
 
+// The three answers theme takes. Auto is the default because the system
+// already carries the answer — a laptop that turns its own screen dark in the
+// evening is saying which of the two this is, and an app that ignored it would
+// be the one bright window at midnight. The other two are here because the
+// system's answer is about the machine and this one is about the room: a
+// screen read in sunlight wants the light palette whatever the clock says.
+const (
+	ThemeAuto  = "auto"
+	ThemeLight = "light"
+	ThemeDark  = "dark"
+)
+
+// Themes is the three in the order they are offered and cycled through, which
+// is the order they read in: the answer that is not a choice first, then the
+// two that are. Exported because the screen that offers them must not keep a
+// second copy of the list — a fourth answer added here has to reach the screen
+// without anything else being edited (implementation.md, "Theme").
+var Themes = []string{ThemeAuto, ThemeLight, ThemeDark}
+
+// NextTheme is what one press of the theme key gives: the answer after this
+// one, wrapping. An answer the app does not know — nothing can write one
+// today, but a stored value outlives the code that wrote it — starts the cycle
+// again rather than sticking.
+func NextTheme(cur string) string {
+	for i, t := range Themes {
+		if t == cur {
+			return Themes[(i+1)%len(Themes)]
+		}
+	}
+	return Themes[0]
+}
+
 // animTakes is what each of the three keys is allowed to be set to, and the
 // three lists are deliberately not the same. A settings file is read once, so
 // a value that means nothing on the key it is written against would be a
@@ -224,6 +267,7 @@ func Defaults() Config {
 		AnimDelete:        AnimCollapse,
 		AnimBack:          AnimSweep,
 		AnimMS:            160,
+		Theme:             ThemeAuto,
 	}
 }
 
@@ -304,6 +348,7 @@ func (c *Config) strs() map[string]*string {
 		"anim.done":        &c.AnimDone,
 		"anim.delete":      &c.AnimDelete,
 		"anim.back":        &c.AnimBack,
+		"theme":            &c.Theme,
 	}
 }
 
@@ -325,6 +370,7 @@ var checks = map[string]func(string) error{
 	"anim.done":        checkAnim("anim.done"),
 	"anim.delete":      checkAnim("anim.delete"),
 	"anim.back":        checkAnim("anim.back"),
+	"theme":            checkTheme,
 }
 
 // checkAnim: one of the effects *this* key takes, which is not the same list
@@ -339,6 +385,17 @@ func checkAnim(key string) func(string) error {
 		}
 		return fmt.Errorf("%q is not an effect %s takes: they are %s", v, key, strings.Join(animTakes[key], ", "))
 	}
+}
+
+// checkTheme: one of three words, for the reason every other string setting
+// here is checked — a fourth would read as a fourth palette and get none.
+func checkTheme(v string) error {
+	for _, t := range Themes {
+		if v == t {
+			return nil
+		}
+	}
+	return fmt.Errorf("%q is not a theme: it is %q (whichever the system is set to), %q or %q", v, ThemeAuto, ThemeLight, ThemeDark)
 }
 
 // checkBarStyle: one of five words, for the reason every other string setting

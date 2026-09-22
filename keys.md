@@ -159,6 +159,17 @@ been.
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
 | `u` | Undone | a completed action's page, a completed project's page |
 | `i` | Inbox | a someday item's page |
+| `h` | Theme | the Settings screen's theme row |
+
+**`h` is what is left of "theme" once `t` is spent.** Today is pressed many
+times a day and a palette is chosen when the light in the room changes, so the
+letter goes to the one that is pressed, and the other takes the next free
+letter of its own name — the same derivation `y` has for Someday/Maybe. It
+presses the *next* answer rather than a control called Theme: the row offers
+all three at once and the letter sits on whichever comes after the one in
+force, which is why the bar reads `h theme dark` and not `h theme`. There is no
+key that means "the theme row" — that would be a key that opens a menu, and the
+row is already on the screen.
 
 **Delete is last in the bar, beside Back.** Not a letter decision but a
 position one, and it belongs here because it is about the same key: `⌫` used
@@ -417,6 +428,12 @@ never be advertised without working:
   processing screen's `2` became `^2` there — which the map above already said
   it should not, and which would now be the bookmark key as well. The map was
   right and the code was wrong; nothing else in it changed.
+
+- **`h` is on the answer, not on the row.** The Settings screen renders one
+  form per theme and hangs the letter on the one the next press gives, so the
+  bar's entry is derived from the page like every other entry and says the
+  answer it lands on. Nothing in the key layer knows what a theme is
+  (implementation.md, "Theme").
 
 What is left, and deliberately:
 

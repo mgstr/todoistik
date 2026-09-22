@@ -291,3 +291,39 @@ func TestAnim(t *testing.T) {
 		}
 	}
 }
+
+// The theme is the default the app opens with, not the last word — what the
+// Settings screen was told beats it (implementation.md, "Theme"). What this
+// file has to carry is the three words and the cycle through them, since the
+// screen offers them in this order and presses them in this order.
+func TestTheme(t *testing.T) {
+	if got := Defaults().Theme; got != ThemeAuto {
+		t.Errorf("default theme = %q, want %q — the system already knows whether it is night", got, ThemeAuto)
+	}
+	for _, good := range Themes {
+		c, err := Load(write(t, "theme = "+good+"\n"))
+		if err != nil {
+			t.Fatalf("theme = %q: %v", good, err)
+		}
+		if c.Theme != good {
+			t.Errorf("theme = %q, want %q", c.Theme, good)
+		}
+	}
+	// a fourth word would read as a fourth palette and get none
+	for _, bad := range []string{"", "Dark", "solarized", "light, dark", "system"} {
+		if _, err := Load(write(t, "theme = "+bad+"\n")); err == nil {
+			t.Errorf("theme = %q was accepted", bad)
+		}
+	}
+
+	// the cycle is a ring, and a word the app does not know starts it again
+	// rather than sticking on itself
+	for i, cur := range Themes {
+		if got, want := NextTheme(cur), Themes[(i+1)%len(Themes)]; got != want {
+			t.Errorf("after %q comes %q, want %q", cur, got, want)
+		}
+	}
+	if got := NextTheme("solarized"); got != Themes[0] {
+		t.Errorf("after a theme nobody knows comes %q, want %q", got, Themes[0])
+	}
+}
