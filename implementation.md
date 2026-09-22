@@ -1586,6 +1586,13 @@ eventually disagree, and the screen would be lying about its own keyboard.
 - **the number is drawn as its own mark**, a `.num` span rather than a list
   marker, so it can take the accent colour on the steps that still have
   something outstanding and sit in a fixed-width column beside the title
+- **the bar shows the range and not the six**, `2…7 step`, through the same
+  `data-key-quiet` the match list uses. A list that draws its own numbers is
+  where those numbers are read; six entries in the bar repeating the six names
+  already on the screen is the screen said twice, and it pushed the keys that
+  are *not* on the screen — `g`, `^m`, `?` — off the end of the bar. The range
+  starts at 2 because the range says what can be pressed, and Gather cannot:
+  the line keeps its 1, and the bar does not claim it
 
 **A step lists everything it is about, marked or not.** It used to list only
 the outstanding ones and redirect after each press, so an item left the screen
