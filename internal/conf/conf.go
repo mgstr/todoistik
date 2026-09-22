@@ -61,6 +61,13 @@ type Config struct {
 	// ReachShown only the ones the screen has actually drawn (design.md,
 	// "Following a link").
 	LinksReach string
+	// KeysMode: whether a button's declared letter is pressed bare, with
+	// ctrl, or bare except for the three that have to fire while a box is
+	// being typed in. A control declares its letter and never its modifier,
+	// so this is the one place that decides (keys.md, "The three modes").
+	// It exists because the question is about hands rather than about the
+	// code, and the only honest way to settle it is to work in each.
+	KeysMode string
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -77,6 +84,17 @@ const TimerAuto = "auto"
 const (
 	ReachAny   = "any"
 	ReachShown = "shown"
+)
+
+// The three answers keys.mode takes. Hybrid is the default because it is what
+// the app already did: bare letters everywhere, with ctrl on save, create and
+// add — the three that are pressed with the hands still in a form. The other
+// two are the whole answer in one direction or the other, and they are here to
+// be worked in rather than reasoned about (keys.md, "The three modes").
+const (
+	ModeCommand  = "command"
+	ModeModifier = "modifier"
+	ModeHybrid   = "hybrid"
 )
 
 // Defaults are what the app runs with when there is no file at all, and what
@@ -103,6 +121,7 @@ func Defaults() Config {
 		KeysAnyLayout:     true,
 		KeysLayoutMarker:  true,
 		LinksReach:        ReachAny,
+		KeysMode:          ModeHybrid,
 	}
 }
 
@@ -164,6 +183,7 @@ func (c *Config) strs() map[string]*string {
 	return map[string]*string{
 		"zen.timer_format": &c.ZenTimerFormat,
 		"links.reach":      &c.LinksReach,
+		"keys.mode":        &c.KeysMode,
 	}
 }
 
@@ -180,6 +200,19 @@ var checks = map[string]func(string) error{
 	"zen.timer_format": checkTimerFormat,
 	"zen.views":        checkNames,
 	"links.reach":      checkReach,
+	"keys.mode":        checkKeysMode,
+}
+
+// checkKeysMode: one of three words. A fourth would read as a fourth
+// behaviour and get none — the failure every string setting here is checked
+// against.
+func checkKeysMode(v string) error {
+	switch v {
+	case ModeCommand, ModeModifier, ModeHybrid:
+		return nil
+	}
+	return fmt.Errorf("%q is not a key mode: it is %q (bare letters), %q (ctrl and a letter) or %q (bare, with ctrl on save, create and add)",
+		v, ModeCommand, ModeModifier, ModeHybrid)
 }
 
 // checkReach: one of two words and nothing else. A third word here would read

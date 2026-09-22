@@ -13,7 +13,7 @@
   {{/* the same form the list's rows carry, so completing here is completing
        there — the project check included. It says where to come back to,
        because the action is gone from this screen the moment it is done. */}}
-  <form method="post" action="/action/{{$d.Action.ID}}/complete" data-key="c" data-key-label="done">
+  <form method="post" action="/action/{{$d.Action.ID}}/complete" class="kb-complete">
     <input type="hidden" name="back" value="{{$d.Back}}">
     <button hidden>Done</button>
   </form>
@@ -21,7 +21,7 @@
   {{/* "show me the time" is one key everywhere, and here it is the timer.
        A hidden button rather than a form: what it flips is not written down
        anywhere, on purpose (design.md, "Doing one action"). */}}
-  <button type="button" hidden data-timer data-global data-key="^t"
+  <button type="button" hidden data-timer data-global data-key="^e"
           data-key-label="timer {{if .Conf.ZenShowsTimer}}shown{{else}}hidden{{end}}">toggle timer</button>
 </section>
 {{template "bottom" .}}

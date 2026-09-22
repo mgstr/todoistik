@@ -29,7 +29,7 @@
       value="{{if $d.Drafts}}1{{end}}">
 
     <div class="actionsbar">
-      <button type="button" data-draft-add data-key="^a" data-key-label="add">Add</button>
+      <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
     </div>
 
     {{/* after the button, because the button is what the eye goes to first on
@@ -39,7 +39,7 @@
     </ul>
 
     <div class="branches">
-      <button class="primary">Create</button>
+      <button class="primary" data-key="c" data-key-label="create" data-key-typing>Create</button>
       <a class="button" href="{{$d.Back}}">Cancel</a>
     </div>
   </form>

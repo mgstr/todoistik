@@ -15,14 +15,14 @@
     <input type="hidden" name="hasaction" data-label="an action" required value="1">
 
     <div class="actionsbar">
-      <button type="button" data-draft-add data-key="^a" data-key-label="add">Add</button>
+      <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
     </div>
     <ul class="list drafts" data-draft-list>
       {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
     </ul>
 
     <div class="actionsbar">
-      <button class="primary">Promote</button>
+      <button class="primary" data-key="c" data-key-label="promote" data-key-typing>Promote</button>
       <a class="button" href="{{$d.Back}}">Cancel</a>
     </div>
   </form>

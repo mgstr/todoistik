@@ -9,7 +9,7 @@
     {{if and .Text (or (eq .Event "trashed") (eq .Event "deleted") (eq .Event "sent-to-reference"))}}
     <form method="post" action="/capture" class="inline">
       <input type="hidden" name="text" value="{{.Text}}">
-      <button class="small" title="capture this text back into the inbox">Recapture</button>
+      <button class="small" data-jump="c" title="capture this text back into the inbox">Recapture</button>
     </form>
     {{end}}
   </li>

@@ -16,7 +16,7 @@
      at all rather than hidden by a rule — see implementation.md, "Panels". */}}
 {{if .Panels.Nav}}
 <nav data-inbox="{{.Nav.Inbox}}">
-  <button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (q)">+</button>
+  <button type="button" class="addnew" data-capture-open data-ghint="g" title="add to inbox (g g)">+</button>
   <div class="grp">Capture</div>
   <a href="/inbox" class="{{if eq .View "inbox"}}on{{end}} {{if and .Nav.Inbox (not .Processing)}}alert{{end}}" title="g i">{{if and .Processing (eq .View "inbox")}}Processing…{{else}}Inbox{{if .Nav.Inbox}}<span class="badge navcount">{{.Nav.Inbox}}</span>{{end}}{{end}}</a>
   <div class="grp">Do</div>
@@ -51,7 +51,8 @@
   data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
   {{if .Conf.KeysAnyLayout}}data-keys-any-layout{{end}}
   {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
-  data-links-reach="{{.Conf.LinksReach}}">
+  data-links-reach="{{.Conf.LinksReach}}"
+  data-keys-mode="{{.Conf.KeysMode}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
      the same count the nav badge carries, and every step inside it follows —
@@ -76,7 +77,7 @@
      "show me the time" must never be two keys or one key with two answers
      (implementation.md, "Doing"). */}}
 {{if not .Timer}}
-<form method="post" action="/ages" hidden data-key="^t" data-global
+<form method="post" action="/ages" hidden data-key="^e" data-global
       data-key-label="ages {{if .Ages}}shown{{else}}hidden{{end}}">
   <button>toggle ages</button>
 </form>

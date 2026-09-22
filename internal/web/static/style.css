@@ -761,3 +761,13 @@ button:disabled:hover { border-color: var(--line); }
 .createname { margin: 0 0 .75rem; }
 .cloud button.small.danger { border: none; background: transparent; padding: 0 .2rem; }
 .cloud button.small.danger:disabled { opacity: .3; }
+
+/* A field holding something that is not saved, marked when `b` refuses to
+   leave and the bar offers "b discard" (keys.md, "Leaving a screen"). Dashed
+   and in the accent, the way a draft row is dashed: both say the same thing,
+   that this is not written down yet. Deliberately not the danger colour —
+   nothing here is wrong, it simply has not been kept. */
+.unsaved { border-style: dashed; border-color: var(--accent); }
+/* the token box draws its border on the input, and its mirror sits behind:
+   the mark belongs to the one the eye reads as the box */
+.fbox .unsaved { border-style: dashed; border-color: var(--accent); }
