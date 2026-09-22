@@ -1,0 +1,752 @@
+<title>Motion on Done, Delete and Back</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ---- the study shell: the same one every page in research/ wears ---- */
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-ok:      #1a7f37;
+  --page-danger:  #c02626;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --page-ok:      #5fc07a;
+    --page-danger:  #ff7b7b;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --page-ok:      #5fc07a;
+  --page-danger:  #ff7b7b;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 72rem; margin: 0 auto;
+  padding-block: 3rem 5rem; padding-left: 1.25rem; padding-right: 1.25rem;
+  display: flex; flex-direction: column; gap: 2rem;
+}
+.eyebrow {
+  margin: 0;
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+h2 { margin: 0 0 .35rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.dek { margin: .7rem 0 0; max-width: 46rem; color: var(--page-muted); }
+.dek strong { color: var(--page-fg); font-weight: 600; }
+.rule { height: 1px; background: var(--page-line); }
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+pre {
+  margin: .8rem 0 0; padding: .9rem 1rem; overflow-x: auto;
+  background: var(--page-bg); border: 1px solid var(--page-line); border-radius: 10px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .82rem; line-height: 1.7;
+}
+pre .c { color: var(--page-muted); }
+pre .k { color: var(--page-accent); }
+
+.card {
+  background: var(--page-card); border: 1px solid var(--page-line);
+  border-radius: 14px; padding: 1.25rem; box-shadow: var(--shadow);
+}
+.note { margin: .1rem 0 0; color: var(--page-muted); max-width: 46rem; }
+.note strong { color: var(--page-fg); font-weight: 600; }
+
+.tag {
+  display: inline-block; padding: .1rem .45rem;
+  border: 1px solid var(--page-line); border-radius: 999px;
+  font: 600 .7rem/1.5 "IBM Plex Mono", ui-monospace, monospace; color: var(--page-muted);
+  white-space: nowrap;
+}
+.tag.leaving  { color: var(--page-danger); border-color: color-mix(in srgb, var(--page-danger) 40%, var(--page-line)); }
+.tag.arriving { color: var(--page-ok);     border-color: color-mix(in srgb, var(--page-ok) 40%, var(--page-line)); }
+.tag.over     { color: var(--page-accent); border-color: color-mix(in srgb, var(--page-accent) 40%, var(--page-line)); }
+.name { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+/* ---- controls ---- */
+.controls {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; flex-wrap: wrap; gap: .75rem 1.5rem; align-items: center;
+  padding: .8rem 1rem; border-radius: 12px;
+  background: color-mix(in srgb, var(--page-card) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--page-line); box-shadow: var(--shadow);
+}
+.ctl { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ctl > .lab {
+  font: 600 .66rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted);
+}
+.seg { display: inline-flex; border: 1px solid var(--page-line); border-radius: 8px; overflow: hidden; }
+.seg button {
+  font: 500 .82rem/1 "IBM Plex Sans", system-ui, sans-serif;
+  border: 0; background: transparent; color: var(--page-muted);
+  padding: .45rem .7rem; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--page-line); }
+.seg button[aria-pressed="true"] { background: var(--page-accent); color: #fff; }
+.seg button:focus-visible { outline: 2px solid var(--page-accent); outline-offset: -2px; }
+.act {
+  font: 500 .82rem/1 "IBM Plex Sans", system-ui, sans-serif;
+  border: 1px solid var(--page-line); border-radius: 8px; background: var(--page-card);
+  color: var(--page-fg); padding: .45rem .7rem; cursor: pointer;
+}
+.act:hover:not(:disabled) { border-color: var(--page-accent); }
+.act:disabled { opacity: .45; cursor: default; }
+.act:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 1px; }
+.act.strong { background: var(--page-accent); border-color: var(--page-accent); color: #fff; }
+input[type="range"] { accent-color: var(--page-accent); width: 8rem; }
+.msval { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .82rem; font-variant-numeric: tabular-nums; min-width: 4.2rem; }
+
+/* ---- the gallery ---- */
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+@media (max-width: 62rem) { .gallery { grid-template-columns: 1fr; } }
+.tile { display: flex; flex-direction: column; gap: .7rem; }
+.tile.off { opacity: .42; }
+.tilehead { display: flex; flex-direction: column; gap: .3rem; }
+.tilefoot { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.count {
+  margin-left: auto; font: 600 .72rem/1.6 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-muted); font-variant-numeric: tabular-nums; text-align: right;
+}
+.count b { color: var(--page-fg); }
+.count.bad, .count.bad b { color: var(--page-danger); }
+
+/* ================= the mock app screen ================= */
+/* the app's own values, copied from internal/web/static/style.css */
+.screen {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
+  --badge-bg: #f0f0f0; --select: #eef2ff; --bar-bg: #eceef3;
+  --ms: 160ms;
+  position: relative; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg);
+  height: 272px; display: flex; flex-direction: column;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  container-type: inline-size;
+}
+.screen.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
+  --badge-bg: #23262d; --select: #22304d; --bar-bg: #1f232b;
+}
+.appmain { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: 4cqw 5cqw; }
+
+/* the processing screen */
+.m-process { display: flex; flex-direction: column; gap: 2.4cqw; }
+.m-process .subject { border-left: .7cqw solid var(--accent); padding: .6cqw 0 .6cqw 2.2cqw; }
+.m-process .capture-text { margin: 0; font-size: 5cqw; line-height: 1.16; letter-spacing: -.02em; font-weight: 400; }
+.m-process .cap { margin: 1.4cqw 0 0; color: var(--muted); font-size: 2.6cqw; }
+.m-process .branches { display: flex; gap: 1.4cqw; flex-wrap: wrap; }
+.m-btn {
+  font-size: 2.6cqw; padding: .9cqw 1.5cqw; border: 1px solid var(--line);
+  border-radius: 1.6cqw; background: var(--badge-bg); color: var(--fg); white-space: nowrap;
+}
+
+/* a list of actions */
+.m-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.m-list .row {
+  display: flex; align-items: center; gap: 1.2cqw; flex-wrap: nowrap;
+  padding: .9cqw 1.4cqw; border-radius: 1.6cqw; font-size: 3.1cqw;
+}
+.m-list .row.sel { background: var(--select); outline: 1px solid var(--accent); }
+.m-list .row .check { color: var(--muted); }
+.m-list .row .title { color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-badge {
+  font-size: 2.3cqw; padding: .2cqw 1cqw; border-radius: 2cqw;
+  background: var(--badge-bg); color: var(--muted); white-space: nowrap;
+}
+.m-badge.ctx { color: var(--ok); }
+.m-badge.tag { color: var(--accent); }
+.m-head { margin: 0 0 1.6cqw; font-size: 2.5cqw; color: var(--muted); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+
+/* an action's own page */
+.m-item { display: flex; flex-direction: column; gap: 2cqw; }
+.m-item .crumb { margin: 0; font-size: 2.5cqw; color: var(--muted); }
+.m-item h1 { margin: 0; font-size: 4.6cqw; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; }
+.m-item .meta { display: flex; gap: 1.2cqw; flex-wrap: wrap; }
+.m-item .desc { margin: 0; font-size: 2.8cqw; color: var(--fg); line-height: 1.5; }
+.m-item .bar { display: flex; gap: 1.4cqw; flex-wrap: wrap; }
+
+/* the key bar, so the mock is a screen and not a fragment of one */
+.keybar {
+  flex: 0 0 auto; background: var(--bar-bg); color: var(--muted);
+  font-size: 2.3cqw; padding: 1.4cqw 5cqw; display: flex; gap: 2.6cqw;
+  overflow: hidden; white-space: nowrap;
+}
+.keybar b { color: var(--accent); font-family: ui-monospace, Menlo, monospace; margin-right: .35em; font-weight: 600; }
+
+/* the stamp overlay */
+.stampmark {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 22cqw; font-weight: 600; line-height: 1; pointer-events: none; opacity: 0;
+}
+.stampmark.done { color: var(--ok); }
+.stampmark.del  { color: var(--danger); }
+.stampmark.back { color: var(--muted); }
+.stampmark.run { animation: fx-stamp var(--ms) cubic-bezier(.2,.7,.3,1) forwards; }
+
+/* ================= the effects themselves ================= */
+@keyframes fx-fade    { to { opacity: 0; } }
+@keyframes fx-draw    { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fx-sweep-l { to { opacity: 0; transform: translateX(-16%); } }
+@keyframes fx-sweep-r { to { opacity: 0; transform: translateX(16%); } }
+@keyframes fx-rise    { from { opacity: 0; transform: translateY(2.5cqw); } }
+@keyframes fx-flash   { from { background: var(--pulse); } to { background: transparent; } }
+@keyframes fx-stamp   { 0% { opacity: 0; transform: scale(.55); } 28% { opacity: .95; transform: scale(1); } 100% { opacity: 0; transform: scale(1.18); } }
+
+.fx-out-fade   { animation: fx-fade var(--ms) linear forwards; }
+.fx-out-sweepl { animation: fx-sweep-l var(--ms) cubic-bezier(.4,0,1,1) forwards; }
+.fx-out-sweepr { animation: fx-sweep-r var(--ms) cubic-bezier(.4,0,1,1) forwards; }
+.fx-out-strike { animation: fx-fade calc(var(--ms) * .55) linear calc(var(--ms) * .45) forwards; }
+.fx-out-strike .strikeable { position: relative; }
+.fx-out-strike .strikeable::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 52%; height: .4cqw; min-height: 1.5px;
+  background: currentColor; transform-origin: left; transform: scaleX(0);
+  animation: fx-draw calc(var(--ms) * .45) cubic-bezier(.3,.7,.3,1) forwards;
+}
+.fx-in-rise  { animation: fx-rise var(--ms) cubic-bezier(.2,.7,.3,1); }
+.fx-in-flash { animation: fx-flash var(--ms) linear; border-radius: 1.6cqw; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen *, .stampmark { animation-duration: 1ms !important; }
+}
+
+/* ---- tables ---- */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .93rem; }
+th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--page-muted); white-space: nowrap; }
+td:first-child { white-space: nowrap; font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 600; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+ul { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--page-muted); }
+li { margin: .35rem 0; }
+li b { color: var(--page-fg); }
+.pick { color: var(--page-ok); font-weight: 600; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .9em; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">todoistik · study</p>
+  <h1>Motion on Done, Delete and Back</h1>
+  <p class="dek">
+    The app has no motion in it anywhere. A key is pressed, a request goes, a new
+    page arrives — and on the screens where the same key is pressed over and over,
+    the new page is the same shape as the old one with a different item in it.
+    <strong>Press Done twice and two actions are completed, the second one never
+    looked at.</strong> Nothing on the screen says the first press landed, because
+    the screen after it is the screen before it.
+  </p>
+  <p class="dek">
+    Eight treatments, live and pressable. Pick a moment, then press a tile — and
+    press it <strong>twice, fast</strong>, which is the whole question. The counter
+    under each screen says how many items that double press actually consumed.
+  </p>
+</header>
+
+<div class="controls">
+  <div class="ctl">
+    <span class="lab">Moment</span>
+    <span class="seg" id="seg-moment">
+      <button type="button" data-moment="delete" aria-pressed="true">⌫ delete</button>
+      <button type="button" data-moment="done" aria-pressed="false">d done</button>
+      <button type="button" data-moment="back" aria-pressed="false">b back</button>
+    </span>
+  </div>
+  <div class="ctl">
+    <span class="lab">Screen</span>
+    <span class="seg" id="seg-theme">
+      <button type="button" data-mock="light" aria-pressed="true">light</button>
+      <button type="button" data-mock="dark" aria-pressed="false">dark</button>
+    </span>
+  </div>
+  <div class="ctl">
+    <label class="lab" for="ms">anim.ms</label>
+    <input type="range" id="ms" min="60" max="400" step="20" value="160">
+    <span class="msval" id="msval">160 ms</span>
+  </div>
+  <div class="ctl">
+    <span class="seg" id="seg-speed">
+      <button type="button" data-speed="1" aria-pressed="true">real time</button>
+      <button type="button" data-speed="4" aria-pressed="false">×4 slow</button>
+    </span>
+  </div>
+  <div class="ctl">
+    <button type="button" class="act strong" id="playall">Play all</button>
+    <button type="button" class="act" id="twiceall">Press twice, everywhere</button>
+    <button type="button" class="act" id="resetall">Reset</button>
+  </div>
+</div>
+
+<section class="card">
+  <h2 id="momenttitle">Delete, on the processing screen</h2>
+  <p class="note" id="momentbody"></p>
+</section>
+
+<div class="gallery" id="gallery"></div>
+
+<div class="rule"></div>
+
+<section class="card">
+  <h2>What each one costs</h2>
+  <p class="note">
+    Three families, and what separates them is where the time goes. A
+    <strong>leaving</strong> effect runs before the swap, so the item that was
+    acted on is still on the screen while it plays — that is what makes the press
+    unmistakable, and it is the only family that swallows the second press by
+    itself. An <strong>arriving</strong> effect runs after the swap and costs
+    nothing, because the new page is already there. An <strong>overlay</strong>
+    costs nothing either, and is the only one that says <em>which</em> of the three
+    things happened.
+  </p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>value</th><th>family</th><th>on the clock</th><th>reads as</th><th>against it</th></tr></thead>
+    <tbody>
+      <tr><td>none</td><td>—</td><td class="num">0</td><td>Nothing. What the app does today.</td><td>The bug this page is about</td></tr>
+      <tr><td>fade</td><td>leaving</td><td class="num">+ anim.ms</td><td>The item goes quiet where it stands</td><td>The quietest of the eight, and easy to miss at the edge of the eye</td></tr>
+      <tr><td>strike</td><td>leaving</td><td class="num">+ anim.ms</td><td>A rule draws through the title, then it fades after it</td><td>Means exactly one thing. On a delete it would be a lie</td></tr>
+      <tr><td>collapse</td><td>leaving</td><td class="num">+ anim.ms</td><td>The item folds shut and what was under it closes over the gap</td><td>On the processing screen the six answers below move, which is motion nobody asked for</td></tr>
+      <tr><td>sweep</td><td>leaving</td><td class="num">+ anim.ms</td><td>It leaves in a direction: left for thrown away, right for done and for back</td><td>In a list it leaves the gap standing until the swap closes it</td></tr>
+      <tr><td>rise</td><td>arriving</td><td class="num">0</td><td>What is under the cursor now lifts into place</td><td>Says something arrived, never says what left</td></tr>
+      <tr><td>flash</td><td>arriving</td><td class="num">0</td><td>The new item pulses once in the colour of what just happened</td><td>Spends green and red on a screen that spends neither anywhere else</td></tr>
+      <tr><td>stamp</td><td>overlay</td><td class="num">0</td><td>A wordless ✓ ✕ ← over the screen, gone in a beat</td><td>The biggest thing on the screen for a moment, over the item meant to be read</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note" style="margin-top:.9rem">
+    <strong>The zero is not free of the problem.</strong> An arriving effect cannot
+    swallow the second press, because by the time it plays that press has already
+    been sent. Either family needs the key to go deaf for <code>anim.ms</code>
+    after it fires — a leaving effect gets that for nothing, an arriving one has to
+    be given it.
+  </p>
+</section>
+
+<section class="card">
+  <h2>The settings</h2>
+  <p class="note">
+    Three keys, because the three moments make three different claims. Done is a
+    thing finished, delete is a thing thrown away, back is a place left — and the
+    motion that says one of them says the other two wrong. One duration for all
+    three, because that is not about the moment, it is about the hand.
+  </p>
+  <pre><span class="c"># what each of the three moments looks like; "none" is what the app does now</span>
+<span class="k">anim.done</span>   = strike     <span class="c"># none fade strike collapse sweep rise flash stamp</span>
+<span class="k">anim.delete</span> = collapse   <span class="c"># none fade        collapse sweep rise flash stamp</span>
+<span class="k">anim.back</span>   = sweep      <span class="c"># none fade                 sweep rise       stamp</span>
+<span class="k">anim.ms</span>     = 160        <span class="c"># how long any of them runs, 0 to 600; 0 is "none" on all three</span></pre>
+  <p class="note" style="margin-top:.9rem">
+    The three lists are not the same, and the file refuses a value that has no
+    meaning for its key — the rule every string setting in <code>conf.go</code>
+    already keeps, for the reason stated there: a settings file is read once, so a
+    typo quietly ignored is a setting that looks set for as long as the process
+    lives. <code>strike</code> is not offered on a delete, because a line through a
+    title is the mark for finished and putting it on a thing being thrown away says
+    the wrong word. <code>collapse</code> and <code>flash</code> are not offered on
+    back, because nothing is removed and nothing new is acted on — the screen is
+    simply somewhere else.
+  </p>
+  <p class="note" style="margin-top:.9rem">
+    <strong>The file is the only switch.</strong> The system's own "reduce motion"
+    is not consulted: this is one app on one desk, and a file that says
+    <code>anim.done = strike</code> is a more specific answer than a preference set
+    once for everything on the machine. Turning all of it off is
+    <code>anim.ms = 0</code>, one line.
+  </p>
+</section>
+
+<section class="card">
+  <h2>Where it would live</h2>
+  <ul>
+    <li><b>The body is boosted</b> — <code>hx-boost="true"</code> in
+      <code>_layout.html</code> — so none of these is a page load: htmx already
+      fetches the new page and swaps the body. A leaving effect goes on at the
+      press and the request follows it, rather than the two running together: a
+      browser goes on painting the old page until the answer commits, so firing
+      both at once cuts the effect off after the few milliseconds a server on this
+      machine takes — the one arrangement where the motion is paid for and never
+      seen. The cost is <code>anim.ms</code> plus a local request.</li>
+    <li><b>What just happened travels the way the cursor already does.</b> The
+      keyboard layer hands the selected row and the scroll offset to the next page
+      through <code>sessionStorage</code> (<code>kb-row-handover</code> and
+      <code>kb-place-handover</code> in <code>app.js</code>). An arriving effect is
+      one more handover of that exact shape: which of the three moments this page
+      was reached by, claimed once on arrival and cleared.</li>
+    <li><b>The deaf window is the fix; the motion is the explanation.</b> While an
+      effect is running, <code>rowCommand</code> answers <code>d</code>,
+      <code>⌫</code> and <code>b</code> by doing nothing and reporting the key as
+      handled. That is what stops the second press. The animation is what stops it
+      from being needed again.</li>
+    <li><b>All three docs.</b> design.md gets why a moment shows itself at all;
+      implementation.md gets the effects, the settings keys and the swap delay;
+      keys.md gets the deaf window, because "this key does nothing for 160 ms" is a
+      fact about what a key may be.</li>
+  </ul>
+</section>
+
+<section class="card">
+  <h2>What I would pick</h2>
+  <p class="note">
+    <span class="pick">anim.done = strike</span> ·
+    <span class="pick">anim.delete = collapse</span> ·
+    <span class="pick">anim.back = sweep</span> ·
+    <span class="pick">anim.ms = 160</span>
+  </p>
+  <p class="note" style="margin-top:.9rem">
+    Each one says its own word rather than a general "something happened": a line
+    drawn through a title is what finished looks like everywhere, a thing folding
+    shut while the list closes over it is what thrown away looks like, and a screen
+    sliding aside is what leaving looks like. All three are leaving effects, which
+    is the point — they are the only family that makes the second press impossible
+    with no extra machinery, and 160 ms is under the threshold where a press stops
+    feeling instant and over the one where an effect is not seen at all.
+  </p>
+  <p class="note" style="margin-top:.9rem">
+    If that reads as too much movement after a week of living with it, the quieter
+    answer is <code>fade</code> on all three: the same guarantee, said under its
+    breath. The free answers — <code>rise</code>, <code>flash</code>,
+    <code>stamp</code> — buy the legibility for nothing on the clock, but the deaf
+    window still has to be built for them by hand.
+  </p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CAPTURES = [
+    { t: "Book the tyre change @garage #car",          a: "captured 3 days ago" },
+    { t: "Ask the accountant about the Q3 filing",     a: "captured yesterday" },
+    { t: "Renew the passport — photos first",          a: "captured a week ago" },
+    { t: "Find a home for the old aquarium pump",      a: "captured 2 days ago" },
+    { t: "Call the roofer back about the gutter",      a: "captured this morning" },
+    { t: "Order a spare key for the shed",             a: "captured 4 days ago" }
+  ];
+
+  var ACTIONS = [
+    { t: "Order winter tyres",                     c: "@garage",  g: "car",    d: "30m" },
+    { t: "Draft the quarterly summary",            c: "@desk",    g: "work",   d: "1h"  },
+    { t: "Reply to the landlord about the boiler", c: "@email",   g: "flat",   d: "10m" },
+    { t: "Book the dentist",                       c: "@phone",   g: "health", d: "10m" },
+    { t: "Move the geocache to the new spot",      c: "@outside", g: "gc",     d: "2h"  },
+    { t: "Back up the photos from the trip",       c: "@desk",    g: "home",   d: "45m" },
+    { t: "Chase the insurance renewal quote",      c: "@phone",   g: "flat",   d: "20m" }
+  ];
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function rowsHTML(list, sel) {
+    return list.map(function (a, i) {
+      return '<li class="row' + (i === sel ? ' sel' : '') + '">' +
+        '<span class="check">☐</span>' +
+        '<span class="title' + (i === sel ? ' strikeable' : '') + '">' + esc(a.t) + '</span>' +
+        '<span class="m-badge ctx">' + esc(a.c) + '</span>' +
+        '<span class="m-badge tag">#' + esc(a.g) + '</span>' +
+        '<span class="m-badge">' + esc(a.d) + '</span>' +
+        '</li>';
+    }).join("");
+  }
+
+  // The three moments. Each knows what its screen holds, what the key bar under
+  // it says, which element leaves and which arrives, and which of the eight
+  // values its settings key is allowed to take.
+  var MOMENTS = {
+    "delete": {
+      title: "Delete, on the processing screen",
+      body: "Inbox Zero is one screen over and over, fed the oldest capture each time. ⌫ throws one away and the next is in its place — same rule down the left, same six answers under it, a different line of text. This is where the second press costs the most: the item it lands on was never read.",
+      legal: ["none", "fade", "collapse", "sweep", "rise", "flash", "stamp"],
+      dir: "l",
+      mark: "✕", markcls: "del", pulse: "danger",
+      verb: "deleted",
+      keys: '<span><b>⌫</b>delete</span><span><b>r</b>reference</span><span><b>2</b>two-minute</span><span><b>y</b>someday</span><span><b>a</b>action</span><span><b>p</b>project</span><span><b>b</b>back</span>',
+      sel: ".subject",
+      start: function () { return { i: 0 }; },
+      advance: function (s) { s.i = (s.i + 1) % CAPTURES.length; },
+      render: function (s) {
+        var c = CAPTURES[s.i];
+        return '<div class="m-process">' +
+          '<div class="subject"><h1 class="capture-text strikeable">' + esc(c.t) + '</h1>' +
+          '<p class="cap">' + esc(c.a) + '</p></div>' +
+          '<div class="branches"><span class="m-btn">Delete</span><span class="m-btn">Reference material</span><span class="m-btn">Two-minute rule</span></div>' +
+          '<div class="branches"><span class="m-btn">Someday/Maybe</span></div>' +
+          '<div class="branches"><span class="m-btn">Action</span><span class="m-btn">Project</span></div>' +
+          '</div>';
+      }
+    },
+
+    "done": {
+      title: "Done, on a list",
+      body: "The cursor holds its place when a row is acted on — that is what makes working straight down a list possible, and it is also what puts the row that takes the dead one's place under the cursor, already selected. Press d again and it is that row that gets completed.",
+      legal: ["none", "fade", "strike", "collapse", "sweep", "rise", "flash", "stamp"],
+      dir: "r",
+      mark: "✓", markcls: "done", pulse: "ok",
+      verb: "completed",
+      keys: '<span><b>d</b>done</span><span><b>t</b>today</span><span><b>j k</b>move</span><span><b>w</b>doing</span><span><b>⌫</b>delete</span><span><b>b</b>back</span>',
+      sel: ".row.sel",
+      start: function () { return { list: ACTIONS.slice(0), sel: 1 }; },
+      advance: function (s) {
+        s.list.splice(s.sel, 1);
+        if (s.list.length < 3) s.list = ACTIONS.slice(0);
+      },
+      render: function (s) {
+        return '<p class="m-head">Next actions · ' + s.list.length + '</p>' +
+          '<ul class="m-list">' + rowsHTML(s.list.slice(0, 5), s.sel) + '</ul>';
+      }
+    },
+
+    "back": {
+      title: "Back, out of a screen",
+      body: "b leaves wherever you are for wherever the screen says it came from. Nothing is created or destroyed, so a double press does no damage — only the confusion of having gone two steps for one press, on screens whose furniture is in all the same places.",
+      legal: ["none", "fade", "sweep", "rise", "stamp"],
+      dir: "r",
+      mark: "←", markcls: "back", pulse: "muted",
+      verb: "screens left",
+      keys: '<span><b>b</b>back</span><span><b>d</b>done</span><span><b>t</b>today</span><span><b>^o</b>open link</span><span><b>^t</b>ages</span>',
+      sel: ".appinner",
+      start: function () { return { i: 0 }; },
+      advance: function (s) { s.i = (s.i + 1) % 3; },
+      render: function (s) {
+        if (s.i === 0) {
+          return '<div class="appinner m-item">' +
+            '<p class="crumb">Next actions › action</p>' +
+            '<h1 class="strikeable">Order winter tyres</h1>' +
+            '<div class="meta"><span class="m-badge ctx">@garage</span><span class="m-badge tag">#car</span>' +
+            '<span class="m-badge">30m</span><span class="m-badge">due Fri</span></div>' +
+            '<p class="desc">205/55 R16, the same shop as last year. Ring first — they were booked out three weeks in November.</p>' +
+            '<div class="bar"><span class="m-btn">Done</span><span class="m-btn">Today</span><span class="m-btn">Edit</span><span class="m-btn">Delete</span></div>' +
+            '</div>';
+        }
+        if (s.i === 1) {
+          return '<div class="appinner"><p class="m-head">Next actions · 7</p>' +
+            '<ul class="m-list">' + rowsHTML(ACTIONS.slice(0, 5), 0) + '</ul></div>';
+        }
+        return '<div class="appinner"><p class="m-head">Today · 3</p>' +
+          '<ul class="m-list">' + rowsHTML([ACTIONS[3], ACTIONS[1], ACTIONS[6]], 0) + '</ul></div>';
+      }
+    }
+  };
+
+  var FX = [
+    { key: "none",     fam: "—",   note: "What the app does today, and the baseline the other seven are judged against. Press it twice and read the counter." },
+    { key: "fade",     fam: "leaving",  note: "The item goes to nothing where it stands. The least opinionated of the eight — it says a press landed, and says nothing about what the press was." },
+    { key: "strike",   fam: "leaving",  note: "A rule draws through the title, and the line fades out behind it. The only one that says the actual word: this was finished." },
+    { key: "collapse", fam: "leaving",  note: "The item folds shut and what was under it closes over the gap. Says removed rather than finished, and shows the list getting shorter as it goes." },
+    { key: "sweep",    fam: "leaving",  note: "It leaves in a direction — off left for thrown away, off right for done and for back. Direction is the cheapest thing there is to read at the edge of the eye." },
+    { key: "rise",     fam: "arriving", note: "Nothing leaves; what is under the cursor now lifts into place. Costs nothing on the clock, because it plays on a page that has already arrived." },
+    { key: "flash",    fam: "arriving", note: "The item now in front of you pulses once in the colour of what just happened — green for done, red for deleted. Free, and impossible to miss." },
+    { key: "stamp",    fam: "over",     note: "A wordless mark over the whole screen for a beat: ✓, ✕, ←. Free, says which of the three it was, and is the most theatrical thing here by a distance." }
+  ];
+
+  var state = { moment: "delete", mock: "light", ms: 160, speed: 1 };
+  var tiles = [];
+
+  function dur() { return state.ms * state.speed; }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function buildGallery() {
+    var g = document.getElementById("gallery");
+    g.innerHTML = "";
+    tiles = [];
+    FX.forEach(function (fx, n) {
+      var card = document.createElement("section");
+      card.className = "card tile";
+      card.innerHTML =
+        '<div class="tilehead">' +
+          '<h2><span class="tag">' + "ABCDEFGH".charAt(n) + '</span>' +
+            '<span class="name">' + fx.key + '</span>' +
+            '<span class="tag ' + (fx.fam === "—" ? "" : fx.fam) + '">' + fx.fam + '</span></h2>' +
+          '<p class="note">' + fx.note + '</p>' +
+        '</div>' +
+        '<div class="screen"><div class="appmain"></div>' +
+          '<div class="stampmark"></div><div class="keybar"></div></div>' +
+        '<div class="tilefoot">' +
+          '<button type="button" class="act" data-play>Press once</button>' +
+          '<button type="button" class="act" data-twice>Press twice</button>' +
+          '<span class="count"></span>' +
+        '</div>';
+      card._fx = fx.key;
+      card.querySelector("[data-play]").addEventListener("click", function () { press(card); });
+      card.querySelector("[data-twice]").addEventListener("click", function () { twice(card); });
+      g.appendChild(card);
+      tiles.push(card);
+    });
+    resetAll();
+  }
+
+  function resetAll() {
+    var m = MOMENTS[state.moment];
+    document.getElementById("momenttitle").textContent = m.title;
+    document.getElementById("momentbody").textContent = m.body;
+    tiles.forEach(function (tile) {
+      var legal = m.legal.indexOf(tile._fx) >= 0;
+      tile.classList.toggle("off", !legal);
+      tile.querySelector("[data-play]").disabled = !legal;
+      tile.querySelector("[data-twice]").disabled = !legal;
+      tile._st = { acted: 0, ignored: 0, busy: false, s: m.start() };
+      var screen = tile.querySelector(".screen");
+      screen.classList.toggle("dark", state.mock === "dark");
+      screen.querySelector(".keybar").innerHTML = m.keys;
+      var mark = screen.querySelector(".stampmark");
+      mark.className = "stampmark " + m.markcls;
+      mark.textContent = m.mark;
+      paint(tile);
+      count(tile);
+    });
+  }
+
+  function paint(tile) {
+    tile.querySelector(".appmain").innerHTML = MOMENTS[state.moment].render(tile._st.s);
+  }
+
+  function count(tile) {
+    var st = tile._st;
+    var el = tile.querySelector(".count");
+    var m = MOMENTS[state.moment];
+    if (m.legal.indexOf(tile._fx) < 0) {
+      el.className = "count";
+      el.textContent = "not offered for " + state.moment;
+      return;
+    }
+    el.className = "count" + (st.acted > 1 ? " bad" : "");
+    el.innerHTML = m.verb + ": <b>" + st.acted + "</b>" +
+      (st.ignored ? " · " + st.ignored + " ignored" : "");
+  }
+
+  function target(tile) {
+    return tile.querySelector(".appmain " + MOMENTS[state.moment].sel) ||
+           tile.querySelector(".appmain > *");
+  }
+
+  function outAnim(tile, fx, ms) {
+    var el = target(tile);
+    if (!el) return wait(ms);
+    tile.querySelector(".screen").style.setProperty("--ms", ms + "ms");
+    if (fx === "collapse") {
+      var h = el.getBoundingClientRect().height;
+      var cs = getComputedStyle(el);
+      el.style.overflow = "hidden";
+      var a = el.animate([
+        { height: h + "px", opacity: 1, paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom,
+          marginTop: cs.marginTop, marginBottom: cs.marginBottom },
+        { height: "0px", opacity: 0, paddingTop: "0px", paddingBottom: "0px",
+          marginTop: "0px", marginBottom: "0px" }
+      ], { duration: ms, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" });
+      return a.finished.catch(function () {});
+    }
+    el.classList.add(fx === "sweep" ? "fx-out-sweep" + MOMENTS[state.moment].dir : "fx-out-" + fx);
+    return wait(ms);
+  }
+
+  function inAnim(tile, fx, ms) {
+    var screen = tile.querySelector(".screen");
+    screen.style.setProperty("--ms", ms + "ms");
+    if (fx === "stamp") {
+      var mark = screen.querySelector(".stampmark");
+      mark.classList.remove("run");
+      void mark.offsetWidth;
+      mark.classList.add("run");
+      return wait(ms);
+    }
+    var el = target(tile);
+    if (!el) return wait(ms);
+    if (fx === "flash") {
+      var col = getComputedStyle(screen).getPropertyValue("--" + MOMENTS[state.moment].pulse);
+      el.style.setProperty("--pulse", "color-mix(in srgb, " + col.trim() + " 32%, transparent)");
+    }
+    el.classList.add("fx-in-" + fx);
+    return wait(ms);
+  }
+
+  function press(tile) {
+    var m = MOMENTS[state.moment];
+    var fx = tile._fx;
+    if (m.legal.indexOf(fx) < 0) return;
+    var st = tile._st;
+    if (st.busy) { st.ignored++; count(tile); return; }
+    var ms = dur();
+    st.acted++;
+    if (fx === "none") { m.advance(st.s); paint(tile); count(tile); return; }
+    st.busy = true;
+    count(tile);
+    if (fx === "fade" || fx === "strike" || fx === "collapse" || fx === "sweep") {
+      outAnim(tile, fx, ms).then(function () {
+        m.advance(st.s); paint(tile); st.busy = false; count(tile);
+      });
+    } else {
+      m.advance(st.s); paint(tile);
+      inAnim(tile, fx, ms).then(function () { st.busy = false; count(tile); });
+    }
+  }
+
+  function twice(tile) {
+    press(tile);
+    setTimeout(function () { press(tile); }, 110);
+  }
+
+  function seg(id, fn) {
+    document.getElementById(id).addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      Array.prototype.forEach.call(this.querySelectorAll("button"), function (x) {
+        x.setAttribute("aria-pressed", String(x === b));
+      });
+      fn(b);
+    });
+  }
+
+  seg("seg-moment", function (b) { state.moment = b.dataset.moment; resetAll(); });
+  seg("seg-theme", function (b) { state.mock = b.dataset.mock; resetAll(); });
+  seg("seg-speed", function (b) { state.speed = Number(b.dataset.speed); });
+
+  var msIn = document.getElementById("ms");
+  msIn.addEventListener("input", function () {
+    state.ms = Number(msIn.value);
+    document.getElementById("msval").textContent = state.ms + " ms";
+  });
+
+  document.getElementById("playall").addEventListener("click", function () {
+    tiles.forEach(function (t) { press(t); });
+  });
+  document.getElementById("twiceall").addEventListener("click", function () {
+    tiles.forEach(function (t) { twice(t); });
+  });
+  document.getElementById("resetall").addEventListener("click", resetAll);
+
+  buildGallery();
+})();
+</script>

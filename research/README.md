@@ -13,6 +13,54 @@ study is for is the part the docs do not carry: the options that lost, and why.
 
 ---
 
+## animation-study.html — what `d`, `⌫` and `b` look like on the way out
+
+**2026-09-22 · decided: C on done, D on delete, E on back, at 160ms.**
+`anim.done = strike`, `anim.delete = collapse`, `anim.back = sweep`,
+`anim.ms = 160` — the defaults in `internal/conf/conf.go`, worn by the
+keyboard layer in `internal/web/static/app.js` and painted in `style.css`.
+
+The app had no motion in it anywhere, so the three keys that leave a screen
+answered with a screen of the same shape holding a different item — and the
+press got made again, completing or deleting something that was never read.
+Eight treatments were built live and pressable, each with a "press twice"
+control, because the counter under each screen is what the decision actually
+turned on: with `none`, a double press 110ms apart consumes two items.
+
+| | Variant | Family | Outcome |
+|---|---|---|---|
+| A | `none` | — | The starting point, and the bug |
+| B | `fade` | leaving | Runner-up. The same guarantee said under its breath; kept as the named fallback if the chosen three read as too much after a week |
+| **C** | **`strike`** | **leaving** | **Chosen for done.** The only one of the eight that says the actual word — a line through a title is what finished looks like everywhere |
+| **D** | **`collapse`** | **leaving** | **Chosen for delete.** Says *removed* rather than *finished*, and shows the list getting shorter as it goes |
+| **E** | **`sweep`** | **leaving** | **Chosen for back.** Direction is the cheapest thing there is to read at the edge of the eye, and a screen sliding aside is what leaving looks like |
+| F | `rise` | arriving | Rejected as a default: free on the clock, but says something arrived and never says what left |
+| G | `flash` | arriving | Rejected as a default: spends green and red on a screen that spends neither anywhere else |
+| H | `stamp` | over | Rejected as a default: the only one that says *which* key was pressed, and the most theatrical thing in the study by a distance |
+
+All eight ship, because which of them is right is a question about a week of
+use rather than about the code — the same reason `keys.mode` and
+`keys.bar_style` are settings. The three keys do not take the same eight,
+though: `strike` on a delete says the wrong word, and `collapse`/`flash` on
+back point at an item nothing was done to.
+
+The deciding argument was not which effect looks best. It was that the
+**leaving** family swallows the second press for free — the item is still on
+the screen while the effect runs, so the key can simply be deaf for exactly
+that long — while the **arriving** family needs that window built by hand,
+since by the time it plays the second press has already been sent. Both got
+the window in the end; the leaving three got it without asking.
+
+Known trade-offs, accepted: the effect runs *before* the request rather than
+alongside it, so a press costs `anim.ms` plus a local round trip — firing both
+at once would cut the effect off after the few milliseconds a server on this
+machine takes, which is the one arrangement where the motion is paid for and
+never seen. And a row's checkbox clicked with the mouse is not covered: it
+posts the row's form directly, and it is not the gesture the repeat press
+comes from.
+
+---
+
 ## item-line-study.html — the item line, and how an age is worded
 
 **2026-09-05 · decided: D, the age as a chip beside the title.** Implemented in

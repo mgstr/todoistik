@@ -238,3 +238,56 @@ func TestKeysBarStyle(t *testing.T) {
 		}
 	}
 }
+
+// The three moments are on by default and each wears the effect that says its
+// own word — and the three keys do not take the same eight words, which is the
+// part the checker has to carry: a value that means nothing on the key it is
+// written against would be a setting that looks set for the life of the
+// process (see animTakes).
+func TestAnim(t *testing.T) {
+	d := Defaults()
+	if d.AnimDone != AnimStrike || d.AnimDelete != AnimCollapse || d.AnimBack != AnimSweep {
+		t.Errorf("defaults are %q/%q/%q, want %q/%q/%q — each moment says its own word",
+			d.AnimDone, d.AnimDelete, d.AnimBack, AnimStrike, AnimCollapse, AnimSweep)
+	}
+	if d.AnimMS != 160 {
+		t.Errorf("default anim.ms = %d, want 160", d.AnimMS)
+	}
+
+	for key, legal := range animTakes {
+		for _, good := range legal {
+			if _, err := Load(write(t, key+" = "+good+"\n")); err != nil {
+				t.Errorf("%s = %q: %v", key, good, err)
+			}
+		}
+	}
+
+	// the differences between the three lists are the whole reason there are
+	// three: a line through a title means finished, and leaving a screen
+	// removes nothing and acts on nothing
+	for _, bad := range []struct{ key, val string }{
+		{"anim.delete", AnimStrike},
+		{"anim.back", AnimStrike},
+		{"anim.back", AnimCollapse},
+		{"anim.back", AnimFlash},
+		{"anim.done", ""},
+		{"anim.done", "Strike"},
+		{"anim.done", "slide"},
+	} {
+		if _, err := Load(write(t, bad.key+" = "+bad.val+"\n")); err == nil {
+			t.Errorf("%s = %q was accepted", bad.key, bad.val)
+		}
+	}
+
+	// zero is an answer here the way it is for backups: it is how the file
+	// turns the whole of it off in one line
+	c, err := Load(write(t, "anim.ms = 0\n"))
+	if err != nil || c.AnimMS != 0 {
+		t.Errorf("anim.ms = 0: got %d, %v — no motion at all is a legal answer", c.AnimMS, err)
+	}
+	for _, bad := range []string{"-1", "601", "fast", ""} {
+		if _, err := Load(write(t, "anim.ms = "+bad+"\n")); err == nil {
+			t.Errorf("anim.ms = %q was accepted", bad)
+		}
+	}
+}
