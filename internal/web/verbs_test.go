@@ -51,6 +51,37 @@ func TestAProjectTitleIsNotVerbChecked(t *testing.T) {
 	}
 }
 
+// The review is the one list that says anything about a title (design.md,
+// "Verbs"): the walk is where the titles are read rather than acted on. Every
+// other list stays quiet, including the one the same actions appear on.
+func TestOnlyTheReviewMarksARow(t *testing.T) {
+	s, a := newTestServer(t)
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "milk"}, false); err != nil {
+		t.Fatal(err)
+	}
+	if body := getPage(t, s, "/review/next"); !strings.Contains(body, `class="badge noverb" hidden`) {
+		t.Error("a review row carries no verb badge, so the walk can say nothing about the title")
+	}
+	if body := getPage(t, s, "/next"); strings.Contains(body, "noverb") {
+		t.Error("Next actions marks titles, and working from a list is not where that belongs")
+	}
+}
+
+// A project has no verb to miss, and neither has a someday item or a schedule
+// — so the badge is not merely hidden on those rows, it is absent.
+func TestTheReviewMarksActionsOnly(t *testing.T) {
+	s, a := newTestServer(t)
+	if _, err := a.CreateProject(
+		app.ProjectFields{Title: "Winter tyres on", DOD: "All four swapped"},
+		[]app.ActionFields{{Title: "Book the garage"}}); err != nil {
+		t.Fatal(err)
+	}
+	body := getPage(t, s, "/review/projects")
+	if strings.Contains(body, "noverb") || strings.Contains(body, "data-verbcheck") {
+		t.Error("a project row is verb-checked in the review, and a project title is an outcome")
+	}
+}
+
 func TestSettingsKeepsTheVerbList(t *testing.T) {
 	s, a := newTestServer(t)
 	if err := a.AddVerb("позвонить"); err != nil {

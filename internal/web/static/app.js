@@ -1948,7 +1948,26 @@
     return RU_INFINITIVE.test(w);
   }
 
-  function markVerb(box) { box.classList.toggle("notverb", !startsWithVerb(box.value)); }
+  // Two things wear data-verbcheck, and the second is a review row. Outside
+  // the review a title that got it wrong is left alone: a list you are working
+  // from is not the place to be argued with about wording, and a badge on
+  // every such row in Next actions would be a complaint you learn to read past.
+  // The review is where the titles are being read rather than acted on, so it
+  // is where they are pointed out (design.md, "Weekly review").
+  function verbText(el) {
+    if (el.tagName === "INPUT") return el.value;
+    const t = el.querySelector(".title");
+    return t ? t.textContent : "";
+  }
+
+  function markVerb(el) {
+    const ok = startsWithVerb(verbText(el));
+    const said = el.querySelector(".noverb");
+    // a row says it in a word; a box says it in its own border, having no room
+    // beside it for one
+    if (said) said.hidden = ok;
+    else el.classList.toggle("notverb", !ok);
+  }
 
   function markVerbs(scope) {
     (scope || document).querySelectorAll("[data-verbcheck]").forEach(markVerb);

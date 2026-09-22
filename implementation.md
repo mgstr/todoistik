@@ -3826,6 +3826,26 @@ and no server-side validation anywhere, because nothing here refuses anything.
   action get it and no other box in the app can. A project's title box is
   deliberately not marked — design.md says why, and a `.notverb` there would
   be asking for the one kind of title a project must not have
+- **the same attribute is on a review row, and the mark is a badge there.**
+  `markVerb` reads the value of an input and the text of a row's `.title`, and
+  says it in a border on the one and in a `.noverb` badge on the other — a box
+  has no room for a word beside it, and a row has no border to colour. It is
+  one rule with two ways of being drawn rather than two checks; adding the row
+  needed no change to `startsWithVerb` at all
+- **the badge is rendered hidden and unhidden by the key layer**, rather than
+  being added to the row when the script runs. Two reasons, and the first is
+  that a row which grows a word after the page has settled moves the line
+  under the cursor. The second is that the check is client-side, so a page
+  whose script never ran has to say *nothing* — markup added by the server and
+  shown by the server would flag every row, and the honest failure here is
+  silence. `[hidden]` is `!important` at the top of `style.css`, so the
+  attribute decides and no class of ours can draw the badge anyway
+- **only an `action` row gets it**, decided in `review_step.html` by the
+  item's `Type`. `reviewItem` already carries one, so nothing new had to be
+  computed; a project, a someday item and a schedule are not actions and have
+  no verb to miss. `internal/web/verbs_test.go` pins both halves of design.md's
+  rule: the badge is on `/review/next`, and `/next` — the same actions, worked
+  from rather than walked — has no trace of it
 - **Russian is a suffix rule and English is the list**, which is the whole
   reason the list is the design rather than a library. A Go part-of-speech
   tagger would be English-only, would need a second process for Russian, and

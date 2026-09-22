@@ -1035,6 +1035,12 @@ button:disabled:hover { border-color: var(--line); }
    because a one-pixel border in a colour is a border a screen away from being
    the same border. */
 input.notverb { border: 2px solid var(--warn); }
+/* The same thing said on a review row, where there is no box to draw a border
+   on (design.md, "Weekly review"). Outlined rather than filled, like `parked`
+   and unlike `error`: a filled badge is the row's loudest thing, and this is
+   a remark about the wording next to items whose own state — stalled, snoozed,
+   waiting — is what the walk is actually for. */
+.badge.noverb { color: var(--warn); border: 1px solid var(--warn); background: transparent; }
 
 /* ===== A moment that shows itself ========================================
    Three keys leave a screen and bring another one of the same shape back —

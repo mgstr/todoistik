@@ -9,11 +9,20 @@
 {{else}}
 <ul class="list">
 {{range $items}}
-  <li class="row{{if .Reviewed}} reviewed{{end}}{{if .SnoozeUntil}} snoozed{{end}}" data-kb-row data-href="{{.Link}}">
+  {{/* The verb mark is on the review's rows and on no other list's (design.md,
+       "Verbs"). Only an action carries it — a project's title is an outcome,
+       and a someday item and a schedule are not actions at all. The badge is
+       rendered hidden and the key layer unhides the ones that earned it, so
+       the row does not jump a word wider after the page has settled, and a
+       browser that never runs the script says nothing rather than saying it
+       about every row. */}}
+  <li class="row{{if .Reviewed}} reviewed{{end}}{{if .SnoozeUntil}} snoozed{{end}}" data-kb-row data-href="{{.Link}}"
+      {{if eq .Type "action"}}data-verbcheck{{end}}>
     <form method="post" action="/review/{{.Type}}/{{.ID}}/mark?step={{$step}}" class="inline kb-review">
       <button class="mark" aria-label="reviewed" aria-pressed="{{if .Reviewed}}true{{else}}false{{end}}">{{if .Reviewed}}●{{else}}○{{end}}</button>
     </form>
     <a class="title" href="{{.Link}}">{{.Name}}</a>
+    {{if eq .Type "action"}}<span class="badge noverb" hidden>no verb</span>{{end}}
     {{if .Detail}}<span class="badge">{{.Detail}}</span>{{end}}
     {{if .SnoozeUntil}}<span class="badge">zzz until {{.SnoozeUntil}}</span>{{end}}
     <span class="age" title="last reviewed">{{age .LastReviewedAt}}</span>
