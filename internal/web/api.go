@@ -55,15 +55,49 @@ func (s *Server) apiCapture(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]any{"status": "accepted", "item": item})
 }
 
-// apiView is the read API: one endpoint per view, the caller's own filters
-// as query parameters, independent of the screen's filter state. Read only.
-func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	f, problems := s.apiFilters(name, r.URL.Query())
-	var (
-		data any
-		err  error
-	)
+// apiViews is every view the read API answers, in the order the navigation
+// rail has them. It is the list a bad name is answered with, and the order
+// /api/context reads them in — one list rather than two, so a view cannot be
+// added to the app and quietly left out of the bundle.
+var apiViews = []string{
+	"inbox", "today", "next", "projects", "tasks",
+	"waiting", "calendar", "someday", "scheduler", "review", "archive",
+}
+
+// apiAnswer is one view's answer: what was asked, what was actually applied,
+// and what came back. A bundle is a list of these, which is what makes it a
+// concatenation of ordinary reads rather than a query of its own.
+type apiAnswer struct {
+	View     string       `json:"view"`
+	Filters  app.Filters  `json:"filters"`
+	Items    any          `json:"items"`
+	Problems []apiProblem `json:"problems,omitempty"`
+}
+
+// apiFormat reads ?format= and refuses one it does not have.
+//
+// The format is asked for in the URL rather than in an Accept header, so that
+// it can be typed into a browser's address bar and read back off a log line —
+// the same reason `q` is a parameter (design.md, "The read API"). An unknown
+// one is refused rather than served as the default, because a caller that
+// asked for text and got JSON would parse it wrong and never learn why.
+func apiFormat(w http.ResponseWriter, r *http.Request) (string, bool) {
+	switch format := r.URL.Query().Get("format"); format {
+	case "":
+		return "json", true
+	case "json", "text":
+		return format, true
+	default:
+		jsonError(w, http.StatusBadRequest, "no such format; one of: json text")
+		return "", false
+	}
+}
+
+// readView is the read itself, with no HTTP around it: the one place a view's
+// name is turned into the domain call that answers it. Both the single read
+// and the bundle go through it, so neither can grow its own idea of what a
+// view holds.
+func (s *Server) readView(name string, f app.Filters) (data any, err error, known bool) {
 	switch name {
 	case "inbox":
 		data, err = s.app.Inbox()
@@ -88,22 +122,34 @@ func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
 	case "review":
 		data, err = s.app.ReviewCounts()
 	default:
-		jsonError(w, http.StatusNotFound, "no such view; one of: inbox someday projects tasks next today waiting calendar archive scheduler review")
+		return nil, nil, false
+	}
+	return data, err, true
+}
+
+// apiView is the read API: one endpoint per view, the caller's own filters
+// as query parameters, independent of the screen's filter state. Read only.
+func (s *Server) apiView(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	format, ok := apiFormat(w, r)
+	if !ok {
+		return
+	}
+	f, problems := s.apiFilters(name, r.URL.Query())
+	data, err, known := s.readView(name, f)
+	if !known {
+		jsonError(w, http.StatusNotFound, "no such view; one of: "+strings.Join(apiViews, " "))
 		return
 	}
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	answer := map[string]any{
-		"view":    name,
-		"filters": f,
-		"items":   data,
+	if format == "text" {
+		s.writeText(w, name, f, problems, data)
+		return
 	}
-	if len(problems) > 0 {
-		answer["problems"] = problems
-	}
-	writeJSON(w, answer)
+	writeJSON(w, apiAnswer{View: name, Filters: f, Items: data, Problems: problems})
 }
 
 // apiProblem is one part of a filter line a read left out: the token as it was

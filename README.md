@@ -88,6 +88,12 @@ curl -X POST -H "Authorization: Bearer $TOK" -d "Buy new winter tyres" http://ho
 
 # read (the only way out): any view, with the caller's own filters
 curl -H "Authorization: Bearer $TOK" "http://host:8390/api/view/next?tag=car&context=online"
+
+# the same read as plain text, for pasting into a chat or handing to a model
+curl -H "Authorization: Bearer $TOK" "http://host:8390/api/view/next?format=text"
+
+# every view at once — the whole situation in one answer
+curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?format=text"
 ```
 
 Views: `inbox someday projects tasks next today waiting calendar archive scheduler review`.
@@ -95,6 +101,36 @@ Filter parameters (each view accepts the ones its screen offers): `name`,
 `tag` (repeatable), `context` (repeatable), `duration` (repeatable), `focus`
 (`exclude`/`only`), `due` (`today`/`tomorrow`/`thisweek`/`nextweek`),
 `completed` (`2026-09-13`, `today`/`yesterday`, a day name, `week`/`month`/`year`, `2weeks`/`3months`/`2years`), `sort` (`age`/`title`), `desc`.
+
+`format` says how the answer is written down, and never what is in it: `json`
+(the default) or `text`. An unknown one is refused rather than answered in the
+default, so a caller that asked for text can never be handed JSON and parse it
+wrong. The text form is one item per line — its id, its title and the notation
+it is typed in — with its description or, for a project, its definition of done
+and its actions indented under it, because nothing reading text can press a key
+to reach a second page. Every date is written out in full and the header says
+today's, so an answer read back an hour later still means what it said:
+
+```
+next — 2 items
+today: 2026-09-22
+filter: #car
+
+::1  Ring the garage about a slot  [Winter tyres ::1]  @calls #short #car  next:2026-09-22
+
+::3  Buy 205/55 R16 winter tyres  @grocery #short #car due:2026-09-20  next:2026-09-22  overdue
+    Rehvimeister quoted 240 eur for the set
+    https://rehvimeister.ee/talverehvid
+```
+
+The header also says what the app could not read — `not read: #cra is no tag` —
+for the reason the JSON answer has a `problems` field: without it, a read of
+the whole view and a read of the filtered one are the same text. The `::1` in
+front of each item is the marker `remindersync` already uses, so anything
+reading the answer can name an item and be understood when it says so back
+through the capture API. Opening the URL in a browser works too — the app's
+cookie stands in for the bearer token — which is the short way to select all
+and paste.
 
 `q` is the same set written as one line, the way it is typed on the screen —
 `?q=@home %23car %23short milk` is `@home` and `#car` and `#short` and a title
@@ -104,6 +140,36 @@ does not know is left out of the filter and named in the answer, beside the
 items: `"problems": [{"token": "#cra", "kind": "tag"}]`. So is a filter the view
 does not offer — `@home` on `tasks`, which filters by tag and name only — with
 the kind `not-in-view`. Each view answers by the same subset its screen does.
+
+### Every view at once
+
+`/api/context` answers all eleven views in one read, in the order the
+navigation rail has them, each labelled with the view and the filter that
+produced it. It is a stapler and not a query: every section is exactly what
+asking for that view alone would give, so one can be cut out of a paste and
+still be a complete answer. That is also what keeps it honest — nothing in it
+is a list the app itself could not show. The views overlap, and are left
+overlapping: the same action really is on Next, on the Calendar and under its
+project, and `::41` appearing three times is one item said three times.
+
+```sh
+curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?format=text"
+curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?archive=week&format=text"
+curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?archive=none"
+```
+
+It takes no filters, because a bundle is the whole situation by definition and
+a caller wanting a narrowed view asks for that view. The one exception is
+`archive`, since the Archive is the only view with no bottom: it takes the same
+windows `completed:` does — a date, a day name, `today`/`yesterday`,
+`week`/`month`/`year`, `2weeks`/`3months`/`2years` — plus `none`, which leaves
+the section out. The default is `3months`. A window the app does not have fails
+the whole read rather than quietly becoming the default, because an archive
+covering something other than what was asked for is the wrong answer in the
+right shape.
+
+`format` works here as it does on a single view, JSON by default. The JSON
+bundle is `{"today": ..., "views": [...]}`, one ordinary read per entry.
 
 ## Reminders, both ways
 
@@ -434,7 +500,11 @@ internal/app/             the domain — everything design.md describes, indepen
 
 internal/web/              HTTP and HTML — thin: talks to internal/app, never touches SQL directly
   server.go                routes, bearer-token/cookie auth, template funcs, the DayStart-on-every-request hook
-  api.go                   the capture and read APIs (JSON)
+  api.go                   the capture and read APIs, and which format a read is answered in
+  apitext.go               a read spelled as plain text: ?format=text
+  apitext_test.go
+  apicontext.go            every view in one answer: /api/context
+  apicontext_test.go
   ui.go                    every UI page handler — one per view/action, one HTTP verb+path each
   panels.go                which panels a screen wears, zen mode, and zen.views
   panels_test.go

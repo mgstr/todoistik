@@ -170,6 +170,11 @@ func (a *App) hasColumn(table, column string) (bool, error) {
 // Today returns the current day in the app's configured timezone.
 func (a *App) Today() string { return a.now().In(a.loc).Format(DateFormat) }
 
+// Loc is the one timezone that defines "today" (README, -tz). A timestamp the
+// app shows as a day has to be turned into one somewhere, and doing it against
+// any other zone would put a completion on the wrong side of midnight.
+func (a *App) Loc() *time.Location { return a.loc }
+
 // --- small scan/store helpers -------------------------------------------
 
 const tsFormat = time.RFC3339Nano
