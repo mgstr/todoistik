@@ -2456,6 +2456,7 @@ anim.done = strike             # what `d` looks like on the way out
 anim.delete = collapse         # ...and `⌫`
 anim.back = sweep              # ...and `b`
 anim.ms = 160                  # how long any of them runs; 0 is no motion at all
+theme = auto                   # the palette the app opens with; light, dark, or the system's
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -2549,6 +2550,13 @@ anim.ms = 160                  # how long any of them runs; 0 is no motion at al
 - **nothing is written back to it.** Everything the app itself remembers —
   filter sets, the ages flag — lives in `app_state` in the database. A file the
   app rewrites is a file you cannot keep comments in
+- **`theme` is the one key the app can be told otherwise about, and the file
+  still never changes.** Every other key here is the whole answer, because
+  nothing on any screen presses it; the palette is pressed, on the Settings
+  screen, and what is pressed is remembered where everything pressed is
+  remembered. So this key says what the app opens with before anything has
+  been chosen, which is exactly what `zen.views` says about the panels (see
+  "Theme")
 
 ## A moment that shows itself
 
@@ -2894,6 +2902,68 @@ has three: how loud the controls should be is a question about a week of use,
 not one to settle by argument. Six were rendered and compared first, in
 `research/keybar-buttons-study.html`; the sixth, a segmented toolbar, was
 rejected on looks.
+
+## Theme
+
+design.md, "Theme" asks for two palettes and three answers — light, dark, and
+whichever the system is set to. Both palettes already existed; what is new is
+that the app can be told which, and that being told is remembered.
+
+- **`light-dark()` carries the palette, one line per colour.** `--bg:
+  light-dark(#ffffff, #16181d)` says both answers, and a single
+  `color-scheme` declaration on the root picks between them. What this
+  replaced was a second copy of every custom property inside `@media
+  (prefers-color-scheme: dark)`, which worked while the system was the only
+  thing that got a say: a selector list cannot span a media query, so "dark
+  because the system says so" and "dark because the app was told" would have
+  been two blocks saying the same fourteen colours. Two copies of a palette is
+  one copy that silently falls behind
+- **`color-scheme` is the reason it is that property and not a class.** It
+  paints the scrollbars, the form controls and the caret as well — the parts
+  of the page the app does not draw and a set of custom properties can never
+  reach. A theme that left a white scrollbar down the side of a dark screen
+  would be a theme in the content and not in the window
+- **it needs a browser that knows `light-dark()`** — Safari 17.5, Chrome 123,
+  Firefox 120 and after. That is a real floor and it is accepted knowingly:
+  this is one person's app on one current browser (design.md, "Design
+  principles"), and the alternative is the duplicated block above, kept in
+  step by hand, for browsers this app is never opened in
+- **the word rides on the document element, and the pane carries a copy.**
+  `<html data-theme="dark">` is rendered by the server, so the first paint is
+  already the right colour rather than a flash of the other one. But `hx-boost`
+  swaps the *body*, and nothing above it arrives with the new page — so the
+  pane carries the same word the way it carries every other answer of the
+  server's, and the key layer copies it back up after a swap. One source of
+  truth and it is the server's (see "Stack" and "Settings file")
+- **what was chosen lives in `app_state`, beside the panels and the ages
+  flag.** It is remembered display state of exactly the same kind, and a
+  single-user app has one place for that. It also means the answer is the
+  app's rather than a browser's, which `localStorage` would have made it —
+  the same app opened from a different browser is the same app
+- **the settings file is the default and the screen has the last word.**
+  `theme = dark` says what the app opens with before anything has been chosen;
+  a choice made on the screen beats it from then on, and `auto` is how the
+  screen says "back to the system". This is the arrangement `zen.views` and
+  the panel state already have, and for the same reason: a file cannot be
+  rewritten by a keypress, and nothing is written back to it (see "Settings
+  file"). A stored word the app no longer knows falls back to the file rather
+  than painting nothing, since a stored value outlives the code that wrote it
+- **one control per answer, not one control that cycles.** `POST
+  /theme/{name}` names the answer, because the row offers all three and the
+  pointer may pick any of them; a `/theme/next` endpoint would be a second
+  idea of what "next" means, living in the server, disagreeing with the row
+  the moment a fourth answer is added. The letter is what cycles, by sitting
+  on the next answer round — which is also what lets the key bar say `h theme
+  dark`, the answer the press lands on, rather than the name of the row
+- **the row is on the Settings screen and set as chips**, like the names under
+  it: a small set read as a set, starting at the same left edge, with the one
+  in force wearing the selection colours a chosen chip wears everywhere else.
+  It is the one thing on that screen the filter line does not narrow, being
+  the one thing on it that is not a name
+- **the login screen has no theme and reads as `auto`.** It is rendered
+  outside the page machinery and carries no pane, which is the same answer it
+  gives to every other flag the file sets — and the only one that could be
+  right for a screen the app has not been unlocked from yet
 
 ## Bookmarked filters
 
@@ -3637,8 +3707,8 @@ apply, and "Deferred, by decision" is a rough edge that was looked at and left.
 Both are commitments — something is owed, and the entry says what.
 
 `todo.md` owes nothing. It holds ideas for after the MVP — a verb checker, AI
-help during processing, a TUI, light mode, themes, localization, configuration
-in a file. None of them has been designed, argued for or promised, and design.md
+help during processing, a TUI, more palettes than the two, localization,
+configuration in a file. None of them has been designed, argued for or promised, and design.md
 is deliberately silent on all of them: writing a rule for something nobody has
 decided to build would make the spec a wish list, and a spec that cannot be
 trusted to describe the app is worse than a short one.

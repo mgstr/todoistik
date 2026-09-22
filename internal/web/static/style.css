@@ -1,13 +1,26 @@
+/* The palette, both schemes on one line each. `light-dark()` takes the two
+   answers and `color-scheme` picks between them, which is what lets the app's
+   own choice be a single declaration on the root instead of a second copy of
+   every colour under a media query — the arrangement this replaced, where the
+   dark palette was a block of its own and a third answer would have been a
+   third block (implementation.md, "Theme"). */
 :root {
-  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
-  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37; --ext: #9b2fae;
-  --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff;
-  --bar-bg: #eceef3;
+  /* auto: the system decides, which is what the app did before the theme was
+     a question. The two rules under this one are the app being told otherwise;
+     they set only the scheme, and every colour below follows. */
+  color-scheme: light dark;
+  --bg: light-dark(#ffffff, #16181d); --fg: light-dark(#1a1a1a, #e6e6e6);
+  --muted: light-dark(#777, #9a9a9a); --line: light-dark(#e2e2e2, #2c2f36);
+  --accent: light-dark(#2456d6, #7da2ff); --danger: light-dark(#c02626, #ff7b7b);
+  --ok: light-dark(#1a7f37, #5fc07a); --ext: light-dark(#9b2fae, #d99ae8);
+  --badge-bg: light-dark(#f0f0f0, #23262d); --row-hover: light-dark(#f6f8ff, #1d2129);
+  --select: light-dark(#eef2ff, #22304d);
+  --bar-bg: light-dark(#eceef3, #1f232b);
   /* What `anim.done = flash` and `anim.delete = flash` pulse the item in. Not
      --ok and --danger themselves: those are a badge's colour, read against the
      page, and this is a ground the item's own text has to stay readable on for
      a sixth of a second. */
-  --flash-ok: #dcf0e1; --flash-danger: #f8dede;
+  --flash-ok: light-dark(#dcf0e1, #1d3326); --flash-danger: light-dark(#f8dede, #3a2323);
   --main-pad-top: 1rem;
   /* How wide a form is, everywhere one is written. It was 34rem, which was a
      comfortable measure for the label-above-the-box layout it was chosen for
@@ -16,15 +29,11 @@
      they sit in has room for. One number, because a form is one shape. */
   --form-width: 48rem;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
-    --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a; --ext: #d99ae8;
-    --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d;
-    --bar-bg: #1f232b;
-    --flash-ok: #1d3326; --flash-danger: #3a2323;
-  }
-}
+/* The app was told which one, on the Settings screen. One declaration each,
+   and it settles the scrollbars, the form controls and the caret as well as
+   the palette — which a set of custom properties alone never could. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 * { box-sizing: border-box; }
 /* `hidden` is the attribute, and the attribute decides. The browser's own
    [hidden] rule is the weakest thing in the cascade and loses to any class of
@@ -916,6 +925,24 @@ button:disabled:hover { border-color: var(--line); }
    is drawn on the chip itself — the same colours a selected row wears */
 .cloud .kb-selected { background: var(--select); outline: 1px solid var(--accent); }
 .cloud .name.kb-selected .param:not(.kb-selected) { background: var(--badge-bg); }
+/* The theme row: a name and its three answers, the one in force lit. The
+   answers are set as chips like the names below them, because they are the
+   same kind of thing on the page — a small set read as a set — and the row
+   starts at the same left edge the clouds do, so the screen reads as one
+   column rather than as a form with something underneath it. No gutter for the
+   name: the 7.5rem one belongs to the forms, where several names stack and
+   have to line up with each other, and there is only one here. The lit answer
+   wears the selection colours a chosen chip wears everywhere else rather than
+   a colour of its own; nothing here is a new kind of state. */
+.themerow { display: flex; align-items: center; gap: .4rem; margin: .5rem 0 1.25rem; }
+.themerow .lb { color: var(--muted); font-size: .85rem; margin-right: .3rem; }
+.themerow form { margin: 0; }
+.themerow .answer {
+  padding: .2rem .7rem; border: 1px solid var(--line); border-radius: 999px;
+  font-size: .9rem; background: transparent; color: var(--fg);
+}
+.themerow .answer.on { background: var(--select); border-color: var(--accent); }
+
 /* two clouds and no heading between them: the sigils say which is which, and
    the gap is what says there are two */
 .cloud + .cloud { margin-top: 1.25rem; }

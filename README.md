@@ -57,6 +57,7 @@ anim.done = strike             # what `d` looks like on the way out (none fade s
 anim.delete = collapse         # ...and `⌫` (the same, without strike)
 anim.back = sweep              # ...and `b` (none fade sweep rise stamp)
 anim.ms = 160                  # how long any of them runs, 0 to 600; 0 is no motion at all
+theme = auto                   # the palette the app opens with: auto (the system's), light or dark
 EOF
 ```
 
@@ -68,6 +69,12 @@ legal answer and means no screen opens that way.
 Which panels are on the rest of the time — the title bar, the navigation rail
 and the key bar — is not in this file: it is screen state, set with `ctrl-v`
 and remembered in the database like the filter sets.
+
+`theme` is the one key here that is also pressed: it says which palette the app
+*opens* with, and the Settings screen's theme row (`h`) has the last word from
+then on, remembered in the database like the panels. `auto` follows whatever
+the system is set to, which is how the app behaved before the palette was a
+choice.
 
 ## APIs
 

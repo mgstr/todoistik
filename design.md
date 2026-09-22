@@ -414,6 +414,16 @@ Some screens open in zen without being asked, because they are screens you are i
 
 This is why a screen with no key bar puts the row of buttons back under its form. The bar owns the keys no more than the rail owns the views, but it *is* where the controls are drawn, and a panel that took the controls away with it would be a panel that disabled something. So the buttons go wherever there is room for them: in the bar when there is a bar, on the form when there is not. Zen mode is the case that matters, since two screens open in it unasked - and both of those are screens you are in the middle of one item on, where a menu under the item is the right shape anyway.
 
+### Theme
+The app is painted in one of two palettes, light or dark, and which one is in force has three answers: either palette, or the machine's.
+
+- **the machine's answer is the default, and it is not a palette.** A laptop that turns its own screen dark in the evening has already been told which of the two this is, and an app that ignored it is the one bright window at midnight. This is also what the app did before any of this was a question, so making the choice sayable does not change what it does until something is said.
+- **the other two exist because the system's answer is about the machine and this one is about the room.** A screen read in sunlight wants the light palette whatever the clock says, and a dark room at noon wants the dark one. Neither is a mistake the system made; it is answering a different question, and the app has to be able to be told the one it is being asked.
+- **it is chosen on the Settings screen**, where the choices that are neither an item nor a view live. Not a key from everywhere, the way the panels are: the panels are turned off and on many times a day and around whatever is in front of you, and the palette is set when the light in the room changes. A standing chord for something pressed a few times a month is a chord spent on nothing.
+- **all three answers are on the screen at once, with the one in force lit.** The answers you are not on are part of what the row says - the same reason the nine bookmarked slots are all listed whatever is in them. A single word that cycled would say the state and hide the choice, so the only way to find out what else there is would be to press it and see.
+- **the choice outlives the press.** It is remembered where every other answer about how the screen stands is remembered, so closing the browser, or opening the app from a different one, finds the palette that was chosen rather than the default again. A theme that had to be set per browser would be a setting that is never set.
+- **nothing changes with it except the colours.** No layout moves, nothing appears or disappears, and the one thing that is deliberately the same alarming yellow on both schemes - the key bar's Russian marker - stays that colour, because what it says is not about the palette.
+
 ### A moment that shows itself
 Three keys leave a screen and bring another one of the same shape back: `d` finishes an item, `⌫` throws one away, `b` leaves. On the screens where those are pressed over and over - working down a list, emptying the inbox - the answer is the screen that was there with a different item in it, and nothing about it said the press had landed.
 

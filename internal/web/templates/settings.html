@@ -7,6 +7,23 @@
   <input type="hidden" name="q">
   <button data-key="c" data-key-label="create" data-key-typing>Create</button>
 </form>
+{{/* The one thing on this screen that is not a name. All three answers are on
+     the row with the one in force lit, rather than a single word that cycles:
+     the answers you are not on are part of what the row says, the same reason
+     the bookmarks dialog lists its empty slots (design.md, "Theme"). One
+     control per answer, so the pointer picks any of them directly — and the
+     letter sits on the next one round, which is what lets the key bar say the
+     answer the press lands on instead of the name of the row. */}}
+<div class="themerow">
+  <span class="lb">Theme</span>
+  {{range .Data.Themes}}
+  <form method="post" action="/theme/{{.Name}}">
+    <button class="answer{{if .On}} on{{end}}"
+      {{if .Key}}data-key="h" data-key-label="theme {{.Name}}"{{end}}
+      {{if .On}}aria-current="true"{{end}}>{{.Name}}</button>
+  </form>
+  {{end}}
+</div>
 {{$made := .Data.Made}}
 <div class="item" data-names="{{.Data.Names}}">
   <ul class="cloud">

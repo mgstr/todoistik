@@ -514,6 +514,19 @@
     return keyLive(el) && !el.disabled;
   }
 
+  // The palette the server just said, carried the last step by hand. It is on
+  // the document element, because a scheme is a fact about the whole page and
+  // `color-scheme` on anything smaller leaves the window's own ground behind
+  // it unpainted — and hx-boost swaps the body, so nothing above it arrives
+  // with the new page. The pane is where every other answer of the server's is
+  // read, so it is where this one is read too: one source of truth, and it is
+  // the server's (implementation.md, "Theme").
+  function wearTheme() {
+    const pane = document.querySelector(".pane");
+    if (!pane || !pane.dataset.theme) return;
+    document.documentElement.setAttribute("data-theme", pane.dataset.theme);
+  }
+
   // ---- What the settings file said -------------------------------------
   //
   // Read off the pane, like every other answer the file gives
@@ -3401,6 +3414,7 @@
     }
     // the old page's timer is counting for a screen that is no longer here
     startTimer();
+    wearTheme();
     restoreFilter();
     paintAll();
     renderKeybar(); setupPickers(); gateAll();

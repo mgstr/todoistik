@@ -30,7 +30,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
 	"archive":   {"Archive", "finished commitments, newest first"},
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
-	"settings":  {"Settings", "the remembered tags and contexts — a name has to be here before #car or @home means anything, which is what stops #car and #Car becoming two. The count is what carries it, and a name still carried cannot be removed. A parameter, @person(Marju), is its own name under its context. Filtering by #bike or @garage that matches nothing is how a name is created."},
+	"settings":  {"Settings", "the palette the app is painted in, and the remembered tags and contexts — a name has to be here before #car or @home means anything, which is what stops #car and #Car becoming two. The count is what carries it, and a name still carried cannot be removed. A parameter, @person(Marju), is its own name under its context. Filtering by #bike or @garage that matches nothing is how a name is created."},
 
 	// Reached only from the Inbox, so it has no nav entry — but it is a screen
 	// with a name, which the title bar's trail says out loud and zen.views can
@@ -122,8 +122,13 @@ type page struct {
 	Bookmarks []bookmark
 	Today     string
 	Ages      bool // the ages on rows are shown rather than hidden
-	Conf      conf.Config
-	Error     string
+	// Theme is which palette this page is painted in: one of conf.Themes,
+	// resolved from what the Settings screen was last told and falling back to
+	// the settings file. On every page because the answer is worn by the whole
+	// document, and read on Settings because that is where it is chosen.
+	Theme string
+	Conf  conf.Config
+	Error string
 	// SelfURL is this page's own address, filters and all, so the background
 	// refresh can ask for exactly the page it is standing on rather than for a
 	// fragment endpoint that would have to be kept in step with it (see
@@ -166,6 +171,7 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	if v, err := s.app.GetState(agesState); err == nil {
 		p.Ages = v == "1"
 	}
+	p.Theme = s.theme()
 	if h, ok := viewHelp[view]; ok {
 		p.HelpName, p.HelpText = h.Name, h.Text
 	}
@@ -242,6 +248,60 @@ func (s *Server) agesToggle(w http.ResponseWriter, r *http.Request) {
 		next = "0"
 	}
 	if err := s.app.SetState(agesState, next); err != nil {
+		httpError(w, err)
+		return
+	}
+	back(w, r)
+}
+
+// themeState is which palette was last chosen by hand, kept beside the ages
+// flag and the panel state: it is remembered display state of exactly the same
+// kind, and a single-user app has one place for that. Empty means nothing has
+// been chosen, and the settings file is still the answer.
+const themeState = "theme"
+
+// theme resolves the two answers into one. The file says what to open with and
+// the screen says what was asked for since, which is the same arrangement
+// zen.views and the panel state have: a file cannot be rewritten by a keypress
+// (see implementation.md, "Settings file"), so the thing that is pressed is
+// remembered where everything pressed is remembered. A stored word the app no
+// longer knows falls back to the file rather than painting nothing.
+func (s *Server) theme() string {
+	v, err := s.app.GetState(themeState)
+	if err == nil {
+		for _, t := range conf.Themes {
+			if v == t {
+				return t
+			}
+		}
+	}
+	for _, t := range conf.Themes {
+		if s.conf.Theme == t {
+			return t
+		}
+	}
+	// A Config built by hand rather than read from a file — a test, a tool —
+	// has no theme in it at all, and an empty word is not one of the three.
+	// Auto is the only answer that could be right for "nobody has said".
+	return conf.ThemeAuto
+}
+
+// themeSet answers one press on the Settings screen's theme row. The answer is
+// named in the path rather than cycled here, because the screen offers all
+// three and the pointer may pick any of them — the key presses the next one by
+// standing on it (implementation.md, "Theme"), so there is one control per
+// answer and no second idea of what "next" means.
+func (s *Server) themeSet(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	known := false
+	for _, t := range conf.Themes {
+		known = known || t == name
+	}
+	if !known {
+		http.NotFound(w, r)
+		return
+	}
+	if err := s.app.SetState(themeState, name); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -1700,6 +1760,32 @@ type settingsData struct {
 	// Made is the name just created, which the page selects on arrival so
 	// that the next key can already be about it
 	Made string
+	// Themes is the three answers in the order they are offered, each saying
+	// whether it is the one in force and which of them carries the key — see
+	// implementation.md, "Theme".
+	Themes []themeChoice
+}
+
+// themeChoice is one answer on the theme row.
+type themeChoice struct {
+	Name string
+	On   bool
+	// Key: this is the answer one press gives, so it is the one wearing the
+	// letter. Exactly one of the three has it, which is what keeps the bar
+	// honest — it says the answer the press lands on rather than the name of
+	// the row.
+	Key bool
+}
+
+// themeChoices is the row: every answer, the one in force marked, and the
+// letter on the next one round.
+func themeChoices(cur string) []themeChoice {
+	next := conf.NextTheme(cur)
+	out := make([]themeChoice, 0, len(conf.Themes))
+	for _, t := range conf.Themes {
+		out = append(out, themeChoice{Name: t, On: t == cur, Key: t == next})
+	}
+	return out
 }
 
 const settingsState = "filters:settings"
@@ -1743,6 +1829,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d.Names = strings.Join(names, "\n")
 	p := s.newPage("Settings", "settings", r)
+	d.Themes = themeChoices(p.Theme)
 	// the line narrows names rather than items, so it is carried as the name
 	// filter: that is what opens the bar on a filtered visit
 	p.Filters = app.Filters{Name: line}
