@@ -1872,15 +1872,23 @@ One rule, applied wherever something is made:
 
 ## The remembered lists
 
-The Settings page is where a name is learned and unlearned. Both lists are
+The Settings page is where a name is learned and unlearned. All three lists are
 shown as clouds rather than rows: a vocabulary is read as a set, and a set of
 short names in a column wastes a screen saying nothing.
 
-- **two clouds and nothing else.** No headings — every chip already starts
-  with `#` or `@`, which says which list it is on better than a word over it —
-  and a gap between the two so they read as two. The paragraphs that explained
-  the lists moved to the `?` panel (see "View help"), and the two add forms
-  are gone: a name is created from the filter line, below
+- **three clouds and nothing else.** No headings — a chip starting with `#` or
+  `@` says which list it is on better than a word over it would, and the third
+  cloud is the one whose chips start with neither, which is exactly what a verb
+  looks like in a title (design.md, "Verbs") — and a gap between them so they
+  read as three. The paragraphs that explained the lists moved to the `?` panel
+  (see "View help"), and the two add forms are gone: a name is created from the
+  filter line, below
+- **the verb cloud writes its own delete control** instead of taking the
+  `namedelete` partial. That partial disables itself on a name in use, and the
+  verbs mean the opposite: the count beside a verb says how many actions open
+  with it, which is how a seeded word is told from one of yours, and it never
+  says whether the word may go. `app.RemoveVerb` carries the same reasoning in
+  the domain, where it is the rule rather than the drawing of it
 - **the filter line is the view's `filterbar`, in mode `filter-names`.** The
   server narrows with `app.NarrowNames`, which is design.md's "Filtering the
   remembered lists" as code, and the count is names and parameters on screen
@@ -1895,7 +1903,10 @@ short names in a column wastes a screen saying nothing.
   an unknown name is a question, and on this one it is the name being created
 - **Create is a form under the bar holding the line as it stands**, posted to
   `/settings/create`, and shown only while the typed line is one `#name` or
-  `@name` that is on neither list. The page knows the lists from `data-names`,
+  `@name` that is on neither list, or one bare word that is not already a verb.
+  The button names the list when the word does not: `Create #bike` needs no
+  help and `Create verb call` does, since a bare word on its own could be
+  anything. The page knows the lists from `data-names`,
   every name as the line writes it whatever the filter hides, compared without
   case — `#Car` beside `#car` is not offered. It follows the typing rather than
   the applied line, so `#bike` does not have to be applied first to find out
@@ -1903,11 +1914,12 @@ short names in a column wastes a screen saying nothing.
   the page cannot tell, and the server's refusal says so on the page it
   redirects back to
 - **`app.CreateName` takes the notation**, not a kind and a name, since the
-  sigil is the only thing on the screen that says which list is meant. The
-  refusals it adds to `AddTag` / `AddContext` are the ones only this path
-  meets: a bare word, a tag with a parameter, a case variant of a name or a
-  parameter already there, and a parameter under a context that does not
-  exist. The meta line's create in the unknown-name dialog still goes through
+  sigil is the only thing on the screen that says which list is meant — and the
+  absence of one is a third thing it says, which is why a bare word reaches
+  `AddVerb` from here rather than needing a control of its own. The refusals it
+  adds to `AddTag` / `AddContext` / `AddVerb` are the ones only this path
+  meets: a tag with a parameter, a case variant of a name or a parameter
+  already there, and a parameter under a context that does not exist. The meta line's create in the unknown-name dialog still goes through
   `/settings/{kind}/add`, which learns a context with its parameter in one go —
   there the context was typed deliberately too
 - **the screen comes back filtered by what was created**, `?f=1&q=…&made=…`,
@@ -3795,6 +3807,67 @@ elsewhere.
 - **all of this is the page an *open* action gets.** A completed one is frozen
   and opens with no form on it at all — see "Reading a completed item"
 
+## The verb a title opens with
+
+design.md, "Verbs" is the rule; this is what it is built out of. The short
+version: a remembered list, a suffix rule for Russian, a class on the input,
+and no server-side validation anywhere, because nothing here refuses anything.
+
+- **it lives in `app.js` and only in `app.js`.** The whole feature is a border
+  colour, so there is nothing for the server to decide and no second copy of
+  the rule to drift against the first. The list reaches the page the way the
+  contexts and tags do — `data-verbs` on the `.pane`, from `p.Vocab.Verbs`,
+  on every page because any page may hold the box. What the server owes this
+  is exactly two things, and `internal/web/verbs_test.go` pins both: the list
+  on the page, and `data-verbcheck` on the box. Either one missing is a check
+  that never fires, which looks identical to a check that passes
+- **`data-verbcheck` is on the action title and nothing else.** One attribute
+  on the shared `actionfields` partial, so all five screens that write an
+  action get it and no other box in the app can. A project's title box is
+  deliberately not marked — design.md says why, and a `.notverb` there would
+  be asking for the one kind of title a project must not have
+- **Russian is a suffix rule and English is the list**, which is the whole
+  reason the list is the design rather than a library. A Go part-of-speech
+  tagger would be English-only, would need a second process for Russian, and
+  would still accept `milk` — the tagger is right about the language and wrong
+  about the title. `RU_INFINITIVE` is `(ть|ти|чь)(ся|сь)?$`; the reflexive tail
+  rides behind the ending rather than replacing it, which `Разобраться с
+  договором` found
+- **the Russian rule fails towards silence, on purpose.** The nouns that end
+  the way an infinitive does are excluded by `ость$` plus a named list, and
+  the named list is deliberately short. A noun slipping through is a mark that
+  does not appear; a rule that overreaches marks a title that was written
+  correctly, and that is the failure that teaches you to ignore the border.
+  `есть$` was a rule for exactly as long as it took `Прочесть отчёт` to walk
+  into it
+- **an empty box and a box opening with a digit are different answers.**
+  `startsWithVerb` tests the raw value for emptiness *before* taking the first
+  word, because stripping punctuation off `2 letters` leaves the same empty
+  string an untouched box does — and `2 letters` is as far from a verb as
+  `milk` is
+- **`app.FirstWord` is the second copy of the tokenising, and only of that.**
+  The rule is not duplicated; the server needs the first word solely to count
+  how many actions open with each verb, which is what makes a hundred seeded
+  words prunable. Both copies are kept deliberately dumb — trim, split, strip
+  non-letters, lower — so there is little in them to drift
+- **the seed runs once, guarded by `app_state.verbs_seeded`.** A seed applied
+  on every start is a set of defaults, and a word you cannot take off the list
+  is not one you keep. The seed is English only: the infinitive rule already
+  answers for ordinary Russian, and seeding a language the rule handles would
+  put a hundred chips on Settings to no effect
+- **`--warn`, and themed.** Solid rather than dashed, because dashed already
+  means "not written down yet" on an unsaved field and this is about what *is*
+  written; and 2px, because a 1px border in a colour is a border one screen
+  away from being the same border. Not `--danger`, since nothing here went
+  wrong, and not the key bar's fixed yellow, which means "you are typing in
+  Russian" and has to shout across a page — this one is a border on the box
+  the eye is already resting on (design.md, "Theme")
+- **the mark is repainted where every other box state is**: on `input` for
+  the box being typed in, and in the three places that rebuild a screen —
+  first paint, an htmx swap, and the filter line replacing `main`. Painting it
+  on load is what makes ignoring it cost something, because that is the press
+  that puts the border back the next time the action is opened
+
 ## Reading a completed item
 
 A completed item is frozen (design.md, "A completed item is frozen"), so its
@@ -3943,18 +4016,12 @@ on purpose.
 - **the keyboard map** — every gap between keys.md and the code is registered
   in that file's own "What is built" rather than duplicated here, since the
   rule and the gap have to be read together to make sense of either
-- **an action's title must start with a verb and be self-descriptive**
-  (design.md, "Inbox Zero", the Action branch). Today it is guidance rather
-  than validation: the title field carries it as its placeholder — *"Starts
-  with a verb, fully self-descriptive"* — and the only check is that a title is
-  not empty. Validation is planned for the first release, once the end-to-end
-  implementation is complete and improvement work begins; the wording will also
-  grow into fuller help by then. The rule stays stated in design.md in the
-  meantime, because it is the rule, and a spec that only describes what is
-  already built is a changelog. Note that enforcing it is a deliberate,
-  named exception to "The protocol is followed, not enforced" and not an
-  oversight in that goal — design.md says why the exception holds and what
-  would have to be true of a second one
+- **an action's title is self-descriptive.** The verb half of that rule is
+  built (see "The verb a title opens with"); this half is not, and will not
+  be by anything mechanical — no check can see whether a title makes sense
+  read cold in a week. It stays registered here rather than dropped, because
+  the placeholder still says both halves and a reader who finds only one of
+  them enforced should find out here that the silence is the point
 - **a name can only be added in Settings.** design.md says a name that matches
   nothing should be offered for creation where it was written, behind an
   explicit confirm — "deliberate enough to stop drift, cheap enough not to
@@ -4020,6 +4087,12 @@ still reports it, a value rewritten only where the old value is still there.
 - **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
   rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
   current
+- **a seed is a migration step, and is guarded by state rather than by the
+  schema.** `verbs` is created empty like any other table and then filled once,
+  behind `app_state.verbs_seeded` — the table being non-empty is not the guard,
+  because a list emptied on purpose would refill itself and the one thing this
+  list has to support is taking a word off it (see "The verb a title opens
+  with")
 
 ## Wanted, not specified
 
@@ -4029,9 +4102,10 @@ Those two are about the gap between this repo's documents and its code:
 apply, and "Deferred, by decision" is a rough edge that was looked at and left.
 Both are commitments — something is owed, and the entry says what.
 
-`todo.md` owes nothing. It holds ideas for after the MVP — a verb checker, AI
-help during processing, a TUI, more palettes than the two, localization,
-configuration in a file. None of them has been designed, argued for or promised, and design.md
+`todo.md` owes nothing. It holds ideas for after the MVP — AI help during
+processing, a TUI, more palettes than the two, localization, configuration in a
+file. The verb checker was one of them and has left, which is what graduating
+looks like: it is now a rule in design.md ("Verbs") and a section here. None of them has been designed, argued for or promised, and design.md
 is deliberately silent on all of them: writing a rule for something nobody has
 decided to build would make the spec a wish list, and a spec that cannot be
 trusted to describe the app is worse than a short one.

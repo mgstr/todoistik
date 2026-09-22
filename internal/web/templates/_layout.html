@@ -56,6 +56,7 @@
   data-view="{{.View}}"
   data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
   data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
+  data-verbs="{{range .Vocab.Verbs}}{{.}} {{end}}"
   {{if .Nav.Inbox}}data-inbox-full{{end}}
   {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
   data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
@@ -361,7 +362,12 @@
      the meta line says what the app thinks this action is, the description
      says what it is about. The notation lives in the ? panel, not beside the
      box. */}}
-<label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
+{{/* data-verbcheck is what marks the box yellow when the title does not open
+     with a verb (design.md, "Inbox Zero"). It is on the action's title and on
+     no other box in the app: a project's title names an outcome and is
+     deliberately not a thing to do, so the same mark there would be telling
+     you to write the one kind of title the app does not want. */}}
+<label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required data-verbcheck {{if .Focus}}autofocus{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
 {{if .Picker}}
 <label class="gutter"><span class="lb">Project</span>
