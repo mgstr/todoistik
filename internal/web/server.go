@@ -73,9 +73,6 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 		"linkLabel": linkLabel,
 		"itemlinks": itemLinks,
 		"qesc":      url.QueryEscape,
-		// the key bar says its labels in lower case, and a step is named once
-		// — in the list the screen draws from — rather than twice
-		"lower": strings.ToLower,
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(pairs); i += 2 {

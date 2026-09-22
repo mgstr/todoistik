@@ -192,6 +192,14 @@ bar simply does not offer a key for it. That is the standing rule doing its
 job rather than an exception to it: nothing advertises a key that does not
 exist.
 
+**The bar shows them as a range, `2…7 step`**, the shape the match list's
+`1…3 copy` and the bookmarks' `^1…9` already have — an entry that says how to
+steer rather than one that presses. The numbers are printed on the lines, which
+is where a numbered list's keys are read; the bar listing all six would be the
+screen written out a second time, in the one place that is supposed to say what
+is *not* on the screen. It starts at 2 and not at 1 for the reason above: a
+range is a claim about what can be pressed.
+
 **`h` is what is left of "theme" once `t` is spent.** Today is pressed many
 times a day and a palette is chosen when the light in the room changes, so the
 letter goes to the one that is pressed, and the other takes the next free

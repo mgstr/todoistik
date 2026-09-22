@@ -3,7 +3,7 @@
 {{range .Data}}
   <li class="{{if .Count}}outstanding{{end}}">
     {{if .Link}}
-      <a href="{{.Link}}" data-key="{{.Num}}" data-key-label="{{lower .Title}}"><span class="num">{{.Num}}</span> <b>{{.Title}}</b></a>
+      <a href="{{.Link}}" data-key="{{.Num}}" data-key-quiet data-key-label="step"><span class="num">{{.Num}}</span> <b>{{.Title}}</b></a>
     {{else}}
       <span class="num">{{.Num}}</span> <b>{{.Title}}</b>
     {{end}}
