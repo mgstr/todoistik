@@ -8,6 +8,11 @@
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
+  {{/* see process_action.html: the boxes are the finished project's words,
+       its definition of done and its actions included, and the screen says so
+       rather than letting them read as the capture's */}}
+  {{if $d.Copied}}<p class="cap">copied from a finished project<span class="agetext">, {{age $d.Copied.At}}</span></p>{{end}}
+
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   {{/* The project and its actions are written on one screen and created in one

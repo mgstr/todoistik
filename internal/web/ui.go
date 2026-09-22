@@ -35,7 +35,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	// Reached only from the Inbox, so it has no nav entry — but it is a screen
 	// with a name, which the title bar's trail says out loud and zen.views can
 	// name (see "Panels"). The process page asks for this one explicitly.
-	"processing": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. Esc leaves it exactly as it was."},
+	"processing": {"Processing", "one item, one question — what is it? Every answer files it and takes it off the list it came from. What you have written before is shown beside it, and a number copies a finished one. Esc leaves it exactly as it was."},
 
 	// Doing is a view now, reached from a row rather than from the nav, and it
 	// is the other screen zen.views names by default.
@@ -657,6 +657,106 @@ type processData struct {
 	// whether it is true (design.md, "Inbox Zero")
 	Req   *app.CompletionRequest
 	ReqAt string // the exact moment it was finished elsewhere, beside the age word
+
+	// what this capture looks like, shown on stage one and nowhere else
+	// (design.md, "Matches while processing"). Open first, since an open one
+	// is the warning; the finished ones carry the digits that copy them
+	Open     []matchRow
+	Done     []matchRow
+	OpenMore int // found beyond the nine shown, so the list can say so
+	DoneMore int
+	Copied   *app.CopySeed // stage two seeded from this finished item, named above the form
+}
+
+// matchRow is one line of the match list: the item, and the two things the row
+// draws that the item does not carry — its number, and where pressing it goes.
+// Built here rather than in the template because the digit and the link are
+// one fact said twice, and a template deriving one from the other is where the
+// two would drift apart.
+type matchRow struct {
+	*app.Match
+	Key  string // "1".."9" on a finished item; empty on an open one
+	Href string // the copy this row opens; empty on an open one
+}
+
+// matches fills in the two lists. Only stage one asks — a form that is up has
+// been answered, and a list of near-misses beside it would be asking the
+// question again after it was settled.
+func (s *Server) matches(d *processData) error {
+	open, done, openTotal, doneTotal, err := s.app.Matches(d.Text, s.dupRule())
+	if err != nil {
+		return err
+	}
+	for _, m := range open {
+		// an open match is shown and not pressable: copying something that is
+		// already open would write the duplicate this list exists to prevent,
+		// and the answer to "it is already on the list" is one of the six
+		// below (design.md, "Matches while processing"). It is not a link to
+		// the item either — the keys on this screen cannot reach one, and a
+		// row only a pointer can open is a control the bar cannot name
+		d.Open = append(d.Open, matchRow{Match: m})
+	}
+	for i, m := range done {
+		d.Done = append(d.Done, matchRow{
+			Match: m,
+			Key:   itoa(int64(i + 1)),
+			Href:  d.Back + "&as=" + m.Kind() + "&from=" + itoa(m.ID()),
+		})
+	}
+	d.OpenMore, d.DoneMore = openTotal-len(open), doneTotal-len(done)
+	return nil
+}
+
+// dupRule is what the settings file says about matching, in the shape the
+// domain takes it. One place, so the three keys are read together or not at
+// all.
+func (s *Server) dupRule() app.DupRule {
+	return app.DupRule{Method: s.conf.DupMatch, Overlap: s.conf.DupOverlap, Similar: s.conf.DupSimilar}
+}
+
+// copyFrom puts a finished item's seed in the boxes stage two draws, instead
+// of the capture's (design.md, "Copying a finished one"). What a copy consists
+// of is `App.CopyOf`'s answer; this is only where it lands on the form.
+//
+// A nil seed means there was nothing to copy — an id that names nothing, or an
+// item that is not finished — and the caller then reads the capture as usual,
+// because a stale link is not an error the screen has anything to say about.
+func (s *Server) copyFrom(d *processData, from int64) error {
+	seed, err := s.app.CopyOf(d.As, from)
+	if err != nil || seed == nil {
+		return err
+	}
+	d.Copied = seed
+	d.Vals.Set("title", seed.Title)
+	d.Vals.Set("meta", seed.Meta)
+	if d.As == "project" {
+		d.Vals.Set("dod", seed.DOD)
+		for _, act := range seed.Actions {
+			d.Drafts = append(d.Drafts, draftAction{
+				Title: act.Title, Meta: act.Meta, Description: act.Description,
+			})
+		}
+		return nil
+	}
+	// the description the finished action was done from is much of why it is
+	// worth copying — the link, the account number, the checklist. The
+	// capture's own body goes under it rather than instead of it: both were
+	// written about this job, and dropping either would drop it invisibly
+	// (design.md, "Copying a finished one")
+	d.Vals.Set("description", under(seed.Description, d.Body))
+	return nil
+}
+
+// under puts the capture's body below what was copied, with a blank line
+// between them, and stays out of the way when either is missing.
+func under(first, second string) string {
+	switch {
+	case first == "":
+		return second
+	case second == "":
+		return first
+	}
+	return first + "\n\n" + second
 }
 
 // processItem loads the item a processing screen is about: the named one, or
@@ -766,20 +866,38 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	// there would satisfy the check that makes a project a project
 	switch d.As {
 	case "action", "project", "someday":
-		seed := app.SeedCapture(d.As, d.Text, v)
-		d.Vals.Set("meta", seed.Meta)
-		if d.As == "someday" {
-			d.Vals.Set("text", seed.Title)
-		} else {
-			d.Vals.Set("title", seed.Title)
+		// a digit on the match list opens the same form seeded from the
+		// finished item instead, since what that answer says is "this again"
+		// (design.md, "Copying a finished one"). A `from` that names nothing
+		// finished falls back to the capture rather than erroring: it can only
+		// be a stale link, and the capture is what the screen is about
+		if from := int64Query(r, "from"); from != 0 {
+			if err := s.copyFrom(d, from); err != nil {
+				httpError(w, err)
+				return
+			}
 		}
-		// the project form has no description box of its own: its body is
-		// written into the first action, by the dialog that adds one
-		if d.As == "action" {
-			d.Vals.Set("description", seed.Description)
+		if d.Copied == nil {
+			seed := app.SeedCapture(d.As, d.Text, v)
+			d.Vals.Set("meta", seed.Meta)
+			if d.As == "someday" {
+				d.Vals.Set("text", seed.Title)
+			} else {
+				d.Vals.Set("title", seed.Title)
+			}
+			// the project form has no description box of its own: its body is
+			// written into the first action, by the dialog that adds one
+			if d.As == "action" {
+				d.Vals.Set("description", seed.Description)
+			}
 		}
 	default:
 		d.As = ""
+		// the matches belong to the question, not to an answer already given
+		if err := s.matches(d); err != nil {
+			httpError(w, err)
+			return
+		}
 	}
 	s.renderProcess(w, r, d)
 }

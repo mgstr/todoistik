@@ -8,6 +8,53 @@
     <p class="cap">captured {{age $d.CreatedAt}}</p>
   </div>
 
+  {{/* What this capture looks like, between the subject and the answers,
+       because it is neither: it is what you would want to know before giving
+       one (design.md, "Matches while processing"). Nothing here is required
+       reading — no matches is the ordinary case and the screen is then exactly
+       what it was. */}}
+  {{if or $d.Open $d.Done}}
+  <div class="matches">
+    {{if $d.Open}}
+    <p class="cap">already open</p>
+    <ul class="list">
+      {{range $d.Open}}
+      <li class="row">
+        <span class="title">{{.Title}}</span>
+        <span class="badge">{{.Kind}}</span>
+        {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
+        <span class="age">{{age .When}}</span>
+      </li>
+      {{end}}
+      {{if $d.OpenMore}}<li class="row more">and {{$d.OpenMore}} more</li>{{end}}
+    </ul>
+    {{end}}
+
+    {{/* Marked done exactly as the Archive marks it, because it is the same
+         claim: the box is ticked and the row is quiet (implementation.md,
+         "Item lines"). The digit is the control — the row is a link that
+         opens this finished item's own form, seeded from it. */}}
+    {{if $d.Done}}
+    <p class="cap">finished before</p>
+    <ul class="list">
+      {{range $d.Done}}
+      <li class="row done">
+        <a class="matchcopy" href="{{.Href}}" data-key="{{.Key}}" data-key-label="copy" data-key-quiet>
+          <span class="matchkey">{{.Key}}</span>
+          <span class="check">☑</span>
+          <span class="title">{{.Title}}</span>
+        </a>
+        <span class="badge">{{.Kind}}</span>
+        {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
+        <span class="age">{{age .When}}</span>
+      </li>
+      {{end}}
+      {{if $d.DoneMore}}<li class="row more">and {{$d.DoneMore}} more</li>{{end}}
+    </ul>
+    {{end}}
+  </div>
+  {{end}}
+
   <div class="branches">
     <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline kb-delete">
       <button>Delete</button>
@@ -15,7 +62,10 @@
     <form method="post" action="/process/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
       <button title="not actionable, kept outside the app">Reference material</button>
     </form>
-    <form method="post" action="/process/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="2" data-key-label="two-minute rule">
+    {{/* `d` and not `2`: the digits are the match list's now, and this branch
+         is Done — the same noun the key means everywhere else (keys.md, "The
+         map"). */}}
+    <form method="post" action="/process/{{$d.ID}}/twominute{{$q}}" class="inline" data-key="d" data-key-label="two-minute rule">
       <button title="under two minutes: do it now, record it done">Two-minute rule</button>
     </form>
   </div>

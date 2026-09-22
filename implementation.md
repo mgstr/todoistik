@@ -1175,15 +1175,16 @@ and all eight branches on screen at once — three buttons and five forms in
 ### The keys
 
 Six, one per answer, listed in the bar in the order the rows present them:
-`t` trash, `r` reference, `2` two-minute, `s` someday, `a` action, `p` project,
+`t` trash, `r` reference, `d` two-minute, `s` someday, `a` action, `p` project,
 then `esc`. Three of those move — trash to `⌫`, someday to `y`, and `p` to the
 project branch once the inbox row's alias goes — and `esc` stops leaving the
 screen. keys.md, "The map" owns those letters and gives the derivation; its
-"What is built" says where the code still stands. Each is the branch's own first letter except the two-minute rule,
-which is the rule's own number, and someday/maybe, which took the one letter
-of its name still free. The two-minute rule could not take a letter of "done":
-`d` is Done app-wide and this branch records something finished that never
-became an action at all, so the two would have read as the same answer. Three of the six now open a stage rather
+"What is built" says where the code still stands. Each is the branch's own first letter except someday/maybe, which
+took the one letter of its name still free, and the two-minute rule, which is
+`d` — the branch records something finished, which is what Done means
+everywhere else, and one noun with one meaning is the rule this map is built
+on. It was `2`, the rule's own number, until the match list needed the digits
+(see "The match list"); keys.md, "The map" gives the whole derivation. Three of the six now open a stage rather
 than posting an answer: the someday branch went from a form's submit to a link the moment
 Someday/Maybe grew a stage two, and the key layer never noticed — `data-key` on
 a link is a link being followed, the way `a` and `p` already were.
@@ -1285,6 +1286,104 @@ A captured line that is a completion request (design.md, "Completion requests")
   the press does (see "Button labels"); a separate ignore that did the same
   thing differently would be two ways to throw away an inbox item
 
+### The match list
+
+What the capture looks like, between the accent rule and the answers
+(design.md, "Matches while processing"). `App.Matches` does the comparing and
+the screen draws two short lists: what is still open, then what is finished.
+
+- **it is stage one's and nowhere else's.** A form that is up has been
+  answered, and near-misses beside it would be asking a settled question
+  again. A completion request never sees it either — that line replaces stage
+  one entirely (see above)
+- **no matches is the ordinary case, and then the screen is exactly what it
+  was.** The whole block is behind one `{{if}}`, so nothing moves and nothing
+  is reserved — an empty "no duplicates found" panel would be prose on the one
+  screen that carries none
+- **it borrows the list rows the rest of the app uses**, and marks a finished
+  one exactly as the "Archive" does: the tick and the struck-through title
+  (see "Item lines"). It is the same claim, so it is the same paint — a second
+  way of drawing "done" would be a second thing to learn to read
+- **the age obeys `ctrl-e` like every other age**, which means the dates are
+  hidden until asked for. One flag with one meaning beats a flag with a list of
+  exceptions (see "Ages are hidden by default"); the ordering already puts the
+  most recent of equals first, so the date is confirmation rather than the way
+  the list is read
+- **the open rows are not links.** The keys on this screen cannot reach one —
+  there is no row cursor at stage one — and a row only a pointer can open is a
+  control the bar cannot name, which is the rule the whole bar is built on
+  (see "The key bar is the buttons")
+- **each finished row carries its digit and is a link**, to the same stage two
+  the branch opens, with `from=<id>` on it. The digit and the link are built
+  together in `matchRow` rather than derived from each other in the template:
+  they are one fact said twice, and two templates saying it is where they
+  would drift
+- **`data-key-quiet` keeps nine copies out of the bar.** The rows are
+  numbered on the screen, which is where those numbers are read, so the bar
+  draws the range instead — `1…3 copy`, pressing nothing, the shape `^1…9`
+  already has (keys.md, "What is built"). The collapse is general: a run of
+  quiet keys in document order becomes one entry, and the run ends at the
+  first ordinary key, so a range the bar shows is always a range that exists
+- **the comparison loads every action and every project on each stage one.**
+  That is a few hundred rows on one machine and it is measured against a
+  screen that is opened by hand, so an index would be machinery bought for a
+  cost nobody has paid. `Matches` takes the capture apart once and measures
+  each candidate against that, rather than taking both apart per pair — which
+  is the only part of it worth the care
+- **the rule itself is in `internal/app`, not in the settings package.** How
+  two titles are compared is a fact about the domain and would still be one if
+  nothing ever read it out of a file; `DupRule` is handed in by the web layer,
+  the way the someday review period is handed to `internal/app` at startup
+  (see "Settings file")
+- **`StripNotation` asks no vocabulary**, unlike the readers that seed a form.
+  Seeding has to leave an unknown `#hoem` in the title, because moving a name
+  the app does not know into a box would be inventing one; here nothing is
+  moved, and leaving the unknown tokens in would make a capture match *less*
+  the more notation was written on it — the opposite of what the notation is
+  for (design.md, "Inbox item")
+
+### Seeding a copy
+
+`from=<id>` on a stage two URL says the form starts from a finished item
+instead of from the capture (design.md, "Copying a finished one"). `App.CopyOf`
+answers *what a copy is* and the handler fills the same `Vals` the capture
+would have filled, so there is one form and one seeding path, and the branch
+handler below it cannot tell the difference.
+
+- **what a copy consists of is a domain question**, so `CopyOf` is in
+  `internal/app` and returns a `CopySeed` — which fields describe the work and
+  which described an occasion that has passed is a rule, not a rendering
+  decision, and the handler's job is to put the answer in boxes (see README,
+  "Working on this codebase")
+- **a `from` that names nothing finished falls back to the capture**, silently:
+  `CopyOf` answers nil rather than an error for both the missing id and the
+  item that is still open. The only way to write such a link is by hand or by
+  following a stale one, and the capture is what the screen is about either
+  way — an error page would be the app making a fuss about a URL
+- **`CopyMeta` is where "the work, not the occasion" is decided**, on the item
+  itself rather than in `CopyOf`: it is a fact about what a copy of an action
+  is. It sits beside `PromotedMeta`, which makes the same kind of decision for
+  a promotion, and the two are the only places a meta line is written for a
+  form rather than for an item
+- **the project copy fills `Drafts`**, which is exactly what a bounced project
+  form already rebuilds from its own hidden fields — so a copied project and a
+  refused one arrive at the template the same way, and `hasaction` is
+  satisfied by there being drafts, with no special case
+- **the DOD is seeded here and nowhere else.** Every other route leaves it
+  empty on purpose, and `projectFromForm` still refuses a blank one; this one
+  is the sentence you wrote for this outcome and met, which is the opposite of
+  the captured prose that rule exists to keep out (design.md, "Copying a
+  finished one")
+- **the screen says the boxes are not the capture's words**, one line under the
+  subject: *copied from a finished action*. It is state and not instruction,
+  which is why it is allowed on a screen that carries no prose — and the date
+  in it sits in `.agetext`, so it goes with the ages and the sentence still
+  reads without it
+- **the project picker is left alone.** A copy does not preselect the finished
+  action's project, so `actionfields` needs no "already chosen" mode — the
+  control has three shapes already (pick one, fixed, absent) and a fourth
+  would be carried by every screen that writes an action to serve one of them
+
 ## Stage two
 
 Answering Action, Project or Someday/Maybe opens a form on the same screen, at
@@ -1295,6 +1394,10 @@ stage is what gives it that for free. It also keeps the rule that the server is 
 source of truth (see "Stack"), which a stage that only exists in the DOM would
 quietly break.
 
+- **it starts from the capture unless a digit said otherwise.** `from=<id>` on
+  the URL seeds the same form from a finished match instead — one more
+  parameter and no second form, see "Seeding a copy". Everything below
+  describes the ordinary case, which is the one with no `from`
 - **the form starts from the captured line, read as notation.** `MetaFromText`
   for the action form and `TagsFromText` for the other two (`tokens.go`),
   called where the fields are seeded and nowhere else — a stage that bounces
@@ -2457,6 +2560,9 @@ anim.delete = collapse         # ...and `⌫`
 anim.back = sweep              # ...and `b`
 anim.ms = 160                  # how long any of them runs; 0 is no motion at all
 theme = auto                   # the palette the app opens with; light, dark, or the system's
+duplicates.match = overlap     # how a capture is compared with what exists; similar, or none
+duplicates.overlap = 70        # percent of the shorter title's words that must be shared
+duplicates.similar = 75        # percent of the characters, when match = similar
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -2550,6 +2656,25 @@ theme = auto                   # the palette the app opens with; light, dark, or
 - **nothing is written back to it.** Everything the app itself remembers —
   filter sets, the ages flag — lives in `app_state` in the database. A file the
   app rewrites is a file you cannot keep comments in
+- **the three `duplicates.` keys are one question and its two dials.**
+  `duplicates.match` says how a capture being processed is compared with the
+  actions and projects that already exist — `overlap`, `similar`, or `none`,
+  which asks nothing and shows nothing (design.md, "What counts as a match").
+  It is a key rather than a rule because the two ways of comparing are wrong in
+  different directions and only a month of use settles which is worse: words
+  miss a rewording, characters miss the short capture against the long title
+- **each way of comparing brings its own threshold**, `duplicates.overlap` and
+  `duplicates.similar`, and they are two keys and not one number used by both.
+  A share of words and a share of characters are not the same quantity — 75
+  means "three words of four" on one and "three characters in four" on the
+  other — so a single key would move the threshold you are not tuning every
+  time you tune the one you are. Both run 1 to 100 and neither takes zero: a
+  share of nothing would make everything in the app a match for every capture,
+  which is not more answers but no answer, and turning the question off is
+  `duplicates.match = none`, in the key that is about whether it is asked at
+  all. The unused threshold is still read and still checked, since a typo that
+  only bites the day you change your mind is the failure this file is loud
+  about
 - **`theme` is the one key the app can be told otherwise about, and the file
   still never changes.** Every other key here is the whole answer, because
   nothing on any screen presses it; the palette is pressed, on the Settings

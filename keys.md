@@ -196,7 +196,7 @@ it.
 | --- | --- |
 | `⌫` | delete it |
 | `r` | reference material |
-| `2` | the two-minute rule |
+| `d` | the two-minute rule |
 | `y` | someday/maybe |
 | `a` | make it an action |
 | `p` | make it a project |
@@ -206,6 +206,34 @@ one, so it is one noun and one meaning, and the two are never on a screen
 together — stage one has no Add, stage two has no branches. They do not share
 a modifier, though: Add carries `data-key-typing` and this does not, because
 stage one has nothing on it to type into.
+
+**`d` is the two-minute rule, and it was `2`.** The number was the rule's own
+number and the argument for it was that `d` is Done app-wide, so the two would
+read as the same answer. They *are* the same answer: this branch records
+something finished, which is what Done means on every row, every action's page
+and the doing screen. One noun, one meaning, and it is the rule `a` is already
+kept by — the pair is never on one screen, because stage one carries no rows
+for a row key to act on. What moved it is the match list needing the digits
+(below); what makes the move right is that the letter was always the honest
+one.
+
+**The digits `1`…`9` press the match list**, where the processing screen shows
+what a capture looks like (design.md, "Matches while processing"). They are
+the list's own numbering, drawn on its rows, and pressing one copies that
+finished item into the branch's form. They are bare and not chorded:
+
+- **a digit is not a letter, so no mode touches it**, which is what a key on a
+  numbered list has to be — the numbers are printed on the rows, and a list
+  whose keys changed shape with `keys.mode` would be printing something that
+  is not true in two of the three
+- **`^1`…`^9` are the bookmarks and stay the bookmarks.** Those are offered
+  only where a screen has a filter line and this screen has none, so the
+  chords press nothing here — but a second meaning for them was still the
+  wrong answer while a bare digit was free
+- **the bar shows the range and not the nine**, `1…3 copy`, which says how to
+  steer rather than pressing anything — the shape `^1…9` already has. Nine
+  entries saying "copy" would bury the six answers under a list of keys the
+  screen has already drawn beside the rows they act on
 
 `p` is free because the row key `p` is gone. It only ever aliased `↵`: an
 inbox row's link already goes to the processing screen, which is why the bar
@@ -424,10 +452,17 @@ never be advertised without working:
   `button`, and defaults to `chip` — see implementation.md, "The key bar is
   the buttons".
 - **`renderKey` leaves a key that is not a letter alone**, in all three modes.
-  It did not: `modifier` turned every declared key into a chord, so the
-  processing screen's `2` became `^2` there — which the map above already said
-  it should not, and which would now be the bookmark key as well. The map was
-  right and the code was wrong; nothing else in it changed.
+  It did not: `modifier` turned every declared key into a chord, so a declared
+  digit became `^`-something there — which the map above already said it
+  should not, and which would be the bookmark key as well. The map was right
+  and the code was wrong; nothing else in it changed. It is what lets the
+  match list draw its numbers on its rows and mean them.
+- **a numbered list is one entry in the bar, not nine.** A control marked
+  `data-key-quiet` still answers its key and is left out of the bar, and a run
+  of them is drawn as the range they cover — `1…3 copy` — which presses
+  nothing, exactly as `^1…9` does. The run ends at the first ordinary key, so
+  the bar can never claim a range that is not one (implementation.md, "The
+  match list").
 
 - **`h` is on the answer, not on the row.** The Settings screen renders one
   form per theme and hangs the letter on the one the next press gives, so the
