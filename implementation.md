@@ -90,11 +90,142 @@ A **static bearer token**, one long-lived secret, checked on every request.
 The endpoints, matching design.md exactly:
 
 - `POST /api/capture` — text payload in, an inbox item out. Replies distinctly for **accepted** and **duplicate**, so a script can tell the two apart (see design.md, "Duplicate captures")
-- `GET /api/view/<name>` — one endpoint per view, returning the view as JSON. The caller passes its own filters as query parameters (e.g. `?context=home&tag=car&name=tyre`) — exactly the filters that view offers on screen, same semantics, nothing more. No parameters returns the complete view. Independent of the UI's filter state in both directions (see design.md, "The read API")
+- `GET /api/context` — every view in one answer, in the navigation rail's order. Same formats, one parameter of its own (see "Every view in one answer")
+- `GET /api/view/<name>` — one endpoint per view, returning the view as JSON, or as plain text with `?format=text` (see "A read is spelled as data or as text"). The caller passes its own filters as query parameters (e.g. `?context=home&tag=car&name=tyre`) — exactly the filters that view offers on screen, same semantics, nothing more. No parameters returns the complete view. Independent of the UI's filter state in both directions (see design.md, "The read API")
   - **which filters a view offers is `app.FiltersFor`**, a table in the domain rather than in a screen, and `app.NarrowToView` drops what the named view does not offer and says so — a `@home` asked of "Tasks" is reported as `not-in-view`, whether it was written in a `q` or spelled out as `?context=home`. The screen's own copy of the table is `BOX_RULES` in `app.js` (see "Token boxes"), which is about what a box will *let you type*; this one is about what a read may answer with, and the two have to agree, so a view gaining a filter changes both. Before it existed the check lived only in the browser, so the read API answered questions the screen could not ask — which contradicted design.md's "nothing can be asked for that a view does not already offer" for every caller that was not a browser
   - a `q` with tokens the app could not read adds `"problems": [{"token": "#cra", "kind": "tag"}]` beside the items, in `app.QueryProblem`'s kinds. It is a field beside the answer rather than a refusal, so a caller that ignores it reads exactly what it read before the field existed: `remindersync sync` is unchanged by it. The line is parsed a second time for this, in `queryProblems`, because `parseFilters` is shared with every screen and none of them wants the problems back from it
 
 Nothing else. The read API is read only, and capture is the only way in.
+
+### A read is spelled as data or as text
+
+`?format=` says how the answer is written down. `json` is the default and what
+every existing caller already gets; `text` is the same answer as plain text,
+`Content-Type: text/plain; charset=utf-8`. The renderer is
+`internal/web/apitext.go`, sitting beside `writeJSON` and reached from the one
+place in `apiView` that was already deciding what to send.
+
+- **the format is a query parameter, not an `Accept` header.** It has to be
+  typeable into a browser's address bar — that is the whole paste workflow, and
+  it is also why the UI's cookie auth is enough to reach it — and it has to be
+  visible in a log line, where a header is not. It is the same argument `q` is
+  a parameter rather than a body
+- **an unknown format is a 400 naming the ones there are**, rather than the
+  default quietly. A caller that asked for `text` and was handed JSON parses it
+  wrong and never learns why, which is the failure the `problems` field exists
+  to prevent one layer up. It matches the refusal an unknown *view* already
+  gets, and the settings file's refusal to start on an unknown key
+- **the format never changes what is in the answer.** The switch happens after
+  the view has been read and the filters narrowed, so text and JSON come off
+  the same `data` — one `if` before the envelope is built. There is no second
+  path through `apiView` that could grow its own idea of what a view holds
+- **text renders the answer, not the screen.** The `projectrow` and `actionrow`
+  templates deliberately drop the DOD, a project's actions and an action's
+  description, because each is one keystroke away on the item's own page; the
+  text form carries all three, since nothing about it has a second page. That
+  is why the renderer reads the item structs rather than reusing the templates
+- **`textRow` does not end itself.** The blank line between items is written by
+  the loop that writes them, so that an action nested under its project does
+  not open a gap inside it. This was wrong on the first pass and looked like a
+  stray newline after every project title
+
+The shape of one item is its id, the line that names it, and whatever body it
+carries indented four spaces under that line — spaces rather than a tab,
+because the answer is pasted into places that render a tab as anything from two
+columns to eight:
+
+```
+next — 2 items
+today: 2026-09-22
+filter: #car
+not read: #cra is no tag
+
+::1  Ring the garage about a slot  [Winter tyres ::1]  @calls #short #car  next:2026-09-22
+
+::3  Buy 205/55 R16 winter tyres  @grocery #short #car due:2026-09-20  next:2026-09-22  overdue
+    Rehvimeister quoted 240 eur for the set
+    https://rehvimeister.ee/talverehvid
+```
+
+- **the item's line is `app.WriteMeta`**, the same function the meta line on
+  every form is written with (see "The meta line"). An action reads back in the
+  notation it is typed in, so there is one notation to learn and no second
+  spelling of `@grocery(Selver)` to keep in step
+- **what the meta line cannot say is appended after it**: the project the
+  action belongs to as `[title ::id]`, the day it became a next action, the
+  `overdue` mark the row paints red, the day it was completed in the Archive,
+  and `app.Action.Errors` — each of which is derived rather than stored, and so
+  has no token
+- **dates are absolute, and the header says today's.** Ages elsewhere in the
+  app are written out as "3 weeks ago" (see "Ages are written out, not coded")
+  because a person glancing at a list wants to know what is rotting; a text
+  answer outlives the glance, so it states the calendar instead. `today:` is in
+  the header so that a reader can still work out the age
+- **the header carries the envelope the JSON answer carries**: the view, the
+  count, the filter the read actually applied (`app.Filters.Query`, the same
+  writer the filter box uses), and a `not read:` line for anything the app
+  could not make of the request. That last one is not cosmetic — without it a
+  read of the whole view and a read of the filtered one are the same text
+- **the sentence a problem is said in lives in `app.QueryProblem.String`**,
+  beside the kinds it switches on. `internal/apiclient` carries the same
+  sentences and cannot import `internal/app` without pulling SQLite into every
+  client binary, so `apitext_test.go` asserts the two agree kind for kind,
+  including for a kind neither knows. Two wordings for one refusal is exactly
+  the drift that test exists to catch
+- **`review` is the one view that is not a list of items**, so it is written as
+  its counts, one per line, and its header carries no count. A step with
+  nothing outstanding prints `0` rather than being left out: the point of the
+  review is that every step was looked at
+
+### Every view in one answer
+
+`GET /api/context` is `internal/web/apicontext.go`. It is a loop over
+`apiViews` calling `Server.readView`, which is the same function `/api/view`
+calls — the one place a view's name becomes a domain call, extracted when this
+endpoint was written so that the bundle could not grow its own idea of what a
+view holds.
+
+- **`apiViews` is one list, used three ways**: the order the bundle reads in,
+  the order the navigation rail has (`_layout.html`), and the list an unknown
+  view name is answered with. Before it there were two lists; a twelfth view
+  would have been added to the app and quietly left out of the bundle, and
+  nothing would have said so. `TestTheBundleAnswersEveryViewTheReadAPIHas`
+  compares the answer against `apiViews` rather than against a list written out
+  in the test, so the test cannot drift either
+- **the JSON bundle is `{"today": ..., "views": [answer, ...]}`**, where each
+  answer is the same `apiAnswer` struct a single read returns — the envelope
+  became a struct instead of a map for this, and the single read now uses it
+  too. `today` is at the top because it is the one fact about the bundle rather
+  than about any view in it
+- **the text bundle is the sections joined by a blank line**, each one byte for
+  byte what `?format=text` gives for that view, header and all. Eleven
+  repetitions of `today:` is the price, and it buys the property that any
+  section can be cut out of a paste and still be a complete answer that says
+  which view it is and which day it was given on.
+  `TestEachTextSectionIsThatViewsOwnAnswer` asserts exactly that, by asking for
+  the view alone and looking for it inside the bundle
+- **`?archive=` is the one parameter**, and it sets `Filters.Completed` on the
+  Archive read and on nothing else. The value is whatever `app.CompletedRange`
+  accepts — the vocabulary the Archive screen's `completed:` filter already has
+  — plus `none`, which leaves the section out. `none` has to be a word of the
+  bundle's own because "no window at all" is the one thing a window cannot say
+- **the default is `3months`**, the month you are in and the two before it. A
+  bare `month` would make the bundle nearly empty on the first of a month,
+  which would make its usefulness depend on the date; every value here is a
+  calendar period rather than a rolling window, which is the Archive's own rule
+  (design.md, "Archive")
+- **a window the app does not have fails the whole read with a 400** naming the
+  vocabulary, rather than falling back to the default. This is deliberately not
+  what a bad filter *token* gets — that is reported beside the items and the
+  list is still answered — because the two failures are different: a missing
+  token leaves a list that is wider than asked for and says so, while a silently
+  substituted archive window is the wrong answer in the right shape, with
+  nothing in it to notice
+- **the bundle validates the window itself rather than going through
+  `apiFilters`.** `apiFilters` narrows one named view and collects problems for
+  it; a bundle reads eleven views and would have to say which of them each
+  problem belonged to. Since the bundle takes no filters but this one, the one
+  check is written where it applies
 
 ## Reminders, both ways
 

@@ -57,6 +57,30 @@ const (
 	ProblemNotInView = "not-in-view"
 )
 
+// String says what is wrong with the token, in the words a person reads it in.
+// There is one sentence per kind and every caller says that one: a text read
+// writes it in its header, a chat reply writes it after "Not read:", and the
+// terminal client writes it into an error. The same wording lives in
+// internal/apiclient, which cannot import this package without pulling SQLite
+// into every client binary; apitext_test.go pins the two together.
+func (p QueryProblem) String() string {
+	switch p.Kind {
+	case ProblemTag:
+		return p.Token + " is no tag"
+	case ProblemContext:
+		return p.Token + " is no context"
+	case ProblemSecondContext:
+		return p.Token + " is a second context, and an action has one"
+	case ProblemNotAFilter:
+		return p.Token + " is not a filter"
+	case ProblemWindow:
+		return p.Token + " is not a window"
+	case ProblemNotInView:
+		return p.Token + " is not a filter this view has"
+	}
+	return p.Token + " was not read"
+}
+
 // ViewFilters is what one view's line may say. Every view offers a subset and
 // the line offers exactly that subset (design.md, "The filter line"), so this
 // is that table, in the domain rather than in a screen: the read API answers

@@ -186,6 +186,7 @@ func (s *Server) routes() {
 	// APIs
 	m.HandleFunc("POST /api/capture", s.apiCapture)
 	m.HandleFunc("GET /api/view/{name}", s.apiView)
+	m.HandleFunc("GET /api/context", s.apiContext)
 
 	// views
 	m.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
