@@ -33,7 +33,7 @@
          project back first. No `back` on it, because a project brought back
          is one you are now standing on and about to do something to. */}}
     <form method="post" action="/project/{{$p.ID}}/uncomplete" class="inline">
-      <button class="primary" data-jump="u">Undone</button>
+      <button class="primary" data-key="u" data-key-label="undone">Undone</button>
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>

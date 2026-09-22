@@ -34,6 +34,22 @@ the page rather than written down: it lists only keys whose control is present
 and can actually be pressed. That is the promise every rule here has to keep,
 and it is why the map can change without a static help screen going stale.
 
+**And the bar is now where the control is.** The row of buttons under a form
+is gone; every control a screen has is drawn in the bar, pressed by the letter
+beside it or by pointing at it (design.md, "Panels"). Nothing in this file
+changes because of that — a key still presses a control, and the control is
+still the thing being pressed — but two consequences land here:
+
+- **an entry that presses a control is pressable, and an entry that steers is
+  not.** `j k move`, `g go to`, `^m jump`, the "needs …" line: these are how
+  you get somewhere rather than things you press, and the bar must not invite
+  a click on them. The promise "everything listed works" would otherwise be
+  true of the letters and false of the targets.
+- **every control needs a letter now, including the rare ones.** A button with
+  no letter used to be reachable anyway, by `^m` and a hint hung on the button
+  itself. With the button off the page there is nothing to hang a hint on, so
+  the six below became five letters — see "Buttons that get no letter".
+
 ## One letter, one button
 
 A button gets one letter, and that letter means that button everywhere it
@@ -138,6 +154,27 @@ been.
 | `d` | Done | every list row, action, project, the completion request, doing, and the review step's "Reviewed" |
 | `t` | Today | every list row that carries the mark, and an action's page |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
+| `n` | Next / Parked | an action's page, inside a project |
+| `x` | Detach | an action's page, inside a project |
+| `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
+| `u` | Undone | a completed action's page, a completed project's page |
+| `i` | Inbox | a someday item's page |
+
+**Delete is last in the bar, beside Back.** Not a letter decision but a
+position one, and it belongs here because it is about the same key: `⌫` used
+to follow the row keys, which put it in the middle once the buttons moved in
+and the screen's own answers came after it. It is the one control where being
+wrong is expensive, and an entry a pointer can reach is worse to have among
+the keys pressed all day than a letter was.
+
+**The five above are the tier that used to have no letters.** They are rare,
+deliberate acts and they were reached with `^m` and a declared letter, which
+worked only while the button was on the screen to hang a hint on. Two of them
+share a letter with something already on the map, and both share the *noun*,
+which is what the rule asks: `p` is Promote here and the Project branch on the
+processing screen, and both mean "make this a project"; `i` is Inbox, and the
+Recapture button on the audit means the same thing — send this to the inbox.
+Neither pair is ever on one screen. `n`, `x` and `u` were free.
 
 **The processing branches** are six answers to one question rather than six
 controls on a screen — see implementation.md, "The processing screen". They
@@ -206,19 +243,34 @@ times a day and a display flag is pressed occasionally.
 
 ## Buttons that get no letter
 
-Six buttons appear on one or two screens each and are rare, deliberate acts:
-**Parked / Next**, **Detach**, **Promote**, **Undone**, **Inbox** on a someday
-item, and **Recapture** on the audit. They are reached with `^m` and a letter,
-which is what `^m` is for — `g` goes to a view, `^m` goes one level in.
+One, now: **Recapture** on the audit. It is reached with `^m c`, which is what
+`^m` is for — `g` goes to a view, `^m` goes one level in.
 
-What made that tier untrustworthy was not that it existed but that its letters
-moved: `^m l` deleted an action inside a project and `^m e` deleted one
+The other five — **Parked / Next**, **Detach**, **Promote**, **Undone** and
+**Inbox** on a someday item — are in the map above. They moved because the
+tier stopped working: `^m` hangs its letters on the controls of the open
+screen, and with the buttons drawn in the bar rather than on the form there is
+no longer a button to hang one on. A letter each was the honest answer, and it
+cost less than it looked like it would — `n`, `x` and `u` were free, and the
+two that were not turned out to share a noun with the letter that held them.
+
+Recapture is the one that could not follow them, and the reason is worth
+writing down: it is a control **on a row**, one per line of the audit, and the
+audit's rows carry no cursor. A standing letter means "do this to the thing
+under the cursor", and there is no cursor here to mean it about — so it stays
+a button on its row, where the pointer and `^m` can both reach it. That is the
+same reason every list row keeps its own Done and Today buttons: a row control
+is per-item, and the bar's entries are per-screen.
+
+What made the old tier untrustworthy was not that it existed but that its
+letters moved: `^m l` deleted an action inside a project and `^m e` deleted one
 standing alone, because Detach vanished from the screen and every letter after
 it shifted up. So **a control may declare its jump letter**, and a declared
-letter is claimed before any computed one. The six above declare `n` `x` `p`
-`u` `i` `c` and keep them whatever else is on the screen. Everything that does
-not declare one still takes the first free letter of its own name, which is
-what makes the unlettered controls guessable — see implementation.md,
+letter is claimed before any computed one. That escape hatch stays, unused by
+all but Recapture today, because it costs nothing and it is the thing that
+stopped the shifting. Everything that does not declare one still takes the
+first free letter of its own name, which is what makes the remaining jump
+targets — boxes and lists, mostly — guessable; see implementation.md,
 "Jumping to a control".
 
 ## The bar while you are typing
@@ -300,7 +352,14 @@ never be advertised without working:
   stepped over: with no such form on it the key does nothing rather than
   reaching past it.
 - **`data-jump`** lets a control name its own `^m` letter, claimed before any
-  computed one, which is what stops Delete moving between `l` and `e`.
+  computed one, which is what stopped Delete moving between `l` and `e`. Only
+  Recapture still uses it, and it stays for the reason above.
+- **the bar's entries are the controls.** An entry that presses something is a
+  real button wired to the control the letter presses, through the same
+  `press()`; one that steers is not a button at all. `keys.bar_style` in the
+  settings file chooses how loudly the difference is drawn, from `plain` to
+  `button`, and defaults to `chip` — see implementation.md, "The key bar is
+  the buttons".
 
 What is left, and deliberately:
 

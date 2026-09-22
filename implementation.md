@@ -862,17 +862,21 @@ layout types, and noticing after the sentence is a line to delete.
 ### Jumping to a control
 
 `g` goes to a view; `ctrl-m` goes to something on the view already open. It
-is also the whole of how six rare buttons are reached — keys.md, "Buttons that
-get no letter" says which, and why a control may declare its letter rather
-than taking the first free one. It
 marks every control on the screen with a letter, the way `g` marks the rail,
 and the next key pressed goes there — which means whatever that thing is for:
 a box is focused, a button is pressed, and a list is arrived at by selecting
 its first row.
 
-It exists because a form is not a list. `j`/`k` walk rows and the row keys act
-on them, but a screen made of boxes has no cursor to move: reaching the meta
-line from the description meant the mouse, or tabbing past everything between.
+**It reaches boxes and lists now, and hardly any buttons.** It used to be the
+whole of how six rare buttons were reached, because they were the ones with no
+letter of their own. They have letters now (keys.md, "The map"), and the rest
+of a screen's buttons are drawn in the key bar rather than on the page — a
+control with no rectangle is not a destination, which the rule about client
+rects below already handled. What is left is the thing it was built for: a
+form is not a list, and a screen made of boxes has no cursor to move.
+
+`j`/`k` walk rows and the row keys act on them, but reaching the meta line
+from the description meant the mouse, or tabbing past everything between.
 
 - **ctrl, so it is reachable from inside a box.** A bare letter cannot be a
   command where the hands are — it would be typed. That is the same argument
@@ -882,10 +886,11 @@ line from the description meant the mouse, or tabbing past everything between.
   makes it guessable without being learned: the name beside the box where
   there is one, the button's own words where there is not. Where two names
   start alike the first on the screen takes the letter and the second falls to
-  its next free one — Description takes `d` on an action's page, so Detach is
-  `e` and Delete is `l`. Every letter shown therefore goes somewhere, which is
-  the promise the key bar already makes: a key is never advertised without
-  working
+  its next free one. Every letter shown therefore goes somewhere, which is the
+  promise the key bar already makes: a key is never advertised without working.
+  The declared-letter escape hatch below stays: it costs nothing, and it is
+  what stopped the letters shifting under a control when its neighbour left
+  the screen
 - **boxes and buttons choose their letters before lists do.** On a project's
   page "Add" and the "Actions" heading over the list both want `a`,
   and document order would give it to the list. The button gets it: it is
@@ -1128,6 +1133,15 @@ and all eight branches on screen at once — three buttons and five forms in
   these six answers navigate rather than post, and that is an implementation
   detail no one should be able to see. The class carries the same fill, hover
   and metrics as the element
+- **where those rows are drawn depends on the key bar.** Every control a
+  screen carries is drawn in the bar now (see "The key bar is the buttons"),
+  and the rows above are what the screen falls back to when there is no bar to
+  draw them in. That fallback is this screen's ordinary case rather than its
+  exception, because `zen.views` names processing: arriving here the usual way
+  you get the six answers in three rows, exactly as described, and arriving
+  with zen turned off by hand you get them along the bottom in the same order.
+  So the grouping still earns its keep, and so does the accent rule over it —
+  both are arguments about a screen that is showing its own menu
 - **Someday/Maybe opens a stage two, and the tags are why.** It was one click
   for a while, carrying the text as it stood: design.md allowed a rewording and
   a `snoozeUntil` here, both were reachable on the item's own page afterwards,
@@ -2422,6 +2436,8 @@ review.someday_days = 30       # days before a someday/maybe item is back on the
 links.reach = any              # ^o follows any link the item holds; "shown" only the drawn ones
 keys.any_layout = true         # a shortcut is a place on the keyboard, so the keys work in Russian
 keys.layout_marker = true      # the key bar says "русский" while the keyboard is in Cyrillic
+keys.mode = hybrid             # bare letters, with ctrl on save, create and add
+keys.bar_style = chip          # how a pressable key bar entry is painted
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -2682,6 +2698,84 @@ the screen, and one answer that takes all three. This is how they are built.
   layer needs the answer and the nav can be off. It is also the more honest
   source: on a boosted post the new page is in the DOM before htmx has finished
   with the URL, so the address bar is a step behind at exactly the wrong moment
+
+### The key bar is the buttons
+
+Every control a screen carries declares a key, and the key bar lists the keys
+— so a row of buttons under a form was the bar's left half drawn a second
+time, in the place the eye lands first. The row is not drawn any more. The bar
+is where a control is pressed, by letter or by pointer, and the keyboard is
+the default way through rather than the alternative to a row of buttons.
+
+- **the control is still on the page; the layout is what changed.** The forms,
+  their buttons and their `data-key` declarations are exactly where they were
+  in the templates, and `.actionsbar` / `.branches` are simply not displayed.
+  That is not a coy way of saying "hidden": the bar's entry *clicks that very
+  button*, through the same `press()` the letter goes through, so the pointer
+  and the key cannot come to mean different things. It also lets the bar go on
+  deriving itself from the page rather than from a list somebody has to keep
+  in step — which is the promise everything else in "Keyboard" rests on
+- **the app already did this once.** The ages flag is a hidden form whose one
+  control is reached only from the bar (`_layout.html`), with the note that it
+  "has nothing to show that the bar does not already say". This is that,
+  generalised from one control to all of them
+- **an entry that presses something is a `<button>`; one that steers is a
+  `<span>`.** `j k`, a `g` prefix, `^m`, the "needs …" line — none of these
+  press a control, and none of them is pressable. The element differs rather
+  than only the class, so no style sheet can blur the line and the rule does
+  not depend on being remembered. This is the bar's old promise (it advertises
+  only keys that work) made about targets as well
+- **the entry inherits the control's own tone.** A `.primary` button gives a
+  primary entry and a `.danger` one a danger entry, read off the control the
+  way the label already is — so the bar keeps saying what the button said,
+  with no second list to drift
+- **delete moved to the end of the view group, beside the way out.** It was
+  last in the row this bar replaces, for a reason that outlives the row: it is
+  the one control where being wrong is expensive. Left where the bar used to
+  put it, `s save` and the screen's own answers would now follow it and leave
+  it among the keys pressed all day — and an entry a pointer can reach is
+  worse to have there than a letter was
+- **the bar never takes the caret.** A bar button cancels the focus move on
+  `mousedown` and keeps the click. Without that, clicking `^↵ create` would
+  move the focus out of the box, and the bar narrows to the chords whenever a
+  box has the caret (keys.md, "The bar while you are typing") — so the click
+  would rewrite the bar out from under itself. For the same reason focus
+  arriving *in* the bar does not re-render it: a Tab into the bar would
+  otherwise rebuild the button it had just reached
+- **it is no longer `aria-hidden`.** It was chrome describing the page; it is
+  now the page's controls, and a button inside an `aria-hidden` container is a
+  control nothing can reach
+- **a screen with no key bar draws the row again.** Zen mode takes the bar
+  away, and `zen.views` puts two screens in zen by default — so the pane says
+  `barless` when the server rendered no bar, and the row comes back under the
+  form. design.md, "Panels" promises that nothing else changes when a panel
+  goes, and a panel that took the buttons with it would break that promise
+  rather than keep a smaller one
+- **dialogs keep their buttons.** A dialog is a question and its buttons are
+  the answers; take those away and what is left is a box that does not say
+  what it is for. The bar lists them there too, exactly as it always did
+
+#### keys.bar_style
+
+Five paints for a pressable entry, and nothing else differs between them —
+every one makes the same entries pressable, and none may paint an entry that
+presses nothing, which is enforced by the element rather than by the rule.
+
+| Value | What it draws |
+| --- | --- |
+| `plain` | nothing: an entry that looks like the text it used to be |
+| `hover` | a tinted pill under the pointer, and the padding paid back to the row so an untouched bar is exactly `plain` |
+| `chip` | a bordered pill at rest, on the pressable entries only — **the default** |
+| `keycap` | the letter drawn as a key, on every entry; the hover is what tells the controls apart |
+| `button` | the form's own styling, primary and danger included, shrunk to bar size |
+
+`chip` is the default because the bar now holds two kinds of entry and that is
+the one thing it newly has to say; `chip` is the quietest answer that says it
+with nothing hovered. The other four are here for the same reason `keys.mode`
+has three: how loud the controls should be is a question about a week of use,
+not one to settle by argument. Six were rendered and compared first, in
+`research/keybar-buttons-study.html`; the sixth, a segmented toolbar, was
+rejected on looks.
 
 ## View help
 
@@ -3031,6 +3125,9 @@ elsewhere.
   page rather than the way it is on the processing screen: nothing is written,
   the reason arrives as a banner (see "A refused post is never silent"), and
   the line comes back in the box you typed it in
+- **a completed action reads with no control on the screen at all.** Its one
+  button, Undone, is in the bar wearing `u`, and the page is what design.md,
+  "Completion" asks for: text, and a way to lift the freeze
 
 - **each field's name sits beside its box**, in the app-wide gutter rather than
   on a line of its own — see "A field's name sits beside its box, not above it".
@@ -3048,6 +3145,14 @@ elsewhere.
   button on its own somewhere else, which is the layout the row exists to
   avoid. `submitButton` looks for the outside button by that attribute, so the
   gate and `ctrl-enter` find it the way they find any other
+- **and that row is in the key bar now**, not under the dates — see "The key
+  bar is the buttons". The row still exists in the template and is still what
+  gets pressed; what changed is where it is drawn. Every argument above
+  survives it, because all of them are about which controls belong together
+  and in what order, and the bar draws them in that order. The one thing that
+  moved within the row is Delete, which is now last, beside Back: `s save` and
+  the screen's own answers follow the screen keys in the bar, and Delete left
+  where it was would have sat among them
 - **Save is dead until something has changed.** `data-dirty-save` on the form
   and a comparison against each field's own `defaultValue` — which is what the
   server rendered, so nothing has to be remembered. It composes with the

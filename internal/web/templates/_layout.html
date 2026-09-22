@@ -42,7 +42,11 @@
      the inbox is asking to be emptied, and what the settings file said about
      the timer. Attributes and not a script block, so there is one source of
      truth and it is the server's (implementation.md, "Stack"). */}}
-<div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}}"
+{{/* barless: the key bar is where the controls are drawn, so a screen with no
+     key bar has to draw them itself — the row comes back under the form. A
+     panel is a thing shown and never a thing disabled (design.md, "Panels"),
+     and hiding the bar must not take the buttons with it. */}}
+<div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}} {{if not .Panels.Keybar}}barless{{end}}"
   data-view="{{.View}}"
   data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
   data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
@@ -52,6 +56,7 @@
   {{if .Conf.KeysAnyLayout}}data-keys-any-layout{{end}}
   {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
   data-links-reach="{{.Conf.LinksReach}}"
+  data-keys-bar-style="{{.Conf.KeysBarStyle}}"
   data-keys-mode="{{.Conf.KeysMode}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
@@ -82,7 +87,11 @@
   <button>toggle ages</button>
 </form>
 {{end}}
-{{if .Panels.Keybar}}<footer id="keybar" aria-hidden="true"></footer>{{end}}
+{{/* Not aria-hidden any more: the bar holds the screen's controls rather than
+     a list of what its controls answer to, and a real button inside an
+     aria-hidden container is a control nothing can reach (implementation.md,
+     "The key bar is the buttons"). */}}
+{{if .Panels.Keybar}}<footer id="keybar"></footer>{{end}}
 {{/* Keeping an open page current. A rendered page is a snapshot of the moment
      it was asked for, and items arrive without it being asked again: a
      schedule fires at the day boundary, and remindersync — or any other

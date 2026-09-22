@@ -294,3 +294,46 @@ title box `"A reference to the outcome, not what to do"`. implementation.md's
 "neither box carries a placeholder" is about the meta and description boxes, so
 these are not a contradiction — but they are the same sentence that rule was
 written against. They cost no height, so they were no part of this.
+
+
+---
+
+## keybar-buttons-study.html — what a key bar entry looks like once it is a button
+
+**2026-09-22 — decided: all five of the surviving paints ship, behind
+`keys.bar_style`, with C the default.** Implemented in
+`internal/web/static/style.css` (the `[data-keys-bar-style]` blocks),
+`internal/web/static/app.js` (`keygroup`) and `internal/conf/conf.go`
+(`KeysBarStyle`). See implementation.md, "The key bar is the buttons".
+
+The buttons came off the forms: every control a screen carries already had a
+key, so the row under the form was the bar's left half drawn a second time, in
+the place the eye lands first. What that left open was how a bar entry should
+look once it is the thing you press. Six treatments were rendered, each in both
+themes and again in a narrow frame — the bar scrolls sideways rather than
+wrapping, so a wider entry is what every variant is really spending.
+
+| | Variant | Outcome |
+|---|---|---|
+| A | The bar as it stands | Kept as `plain`: the entry is pressable and says nothing about it |
+| B | Nothing at rest, a pill on hover | Kept as `hover`; the only paint that costs the keyboard reading nothing |
+| **C** | **A chip at rest** | **Chosen as the default.** The quietest paint that still says which entries are controls with nothing hovered |
+| D | The letter as a keycap | Kept as `keycap`; the cap lands on the steering entries too, so the hover still does the separating |
+| E | A segmented toolbar | Rejected on looks. Biggest targets of the six, and a row of dividers under every screen in the app |
+| F | The form's button row, moved down | Kept as `button`; nothing to re-learn, but the bar stops being chrome |
+
+The page's real work was not the paint. It was noticing that the bar had come
+to hold **two kinds of entry** — one that presses a control, one that only
+steers — and that no paint may blur them. That rule outlived the comparison and
+is enforced by the element rather than by the style sheet: a pressable entry is
+a `<button>`, a steering one is a `<span>`.
+
+Two consequences were settled off the page, both recorded in keys.md:
+
+- **five of the six letterless buttons took standing letters** (`n` `x` `p` `u`
+  `i`). `^m` hangs its hints on the controls of the open screen, and with the
+  buttons in the bar there was nothing left to hang one on. Two of the five
+  share a letter with something already on the map and share its noun with it,
+  which is what the one-letter-one-button rule actually asks for
+- **Recapture did not follow them**, because it is a control on a row and the
+  audit's rows carry no cursor. It keeps its button and its `^m c`
