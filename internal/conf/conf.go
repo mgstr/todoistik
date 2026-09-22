@@ -68,6 +68,14 @@ type Config struct {
 	// It exists because the question is about hands rather than about the
 	// code, and the only honest way to settle it is to work in each.
 	KeysMode string
+	// KeysBarStyle: how a key bar entry that presses something is painted,
+	// now that the bar is where the buttons are and not merely a list of
+	// what they answer to (implementation.md, "The key bar is the buttons").
+	// The bar holds two kinds of entry — one that presses a control and one
+	// that steers — and this decides how loudly it tells them apart, from
+	// not at all to the button's own styling. Like KeysMode it is a question
+	// about a week of use rather than about the code.
+	KeysBarStyle string
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -97,6 +105,26 @@ const (
 	ModeHybrid   = "hybrid"
 )
 
+// The five answers keys.bar_style takes, quietest first. They differ only in
+// paint: every one of them makes the same entries pressable, and none of them
+// may paint an entry that presses nothing — that rule is in the bar itself,
+// not in the flag (implementation.md, "The key bar is the buttons").
+//
+// Chip is the default. Once the buttons came off the forms the bar started
+// holding two kinds of entry, a control and a way to steer, and it is the one
+// answer that tells them apart with nothing hovered — which is the new thing
+// the bar has to say. The other four are here because "how loud should the
+// controls be" is a question about a week of use: Plain says nothing at all,
+// Hover waits to be asked, Keycap draws the key rather than the control, and
+// Button is the row that used to be on the form, moved down unchanged.
+const (
+	BarPlain  = "plain"
+	BarHover  = "hover"
+	BarChip   = "chip"
+	BarKeycap = "keycap"
+	BarButton = "button"
+)
+
 // Defaults are what the app runs with when there is no file at all, and what
 // any key left out of the file falls back to.
 //
@@ -109,8 +137,10 @@ const (
 // review"). Both keyboard settings are on, because the app is used from the
 // keyboard in two languages and a key that stops working when the layout
 // changes is a bug rather than a mode — they are settings at all only so that
-// either can be taken back out of the way without an edit to the code. Every
-// one of them is one line away from the opposite.
+// either can be taken back out of the way without an edit to the code. The key
+// bar paints its controls as chips, because it is the quietest answer that
+// still says which of its entries are controls at all. Every one of them is
+// one line away from the opposite.
 func Defaults() Config {
 	return Config{
 		ZenShowsTimer:     false,
@@ -122,6 +152,7 @@ func Defaults() Config {
 		KeysLayoutMarker:  true,
 		LinksReach:        ReachAny,
 		KeysMode:          ModeHybrid,
+		KeysBarStyle:      BarChip,
 	}
 }
 
@@ -184,6 +215,7 @@ func (c *Config) strs() map[string]*string {
 		"zen.timer_format": &c.ZenTimerFormat,
 		"links.reach":      &c.LinksReach,
 		"keys.mode":        &c.KeysMode,
+		"keys.bar_style":   &c.KeysBarStyle,
 	}
 }
 
@@ -201,6 +233,18 @@ var checks = map[string]func(string) error{
 	"zen.views":        checkNames,
 	"links.reach":      checkReach,
 	"keys.mode":        checkKeysMode,
+	"keys.bar_style":   checkBarStyle,
+}
+
+// checkBarStyle: one of five words, for the reason every other string setting
+// here is checked — a sixth would read as a sixth paint and get none.
+func checkBarStyle(v string) error {
+	switch v {
+	case BarPlain, BarHover, BarChip, BarKeycap, BarButton:
+		return nil
+	}
+	return fmt.Errorf("%q is not a bar style: it is %q (no mark), %q (a pill under the pointer), %q (a bordered pill at rest), %q (the letter drawn as a key) or %q (the form button's own styling)",
+		v, BarPlain, BarHover, BarChip, BarKeycap, BarButton)
 }
 
 // checkKeysMode: one of three words. A fourth would read as a fourth

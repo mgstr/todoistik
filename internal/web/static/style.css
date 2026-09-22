@@ -512,6 +512,33 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 }
 .actionsbar { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; align-items: center; }
 
+/* ---- The controls are in the key bar -----------------------------------
+   Every control a screen carries declares a key, and the key bar is where
+   the keys are — so a row of buttons under a form is the bar's left half
+   drawn a second time, in the place the eye lands first. It is not drawn any
+   more.
+
+   Taken out of the layout rather than out of the template, because the
+   control is still the thing pressed: the bar's entry clicks this very
+   button, the letter presses it through the same press(), and the bar can go
+   on deriving itself from the page rather than from a list somebody has to
+   keep in step (app.js, keygroup and declaredKeys). The app already did this
+   once, for the ages flag — a hidden form whose one control is reached only
+   from the bar (_layout.html) — and this is that, generalised.
+
+   Never inside a dialog. A dialog is a question and its buttons are the
+   answers to it; take those away and what is left is a box that does not say
+   what it is for. The bar lists them there too, exactly as it always did. */
+.actionsbar, .branches { display: none; }
+dialog .branches { display: flex; }
+/* and back under the form on a screen wearing no key bar — zen mode, or the
+   bar simply turned off. Every key still works with the bar hidden, and so
+   must every button: a panel is a thing shown, never a thing disabled
+   (design.md, "Panels"), so hiding the list of controls must not take the
+   controls with it. The pane says which case this is, because the server
+   already knows and the alternative is asking the page about itself. */
+.pane.barless .actionsbar, .pane.barless .branches { display: flex; }
+
 .process { max-width: 40rem; margin: 2rem auto; }
 /* the captured line is what the screen is about, and every control around it
    is a bordered, filled button — so unboxed text loses to its own menu. The
@@ -654,12 +681,92 @@ nav .addnew:hover { border-color: var(--accent); color: var(--accent); }
   font-weight: 700; letter-spacing: .01em;
 }
 #keybar > .kb-view + .kb-layout { margin-left: auto; }
-#keybar span { white-space: nowrap; }
+#keybar .k { white-space: nowrap; }
 #keybar b {
   display: inline-block; margin-right: .3rem;
   color: var(--accent); font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
+
+/* ---- A bar entry that presses something --------------------------------
+   An entry that presses a control is a real <button>; one that only says how
+   to steer — `j k`, a `g` prefix, the "needs …" line — is a <span>. app.js
+   decides which, and nothing below may blur it: every rule here selects
+   `button.k`, so whatever keys.bar_style says, a thing that presses nothing
+   is never painted as though it does. That is the same promise the bar has
+   always made about keys, now made about targets as well.
+
+   Stripped to nothing first, so `plain` is a button that looks like the text
+   it used to be, and each style below adds only what it means to add. */
+#keybar button.k {
+  font: inherit; color: inherit; background: none; border: none;
+  padding: 0; margin: 0; border-radius: 0; cursor: pointer;
+}
+/* the bar is a Tab away now that the controls live in it, so the focus ring
+   is not optional — it is the only thing saying where a Tab landed */
+#keybar button.k:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* `hover` — nothing at rest, a pill under the pointer. The negative margin
+   pays the padding back to the row, so an untouched bar is exactly the bar
+   `plain` draws and the style costs the keyboard reading nothing at all. */
+[data-keys-bar-style="hover"] #keybar button.k {
+  padding: .1rem .4rem; margin: -.1rem -.4rem; border-radius: 6px;
+}
+[data-keys-bar-style="hover"] #keybar button.k:hover {
+  background: var(--bg); color: var(--fg);
+}
+[data-keys-bar-style="hover"] #keybar button.k.danger:hover,
+[data-keys-bar-style="hover"] #keybar button.k.danger:hover b { color: var(--danger); }
+
+/* `chip` — a bordered pill at rest, and the default. It is the quietest
+   answer that still says, with nothing hovered, which of the bar's entries
+   are controls — which is the thing the bar newly has to say now that both
+   kinds sit in it. The shape is the one the app already spends on badges. */
+[data-keys-bar-style="chip"] #keybar button.k {
+  padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg);
+}
+[data-keys-bar-style="chip"] #keybar button.k:hover { border-color: var(--accent); color: var(--fg); }
+[data-keys-bar-style="chip"] #keybar button.k.danger { border-color: var(--danger); }
+[data-keys-bar-style="chip"] #keybar button.k.danger,
+[data-keys-bar-style="chip"] #keybar button.k.danger b { color: var(--danger); }
+
+/* `keycap` — the letter drawn as a key rather than merely coloured as one,
+   and the whole entry is the target. The cap goes on every entry, steering
+   included: the bar is a picture of the keyboard, and the keyboard does not
+   have two kinds of key. What tells the controls apart here is the hover. */
+[data-keys-bar-style="keycap"] #keybar b {
+  min-width: 1.2rem; padding: 0 .25rem; text-align: center;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+  background: var(--bg); color: var(--fg);
+  font-size: .72rem; line-height: 1.4; margin-right: .35rem;
+}
+[data-keys-bar-style="keycap"] #keybar button.k:hover {
+  color: var(--fg); text-decoration: underline; text-underline-offset: .2em;
+}
+[data-keys-bar-style="keycap"] #keybar button.k:hover b { border-color: var(--accent); color: var(--accent); }
+[data-keys-bar-style="keycap"] #keybar button.k.danger:hover { color: var(--danger); }
+[data-keys-bar-style="keycap"] #keybar button.k.danger:hover b { border-color: var(--danger); color: var(--danger); }
+
+/* `button` — the row that used to sit under the form, moved down unchanged:
+   the same fill, the same danger outline, the same accent on the one the
+   form calls primary, shrunk to the bar's size and carrying its letter. The
+   loudest of the five, and the only one where the bar stops being chrome. */
+[data-keys-bar-style="button"] #keybar { padding-top: .3rem; padding-bottom: .3rem; gap: .4rem; }
+[data-keys-bar-style="button"] #keybar > div { gap: .4rem; }
+[data-keys-bar-style="button"] #keybar button.k {
+  padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--badge-bg); color: var(--fg);
+}
+[data-keys-bar-style="button"] #keybar button.k:hover { border-color: var(--accent); }
+[data-keys-bar-style="button"] #keybar button.k.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+[data-keys-bar-style="button"] #keybar button.k.primary b { color: #fff; opacity: .7; }
+[data-keys-bar-style="button"] #keybar button.k.danger {
+  color: var(--danger); border-color: var(--danger); background: transparent;
+}
+[data-keys-bar-style="button"] #keybar button.k.danger b { color: var(--danger); }
 
 /* ? is the view's own help now, not a key map — the key bar carries the keys.
    Centred rather than tucked in a corner: it is asked for, so it should land

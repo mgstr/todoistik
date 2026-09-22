@@ -214,3 +214,27 @@ func TestKeyboardSettings(t *testing.T) {
 		}
 	}
 }
+
+// The bar paints its controls as chips unless told otherwise: once the buttons
+// came off the forms the bar began holding two kinds of entry, and chip is the
+// quietest of the five that still tells them apart with nothing hovered.
+func TestKeysBarStyle(t *testing.T) {
+	if got := Defaults().KeysBarStyle; got != BarChip {
+		t.Errorf("default keys.bar_style = %q, want %q \u2014 the bar has to say which of its entries are controls", got, BarChip)
+	}
+	for _, good := range []string{BarPlain, BarHover, BarChip, BarKeycap, BarButton} {
+		c, err := Load(write(t, "keys.bar_style = "+good+"\n"))
+		if err != nil {
+			t.Fatalf("keys.bar_style = %q: %v", good, err)
+		}
+		if c.KeysBarStyle != good {
+			t.Errorf("keys.bar_style = %q, want %q", c.KeysBarStyle, good)
+		}
+	}
+	// a sixth word would read as a sixth paint and get none
+	for _, bad := range []string{"", "Chip", "segmented", "chip, hover", "none"} {
+		if _, err := Load(write(t, "keys.bar_style = "+bad+"\n")); err == nil {
+			t.Errorf("keys.bar_style = %q was accepted", bad)
+		}
+	}
+}

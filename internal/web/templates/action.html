@@ -36,7 +36,7 @@
          you wanted to do to it happens. The Archive it was opened from no
          longer holds it. */}}
     <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline">
-      <button class="primary" data-jump="u">Undone</button>
+      <button class="primary" data-key="u" data-key-label="undone">Undone</button>
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>
@@ -75,16 +75,20 @@
     <form method="post" action="/action/{{$a.ID}}/pick" class="inline kb-pick"><button>{{if hasTag $a.Tags "today"}}Not today{{else}}Today{{end}}</button></form>
     {{if $a.ProjectID}}
       {{if $a.BecameNextAt}}
-      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button data-jump="n">Parked</button></form>
+      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button data-key="n" data-key-label="parked">Parked</button></form>
       {{else}}
-      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button data-jump="n">Next</button></form>
+      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button data-key="n" data-key-label="next">Next</button></form>
       {{end}}
-      <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button data-jump="x">Detach</button></form>
+      <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button data-key="x" data-key-label="detach">Detach</button></form>
     {{else}}
       {{/* the view this action was opened from goes with it, so the trail on
            the next screen still says where you are rather than restarting at
            the action */}}
-      <a class="button" href="/action/{{$a.ID}}/promote?from={{$d.Back}}" data-jump="p">Promote</a>
+      {{/* `p` is the same letter the processing screen's Project branch wears,
+           and deliberately: both mean "make this a project", which is one noun
+           and therefore one letter (keys.md, "One letter, one button"). They
+           are never on a screen together. */}}
+      <a class="button" href="/action/{{$a.ID}}/promote?from={{$d.Back}}" data-key="p" data-key-label="promote">Promote</a>
     {{end}}
     {{/* delete says where to go afterwards, because the page it was pressed
          on is about to stop existing — see implementation.md, "Writing an

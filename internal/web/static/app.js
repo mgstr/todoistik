@@ -274,8 +274,10 @@
     const keys = [["g g", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
+    // `^m` arms a second key rather than pressing a control, so it is one of
+    // the entries the bar lists without offering — a prefix is not a button
     if (jumpTargets().length) keys.push(["^m", "jump"]);
-    if (document.getElementById("help")) keys.push(["?", "help"]);
+    if (document.getElementById("help")) keys.push(["?", "help", function () { toggleHelp(); }]);
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
     // whose label changes sits in the corner and does not shift the keys
@@ -391,23 +393,29 @@
     // the bar saying which is the default way through and which is the
     // exception — see design.md, "Inbox Zero". Everywhere else there is no
     // run, so acting on the selection leads.
-    if (zero) view.push(["z", "inbox zero"]);
+    if (zero) view.push(["z", "inbox zero", function () { goInboxZero(); }]);
     if (!zero) pushRowKeys(view, row);
     if (!row) pushScreenKeys(view);
     if (rows().length) view.push(["j k", "move"]);
     if (zero) pushRowKeys(view, row);
-    if (createForm()) view.push(["^↵", "create"]);
+    if (createForm()) view.push(["^↵", "create", function () { press(createForm()); }]);
     branchKeys().forEach(function (k) { view.push(k); });
     // offered only where the item under the cursor actually holds one, the way
     // every other entry here is derived from the page rather than written down
-    if (itemLinks(linkScope()).length) view.push(["^o", "open link"]);
+    if (itemLinks(linkScope()).length) view.push(["^o", "open link", function () { followLink(); }]);
+    // last of the view's own answers, and beside the way out — see pushDeleteKey
+    pushDeleteKey(view, row);
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) {
       view.push([renderKey("b"),
-        discardArmed ? "discard" : (cancel.dataset.cancelLabel || "back")]);
+        discardArmed ? "discard" : (cancel.dataset.cancelLabel || "back"),
+        function () { leave(); }]);
     }
     const bar = filterBar();
-    if (bar) view.push(["^f", bar.hidden ? "filter" : "no filter"]);
+    if (bar) {
+      view.push(["^f", bar.hidden ? "filter" : "no filter",
+        function () { if (filterBar().hidden) openFilter(); else closeFilter(); }]);
+    }
     if (bar && !bar.hidden) view.push(["esc", "to the filter"]);
     // With the caret in a box the bar narrows to what a chord can still
     // reach, and says the one key that gets the letters back. This is the
@@ -433,10 +441,25 @@
     return declaredKeys("[data-key]:not([data-global])");
   }
 
+  // The press is the control itself, through the same press() the key goes
+  // through — so the letter and the pointer cannot come to mean different
+  // things, which is the reason press() clicks a button rather than submitting
+  // the form around it.
   function declaredKeys(sel) {
     return Array.from(document.querySelectorAll(sel)).filter(keyUsable).map(function (el) {
-      return [renderKey(el.dataset.key, el), el.dataset.keyLabel || ""];
+      return [renderKey(el.dataset.key, el), el.dataset.keyLabel || "",
+        function () { press(el); }, tone(el)];
     });
+  }
+
+  // What the control already says about itself. A style that paints tones
+  // reads this rather than a list of which entries are loud, so the bar keeps
+  // saying what the button said and the two cannot come to disagree — the same
+  // reason the label is read off the control instead of written down here.
+  function tone(el) {
+    if (el.classList.contains("primary")) return "primary";
+    if (el.classList.contains("danger")) return "danger";
+    return "";
   }
 
   // A key a dialog declares is live exactly while that dialog is open, and
@@ -755,9 +778,24 @@
   // they act on whenever there is one — which is the rule the handler follows
   // too, so the bar cannot offer a key that would act somewhere else.
   function pushScreenKeys(into) {
-    if (screenForm("kb-complete")) into.push([renderKey("d"), "done"]);
-    if (screenForm("kb-pick")) into.push([renderKey("t"), "today"]);
-    if (screenForm("kb-delete")) into.push(["⌫", "delete"]);
+    if (screenForm("kb-complete")) into.push([renderKey("d"), "done", function () { actOn("kb-complete"); }]);
+    if (screenForm("kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+  }
+
+  // Delete is added at the end of the view group rather than beside the keys
+  // it used to follow, so that it lands next to the way out. It sat last in
+  // the button row this bar replaced, for a reason that outlives the row: it
+  // is the one control where being wrong is expensive (keys.md, "One letter,
+  // one button"). Left where it was, `s save` and the screen's own answers
+  // would now come after it and put it in the middle of the keys pressed all
+  // day — and an entry a pointer can reach is worse to have there than a
+  // letter was.
+  function pushDeleteKey(into, row) {
+    // a draft's own remove is offered with the rest of its row keys above: it
+    // removes a line that was never written down, which is not this delete
+    if (row && row.hasAttribute("data-draft")) return;
+    const form = row ? deleteForm(row) : screenForm("kb-delete");
+    if (form) into.push(["⌫", "delete", deleteHere, "danger"]);
   }
 
   function pushRowKeys(into, row) {
@@ -767,23 +805,50 @@
     // where it sits, and the keys for that are offered only where they would
     // do something: no "up" on the first row, no "down" on the last.
     if (row.hasAttribute("data-draft")) {
-      into.push(["\u21b5", "edit"]);
+      into.push(["\u21b5", "edit", function () { openDraft(row); }]);
       // Moving the row itself is the movement keys with shift held: `u` and
       // `d` were spent on Undone and Done, and a draft is a row like any
       // other, so the delete key removes it the way the delete key removes anything.
-      if (row.previousElementSibling) into.push(["K", "up"]);
-      if (row.nextElementSibling) into.push(["J", "down"]);
-      into.push(["⌫", "remove"]);
+      if (row.previousElementSibling) into.push(["K", "up", function () { moveDraft(row, -1); }]);
+      if (row.nextElementSibling) into.push(["J", "down", function () { moveDraft(row, 1); }]);
+      into.push(["⌫", "remove", deleteHere, "danger"]);
       return;
     }
     // opening an inbox item is processing it, so the key says so
-    if (row.hasAttribute("data-process")) into.push(["\u21b5", "process"]);
-    else if (row.dataset.href) into.push(["\u21b5", "open"]);
-    else if (row.querySelector("input[type=radio]")) into.push(["\u21b5", "pick"]);
-    if (row.querySelector("form.kb-complete")) into.push([renderKey("d"), "done"]);
-    if (canDo(row)) into.push(["w", "doing"]);
-    if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today"]);
-    if (deleteForm(row)) into.push(["⌫", "delete"]);
+    if (row.hasAttribute("data-process")) into.push(["\u21b5", "process", function () { openRow(row); }]);
+    else if (row.dataset.href) into.push(["\u21b5", "open", function () { openRow(row); }]);
+    else if (row.querySelector("input[type=radio]")) {
+      into.push(["\u21b5", "pick", function () {
+        const radio = row.querySelector("input[type=radio]");
+        if (radio) { radio.checked = true; renderKeybar(); }
+      }]);
+    }
+    if (row.querySelector("form.kb-complete")) into.push([renderKey("d"), "done", function () { actOn("kb-complete"); }]);
+    if (canDo(row)) into.push(["w", "doing", function () {
+      handSelectionOn(row);
+      window.location.href = doingHref(row);
+    }]);
+    if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+  }
+
+  // Opening the row the cursor is on, which is what `↵` does and therefore
+  // what the bar's entry for it must do — one path, so that the key and the
+  // pointer cannot drift apart.
+  function openRow(row) {
+    if (row && row.dataset.href) window.location.href = row.dataset.href;
+  }
+
+  // Inbox Zero is the list's own link, followed. One path for the key and the
+  // bar's entry, for the same reason openRow is one.
+  function goInboxZero() {
+    const list = document.querySelector("[data-inbox-zero]");
+    if (list) window.location.href = list.dataset.inboxZero;
+  }
+
+  function toggleHelp() {
+    const help = document.getElementById("help");
+    if (help) help.hidden = !help.hidden;
+    renderKeybar();
   }
 
   // ---- row and screen commands -------------------------------------------
@@ -879,14 +944,7 @@
   // modes and only the chord changes.
   function rowCommand(e) {
     const row = selected();
-    if (e.key === "Backspace" || e.key === "Delete") {
-      if (row && row.hasAttribute("data-draft")) { removeDraft(row); return true; }
-      const form = row ? deleteForm(row) : screenForm("kb-delete");
-      if (!form) return false;
-      if (row) handSelectionOn(row);
-      form.submit();
-      return true;
-    }
+    if (e.key === "Backspace" || e.key === "Delete") return deleteHere();
     if (pressedIs("d", e)) return actOn("kb-complete");
     if (pressedIs("t", e)) return actOn("kb-pick");
     if (pressedIs("b", e)) return leave();
@@ -897,6 +955,22 @@
       return true;
     }
     return false;
+  }
+
+  // Deleting whatever the delete key would delete: the selected row's form, or
+  // — with no row under the cursor — the screen's own. One function, because
+  // the key and the bar's entry both go through it and the two must not come
+  // to differ about which form that is. `deleteForm` and not a plain
+  // querySelector, for the reason it gives: a context's chip holds the chips
+  // of its parameters, and their deletes are not its own.
+  function deleteHere() {
+    const row = selected();
+    if (row && row.hasAttribute("data-draft")) { removeDraft(row); return true; }
+    const form = row ? deleteForm(row) : screenForm("kb-delete");
+    if (!form) return false;
+    if (row) handSelectionOn(row);
+    form.submit();
+    return true;
   }
 
   // The row's own delete, and only one that can be pressed: a name still
@@ -923,18 +997,42 @@
       // box and stays in the bar.
       const own = btn.dataset.key;
       if (own && renderKey(own, btn).indexOf("^") >= 0) return [];
-      return [["^\u21b5", btn.textContent.trim().toLowerCase()]];
+      return [["^\u21b5", btn.textContent.trim().toLowerCase(),
+        function () { press(btn); }]];
     }
     const need = missing(scope);
     if (!need.length) return [];
     return [["\u2026", "needs " + need.join(" and ")]];
   }
 
+  // An entry is `[key, label]`, and one that presses something carries the
+  // press as a third member and a tone as a fourth.
+  //
+  // An entry that presses something is a real <button>; one that only says how
+  // to steer — `j k`, a `g` prefix, the "needs …" line — stays a <span>. Now
+  // that the buttons live here rather than on the form, that difference is the
+  // bar's second promise: it advertises only keys that work (keys.md, "What a
+  // key is"), and only the entries that press something are pressable. The
+  // element differs rather than only the class, so no paint keys.bar_style
+  // chooses can blur it and no style sheet has to be trusted to keep the rule.
   function keygroup(cls, items) {
     const box = document.createElement("div");
     box.className = cls;
     items.forEach(function (pair) {
-      const item = document.createElement("span");
+      const act = pair[2];
+      const item = document.createElement(act ? "button" : "span");
+      item.className = "k" + (pair[3] ? " " + pair[3] : "");
+      if (act) {
+        item.type = "button";
+        // the caret stays where it was: the bar is chrome, and a button that
+        // took focus on the way down would empty the very bar being clicked —
+        // with the caret in a box the bar narrows to the chords (keys.md,
+        // "The bar while you are typing"), so clicking `^↵ create` would
+        // rewrite the bar out from under the click. The click still fires;
+        // only the focus move is cancelled.
+        item.addEventListener("mousedown", function (e) { e.preventDefault(); });
+        item.addEventListener("click", function (e) { e.preventDefault(); act(); });
+      }
       const key = document.createElement("b");
       key.textContent = pair[0];
       item.appendChild(key);
@@ -1054,8 +1152,19 @@
   // re-read on both. focusin/focusout because they bubble — the boxes come
   // and go with every page swap — and focusout a tick later, once the focus
   // has actually landed somewhere.
-  document.addEventListener("focusin", function () { renderKeybar(); });
-  document.addEventListener("focusout", function () { setTimeout(renderKeybar, 0); });
+  // — except focus landing inside the bar itself, which is a Tab away now that
+  // the bar holds the controls. Re-rendering there rebuilds the very button
+  // that was just reached and throws the focus back to the document, so a Tab
+  // into the bar would move nowhere.
+  function inKeybar(el) { return !!(el && el.closest && el.closest("#keybar")); }
+  document.addEventListener("focusin", function (e) {
+    if (inKeybar(e.target)) return;
+    renderKeybar();
+  });
+  document.addEventListener("focusout", function (e) {
+    if (inKeybar(e.relatedTarget)) return;
+    setTimeout(renderKeybar, 0);
+  });
 
   document.addEventListener("input", function (e) {
     // a token box paints itself and offers what you may be typing — and then
@@ -2349,15 +2458,12 @@
       case "z": {
         // Inbox Zero is only p over and over: the same screen, fed the oldest
         // item each time instead of the selected one.
-        const list = document.querySelector("[data-inbox-zero]");
-        if (list) { e.preventDefault(); window.location.href = list.dataset.inboxZero; }
+        if (document.querySelector("[data-inbox-zero]")) { e.preventDefault(); goInboxZero(); }
         break;
       }
       case "?": {
         e.preventDefault();
-        const help = document.getElementById("help");
-        if (help) help.hidden = !help.hidden;
-        renderKeybar();
+        toggleHelp();
         break;
       }
       case "Escape": {

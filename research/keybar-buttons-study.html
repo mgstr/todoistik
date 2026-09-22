@@ -1,0 +1,438 @@
+<meta charset="utf-8">
+<title>Key bar buttons study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 70rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; }
+h2 { margin: 0 0 .35rem; font-size: 1.15rem; font-weight: 600; letter-spacing: -.01em; }
+h3 { margin: 1.6rem 0 .4rem; font-size: .95rem; font-weight: 600; }
+.dek { margin: .6rem 0 0; max-width: 46rem; color: var(--page-muted); }
+.rule { height: 1px; background: var(--page-line); }
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+
+.card {
+  background: var(--page-card); border: 1px solid var(--page-line);
+  border-radius: 14px; padding: 1.25rem; box-shadow: var(--shadow);
+}
+.card > .note { margin: .1rem 0 1rem; color: var(--page-muted); max-width: 46rem; }
+.card > .cost { margin: 1rem 0 0; font-size: .92rem; color: var(--page-muted); max-width: 46rem; }
+.card > .cost b { color: var(--page-fg); font-weight: 600; }
+.tag {
+  display: inline-block; margin-right: .5rem; padding: .1rem .45rem;
+  border: 1px solid var(--page-line); border-radius: 999px;
+  font: 600 .7rem/1.5 "IBM Plex Mono", ui-monospace, monospace; color: var(--page-muted);
+  vertical-align: .12em;
+}
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { font-weight: 600; color: var(--page-muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; }
+tr:last-child td { border-bottom: none; }
+
+.rail { display: flex; align-items: flex-start; gap: .6rem; margin-top: .55rem; }
+.rail .lbl {
+  flex: 0 0 auto; width: 3.2rem; padding-top: .4rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted);
+}
+.frame {
+  flex: 1 1 auto; min-width: 0;
+  border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden;
+}
+/* the narrow rail is the bar with less room than it wants: the app's bar
+   scrolls sideways rather than wrapping, and a wider entry is the price every
+   variant below pays */
+.rail.tight .frame { max-width: 32rem; }
+
+/* -------------------------------------------------------------------------
+   the specimen: todoistik's own stylesheet, the rules the key bar and an
+   action's page use, lifted verbatim from internal/web/static/style.css and
+   scoped under .app
+   ------------------------------------------------------------------------- */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--fg);
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2;
+  --accent: #2456d6; --danger: #c02626; --ok: #1a7f37;
+  --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff; --bar-bg: #eceef3;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36;
+  --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a;
+  --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d; --bar-bg: #1f232b;
+}
+.app p, .app form { margin: 0; }
+.app input {
+  font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem;
+}
+.app .stack { display: flex; flex-direction: column; gap: .5rem; margin: 0; }
+.app .stack label { display: flex; align-items: baseline; gap: .6rem; font-size: .85rem; color: var(--muted); }
+.app .stack label > .lb { flex: 0 0 4.75rem; text-align: right; }
+.app .stack label > input { flex: 1 1 auto; min-width: 0; color: var(--fg); }
+.app .stamps {
+  display: flex; gap: .5rem; align-items: baseline; flex-wrap: wrap;
+  color: var(--muted); font-size: .9rem; margin: .9rem 0 0;
+}
+
+/* the mock screen: content that fills, a bar pinned under it — the same flex
+   column internal/web/templates/_layout.html builds */
+.app .screen { display: flex; flex-direction: column; min-height: 11rem; }
+.app .screen > .body { flex: 1 1 auto; padding: .9rem 1rem 1.1rem; }
+
+/* ---- the key bar, verbatim from style.css ---- */
+.app .keybar {
+  display: flex; flex-wrap: nowrap; gap: 1rem; align-items: center;
+  padding: .35rem .75rem;
+  border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted);
+  font-size: .8rem; overflow-x: auto; scrollbar-width: none;
+  flex: 0 0 auto;
+}
+.app .keybar::-webkit-scrollbar { display: none; }
+.app .keybar > div { display: flex; gap: 1rem; align-items: center; }
+.app .keybar > .kb-global {
+  margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line);
+}
+.app .keybar .k { white-space: nowrap; }
+.app .keybar b {
+  display: inline-block; margin-right: .3rem;
+  color: var(--accent); font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* Every pressable entry is a real <button> in every variant, so the only thing
+   changing between them is paint. An entry that presses nothing — j k, a g
+   prefix — is a <span>, and no variant may make one look pressable. */
+.app .keybar button.k {
+  font: inherit; color: inherit; background: none; border: none;
+  padding: 0; margin: 0; border-radius: 0; cursor: pointer;
+}
+
+/* =========================================================================
+   A — the bar as it stands. Nothing here is pressable; this is the reference
+   ========================================================================= */
+.v-A .keybar button.k { cursor: default; }
+
+/* =========================================================================
+   B — nothing at rest, a pill under the pointer
+   ========================================================================= */
+.v-B .keybar button.k {
+  padding: .1rem .4rem; margin: -.1rem -.4rem; border-radius: 6px;
+}
+.v-B .keybar button.k:hover { background: var(--bg); color: var(--fg); }
+.v-B .keybar button.k.danger:hover { color: var(--danger); }
+.v-B .keybar button.k.danger:hover b { color: var(--danger); }
+
+/* =========================================================================
+   C — a chip at rest, on the entries that press something
+   ========================================================================= */
+.v-C .keybar button.k {
+  padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg);
+}
+.v-C .keybar button.k:hover { border-color: var(--accent); color: var(--fg); }
+.v-C .keybar button.k.danger { border-color: var(--danger); }
+.v-C .keybar button.k.danger,
+.v-C .keybar button.k.danger b { color: var(--danger); }
+
+/* =========================================================================
+   D — the letter as a keycap, the whole entry as the target
+   ========================================================================= */
+.v-D .keybar b {
+  min-width: 1.2rem; padding: 0 .25rem; text-align: center;
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+  background: var(--bg); color: var(--fg); font-size: .72rem; line-height: 1.4;
+  margin-right: .35rem;
+}
+.v-D .keybar button.k:hover { color: var(--fg); text-decoration: underline; text-underline-offset: .2em; }
+.v-D .keybar button.k:hover b { border-color: var(--accent); color: var(--accent); }
+.v-D .keybar button.k.danger:hover { color: var(--danger); }
+.v-D .keybar button.k.danger:hover b { border-color: var(--danger); color: var(--danger); }
+
+/* =========================================================================
+   E — a segmented bar: full-height cells, hairline dividers
+   ========================================================================= */
+.v-E .keybar { padding: 0 .75rem; gap: 0; }
+.v-E .keybar > div { gap: 0; align-self: stretch; }
+.v-E .keybar > .kb-global { padding-left: 0; }
+.v-E .keybar .k {
+  display: flex; align-items: center; align-self: stretch;
+  padding: .4rem .6rem; border-right: 1px solid var(--line);
+}
+.v-E .keybar > div > .k:first-child { border-left: 1px solid var(--line); }
+.v-E .keybar button.k:hover { background: var(--bg); color: var(--fg); }
+.v-E .keybar button.k.danger:hover { color: var(--danger); }
+/* an entry that presses nothing is not a cell: it sits in the gap between
+   them, so the cells are exactly the controls */
+.v-E .keybar span.k { border: none; padding: .4rem .7rem; opacity: .75; }
+.v-E .keybar > div > span.k:first-child { border-left: none; }
+
+/* =========================================================================
+   F — the button row, moved into the bar unchanged
+   ========================================================================= */
+.v-F .keybar { padding: .3rem .75rem; gap: .4rem; }
+.v-F .keybar > div { gap: .4rem; }
+.v-F .keybar button.k {
+  padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--badge-bg); color: var(--fg);
+}
+.v-F .keybar button.k:hover { border-color: var(--accent); }
+.v-F .keybar button.k.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.v-F .keybar button.k.primary b { color: #fff; opacity: .7; }
+.v-F .keybar button.k.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+.v-F .keybar button.k.danger b { color: var(--danger); }
+.v-F .keybar span.k { padding: .1rem .2rem; }
+
+footer.close { color: var(--page-muted); font-size: .9rem; border-top: 1px solid var(--page-line); padding-top: 1.25rem; }
+footer.close p { max-width: 46rem; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">research &middot; the key bar</p>
+  <h1>Six ways to make a key bar entry pressable</h1>
+  <p class="dek">Every button on a form now has a key, so the buttons come off the forms and the bar
+    becomes the one place a control is pressed &mdash; by keyboard first, by pointer when a pointer
+    is what is in your hand. This page settles only what a bar entry <em>looks</em> like once it is a
+    button. Each variant is rendered with <code>style.css</code> itself, in both themes, and again in
+    a narrow frame, because the bar scrolls sideways rather than wrapping and a wider entry is the
+    price every one of these pays.</p>
+  <p class="dek">The screen over each bar is an action's page <b>with its seven-button row already
+    removed</b>. That removal is the change, and it is the same in every variant.</p>
+</header>
+
+<section class="card">
+  <h2>The one rule a treatment has to keep</h2>
+  <p class="note">The bar's existing promise is that everything it lists works right now
+    (<code>keys.md</code>, &ldquo;What a key is&rdquo;). Making entries pressable adds a second thing
+    it must not lie about: <b>an entry is a button exactly when it presses a control.</b> Movement
+    and prefixes &mdash; <code class="mono">j k move</code>, <code class="mono">g go to</code> &mdash;
+    are how you steer, not things you press, and nothing below may paint them as pressable. That is
+    why every variant is shown against a bar holding both kinds.</p>
+  <table>
+    <tr><th>In the bar</th><th>What it is</th><th>Pressable</th></tr>
+    <tr><td><code class="mono">s save</code> <code class="mono">d done</code> <code class="mono">t today</code> <code class="mono">&#9003; delete</code> <code class="mono">b back</code></td><td>a control that used to sit on the form</td><td>yes</td></tr>
+    <tr><td><code class="mono">&#8629; open</code> <code class="mono">^f filter</code></td><td>a control that is on the screen</td><td>yes</td></tr>
+    <tr><td><code class="mono">j k move</code></td><td>moves the selection</td><td>no &mdash; two keys, one entry, nothing to press</td></tr>
+    <tr><td><code class="mono">g go to</code> <code class="mono">^m jump</code></td><td>a prefix: it arms a second key</td><td>no &mdash; a prefix is not a control</td></tr>
+  </table>
+</section>
+
+<div class="rule"></div>
+
+<section class="card" id="v-A">
+  <h2><span class="tag">A</span>The bar as it stands</h2>
+  <p class="note">The reference. Quiet chrome, read at a glance and never aimed at. Here so the cost
+    of every other variant is visible as a difference from this.</p>
+  <div class="spec" data-variant="A"></div>
+  <p class="cost"><b>Cost:</b> none, and no gain &mdash; there is nothing to press.</p>
+</section>
+
+<section class="card" id="v-B">
+  <h2><span class="tag">B</span>Nothing at rest, a pill under the pointer</h2>
+  <p class="note">Identical to A until the pointer arrives, then the entry under it lifts into a
+    tinted pill. The bar stays the quiet strip it was designed as, and the buttons are found the way
+    a hover target is found anywhere &mdash; by moving across the row you already know is the
+    controls.</p>
+  <div class="spec" data-variant="B"></div>
+  <p class="cost"><b>Cost:</b> at rest nothing says which entries are pressable, so on a touch screen
+    or a first read the answer is &ldquo;try one&rdquo;. <b>Gain:</b> the only variant that costs the
+    keyboard reading nothing at all.</p>
+</section>
+
+<section class="card" id="v-C">
+  <h2><span class="tag">C</span>A chip at rest</h2>
+  <p class="note">Every pressable entry is a bordered pill; movement and prefixes stay bare text. The
+    bar becomes visibly two kinds of thing, which is exactly what it now is. Delete keeps the danger
+    colour it wore on the form.</p>
+  <div class="spec" data-variant="C"></div>
+  <p class="cost"><b>Cost:</b> the widest of the calm variants &mdash; a border and its padding on
+    every entry, which is what tips the crowded bar into scrolling. <b>Gain:</b> the two kinds are
+    told apart without hovering, in a chip shape the app already owns.</p>
+</section>
+
+<section class="card" id="v-D">
+  <h2><span class="tag">D</span>The letter as a keycap</h2>
+  <p class="note">The letter is drawn as a key rather than merely coloured as one, and the whole
+    entry is the target. The bar reads as a picture of the keyboard, which is what it is &mdash; the
+    pointer is the second way in and looks like it.</p>
+  <div class="spec" data-variant="D"></div>
+  <p class="cost"><b>Cost:</b> a cap on the unpressable entries too, so the two kinds are still only
+    told apart on hover; decoration on a strip that had none. <b>Gain:</b> the key, not the word, is
+    what the eye lands on &mdash; which is the habit the bar exists to build.</p>
+</section>
+
+<section class="card" id="v-E">
+  <h2><span class="tag">E</span>A segmented bar</h2>
+  <p class="note">Full-height cells with hairline dividers, the way a toolbar divides. The target is
+    the whole cell rather than the words in it &mdash; the largest target here at a given width.
+    Entries that press nothing are not cells; they sit in the gaps between them, so the cells
+    <em>are</em> the controls.</p>
+  <div class="spec" data-variant="E"></div>
+  <p class="cost"><b>Cost:</b> the loudest at rest &mdash; a row of dividers under every screen in
+    the app. <b>Gain:</b> the biggest targets, and the two kinds separated structurally rather than
+    by paint.</p>
+</section>
+
+<section class="card" id="v-F">
+  <h2><span class="tag">F</span>The button row, moved</h2>
+  <p class="note">The literal reading of the change: the buttons did not go away, they went down into
+    the bar, keeping the styling they had on the form &mdash; Save primary, Delete danger &mdash;
+    shrunk to bar size and carrying their letter.</p>
+  <div class="spec" data-variant="F"></div>
+  <p class="cost"><b>Cost:</b> a filled accent button under every screen competes with the view for
+    the one loud thing on it, and the bar stops being chrome. <b>Gain:</b> nothing has to be
+    re-learnt &mdash; the row that was over the fold is the row under it.</p>
+</section>
+
+<div class="rule"></div>
+
+<footer class="close">
+  <p><b>What this page does not settle.</b> Two consequences of taking the buttons off the forms are
+    real whichever paint wins, and both are decisions rather than pixels:</p>
+  <p>&mdash; <code class="mono">^m</code> hangs its letters on the controls of the open screen, and
+    most of what it hangs them on today are these buttons. With the buttons in the bar it has boxes
+    and lists left, and the six letters <code>keys.md</code> pins under &ldquo;Buttons that get no
+    letter&rdquo; (<code>n x p u i c</code>) need somewhere to live &mdash; the bar entry itself is
+    the obvious hook.</p>
+  <p>&mdash; the bar is <em>derived</em> from the page: it lists a key only because it found the
+    control that key presses. Once the control is no longer on the page, the bar has to become the
+    place the control lives rather than a reading of it. That is a change to what the bar is, not to
+    how it looks.</p>
+  <p>Rendered against <code>internal/web/static/style.css</code>, <code>app.js</code> and
+    <code>templates/action.html</code> as they stand on branch <code>move-buttons</code>.</p>
+</footer>
+
+</div>
+
+<!-- The two bars every variant is judged on, stamped into each specimen so the
+     markup is identical across variants and only the CSS differs. -->
+<template id="t-screen">
+  <div class="screen">
+    <div class="body">
+      <div class="stack">
+        <label><span class="lb">Title</span> <input value="Draft the quarterly note"></label>
+        <label><span class="lb">Meta</span> <input value="@desk #writing"></label>
+        <label><span class="lb">Project</span> <input value="Quarterly note" readonly></label>
+      </div>
+      <p class="stamps"><span>created 3 days ago &middot; next for 3 days</span></p>
+    </div>
+    <div class="keybar"></div>
+  </div>
+</template>
+<script>
+// An action's page once its buttons have moved: every entry here was a button
+// on the form a moment ago, except the two in the right-hand group that steer.
+const ACTION = {
+  view: [["s", "save", "primary"], ["d", "done"], ["t", "today"], ["n", "next"],
+         ["x", "detach"], ["⌫", "delete", "danger"], ["b", "back"]],
+  global: [["g g", "add to inbox", "flat"], ["g", "go to", "flat"], ["^m", "jump", "flat"],
+           ["^t", "ages"]],
+};
+// A list with a row under the cursor: the crowded case, and the one holding
+// both kinds of entry at once.
+const LIST = {
+  view: [["↵", "open"], ["d", "done"], ["w", "doing"], ["t", "today"],
+         ["⌫", "delete", "danger"], ["j k", "move", "flat"], ["^f", "filter"]],
+  global: [["g g", "add to inbox", "flat"], ["g", "go to", "flat"], ["?", "help"], ["^t", "ages"]],
+};
+
+function entry(pair) {
+  const flat = pair[2] === "flat";
+  const el = document.createElement(flat ? "span" : "button");
+  el.className = "k" + (pair[2] && !flat ? " " + pair[2] : "");
+  const b = document.createElement("b");
+  b.textContent = pair[0];
+  el.appendChild(b);
+  el.append(pair[1]);
+  if (!flat) el.title = "presses " + pair[1];
+  return el;
+}
+
+function bar(into, spec) {
+  const view = document.createElement("div");
+  view.className = "kb-view";
+  spec.view.forEach(function (p) { view.appendChild(entry(p)); });
+  const glob = document.createElement("div");
+  glob.className = "kb-global";
+  spec.global.forEach(function (p) { glob.appendChild(entry(p)); });
+  into.appendChild(view);
+  into.appendChild(glob);
+}
+
+document.querySelectorAll(".spec").forEach(function (host) {
+  const v = host.dataset.variant;
+  [["light", false], ["dark", false], ["light", true], ["dark", true]].forEach(function (row) {
+    const theme = row[0], tight = row[1];
+    const rail = document.createElement("div");
+    rail.className = "rail" + (tight ? " tight" : "");
+    const lbl = document.createElement("div");
+    lbl.className = "lbl";
+    lbl.textContent = tight ? "narrow" : theme;
+    const frame = document.createElement("div");
+    frame.className = "frame";
+    const app = document.createElement("div");
+    app.className = "app " + theme + " v-" + v;
+    if (tight) {
+      // the narrow rail shows the bar alone, holding the crowded list bar: it
+      // is the bar being measured here, not the screen over it
+      const kb = document.createElement("div");
+      kb.className = "keybar";
+      bar(kb, LIST);
+      app.appendChild(kb);
+    } else {
+      app.appendChild(document.getElementById("t-screen").content.cloneNode(true));
+      bar(app.querySelector(".keybar"), ACTION);
+    }
+    frame.appendChild(app);
+    rail.appendChild(lbl);
+    rail.appendChild(frame);
+    host.appendChild(rail);
+  });
+});
+</script>
