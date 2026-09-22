@@ -1459,6 +1459,64 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   what?" is the place it went — which is also the place that now has one more
   thing to answer
 
+## The weekly review screens
+
+Two screens: the running order, and one step of it. Both are plain server
+rendering like the rest of the app, with one deliberate exception noted below.
+
+**The running order is one list with one numbering, and the number is the
+key.** It used to be an `<ol>` — so the browser numbered the lines 1 to 7 —
+whose titles were themselves numbered 0 to 6, which put "1. 0 · Gather" on the
+first line and left the reader to work out which of the two numbers meant
+anything. Now the list draws its own number, from `reviewStep.Num`, and the
+same field is written into the line's `data-key`, so the number you read is the
+key you press (keys.md, "The review's digits"). One field and not two: a
+printed number and a declared key that were maintained separately would
+eventually disagree, and the screen would be lying about its own keyboard.
+
+- **the steps are one table, `reviewSteps`.** The index draws it and the step
+  screen reads its own title out of it, so a step is named once. A step's link
+  is in the table too, which is what lets Gather have none — it is a step with
+  no screen (design.md, "Weekly review"), and a `data-key` is written only for
+  a line that has somewhere to go, because a key bar that advertised a key
+  pressing nothing is the one thing keys.md forbids outright
+- **the number is drawn as its own mark**, a `.num` span rather than a list
+  marker, so it can take the accent colour on the steps that still have
+  something outstanding and sit in a fixed-width column beside the title
+
+**A step lists everything it is about, marked or not.** It used to list only
+the outstanding ones and redirect after each press, so an item left the screen
+as it was walked and the list re-sorted under the cursor — the next item was
+never where the hands had just been. The list is now the whole step, each row
+carrying `○` or `●`, and the count beside the heading is what is left to walk.
+
+- **the mark is the control.** The row's "Reviewed" button is gone: a button
+  on every row said the same word fourteen times and pushed the titles out of
+  line, while saying nothing about the row's state. The mark is a one-glyph
+  button in the `kb-review` form, pressed by the pointer or by `r` (keys.md,
+  "The map"), and the unmarked state is drawn rather than left blank so the
+  column holds its width and nothing shifts sideways as the walk goes down
+- **it is flipped in place, and it is the app's one fetch outside the token
+  boxes.** `POST /review/{type}/{id}/mark` answers JSON when the key layer
+  asks for it, and the row is redrawn from the answer rather than from what
+  was sent. A reload would be the plainer mechanism and is the wrong one here:
+  the step is sorted oldest-reviewed first, so the row just marked jumps to the
+  bottom and everything below the cursor moves up a line
+- **the submit is stopped in the capture phase.** The page is `hx-boost`ed, so
+  letting the event reach htmx would swap the whole page back under the walk —
+  `preventDefault` stops the browser, not another listener. This is the same
+  reason the filter line stops its own submit there
+- **the server decides which way the mark goes**, not the page: `ToggleReviewed`
+  reads the item's own `lastReviewedAt` against the cadence its type answers to
+  (`OutstandingFor` — a someday/maybe item is judged by the month, everything
+  else by the week). A page open for a while would otherwise unmark an item on
+  the strength of what it looked like when it was drawn
+- **unmarking is the audit reading itself back.** `MarkReviewed` snapshots the
+  stamp it replaces, and `UnmarkReviewed` puts that stamp back — no new column,
+  and the recovery comes from the log that already exists for exactly this
+  (design.md, "Audit entry"). With nothing recorded the item falls back to its
+  creation date, which is where `lastReviewedAt` started
+
 ## Button labels
 
 One word per act, and the same word wherever the act appears. Seventy-six
@@ -1700,7 +1758,7 @@ filter box" for how it is built, and design.md, "The filter line" for why.
   separate what-can-I-do-now screen" argument exists to prevent. It tests with
   `Action.IsSnoozed`, the same one the row styling uses, so "snoozed" keeps a
   single definition
-- **the weekly review calls `NextActionsWithSnoozed` instead.** Step 4 has to
+- **the weekly review calls `NextActionsWithSnoozed` instead.** Step 5 has to
   walk the snoozed ones — their date is one of the claims being checked
   (design.md, "Weekly review") — and a step built on the view's query would
   have quietly stopped asking about exactly the items whose dates go stale
@@ -2377,8 +2435,10 @@ screen is shaped the way it is.
   to what the page said rather than assembling a route of its own. Read from
   the page like every other key, so the bar offers `d doing` exactly where it
   works. This is why the test is an attribute and not "has a complete form":
-  the weekly review's rows have one too, and there `c` means *reviewed*, which
-  is not what this screen would be advertising
+  a form on a row is not evidence of what the row is — the weekly review's
+  rows carry one of their own, and what it presses is the review mark rather
+  than anything this screen would be advertising (see "The weekly review
+  screens")
 - **where "back" goes rides on the URL**, `?from=/next`, and not on the
   Referer: the URL is the part that survives a reload, which is the whole
   reason this is a page. The key layer writes it from the path it was pressed

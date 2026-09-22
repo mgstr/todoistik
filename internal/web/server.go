@@ -73,6 +73,9 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 		"linkLabel": linkLabel,
 		"itemlinks": itemLinks,
 		"qesc":      url.QueryEscape,
+		// the key bar says its labels in lower case, and a step is named once
+		// — in the list the screen draws from — rather than twice
+		"lower": strings.ToLower,
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(pairs); i += 2 {
@@ -235,7 +238,7 @@ func (s *Server) routes() {
 	// weekly review
 	m.HandleFunc("GET /review", s.reviewPage)
 	m.HandleFunc("GET /review/{step}", s.reviewStepPage)
-	m.HandleFunc("POST /review/{type}/{id}/done", s.reviewDone)
+	m.HandleFunc("POST /review/{type}/{id}/mark", s.reviewMark)
 
 	// doing: one action, alone on the screen
 	m.HandleFunc("GET /doing/{id}", s.doingPage)

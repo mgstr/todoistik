@@ -541,7 +541,7 @@ Snoozed standalone actions appear here, shown differently to mark them as not ye
 
 It is a plain list, filtered by the same line every long view is filtered by (see "The filter line"), and that line may ask about tags and names only: a context or a size answers "what can I do now", and that is the question the "Next actions" view exists for.
 
-Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 4 of the weekly review. Tasks needs no review step of its own.
+Every standalone action is a next action (see "Standalone actions"), so all of them are already covered by the "Next actions" view and by step 5 of the weekly review. Tasks needs no review step of its own.
 
 ### Next actions
 The main working view, and the one the app is used from day to day: the actions that are on you to act on. `becameNextActionAt` is set, `completedAt` is empty and "assigned to" is empty. Actions inside a project and standalone ones appear side by side - what matters here is that they are next, not where they live.
@@ -575,7 +575,7 @@ The results are sorted by one of:
 - **title** - alphabetical, ascending or descending
 - **age** - `becameNextActionAt`, how long the action has been next. Not the creation date: what is worth seeing is how long something has been available to be done and has not been done. Reversible as well
 
-Default is age, oldest first. An action that has been next for weeks without moving is the thing this view should push under your nose, and it is the same signal step 4 of the weekly review goes looking for.
+Default is age, oldest first. An action that has been next for weeks without moving is the thing this view should push under your nose, and it is the same signal step 5 of the weekly review goes looking for.
 
 ### Today
 The narrowing used to get through a day: everything that has run out of time, and the actions picked out this morning. It holds two groups, shown separately.
@@ -666,7 +666,7 @@ It is the only view holding something you have not committed to, and the only on
 - it shows the text, the rule in readable form, when it next fires and when it last did. A rule with nothing ahead of it says so rather than leaving the space blank - it is a schedule on its last day in the list, and a blank would read as a missing value rather than as an answer
 - it carries the filter line, matching the text of the schedule - see "Filtering by name" and "The filter line". By text and by nothing else: a schedule has no context and no tag to narrow it by, so its line is words, and the box says so rather than ignoring a name quietly
 - it carries no tag cloud. A schedule has no tags: it is not a commitment and belongs to no area of responsibility. What it produces does, once accepted
-- it is reviewed during the weekly review, at step 6
+- it is reviewed during the weekly review, at step 7
 
 ### The read API
 The views are readable from outside the app, so that an AI can analyse what is going on without anything being copied out by hand. It is the counterpart of the capture API (see "External capture"), which stays the only way in.
@@ -760,19 +760,23 @@ Completing a standalone action asks nothing. There is no project to check and no
 ### Weekly review
 The ritual that keeps the views trustworthy. Without it they silently go out of date, and a view that is not trusted to be complete is a view that stops being used. Everything else in this document is bookkeeping in service of this process.
 
-The review is guided, and runs in a fixed order:
+The review is guided, and runs in a fixed order. The steps are numbered from one, and a step is numbered once: the number is the step's place in the order and is also how the step is reached from the review screen (keys.md, "The review's digits"). Gather is first because it is what makes the inbox worth emptying, not because it is a step zero standing outside the count - a list that numbered its first line 0 and its lines 1 had two numberings on every line, and neither of them answered "which one do I press".
 
-0. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual.
-1. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
-2. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
-3. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are walked too - the snooze date is one of the things being asked about.
-4. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
-5. **Someday/Maybe** - is this still worth keeping, and is it still about what it says? An idea that has become live, and one that is dead, leave the same way: back to the inbox, to be answered there. This step runs on its own, longer cadence - see below.
-6. **Scheduler** - walk the schedules: is this still wanted, and is the rule still right? A schedule set eight months ago goes on firing whether or not the reason for it still exists, and this is the only place that can be noticed before it lands in the inbox again.
+1. **Gather** - collect everything from the other places captures land in (calendar - past days as well as the weeks ahead - messengers, mail, ...) into the inbox, so that the inbox really does hold all open loops. Looking ahead in the calendar is what triggers preparation actions, and is also the moment to check that due dates in the app and the external calendar still agree, since that sync is manual. It is the one step with no screen of its own: the work is in the calendar and the mail, and the app has nothing to show for it but the inbox filling up.
+2. **Get clear** - run Inbox Zero until the inbox is empty. Non-negotiable.
+3. **Waiting for** - walk the "Waiting for" view. Anything stale is chased, or gets a due date / `snoozeUntil`.
+4. **Projects** - for each active project: is the DOD still what you want, and does it have a next action? This is where stalled projects, and projects left without a DOD, are fixed. Snoozed projects are walked too - the snooze date is one of the things being asked about.
+5. **Next actions** - still valid, still a real physical next action? An action that has been next for weeks without moving usually means the action is phrased wrong, not that you are lazy. Standalone actions are covered here, since every one of them is a next action.
+6. **Someday/Maybe** - is this still worth keeping, and is it still about what it says? An idea that has become live, and one that is dead, leave the same way: back to the inbox, to be answered there. This step runs on its own, longer cadence - see below.
+7. **Scheduler** - walk the schedules: is this still wanted, and is the rule still right? A schedule set eight months ago goes on firing whether or not the reason for it still exists, and this is the only place that can be noticed before it lands in the inbox again.
 
 The review is resumable. It can be interrupted at any point and continued later, and does not have to be finished in one sitting.
 
 Progress is tracked by the per-item `lastReviewedAt`, stamped as each item is walked through and prefilled with the creation date when the item is created. There is no global "last weekly review" record: an item whose `lastReviewedAt` is older than its review period is simply outstanding, and that is also how the app shows that a review is due. A freshly created item is by construction not outstanding - it was consciously looked at when it was made.
+
+**A step shows everything it is about, walked or not, and each item carries a mark saying which it is.** The step used to list only what was outstanding, so walking an item made it vanish: the list you were standing in rearranged itself under you at every item, and an item marked by mistake was gone with no way back to it. Keeping the walked ones in place means the walk reads as a walk - what is left is what has no mark - and it is what lets the mark come off again.
+
+**The mark can be taken off, and taking it off puts back the date the item had.** It is a claim about what you actually looked at, and a claim you cannot withdraw is one you stop trusting: a press that landed on the wrong line would otherwise hide that item until its period ran out again, which is exactly the silent staleness the review exists to prevent. Unmarking is not "review it again later" - it is "I did not walk this", so the item goes back to being as outstanding as it was.
 
 The review period is a week for everything except someday/maybe items, which get a month by default (a setting - one number, in days). A parked idea does not change from week to week, and being asked every single review about a list that mostly answers "still parked" is the kind of chore that gets the whole review skipped - which would cost the views their trustworthiness, the one thing the review exists to protect. Snoozing does not stretch the period for the items that have one: a snoozed project or action is still walked when its period runs out, because its snooze date is one of the claims being reviewed.
 

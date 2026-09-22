@@ -208,6 +208,7 @@ const (
 	EvFired           = "fired"
 	EvScheduleExpired = "one-shot-expired"
 	EvReviewed        = "reviewed"
+	EvUnreviewed      = "unreviewed"
 )
 
 // TodayTag is the built-in pick-for-the-day tag. It is not on the editable

@@ -872,6 +872,20 @@
       window.location.href = doingHref(row);
     }]);
     if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+    // The mark goes both ways, so the entry says the answer this press lands
+    // on rather than the name of the control — the same rule the Settings
+    // screen's `h theme dark` follows (keys.md, "What is built").
+    if (row.querySelector("form.kb-review")) {
+      into.push([renderKey("r"), reviewed(row) ? "unreviewed" : "reviewed",
+        function () { actOn("kb-review"); }]);
+    }
+  }
+
+  // Whether the row under the cursor is marked as walked. Read off the row
+  // rather than kept in a variable here: the page arrives with the marks the
+  // server drew, and this file only ever flips them.
+  function reviewed(row) {
+    return row.classList.contains("reviewed");
   }
 
   // Opening the row the cursor is on, which is what `↵` does and therefore
@@ -921,6 +935,10 @@
     const row = selected();
     if (row) {
       if (!row.querySelector("form." + cls)) return false;
+      // The mark is the one row control that does not leave the screen, so
+      // it does not submit one: it is flipped where it stands (see
+      // flipReview).
+      if (cls === "kb-review") return flipReview(row);
       if (cls === "kb-complete") return withMotion("done", function () { submitIn(row, cls); });
       submitIn(row, cls);
       return true;
@@ -933,6 +951,46 @@
     if (cls === "kb-complete") return withMotion("done", go);
     go();
     return true;
+  }
+
+  // The mark at the head of a review row, flipped where it stands. Nothing
+  // leaves the screen, so nothing is reloaded: the step is a list being walked
+  // down, and a page that re-sorted itself at every press would move the next
+  // row out from under the hands (implementation.md, "The weekly review
+  // screens"). The server still decides which way it went — the row is drawn
+  // from the answer rather than from what was sent, so a press that never
+  // arrived leaves nothing on the screen claiming it did.
+  function flipReview(row) {
+    const form = row && row.querySelector("form.kb-review");
+    if (!form) return false;
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      headers: { "Accept": "application/json" },
+      credentials: "same-origin",
+    }).then(function (res) {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }).then(function (state) {
+      showReview(row, state.reviewed);
+    }).catch(function () { /* nothing was stamped, and nothing on screen says it was */ });
+    return true;
+  }
+
+  // What a walked row looks like, in one place: the dot, what it says to a
+  // reader who cannot see the dot, and the heading's count — which is the
+  // step's own answer to how much of it is left.
+  function showReview(row, on) {
+    row.classList.toggle("reviewed", on);
+    const btn = row.querySelector("form.kb-review button");
+    if (btn) {
+      btn.textContent = on ? "●" : "○";
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+    const count = document.querySelector(".pagehead .count");
+    if (count && /^\d+$/.test(count.textContent.trim())) {
+      count.textContent = String(Math.max(0, Number(count.textContent) + (on ? -1 : 1)));
+    }
+    renderKeybar();
   }
 
   // Whether this event is the press of a declared letter, whatever the mode
@@ -1194,6 +1252,7 @@
     if (e.key === "Backspace" || e.key === "Delete") return deleteHere();
     if (pressedIs("d", e)) return actOn("kb-complete");
     if (pressedIs("t", e)) return actOn("kb-pick");
+    if (pressedIs("r", e)) return actOn("kb-review");
     if (pressedIs("b", e)) return leave();
     // doing is navigation, so it is bare in every mode
     if (!e.ctrlKey && keyOf(e) === "w" && canDo(row)) {
@@ -2540,6 +2599,17 @@
     if (e.target === filterBar()) return;
     const row = e.target.closest && e.target.closest("[data-kb-row]");
     if (!row) return;
+    // The mark is flipped where it stands whether the key or the pointer
+    // pressed it — one path, so the two cannot come to do different things.
+    // Stopped in the capture phase, like the filter line above: preventDefault
+    // stops the browser, and hx-boost would otherwise send the form itself and
+    // swap the whole page back under the walk.
+    if (e.target.classList && e.target.classList.contains("kb-review")) {
+      e.preventDefault();
+      e.stopPropagation();
+      flipReview(row);
+      return;
+    }
     // the place is kept whichever row was pressed, though: the cursor is a
     // thing you put somewhere and the scroll offset is not — a dot clicked
     // without one is still a list you are standing halfway down

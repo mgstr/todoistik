@@ -63,8 +63,8 @@ on Delete, which is the one button where being wrong is expensive.
 
 The corollary is the harder half, and it has to be stated carefully: **one
 letter, one meaning — and the meaning is the noun, not the control.** `d` is
-Done on a list row, Done on an action's page, and "Reviewed" on the weekly
-review's rows; three controls, one idea, so one letter is right. `t` meaning
+Done on a list row and Done on an action's page; two controls, one idea, so
+one letter is right. `t` meaning
 trash on one screen and today on another was two ideas on one letter, and one
 of them destroys — that is the collision worth spending letters to remove, and
 "the screens are disjoint" is not an answer to it.
@@ -151,7 +151,8 @@ been.
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
 | `a` | Add | project, promote, the project branch of processing |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done | every list row, action, project, the completion request, doing, and the review step's "Reviewed" |
+| `d` | Done | every list row, action, project, the completion request, doing |
+| `r` | the review mark | a row of a weekly review step |
 | `t` | Today | every list row that carries the mark, and an action's page |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
 | `n` | Next / Parked | an action's page, inside a project |
@@ -160,6 +161,36 @@ been.
 | `u` | Undone | a completed action's page, a completed project's page |
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
+
+**`r` is the one letter in the map that is spent twice, and it is worth saying
+why rather than pretending otherwise.** It is the processing screen's
+*reference material* branch and it is the review step's *mark* — two nouns, not
+one, which is exactly what the rule above forbids. What buys the exception is
+what the rule is actually protecting against: `t` was trash on one screen and
+today on another, on screens you move between all day, and one of the two
+destroys. These two are never on a screen together, neither destroys anything,
+and both are the first letter of their own word, which is the thing that makes
+a letter guessable. The honest alternative was `d`, which used to press the
+review's "Reviewed" button — and `d` is Done, which on a list of actions means
+*the action is finished*. A key whose worst misfire completes the item you were
+only reading was the more expensive letter to keep.
+
+**The mark is one key and it goes both ways.** `r` on a marked row takes the
+mark off — the bar says which, reading `r reviewed` or `r unreviewed`
+depending on the row under the cursor, the same way the theme row's entry says
+the answer it lands on. Not two keys: it is one claim ("I walked this") said
+from whichever side you are standing on, which is the same argument the digits
+below make for the bookmarks.
+
+**The review's digits.** On the weekly review's own screen, `1`…`7` open the
+step whose number is printed beside it (design.md, "Weekly review"). Bare, like
+every other key that is not a letter, and free to be bare there: the bookmarks
+are `^1`…`^9` and are offered only where a screen has a filter line, which this
+one has not. `1` is Gather and presses nothing, because Gather has no screen —
+the line keeps its number, since the number is its place in the order, and the
+bar simply does not offer a key for it. That is the standing rule doing its
+job rather than an exception to it: nothing advertises a key that does not
+exist.
 
 **`h` is what is left of "theme" once `t` is spent.** Today is pressed many
 times a day and a palette is chosen when the light in the room changes, so the
@@ -414,6 +445,14 @@ never be advertised without working:
   list it was opened from answer the same key. A row under the cursor is never
   stepped over: with no such form on it the key does nothing rather than
   reaching past it.
+- **`kb-review` is a fourth row form, and the one that does not leave.** `r`
+  presses it, and it is the only one of the four whose answer is a row redrawn
+  where it stands rather than a screen replaced — so it takes no deaf window
+  (there is no motion to cover) and no screen form (no screen presses it).
+  Both the key and a click on the mark go through the same flip, for the
+  reason every other pair does: one path, so the letter and the pointer cannot
+  come to mean different things. See implementation.md, "The weekly review
+  screens".
 - **`data-jump`** lets a control name its own `^m` letter, claimed before any
   computed one, which is what stopped Delete moving between `l` and `e`. Only
   Recapture still uses it, and it stays for the reason above.
