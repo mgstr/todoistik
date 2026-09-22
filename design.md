@@ -429,6 +429,21 @@ The bar holds two things and no labels: **how many items are on the screen**, an
 
 The filter set is still remembered per view (see "Views"), so coming back to a view finds it as you left it, filtered and saying so. What is remembered is the filters, not the line: the line is written back out of them, in one fixed order, so the same filter set always reads the same way whatever order it was typed in.
 
+### Bookmarked filters
+The same half-dozen filters are typed over and over - "at home and short", "the car, finished this month" - and a line that is typed daily is a line worth keeping. **Nine of them are kept, one under each digit**, and one key does both halves: with a filter on the screen the digit keeps it, with no filter on the screen the digit goes to what is kept there.
+
+That is one idea rather than two meanings on one key - *this digit and this filter belong together* - said from whichever end you happen to be standing at, and it is what makes a bookmark cost one press in each direction with nothing about it to remember. A tenth key shows the nine.
+
+- **a bookmark is the line and not the view.** Nine slots for the whole app, not nine per view: which digit holds "the car" is a thing to remember once, and remembering it per screen is remembering nine times thirteen of them. The line is a filter set (see "The filter line"), and filter sets are the same everywhere - `#car` means the same thing on Tasks as on the Archive
+- **a view takes the half of a bookmark it filters by, and the rest is simply not in the line.** Each view offers its own subset, so `@home #car` kept on "Next actions" is `#car` on "Tasks", which filters by tag and by name. It is not the refusal a *typed* `@home` gets there: a typed token is something you just asked for and were owed an answer about, while a bookmark is one line pressed against thirteen views and a question every time would make the key unusable on most of them. What keeps it honest is that the token does not survive into the box either - the line is written back out of the filters, so the bar shows exactly what the list is narrowed by, and nothing sits in it doing nothing. A bookmark with nothing left to say lands you on the unfiltered view, which is the honest answer to "narrow this by nothing I have here"
+- **what is kept is what is on the screen**, applied and not half-typed: the line as the list is actually narrowed by it. Keeping a filter never moves the screen, because the caret is usually still in the line when the digit is pressed
+- **the nine are shown all nine at a time**, the empty ones included. An empty slot is the answer to "where does the next one go", and a list that showed only the full ones would renumber itself every time one was cleared - the digit is the whole address of a bookmark, so it is the thing that has to stand still
+- **keeping over a full slot is not asked about**, for the reason nothing else here is (see "The protocol is followed, not enforced"). The nine are on the screen while you are choosing, and putting the old line back is one press while it is still in front of you
+- **a slot is emptied from that list**, never by keeping an empty filter over it: closing the bar is how a filter is taken off (see "The filter line"), and if that also wiped a bookmark the two commonest keys in the feature would fight
+- **they outlive the browser.** A bookmark that went with the tab it was made in would not be a bookmark; they are the app's, like the remembered filter set of each view
+
+The keys are in keys.md.
+
 ### Filtering by name
 Every view that can grow long carries the same name filter, and it behaves identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Scheduler** and the **Archive**.
 

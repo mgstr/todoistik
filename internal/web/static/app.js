@@ -278,6 +278,17 @@
     // the entries the bar lists without offering — a prefix is not a button
     if (jumpTargets().length) keys.push(["^m", "jump"]);
     if (document.getElementById("help")) keys.push(["?", "help", function () { toggleHelp(); }]);
+    // the bookmarked filters, offered by the same rule as everything else
+    // here: the digits keep a filter only where there is one to keep, and go
+    // to one only where one is kept. The nine are nine keys and not a control,
+    // so that entry says how to steer and presses nothing; `^0` opens one
+    // thing and is therefore a button like the rest of them
+    if (filterBar()) {
+      const line = liveFilter();
+      if (line) keys.push(["^1\u20269", "bookmark this filter"]);
+      else if (anyBookmark()) keys.push(["^1\u20269", "go to a bookmark"]);
+      keys.push(["^0", "bookmarks", function () { openBookmarks(); }]);
+    }
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
     // whose label changes sits in the corner and does not shift the keys
@@ -329,6 +340,21 @@
       const keys = declaredKeys("[data-key]");
       if (rows().length > 1) keys.push(["j k", "move"]);
       keys.push(["\u21b5", "take"], ["esc", "cancel"]);
+      return { view: keys, global: [] };
+    }
+    const bmk = bookmarksDialog();
+    if (bmk && bmk.open) {
+      // the same two answers the bar gives outside, said as the keys that are
+      // live in here: the digits are bare while the dialog owns the keyboard
+      const keys = [];
+      const line = liveFilter();
+      if (line) keys.push(["1\u20269", "bookmark this filter"]);
+      else if (anyBookmark()) keys.push(["1\u20269", "go to a bookmark"]);
+      const row = selected();
+      if (rows().length > 1) keys.push(["j k", "move"]);
+      if (row && (line || row.dataset.line)) keys.push(["\u21b5", line ? "bookmark here" : "go"]);
+      if (row && row.dataset.line) keys.push(["\u232b", "clear"]);
+      keys.push(["esc", "close"]);
       return { view: keys, global: [] };
     }
     const dlg = captureDialog();
@@ -526,7 +552,11 @@
   // the two can never disagree about what a screen is offering.
   function renderKey(decl, el) {
     if (!decl || decl.charAt(0) === "^") return decl;
-    if (decl.length !== 1) return decl;
+    // A key that is not a letter is itself in all three modes (keys.md, "The
+    // map"): there is nothing for a mode to change about it, and modifier
+    // mode turning the two-minute branch into ^2 would have spent a digit the
+    // bookmarks now answer to.
+    if (!/^[a-z]$/.test(decl)) return decl;
     const mode = keysMode();
     if (mode === "command") return decl;
     if (mode === "modifier") return "^" + decl;
@@ -1744,6 +1774,145 @@
     if (open && open === viewKey()) bar.hidden = false;
   }
 
+  // ---- The bookmarked filters ------------------------------------------
+  //
+  // Nine filter lines under the digits, and ctrl-0 is the nine of them on the
+  // screen (design.md, "Bookmarked filters"). One key with two answers, and
+  // the filter line decides which: with a filter up, the digit keeps it; with
+  // no filter up, the digit goes to what is kept. That is one idea said from
+  // whichever end you are standing at — this digit and this filter belong
+  // together — rather than two meanings on one key, and it is what makes a
+  // bookmark cost one press in each direction with no mode to remember.
+  //
+  // The nine live on the server, like the panels and the per-view filter sets.
+  // Nothing is kept in here: the dialog the server rendered is where the lines
+  // are read from, the way every other key reads the page rather than a copy
+  // of it.
+
+  function bookmarksDialog() { return document.getElementById("bookmarks-dialog"); }
+
+  function bookmarkRow(n) {
+    const dlg = bookmarksDialog();
+    return dlg ? dlg.querySelector('[data-slot="' + n + '"]') : null;
+  }
+
+  function bookmarkLine(n) {
+    const row = bookmarkRow(n);
+    return row ? row.dataset.line : "";
+  }
+
+  function anyBookmark() {
+    const dlg = bookmarksDialog();
+    return !!(dlg && dlg.querySelector('[data-slot]:not([data-line=""])'));
+  }
+
+  // The filter that is on the screen, as a line — the one applied, never the
+  // one half-typed. The box's defaultValue is the last line the list was
+  // actually narrowed by (liveApply writes it there), so what a bookmark
+  // keeps is always the filter being looked at.
+  function liveFilter() {
+    const bar = filterBar(), box = filterBox();
+    if (!bar || !box || bar.hidden) return "";
+    return box.defaultValue.trim();
+  }
+
+  // Going to one makes exactly the request typing the line would make, so a
+  // bookmark leaves the view in the state a typed filter leaves it in:
+  // narrowed, remembered for the view, and with the bar up saying so. What
+  // this view does not filter by the server drops on the way in — a bookmark
+  // is not about a view, so a line kept on "Next" is a line that can be
+  // pressed on "Tasks" with the half of it that means something there.
+  function goToBookmark(n) {
+    const bar = filterBar(), line = bookmarkLine(n);
+    if (!bar || !line) return;
+    window.location.href = bar.getAttribute("action") + "?f=1&q=" + encodeURIComponent(line);
+  }
+
+  // Keeping one must not move the screen: the caret is usually still in the
+  // filter line when the digit is pressed, and a page that reloaded under it
+  // would cost the line being typed. So it is the write and nothing else —
+  // the same shape the token box uses to learn a name — and the row is filled
+  // in from what the server stored rather than from what was sent, since the
+  // server is what decides how a line reads once it is a filter set.
+  function writeBookmark(n, line) {
+    const form = document.querySelector("[data-bookmark-save]");
+    if (!form) return;
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ slot: String(n), q: line }).toString(),
+    }).then(function (res) {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }).then(function (kept) {
+      showBookmark(kept.slot, kept.line);
+    }).catch(function () { /* nothing was stored, and nothing on screen says it was */ });
+  }
+
+  // The row, saying what the slot now holds. An empty slot still reads as a
+  // slot, because the empty ones are the answer to "where does the next one
+  // go" (see the dialog in the layout).
+  function showBookmark(n, line) {
+    const row = bookmarkRow(n);
+    if (!row) return;
+    row.dataset.line = line;
+    const text = row.querySelector(".line");
+    text.textContent = "";
+    if (line) text.textContent = line;
+    else {
+      const none = document.createElement("span");
+      none.className = "empty";
+      none.textContent = "empty";
+      text.appendChild(none);
+    }
+    let clear = row.querySelector("[data-bookmark-clear]");
+    if (line && !clear) {
+      clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "clear";
+      clear.setAttribute("data-bookmark-clear", "");
+      clear.tabIndex = -1;
+      clear.title = "clear (\u232b)";
+      clear.textContent = "\u232b";
+      row.appendChild(clear);
+    } else if (!line && clear) clear.remove();
+    renderKeybar();
+  }
+
+  // One press of a digit, wherever it was pressed: ctrl-N on the view, and the
+  // bare digit inside the dialog, which is the same question asked from the
+  // list of answers. A view with no filter line has neither a filter to keep
+  // nor anywhere to put one, so the key is not the app's there and is never
+  // offered.
+  function pressBookmark(n) {
+    if (!filterBar()) return false;
+    const line = liveFilter();
+    if (line) { writeBookmark(n, line); return true; }
+    if (!bookmarkLine(n)) return false;
+    goToBookmark(n);
+    return true;
+  }
+
+  function openBookmarks() {
+    const dlg = bookmarksDialog();
+    if (!dlg || dlg.open || !filterBar()) return false;
+    dlg.showModal();
+    select(rows()[0]);
+    renderKeybar();
+    return true;
+  }
+
+  // The cursor is given back on the way out: these rows stay in the page while
+  // the dialog is shut, and a selection left on one would be a cursor sitting
+  // on something nobody can see.
+  function closeBookmarks() {
+    const dlg = bookmarksDialog();
+    if (!dlg || !dlg.open) return;
+    select(null);
+    dlg.close();
+    renderKeybar();
+  }
+
   // Enter, and leaving the box: the moments to ask about what the list has
   // been leaving out. With nothing to ask, what is typed is applied now
   // rather than after the pause.
@@ -1974,8 +2143,15 @@
     return topDialog() || document;
   }
 
+  // A dialog that keeps its rows between openings — the bookmarks — leaves
+  // them in the page while it is shut, and j/k on the list behind would
+  // otherwise step through nine rows nobody can see. The same guard covers
+  // the answers left behind in the unknown-name and link choosers.
   function rows() {
-    return Array.from(rowScope().querySelectorAll("[data-kb-row]"));
+    return Array.from(rowScope().querySelectorAll("[data-kb-row]")).filter(function (r) {
+      const d = r.closest("dialog");
+      return !d || d.open;
+    });
   }
 
   function selected() {
@@ -2240,6 +2416,22 @@
       return;
     }
 
+    // The bookmarked filters: ctrl-0 puts the nine on the screen, ctrl-1 to
+    // ctrl-9 keep the filter that is up or go to the one kept (keys.md, "The
+    // map"). Globals, so ctrl in every mode — and read here, beside the two
+    // other keys that are about the filter rather than about the list.
+    //
+    // Not while a dialog is up: a dialog owns the keyboard, and the filter
+    // these are about is on the page behind it. The bookmarks dialog's own
+    // digits are handled where the rest of its keys are.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && /^[0-9]$/.test(keyOf(e)) && !topDialog()) {
+      const digit = Number(keyOf(e));
+      const did = digit === 0 ? openBookmarks() : pressBookmark(digit);
+      // a digit with nothing to keep and nothing kept is not the app's key,
+      // and is left to the browser rather than swallowed to do nothing
+      if (did) { e.preventDefault(); return; }
+    }
+
     // A screen key that asks for ctrl is live wherever the screen is, text
     // boxes included — reaching it without leaving the field is the whole
     // point of the modifier, and the reason a screen would choose one. Not
@@ -2345,6 +2537,33 @@
       const choice = branchFor(e);
       if (choice) { e.preventDefault(); press(choice); return; }
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+      return;
+    }
+    const bmk = bookmarksDialog();
+    if (bmk && bmk.open) {
+      // A digit here means what it means outside: keep this filter, or go to
+      // that one. The dialog is where the nine are read, so it must not be a
+      // second set of rules about them.
+      if (e.key === "Escape") { e.preventDefault(); closeBookmarks(); return; }
+      const k = keyOf(e);
+      if (k === "j" || k === "k") { e.preventDefault(); move(k === "j" ? 1 : -1); return; }
+      // the delete key empties a slot, the way it removes a row anywhere else.
+      // The row itself stays: a slot is a place, and the nine places are the
+      // whole map — an empty one is where the next bookmark goes
+      if (e.key === "Backspace" || e.key === "Delete") {
+        const row = selected();
+        if (row && row.dataset.line) { e.preventDefault(); writeBookmark(row.dataset.slot, ""); }
+        return;
+      }
+      if (e.key === "Enter") {
+        const row = selected();
+        if (row) { e.preventDefault(); pressBookmark(Number(row.dataset.slot)); }
+        return;
+      }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (/^[1-9]$/.test(k)) { e.preventDefault(); pressBookmark(Number(k)); return; }
+        e.preventDefault();
+      }
       return;
     }
     if (e.target.matches && e.target.matches("[data-tokenbox]")) {
@@ -2543,6 +2762,17 @@
       if (form.requestSubmit) form.requestSubmit(); else form.submit();
       return;
     }
+    // the bookmarks dialog: clicking a row is pressing its digit, and the
+    // mark beside a full one empties it — the same two things its keys do
+    const wipe = e.target.closest("[data-bookmark-clear]");
+    if (wipe) {
+      e.preventDefault();
+      const full = wipe.closest("[data-slot]");
+      if (full) writeBookmark(full.dataset.slot, "");
+      return;
+    }
+    const slot = e.target.closest("#bookmarks-dialog [data-slot]");
+    if (slot) { e.preventDefault(); pressBookmark(Number(slot.dataset.slot)); return; }
     if (e.target.closest("[data-draft-add]")) { e.preventDefault(); openDraft(null); return; }
     const row = rowFromEvent(e);
     if (row) select(row);

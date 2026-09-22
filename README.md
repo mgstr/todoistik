@@ -427,6 +427,8 @@ internal/web/              HTTP and HTML — thin: talks to internal/app, never 
   ui.go                    every UI page handler — one per view/action, one HTTP verb+path each
   panels.go                which panels a screen wears, zen mode, and zen.views
   panels_test.go
+  bookmarks.go             the nine filter lines under the digits: kept, read and cleared
+  bookmarks_test.go
   static/                  style.css, app.js (the keyboard layer), vendored htmx.min.js
   templates/                one .html per page (process_completion.html is the request's own screen); _layout.html holds the shared nav, the title bar, the panel chooser, the ? help overlay, and reusable partials (actionrow, actionformfields, filterloud)
 ```

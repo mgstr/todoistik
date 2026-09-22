@@ -747,6 +747,10 @@ a page load, and what the bar derives itself from.
   because the screen with a timer on it has no ages and every screen with ages
   has no timer — they can never both want it at once, and the doing screen
   renders no ages control at all so the collision cannot even be built
+- `ctrl-1` to `ctrl-9` keep the filter that is on the screen or go to the one
+  kept there, and `ctrl-0` puts the nine of them up — see "Bookmarked filters".
+  The only keys in the app that are digits, and the reason the mode must leave
+  a key that is not a letter alone (keys.md, "What is built")
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
@@ -2794,6 +2798,64 @@ has three: how loud the controls should be is a question about a week of use,
 not one to settle by argument. Six were rendered and compared first, in
 `research/keybar-buttons-study.html`; the sixth, a segmented toolbar, was
 rejected on looks.
+
+## Bookmarked filters
+
+design.md, "Bookmarked filters" asks for nine filter lines under the digits,
+kept and reached by one key each way, and keys.md has the keys. This is the
+wiring (`internal/web/bookmarks.go`, and the section of the same name in
+`app.js`).
+
+- **they live in `app_state`, beside the panels and the per-view filter sets.**
+  One row holding one query string, `1=@home+%23car&7=%23car`, so nine slots
+  are one read and one write and a slot nobody has filled costs nothing. It is
+  the same argument the panels make: a single-user app has one place for screen
+  state, and a bookmark kept in the browser would go with the tab it was made
+  in, which is not what the word promises
+- **what is stored is the filter set written back out**, not the keystrokes:
+  the line is parsed and `Filters.Query()` writes it again (`readableLine`), so
+  a name the app cannot read is dropped once, on the way in, rather than on
+  every use — and the same filter always reads the same way whatever order it
+  was typed in. That is the codec rule the box already follows (see "Token
+  boxes"), applied at the one other place a line is kept
+- **one endpoint, `POST /bookmark`, with `slot` and `q`.** An empty `q` clears
+  the slot, because storing and clearing are the same write with a different
+  value; a second route would be a second place to get the numbering wrong. A
+  slot outside 1–9 is a 404 rather than a silently ignored write
+- **it answers JSON when the caller asks for it**, and the key layer does. The
+  caret is usually still in the filter line when the digit is pressed, and a
+  redirect back to the page would throw away the line being typed — the same
+  answer, and for the same reason, that learning a name from a token box gets
+  (see "The remembered lists"). The row in the dialog is then filled in from
+  what the server stored rather than from what was sent, so the screen never
+  shows a line the app would not filter by
+- **the dialog is rendered on every page**, like the panel chooser, and holds
+  all nine rows whatever is in them. The key layer reads the lines off it — no
+  copy of the nine in the browser — and `ctrl-0` only opens it where the screen
+  has a filter line, since a bookmark on the Inbox would have nothing to narrow
+- **going to one is the request typing the line would make**:
+  `/<view>?f=1&q=<line>`. Nothing about applying a filter is special-cased for
+  bookmarks, so a bookmark leaves the view exactly as a typed filter leaves it —
+  narrowed, remembered for the view, bar up
+- **the view narrows the line, in `viewFilters`.** The UI now drops what a view
+  does not offer the way the read API always has (`NarrowToView`, see
+  design.md, "The filter line"). It was not needed before, because the box
+  refuses an out-of-view token as it is typed; a bookmark is the first line
+  that routinely arrives holding more than the view can use. Dropping rather
+  than refusing is design.md's call, and what keeps it honest is that the box
+  is written back out of the filters — the token is not left sitting in the
+  line doing nothing
+- **the clear mark is out of the tab order and the list takes the focus.** A
+  browser opening a dialog focuses the first focusable thing inside it, which
+  here is the one control that destroys something; a focus ring on `⌫` says
+  "this is what you are about to press", and it is not. `autofocus` on the
+  list moves it, and the list wears no ring for it — the cursor is the row
+  highlight, and a box drawn round all nine says nothing
+- **a row inside a shut dialog is not a row.** These nine stay in the page
+  between openings, and `rows()` — which is what `j`/`k` walk — would have
+  stepped through nine invisible rows on every list in the app. It now skips
+  any row whose dialog is closed, which also catches the answers left behind
+  in the unknown-name and link choosers
 
 ## View help
 

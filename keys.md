@@ -230,10 +230,36 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | `^o` | follow a link in the item under the cursor |
 | `^m` | jump to a control on the screen already open |
 | `^f` | the filter line, and a second press takes it and every filter away |
+| `^1`…`^9` | the nine bookmarked filters: keep the one on the screen, or go to the one kept |
+| `^0` | the nine of them, on the screen |
 | `^v` | the panel chooser; a second `^v` presses zen |
 | `^↵` | submit the form being typed in |
 | `?` | the view's own help |
 | `esc` | unwind one step — see below |
+
+**The digits are one key with two answers, and the filter line decides
+which.** With a filter up, `^3` keeps it; with no filter up, `^3` goes to what
+is kept there. That is not two meanings on one key — which the file argues
+against everywhere else — but one idea said from whichever end you are
+standing at: this digit and this filter belong together. Two keys would have
+cost eighteen chords and a rule about which is which, to say the same thing.
+
+They are the app's rather than a screen's, so they take ctrl like every other
+global — and a digit is not a letter, so no mode touches them (see "The map"
+above, and the rule that `⌫` and `2` are themselves in all three). The
+processing screen's `2` therefore stays bare in every mode, which is what
+keeps it out of the bookmarks' way: a `^2` there would have been the same
+chord twice.
+
+Both are offered only where the screen has a filter line, because a bookmark
+is a filter and there is nothing on the Inbox for one to narrow — the same
+rule that stops the bar advertising anything else that would do nothing.
+
+**`^0` is a list, and inside it the digits are bare**, meaning exactly what
+they mean outside: keep this filter here, or go to what is here. `j` `k` move,
+`↵` is the digit of the row under the cursor, `⌫` empties a slot, and `esc`
+closes. All nine are shown whatever is in them — design.md, "Bookmarked
+filters" says why the empty ones are part of the answer.
 
 `^e` is *elapsed*, which is the one word that covers both halves of what the
 key means: an age is elapsed time and a timer counts it. It has to cover both,
@@ -360,6 +386,11 @@ never be advertised without working:
   settings file chooses how loudly the difference is drawn, from `plain` to
   `button`, and defaults to `chip` — see implementation.md, "The key bar is
   the buttons".
+- **`renderKey` leaves a key that is not a letter alone**, in all three modes.
+  It did not: `modifier` turned every declared key into a chord, so the
+  processing screen's `2` became `^2` there — which the map above already said
+  it should not, and which would now be the bookmark key as well. The map was
+  right and the code was wrong; nothing else in it changed.
 
 What is left, and deliberately:
 
