@@ -185,6 +185,57 @@ func (c *Client) Read(name, query string) (*Answer, error) {
 	return &answer, nil
 }
 
+// ReadText reads one view as plain text, exactly as the read API spells it
+// (design.md, "The read API"): the header saying the view, the day and the
+// filter, then one item per line with whatever body it carries under it.
+//
+// Unlike View, a filter line the app could only partly read is not refused
+// here. The text answer says what it left out in its own header — `not read:
+// #cra is no tag` — so a caller handing the text on is handing the warning on
+// with it, which is the thing View has to refuse for: a Reminders list has
+// nowhere to put that sentence, and a block of text is nothing but somewhere
+// to put it.
+func (c *Client) ReadText(name, query string) (string, error) {
+	q := url.Values{"format": {"text"}}
+	if strings.TrimSpace(query) != "" {
+		q.Set("q", query)
+	}
+	return c.text(c.base + "/api/view/" + url.PathEscape(name) + "?" + q.Encode())
+}
+
+// ContextText reads every view at once, as text. archive is how far back the
+// Archive section reaches — one of the windows `completed:` takes, or "none" —
+// and empty leaves the app to its own default.
+func (c *Client) ContextText(archive string) (string, error) {
+	q := url.Values{"format": {"text"}}
+	if strings.TrimSpace(archive) != "" {
+		q.Set("archive", strings.TrimSpace(archive))
+	}
+	return c.text(c.base + "/api/context?" + q.Encode())
+}
+
+// text is the read itself. A refusal arrives as JSON even when text was asked
+// for — the app cannot know how to spell an error in a format it has not
+// agreed to answer in — so the error is read the way every other one here is.
+func (c *Client) text(u string) (string, error) {
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return "", err
+	}
+	payload, resp, err := c.do(req)
+	if err != nil {
+		return "", err
+	}
+	var answer struct {
+		Error string `json:"error"`
+	}
+	json.Unmarshal(payload, &answer)
+	if err := refused(resp, answer.Error, payload); err != nil {
+		return "", err
+	}
+	return string(payload), nil
+}
+
 // itemsOf reads a view's items as one list, whichever shape they came in.
 //
 // Every view answers with a list but "Today", which answers with its two

@@ -770,6 +770,61 @@ outside it, and neither of those can decide anything.
   shapes this program expects, and a view that changed its shape would
   otherwise be found on the phone
 
+## The app as an MCP server
+
+`cmd/todoistikmcp` is the fourth program built the same way as the other
+three: it talks to the running app through `internal/apiclient` and never
+touches the database, so it can do nothing the read and capture APIs cannot. It
+speaks MCP over stdin and stdout, which means the client starts it as a child
+process and nothing has to be reachable from the network — the same reason the
+Telegram bot polls rather than being called.
+
+- **the protocol is `github.com/modelcontextprotocol/go-sdk`, not hand-rolled.**
+  MCP over stdio is a small JSON-RPC surface and writing it out by hand would
+  have added no dependency, which is the choice made for cron and for the
+  Reminders bridge. It is the wrong choice here, and the difference is who owns
+  the format: a cron expression and an AppleScript are frozen, while MCP is a
+  spec still moving, negotiated with a client this repo does not control. A
+  version handshake got subtly wrong fails as "the server does not appear", not
+  as a test going red
+- **three tools: `todoistik_context`, `todoistik_read_view`,
+  `todoistik_capture`.** Not one per view. Eleven tools would put "a view
+  answers only by its own filters" into the schemas themselves, which is worth
+  something — but it would also put eleven near-identical schemas into every
+  session that ever loads this server, in order to buy a refusal the app
+  already gives in words the caller can read (`@home is not a filter this view
+  has`). The three cost a fraction of that and are refused just as clearly
+- **the `view` parameter is an enum, and its list is the app's own.** That is
+  the one constraint worth spending schema on, because it is the one a model
+  cannot recover from by reading the answer: a wrong view name is refused by
+  the client before the app is asked, naming the eleven. `TestTheViewEnumIsThe
+  AppsViewList` walks the enum and reads each view, so a name here that the app
+  does not answer fails rather than waiting to be found in a session
+- **the tools answer in the text format, not in JSON.** `?format=text` exists
+  for exactly this reader, and the id in front of each item is what lets an
+  answer be pointed at rather than described (see "A read is spelled as data or
+  as text")
+- **a filter line the app could only partly read is not refused here**, unlike
+  `Client.View`, which the Reminders bridge uses and which has to refuse. The
+  difference is where the answer is going: a Reminders list has nowhere to put
+  the sentence `#cra is no tag`, so a partly-read line would put the whole view
+  on a phone looking exactly like the filtered one. A block of text is nothing
+  but somewhere to put that sentence, and the text answer already carries it in
+  its header. So `apiclient` grew `ReadText` and `ContextText` beside `View`
+  rather than one of them changing its mind
+- **`duplicate` is not phrased as a failure.** The capture tool answers "Already
+  in the inbox, so nothing was added", because a model told its call failed
+  tries again, and the loop it describes is already in the inbox waiting to be
+  decided about (design.md, "Duplicate captures")
+- **nothing goes to stdout but protocol.** The client is parsing that stream,
+  and one stray line ends the session — which is why there is no logging in the
+  tools at all and every word this program has of its own goes to stderr
+- **the tests drive the real protocol against the real app**: an in-memory
+  transport into an `mcp.Client` on one side, an `httptest` server around the
+  actual `web.Server` on the other. A stub on either side would pass while the
+  thing it stands for changed, and both ends of this program are ends it does
+  not own
+
 ## Keyboard
 
 **The map is in keys.md.** Which letter presses which button, what a modifier
