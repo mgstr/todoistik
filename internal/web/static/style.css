@@ -20,6 +20,17 @@
   }
 }
 * { box-sizing: border-box; }
+/* `hidden` is the attribute, and the attribute decides. The browser's own
+   [hidden] rule is the weakest thing in the cascade and loses to any class of
+   ours that names a display — which is how the project picker's rows, being
+   flex rows, went on being drawn while the typing filtered them (app.js, the
+   picker's filter): the letters narrowed what j/k moved through and nothing
+   else. !important because a class saying `display: flex` is saying what a
+   thing looks like when it is drawn and never whether it is; those are two
+   questions, and this file answers the second one here and nowhere else.
+   .filterbar used to state its own [hidden] a hundred lines down, which is
+   the same answer given once per element that remembers to ask. */
+[hidden] { display: none !important; }
 body {
   margin: 0; background: var(--bg); color: var(--fg);
   font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -294,7 +305,6 @@ section.project.done { opacity: .8; }
   display: flex; align-items: center; gap: .5rem;
   margin: 0 0 .7rem;
 }
-.filterbar[hidden] { display: none; }
 /* the count leads, because the first question about a filtered list is how
    much of it you are looking at. Tabular figures so it does not jitter as the
    list changes under it */

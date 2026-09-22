@@ -1356,6 +1356,16 @@ quietly break.
   itself uses when the letters are spoken for: `↑`/`↓` and `ctrl-j`/`ctrl-k`.
   Filtering uses the app's own rule, every whitespace-separated word a
   substring in any order, so `winter car` finds *Winter-proof the car*
+- **and the filtering is on the screen, not only in the keys.** A row it drops
+  gets the `hidden` attribute, which the browser's own sheet answers with
+  `display: none` — the weakest rule there is, and `.pickrow` is a flex row, so
+  for a long time the rows stayed put while `↑`/`↓` moved through the matches
+  alone: the list said one thing and the keys did another, which is the quiet
+  untrustworthy filtering design.md, "Views" exists to forbid. The sheet now
+  states `[hidden]` once, at the top, as `!important` — a class saying
+  `display: flex` is saying what a thing looks like when it is drawn, never
+  whether it is drawn, and the second question is answered in one place for
+  every screen. `.filterbar` had been answering it for itself
 - **`esc` unwinds one step at a time** — the filter, then the choice — and then
   stops being the picker's key at all. Once the list is closed and nothing is
   chosen, the press is let through to the screen, or the form could not be left
