@@ -2648,7 +2648,6 @@ Which screens get which:
 |---|---|
 | processing screen — the capture's line and its body | inline |
 | an inbox row's first line | inline (the row is not a link; the whole row opens the item) |
-| a project's "no next action left" DOD | inline |
 | description, definition of done, idea — under the box | chips |
 | a Someday/Maybe row | chips (its title already links to the item's page) |
 
@@ -3752,11 +3751,13 @@ elsewhere.
 - **the new screen's create button is gated like every other**, by the title
   being required — so it opens dead and the bar offers `ctrl-enter` only once
   there is something to create, with no rule of its own (see "Create buttons")
-- **the "no next action left" ask no longer opens anything.** It used to
-  unfold the box; it now says the same sentence over the same button, one
-  press away. A screen that opens with a form already open is a screen that
-  has decided what you came to do, and the ask is a question, not an
-  instruction
+- **the "no next action left" ask no longer opens anything** — and, since it
+  stopped being a panel at all, no longer says anything either. It used to
+  unfold the box; then it said a sentence over the same button, one press
+  away; now the marked `Actions` heading is the whole of it and `Add` is that
+  one press (see "Writing a project"). A screen that opens with a form already
+  open is a screen that has decided what you came to do, and the ask is a
+  question, not an instruction
 - **a refused meta line is a plain 400 here**, the way it is on an action's own
   page rather than the way it is on the processing screen: nothing is written,
   the reason arrives as a banner (see "A refused post is never silent"), and
@@ -3823,8 +3824,8 @@ elsewhere.
   `Undone` the one form on these screens that carries no destination, which
   is what "Reading a completed item" says of it
 - **the project ask carries the destination on.** When the completion leaves
-  the project with no next action, the redirect to `/project/{id}?ask=1` adds
-  `&from=` the `back` that was posted, so the screen asking the question hands
+  the project with no next action, the redirect to `/project/{id}` adds
+  `?from=` the `back` that was posted, so the screen asking the question hands
   the way out along and Back there still reaches the view the action was opened
   from. Without it the chain broke at the ask: a project's page reads its Back
   off the Referer, and the Referer at that point is the action's page, which is
@@ -4073,9 +4074,25 @@ its action list — and the same row of buttons an action's page carries:
   action's page had. `projectGone` says the pile the project was in instead,
   which is the honest answer to "then what" when nothing said where you came
   from
-- **the "no next action left" ask posts `back` too.** It is reached by
-  completing an action, so the destination it was handed on the URL has to
-  survive the one press that screen exists for (see "Writing an action")
+- **stalled is marked on the `Actions` heading**, ringed in red, and nowhere
+  else on the page. The heading is the list's own name and sits directly above
+  the rows, so the mark lands on the thing that is short of something (see
+  design.md, "Stalled projects"). It is a ring the width of the word, pulled
+  left by its own padding so the word does not move as the mark comes and
+  goes — a heading that shifted sideways would say "something changed here"
+  every time the last next action was completed
+- **the error banners stay at the top.** They are about the fields right under
+  them — a project with no DOD — and that is where they are fixed. Two marks
+  in two places is not two ways of saying the same thing: each one points at
+  its own half of the screen
+- **there is no "no next action left" panel, and no `?ask=1`.** The check that
+  runs on completing an action redirects to the project's page and nothing
+  more (design.md, "Completing a next action"); the page is rendered the same
+  way however it was reached. The panel it replaces carried a heading, the DOD
+  quoted back, and a Done of its own — all three already on the page below it,
+  the Done twice over. What the redirect still carries is `from`: the screen
+  it opens is on the way back to the view the action was completed in, and
+  that destination has to survive the one press (see "Writing an action")
 - **where each resolution lands is pinned by a test**
   (`internal/web/leaving_test.go`), because it is invisible in the templates:
   a missing hidden field looks like nothing at all, and the page it fails to

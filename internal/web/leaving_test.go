@@ -71,11 +71,11 @@ func TestTheProjectAskCarriesTheWayOutOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := postForm(t, s, "/action/1/complete", url.Values{"back": {"/next"}})
-	if got, want := rec.Header().Get("Location"), "/project/1?ask=1&from=%2Fnext"; got != want {
+	if got, want := rec.Header().Get("Location"), "/project/1?from=%2Fnext"; got != want {
 		t.Errorf("the ask opened at %q, want %q", got, want)
 	}
 	// and the screen it opens posts that destination from its own button
-	if form := formOn(t, getPage(t, s, "/project/1?ask=1&from=%2Fnext"), "/project/1/complete"); !strings.Contains(
+	if form := formOn(t, getPage(t, s, "/project/1?from=%2Fnext"), "/project/1/complete"); !strings.Contains(
 		form, `name="back" value="/next"`) {
 		t.Errorf("the ask's Complete-the-project form does not say where to go: %s", form)
 	}
@@ -91,7 +91,7 @@ func TestTheAskIsNeverItsOwnWayOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	rec := postForm(t, s, "/action/1/complete", url.Values{"back": {"/project/1"}})
-	if got, want := rec.Header().Get("Location"), "/project/1?ask=1"; got != want {
+	if got, want := rec.Header().Get("Location"), "/project/1"; got != want {
 		t.Errorf("the ask opened at %q, want %q", got, want)
 	}
 }
