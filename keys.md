@@ -360,6 +360,32 @@ unsaved wholesale — everything typed into it would be lost — so marking ever
 filled box there would mark the form and say nothing. Those screens still cost
 the second `b`.
 
+## A key that does nothing, on purpose, for a sixth of a second
+
+**`d`, `⌫` and `b` are deaf while the moment they started is being shown.**
+They answer the press and do nothing with it. This is the only place in the
+map where a live key is deliberately inert, and it is worth its own rule
+because "the key works but did nothing just then" is exactly the shape of a
+bug — it has to be a decision written down rather than a thing discovered.
+
+What it is for: those three each leave a screen and bring another one of the
+same shape back, so the answer looked like the question and the press got made
+again — and on the two that destroy something, the second one landed on an item
+nobody had read (design.md, "A moment that shows itself"). The motion is what
+stops the press from being *wanted* twice. The deaf window is what makes it
+harmless when it comes anyway, which is the half that has to be true whether or
+not anybody was looking.
+
+How long: `anim.ms` from the settings file, and then on until the answer has
+replaced the page — a leaving effect ends with the item invisible but still on
+the page, and a press landing while the request is in flight would find the
+same form and post it a second time. `anim.ms = 0` means no motion and no deaf
+window either: that line is the app as it was.
+
+`t` is not in this rule and must not be. It changes a tag on an item that stays
+exactly where it is, nothing leaves the screen, and pressing it twice is a
+thing you meant.
+
 ## What is built
 
 All of it. `keys.mode` defaults to `hybrid`, which is what the app did before

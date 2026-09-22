@@ -414,6 +414,19 @@ Some screens open in zen without being asked, because they are screens you are i
 
 This is why a screen with no key bar puts the row of buttons back under its form. The bar owns the keys no more than the rail owns the views, but it *is* where the controls are drawn, and a panel that took the controls away with it would be a panel that disabled something. So the buttons go wherever there is room for them: in the bar when there is a bar, on the form when there is not. Zen mode is the case that matters, since two screens open in it unasked - and both of those are screens you are in the middle of one item on, where a menu under the item is the right shape anyway.
 
+### A moment that shows itself
+Three keys leave a screen and bring another one of the same shape back: `d` finishes an item, `⌫` throws one away, `b` leaves. On the screens where those are pressed over and over - working down a list, emptying the inbox - the answer is the screen that was there with a different item in it, and nothing about it said the press had landed.
+
+**So the press was made again, and on the two keys that destroy something the second one landed on an item nobody had read.** That is the failure this exists for. It is not a misreading of the app or a slip of the hand: the screen genuinely did not change in any way a glance could catch, and the honest response to "nothing happened" is to press again.
+
+**Each of the three shows itself happening, and each shows itself differently.** A thing finished, a thing thrown away and a place left are three different claims, and a motion that says one of them says the other two wrong - a line drawn through a title means *finished*, and putting it on something being deleted is the app saying the wrong word about what it just did. So the three are set separately, and they do not even offer the same answers: the choices each one takes are the ones that could be true of it.
+
+**The guarantee is that the key goes deaf, not that something moved.** For as long as the moment is being shown, the key that started it does nothing - so the second press cannot land, whether or not it was looked at. The motion is the explanation for the deaf window rather than the mechanism of it: it is what stops the press from being wanted a second time, and the deafness is what makes it harmless when it comes anyway.
+
+**It is a setting, and it can be none.** How much an app should move is not a thing to be reasoned out at a desk; it is a thing to be worked in for a week (the same reason the key modes and the key bar's paint are settings). One line turns the whole of it off, and then the app behaves exactly as it did before - including the deaf window, because a file that said "no motion" and still swallowed presses would be lying about what it turned off.
+
+**Nothing says anything in words.** No toast, no "Deleted", no banner. The app does not narrate itself anywhere else and does not start here: what the motion says is said by the item being visibly finished, visibly removed, or by the screen visibly sliding aside.
+
 ### The filter line
 Filtering is one line, typed, and there is nothing on the screen until it is asked for. A view opens as its list and nothing else; one key puts up a bar above it, and the same key takes the bar away and every filter with it.
 

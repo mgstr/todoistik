@@ -2452,6 +2452,10 @@ keys.any_layout = true         # a shortcut is a place on the keyboard, so the k
 keys.layout_marker = true      # the key bar says "русский" while the keyboard is in Cyrillic
 keys.mode = hybrid             # bare letters, with ctrl on save, create and add
 keys.bar_style = chip          # how a pressable key bar entry is painted
+anim.done = strike             # what `d` looks like on the way out
+anim.delete = collapse         # ...and `⌫`
+anim.back = sweep              # ...and `b`
+anim.ms = 160                  # how long any of them runs; 0 is no motion at all
 ```
 
 - **one pair per line, `#` to the end of the line for comments, and nothing
@@ -2545,6 +2549,98 @@ keys.bar_style = chip          # how a pressable key bar entry is painted
 - **nothing is written back to it.** Everything the app itself remembers —
   filter sets, the ages flag — lives in `app_state` in the database. A file the
   app rewrites is a file you cannot keep comments in
+
+## A moment that shows itself
+
+`d`, `⌫` and `b` each leave a screen and bring another one of the same shape
+back, and nothing about the answer said the press had landed — so the press got
+made again, and on the two that destroy something the second one landed on an
+item nobody had read (design.md, "A moment that shows itself"). The settings
+file says what each of the three looks like on the way out; the keyboard layer
+wears it.
+
+- **three keys, three settings, and not the same answers on each.**
+  `anim.done` takes all eight effects, `anim.delete` takes seven, `anim.back`
+  takes five. `strike` is not offered on a delete, because a line drawn through
+  a title is the mark for *finished* and putting it on a thing being thrown
+  away is the app saying the wrong word about what it did. `collapse` and
+  `flash` are not offered on back, because nothing is removed and nothing new
+  is acted on — the screen is simply somewhere else, and an effect that says
+  "this one, here" would be pointing at an item that had nothing done to it.
+  The lists are `animTakes` in `internal/conf`, and a value that is not on its
+  key's list refuses startup like any other typo: the file is read once, so one
+  quietly ignored would look set for the life of the process
+- **one duration for all three.** `anim.ms` is not a fact about the moment, it
+  is a fact about the hand. It runs 0 to 600: past about a third of a second an
+  effect stops reading as the answer to a press and starts reading as the app
+  being slow, which design.md's principles say it may not be. **Zero is an
+  answer**, the way it is for `backup.days`, and it is how the file turns the
+  whole of it off in one line — including the deaf window, because a file that
+  said "no motion" and still swallowed presses would be lying about what it
+  turned off
+- **three families, and the family is the whole of the difference.** A
+  *leaving* effect — `fade`, `strike`, `collapse`, `sweep` — plays on the item
+  that was acted on, before the request goes: the item is still on the screen
+  while it runs. An *arriving* effect — `rise`, `flash` — plays on the page
+  that comes back, and costs nothing on the clock because that page is already
+  there. `stamp` is neither: a wordless ✓ ✕ ← over the pane, and the only one
+  of the eight that says *which* key was pressed
+- **the deaf window is the fix; the motion is the explanation for it.** While
+  an effect is running, `d`, `⌫` and `b` answer and do nothing — `actOn`,
+  `deleteHere` and `leave` each check `deaf()` first, so the key and the key
+  bar's own button both go through the same guard rather than two that could
+  come to disagree. A leaving effect gets that window for free; an arriving one
+  has to be given one on arrival, because by the time it plays the second press
+  has already been sent. The window then runs on until the answer replaces the
+  page: a leaving effect ends with the item at zero opacity and still in the
+  DOM, and a press landing in the milliseconds the request is in flight would
+  find the same form and post it twice
+- **the effect runs first and the request goes after it, not alongside.** A
+  browser goes on painting the old page until the answer commits, so firing
+  both at once would cut the effect off after the few milliseconds a server on
+  this machine takes — the one arrangement where the motion is paid for and
+  never seen. The cost is therefore `anim.ms` plus the request, and the reason
+  that is affordable is that the request is local
+- **what the effect is about is read off the page.** The row under the cursor
+  is the item that was acted on; with no row it is whatever block the screen is
+  already *about* — `.process .subject` on the processing screen, `.item` on an
+  item's own page, the single `<p>` on the doing screen — and `main` for
+  anything else. `b` is always `main`: leaving is about the screen and not
+  about an item on it, and there is no item it could honestly point at
+- **`strike` needs a line of text, and says so.** The rule is drawn on the
+  item's `.title` or `.capture-text`, or on an element marked `data-anim-line`
+  — which is how the doing screen's one line declares itself. A screen with
+  none of those is a form, and a 2px rule across a form means nothing, so
+  `strike` there falls back to the fade half of itself
+- **`collapse` is the one effect that is not a class.** An element folding shut
+  has to be animated from the height it happens to have, and only the browser
+  knows that — so it is the Web Animations API in `app.js`, zeroing the
+  padding and margins along with the height, since any of those left standing
+  holds the gap open after the box itself has closed
+- **an arriving moment travels the way the cursor does.** `sessionStorage`,
+  claimed once on arrival and cleared — the same shape as `kb-row-handover` and
+  `kb-place-handover`, and claimed after them, because an arriving effect plays
+  on the item under the cursor and the cursor is only just there. A refused
+  post clears it: no page is arriving, so a moment handed to one must not sit
+  waiting for whatever screen is reached next
+- **the pane is clipped only while something is moving.** A sweep translates an
+  item 2rem sideways, and `main` said `overflow-y: auto` and nothing about the
+  other axis — which computes to `auto` as well, so a row sliding answered with
+  a scrollbar. `main` is now `overflow-x: clip` permanently; the pane gets
+  `overflow: clip` from a class the keyboard layer adds for the duration,
+  because `main` itself is what sweeps when `b` is pressed and its own clip
+  cannot hold it. A standing clip on the pane would be a permanent rule about
+  every dropdown in the app, bought to pay for a sixth of a second
+- **the mouse clicking a row's own checkbox is not covered, on purpose.** That
+  gesture posts the row's form directly and never reaches `actOn`. It is also
+  not the failure this exists for: a pointer lands somewhere deliberate, and
+  the repeat press is a keyboard's — the hand is already on the key and the
+  screen looks unchanged
+- **the system's "reduce motion" is not consulted.** This is one app on one
+  desk, and a file that says `anim.done = strike` is a more specific answer
+  than a preference set once for everything on the machine. `anim.ms = 0` is
+  the same switch, one line, and it is in the file where every other answer
+  about this app is
 
 ## Screen layout
 

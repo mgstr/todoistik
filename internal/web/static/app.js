@@ -900,15 +900,25 @@
   }
 
   function actOn(cls) {
+    // Completing is one of the three that shows itself leaving, so it is one
+    // of the three that is deaf while it does. Picking is not: `t` changes a
+    // tag on an item that stays exactly where it is, and pressing it twice is
+    // a thing you meant (see "A moment that shows itself" below).
+    if (cls === "kb-complete" && deaf()) return true;
     const row = selected();
     if (row) {
       if (!row.querySelector("form." + cls)) return false;
+      if (cls === "kb-complete") return withMotion("done", function () { submitIn(row, cls); });
       submitIn(row, cls);
       return true;
     }
     const form = screenForm(cls);
     if (!form) return false;
-    if (form.requestSubmit) form.requestSubmit(); else form.submit();
+    const go = function () {
+      if (form.requestSubmit) form.requestSubmit(); else form.submit();
+    };
+    if (cls === "kb-complete") return withMotion("done", go);
+    go();
     return true;
   }
 
@@ -956,6 +966,7 @@
   }
 
   function leave() {
+    if (deaf()) return true;
     const cancel = document.querySelector("[data-cancel]");
     if (!cancel) return false;
     const dirty = dirtyForms();
@@ -965,8 +976,201 @@
       renderKeybar();
       return true;
     }
-    window.location.href = cancel.dataset.cancel;
+    return withMotion("back", function () {
+      window.location.href = cancel.dataset.cancel;
+    });
+  }
+
+  // ---- A moment that shows itself ----------------------------------------
+  //
+  // `d`, `⌫` and `b` each leave a screen and bring another one of the same
+  // shape back. Nothing about the answer said the press had landed, so the
+  // press got made again — and on the two that destroy something, the second
+  // one landed on an item nobody had read (design.md, "A moment that shows
+  // itself"). The settings file says what each of the three looks like; this
+  // is where it is worn.
+  //
+  // Two halves, and which one a value uses is the whole of the difference
+  // between them. A *leaving* effect plays on the item that was acted on,
+  // before the request goes: the item is still on the screen while it runs,
+  // and the key is deaf for exactly as long. An *arriving* effect plays on the
+  // page that comes back — it costs nothing, because that page is already
+  // there, and it has to be handed the moment it is about, the way the cursor
+  // already is (see HANDOVER).
+  //
+  // The deaf window is the fix and the motion is only the explanation for it:
+  // an arriving effect cannot swallow the second press, because by the time it
+  // plays that press has already been sent, so it is given a window of its own
+  // on arrival rather than inheriting one.
+  const ARRIVAL = "kb-anim-arrival";
+  const LEAVING = { fade: true, strike: true, collapse: true, sweep: true };
+  let deafUntil = 0;
+
+  function deaf() { return Date.now() < deafUntil; }
+
+  // What the settings file said about one of the three moments. `anim.ms = 0`
+  // is how the file turns the whole of it off in one line, so it answers here
+  // as "none" whatever the three effects say — one place to ask, rather than
+  // every caller remembering that the number can veto the word.
+  function animConf(kind) {
+    const pane = document.querySelector(".pane");
+    if (!pane) return { fx: "none", ms: 0 };
+    const ms = parseInt(pane.getAttribute("data-anim-ms"), 10);
+    if (!(ms > 0)) return { fx: "none", ms: 0 };
+    return { fx: pane.getAttribute("data-anim-" + kind) || "none", ms: ms };
+  }
+
+  // What the effect is about. A row under the cursor is the item that was
+  // acted on; with no row it is whatever block the screen is *about*, which
+  // every screen in the app already says without being asked — the capture
+  // being decided, the item being looked at, the one action on the doing
+  // screen. `main` is the answer for a screen that says none of those, and the
+  // only answer for `b`: leaving is about the screen and not about an item on
+  // it, and there is no item it could honestly point at.
+  function animTarget(kind) {
+    if (kind !== "back") {
+      const row = selected();
+      if (row) return row;
+      const sub = document.querySelector("#doing p") ||
+        document.querySelector(".process .subject") ||
+        document.querySelector(".process") ||
+        document.querySelector(".item");
+      if (sub) return sub;
+    }
+    return document.querySelector("main");
+  }
+
+  // Run whatever this moment wears, then do the thing. The request is not sent
+  // first: a browser goes on painting the old page until the answer commits,
+  // so firing both at once would cut the effect off after the few milliseconds
+  // a server on this machine takes — the one arrangement where the motion is
+  // paid for and never seen.
+  function withMotion(kind, go) {
+    const c = animConf(kind);
+    // `none` is today's behaviour exactly, deaf window included — which is to
+    // say without one. A file that says no motion at all and still swallowed
+    // presses would be a file that lies about what it turned off.
+    if (c.fx === "none") { go(); return true; }
+    deafUntil = Date.now() + c.ms;
+    // and then deaf again until the answer replaces the page. A leaving
+    // effect ends with the item at zero opacity and still in the DOM, so a
+    // press landing in the few milliseconds the request is in flight would
+    // find the same form and post it a second time. Two seconds is the net
+    // under a request that never answers at all; anything that does answer
+    // clears this long before then.
+    const fire = function () { deafUntil = Date.now() + 2000; go(); };
+    if (!LEAVING[c.fx]) { handArrivalOn(kind); fire(); return true; }
+    const el = animTarget(kind);
+    if (!el) { fire(); return true; }
+    playLeaving(el, c.fx, c.ms, kind);
+    setTimeout(fire, c.ms);
     return true;
+  }
+
+  // Nothing is moving any more: the answer arrived, or it never will. Both
+  // paths come through here so that neither can leave the keys deaf or the
+  // pane clipped for the rest of the session.
+  function motionOver() {
+    deafUntil = 0;
+    const pane = document.querySelector(".pane");
+    if (pane) pane.classList.remove("anim-running");
+  }
+
+  function playLeaving(el, fx, ms, kind) {
+    el.style.setProperty("--anim-ms", ms + "ms");
+    // for as long as something is moving sideways, and no longer: see
+    // style.css, "A moment that shows itself"
+    const pane = document.querySelector(".pane");
+    if (pane) pane.classList.add("anim-running");
+    if (fx === "collapse") { collapse(el, ms); return; }
+    if (fx === "sweep") {
+      // away from the reading direction for a thing thrown away, along it for
+      // a thing finished and for a screen being left behind
+      el.classList.add(kind === "delete" ? "anim-sweep-l" : "anim-sweep-r");
+      return;
+    }
+    if (fx === "strike") {
+      // The rule is drawn across the item's title, which is the thing a line
+      // through a title means something about. A screen that has no line of
+      // text to draw it through — an action's own page is a form, and its
+      // title is a box — says the other half of what strike says and only
+      // that, rather than putting a 2px rule across a form.
+      const line = el.matches("[data-anim-line]") ? el :
+        el.querySelector(".title, .capture-text, [data-anim-line]");
+      if (!line) { el.classList.add("anim-fade"); return; }
+      line.style.setProperty("--anim-ms", ms + "ms");
+      line.classList.add("anim-line");
+      el.classList.add("anim-strike");
+      return;
+    }
+    el.classList.add("anim-fade");
+  }
+
+  // Collapse is the one effect that cannot be a class: an element folding shut
+  // has to be animated from the height it happens to have, and only the
+  // browser knows that. Everything it zeroes is something that would otherwise
+  // hold the gap open after the box itself had closed.
+  function collapse(el, ms) {
+    const box = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    el.style.overflow = "hidden";
+    el.animate([
+      {
+        height: box.height + "px", opacity: 1,
+        paddingTop: cs.paddingTop, paddingBottom: cs.paddingBottom,
+        marginTop: cs.marginTop, marginBottom: cs.marginBottom
+      },
+      {
+        height: "0px", opacity: 0,
+        paddingTop: "0px", paddingBottom: "0px",
+        marginTop: "0px", marginBottom: "0px"
+      }
+    ], { duration: ms, easing: "cubic-bezier(.4, 0, .2, 1)", fill: "forwards" });
+  }
+
+  // An arriving effect is about a page that does not exist yet, so the moment
+  // travels the way the cursor and the scroll offset already do. Stored and
+  // claimed once, for the reason those are: a marker left behind would play
+  // the effect again on a page reached some other way.
+  function handArrivalOn(kind) {
+    try { sessionStorage.setItem(ARRIVAL, kind); } catch (err) { /* no session storage: no effect, nothing else */ }
+  }
+
+  function claimArrival() {
+    let kind = null;
+    try { kind = sessionStorage.getItem(ARRIVAL); } catch (err) { return; }
+    if (!kind) return;
+    try { sessionStorage.removeItem(ARRIVAL); } catch (err) { /* nothing to undo */ }
+    const c = animConf(kind);
+    // the file can have been changed to a leaving effect, or to none at all,
+    // between the press and the answer — the marker is only a note of which
+    // key was pressed, never of what it was wearing at the time
+    if (c.fx === "none" || LEAVING[c.fx]) return;
+    deafUntil = Date.now() + c.ms;
+    if (c.fx === "stamp") { stamp(kind, c.ms); return; }
+    const el = animTarget(kind);
+    if (!el) return;
+    el.style.setProperty("--anim-ms", c.ms + "ms");
+    if (c.fx === "flash") el.classList.add("anim-flash", "flash-" + kind);
+    else el.classList.add("anim-rise");
+  }
+
+  // The mark is over the pane and belongs to nothing on it, so it is written
+  // here rather than into every template: it is the one effect that is about
+  // the key rather than about an item, and a screen has no way of knowing
+  // which key it was reached by.
+  function stamp(kind, ms) {
+    const pane = document.querySelector(".pane");
+    if (!pane) return;
+    const old = document.getElementById("anim-stamp");
+    if (old) old.remove();
+    const mark = document.createElement("div");
+    mark.id = "anim-stamp";
+    mark.className = kind;
+    mark.style.setProperty("--anim-ms", ms + "ms");
+    mark.textContent = kind === "done" ? "✓" : kind === "delete" ? "✕" : "←";
+    pane.appendChild(mark);
+    setTimeout(function () { mark.remove(); }, ms + 50);
   }
 
   // Read before the ctrl guard in the handler, because in modifier mode these
@@ -994,13 +1198,15 @@
   // querySelector, for the reason it gives: a context's chip holds the chips
   // of its parameters, and their deletes are not its own.
   function deleteHere() {
+    if (deaf()) return true;
     const row = selected();
+    // a draft is removed from the page and nothing is sent, so there is no
+    // answer arriving for an effect to cover the gap before
     if (row && row.hasAttribute("data-draft")) { removeDraft(row); return true; }
     const form = row ? deleteForm(row) : screenForm("kb-delete");
     if (!form) return false;
     if (row) handSelectionOn(row);
-    form.submit();
-    return true;
+    return withMotion("delete", function () { form.submit(); });
   }
 
   // The row's own delete, and only one that can be pressed: a name still
@@ -3205,6 +3411,10 @@
     claimPlace();
     claimSelection();
     arrive();
+    // last, and after the cursor: an arriving effect plays on the item under
+    // the cursor where there is one, and the cursor is only just here
+    motionOver();
+    claimArrival();
   });
 
   // A refused post must never be silent. htmx does not swap a 4xx, so a
@@ -3215,6 +3425,11 @@
   // this is the net under everything that has not been given that treatment,
   // and it says the server's own words rather than inventing any.
   document.addEventListener("htmx:responseError", function (e) {
+    // no page is arriving, so the moment handed to one must not sit there
+    // waiting to be claimed by whatever screen is reached next — and the keys
+    // have to come back, on the screen that is still here
+    try { sessionStorage.removeItem(ARRIVAL); } catch (err) { /* nothing to undo */ }
+    motionOver();
     const pane = document.querySelector(".pane");
     if (!pane) return;
     const xhr = e.detail && e.detail.xhr;
@@ -3280,4 +3495,5 @@
   claimPlace();
   claimSelection();
   arrive();
+  claimArrival();
 })();

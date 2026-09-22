@@ -57,7 +57,11 @@
   {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
   data-links-reach="{{.Conf.LinksReach}}"
   data-keys-bar-style="{{.Conf.KeysBarStyle}}"
-  data-keys-mode="{{.Conf.KeysMode}}">
+  data-keys-mode="{{.Conf.KeysMode}}"
+  data-anim-done="{{.Conf.AnimDone}}"
+  data-anim-delete="{{.Conf.AnimDelete}}"
+  data-anim-back="{{.Conf.AnimBack}}"
+  data-anim-ms="{{.Conf.AnimMS}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
 {{/* The title bar: where you are, and how deep in. The view leads, carrying
      the same count the nav badge carries, and every step inside it follows —

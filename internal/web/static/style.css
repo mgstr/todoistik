@@ -3,6 +3,11 @@
   --accent: #2456d6; --danger: #c02626; --ok: #1a7f37; --ext: #9b2fae;
   --badge-bg: #f0f0f0; --row-hover: #f6f8ff; --select: #eef2ff;
   --bar-bg: #eceef3;
+  /* What `anim.done = flash` and `anim.delete = flash` pulse the item in. Not
+     --ok and --danger themselves: those are a badge's colour, read against the
+     page, and this is a ground the item's own text has to stay readable on for
+     a sixth of a second. */
+  --flash-ok: #dcf0e1; --flash-danger: #f8dede;
   --main-pad-top: 1rem;
   /* How wide a form is, everywhere one is written. It was 34rem, which was a
      comfortable measure for the label-above-the-box layout it was chosen for
@@ -17,6 +22,7 @@
     --accent: #7da2ff; --danger: #ff7b7b; --ok: #5fc07a; --ext: #d99ae8;
     --badge-bg: #23262d; --row-hover: #1d2129; --select: #22304d;
     --bar-bg: #1f232b;
+    --flash-ok: #1d3326; --flash-danger: #3a2323;
   }
 }
 * { box-sizing: border-box; }
@@ -926,3 +932,81 @@ button:disabled:hover { border-color: var(--line); }
 /* the token box draws its border on the input, and its mirror sits behind:
    the mark belongs to the one the eye reads as the box */
 .fbox .unsaved { border-style: dashed; border-color: var(--accent); }
+
+/* ===== A moment that shows itself ========================================
+   Three keys leave a screen and bring another one of the same shape back —
+   `d`, `⌫` and `b` — and nothing about the answer said the press had landed,
+   so the press got made again and the second one landed on an item nobody
+   read. The settings file says what each of the three looks like
+   (design.md, "A moment that shows itself"); these are the eight it says.
+
+   Every duration is `--anim-ms`, set on the element by the keyboard layer
+   from `anim.ms`, because the number is the settings file's and there is one
+   source of truth for anything the file decides. The value here is only what
+   a class would fall back to if something wore one without being told a
+   length. */
+:root { --anim-ms: 160ms; }
+
+@keyframes anim-fade    { to { opacity: 0; } }
+@keyframes anim-draw    { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes anim-sweep-l { to { opacity: 0; transform: translateX(-2rem); } }
+@keyframes anim-sweep-r { to { opacity: 0; transform: translateX(2rem); } }
+@keyframes anim-rise    { from { opacity: 0; transform: translateY(.5rem); } }
+@keyframes anim-flash   { from { background: var(--anim-pulse); } }
+@keyframes anim-stamp {
+  0%   { opacity: 0;  transform: scale(.55); }
+  28%  { opacity: .9; transform: scale(1); }
+  100% { opacity: 0;  transform: scale(1.18); }
+}
+
+/* the leaving three: the item is still on the screen while these run, which
+   is what makes the press unmistakable */
+.anim-fade    { animation: anim-fade var(--anim-ms) linear forwards; }
+.anim-sweep-l { animation: anim-sweep-l var(--anim-ms) cubic-bezier(.4, 0, 1, 1) forwards; }
+.anim-sweep-r { animation: anim-sweep-r var(--anim-ms) cubic-bezier(.4, 0, 1, 1) forwards; }
+/* strike is two things in sequence and not one: the rule draws over the first
+   45% and the line fades out behind it over the rest, so what is read is "this
+   was finished, and now it is gone" rather than both at once */
+.anim-strike { animation: anim-fade calc(var(--anim-ms) * .55) linear calc(var(--anim-ms) * .45) forwards; }
+.anim-line { position: relative; }
+.anim-line::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 52%; height: 2px;
+  background: currentColor; transform-origin: left; transform: scaleX(0);
+  animation: anim-draw calc(var(--anim-ms) * .45) cubic-bezier(.3, .7, .3, 1) forwards;
+}
+
+/* the arriving two: these play on a page that is already here, so they cost
+   nothing on the clock and say nothing about what left */
+.anim-rise  { animation: anim-rise var(--anim-ms) cubic-bezier(.2, .7, .3, 1); }
+.anim-flash { animation: anim-flash var(--anim-ms) linear; border-radius: 6px; }
+.anim-flash.flash-done   { --anim-pulse: var(--flash-ok); }
+.anim-flash.flash-delete { --anim-pulse: var(--flash-danger); }
+
+/* the stamp: over the pane rather than in it, because it is not about any one
+   thing on the screen — it is the only one of the eight that says which of the
+   three keys was pressed, and it says it wordlessly (design.md, "Panels":
+   nothing here explains itself in prose) */
+#anim-stamp {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: clamp(6rem, 22vw, 16rem); font-weight: 600; line-height: 1;
+  opacity: 0; animation: anim-stamp var(--anim-ms) cubic-bezier(.2, .7, .3, 1) forwards;
+}
+#anim-stamp.done   { color: var(--ok); }
+#anim-stamp.delete { color: var(--danger); }
+#anim-stamp.back   { color: var(--muted); }
+
+/* A sweep moves an item sideways for a sixth of a second, and the one thing on
+   the screen that must not move while something is being shown leaving is the
+   screen. `main` says `overflow-y: auto` and nothing about the other axis,
+   which computes to `auto` as well — so a row sliding 2rem answered with a
+   scrollbar. `clip` and not `hidden`, because `clip` does not make the element
+   a scroll container, and `main` already is one for a reason.
+
+   The pane is clipped only while an effect is running, and by the keyboard
+   layer rather than here: `main` itself is what sweeps when `b` is pressed,
+   and its own clip cannot hold it. A permanent clip on the pane would be a
+   standing rule about every dropdown and hint in the app, bought to pay for a
+   sixth of a second. */
+main { overflow-x: clip; }
+.pane.anim-running { overflow: clip; }

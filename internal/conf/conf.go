@@ -76,6 +76,20 @@ type Config struct {
 	// not at all to the button's own styling. Like KeysMode it is a question
 	// about a week of use rather than about the code.
 	KeysBarStyle string
+	// AnimDone, AnimDelete, AnimBack: what each of the three keys that leave a
+	// screen looks like on the way out (design.md, "A moment that shows
+	// itself"). Three keys and not one, because the three moments make three
+	// different claims — a thing finished, a thing thrown away, a place left —
+	// and the motion that says one of them says the other two wrong. They do
+	// not take the same set of answers for the same reason; see animTakes.
+	AnimDone   string
+	AnimDelete string
+	AnimBack   string
+	// AnimMS: how long any of them runs. One number for all three, because it
+	// is not a fact about the moment, it is a fact about the hand. Zero is
+	// "none" on all three at once, which is how the file turns the whole of it
+	// off in one line.
+	AnimMS int
 }
 
 // TimerAuto is the format that is not a pattern: minutes up to an hour, then
@@ -125,6 +139,48 @@ const (
 	BarButton = "button"
 )
 
+// The eight answers an anim key takes. They divide into three families, and
+// the family is the whole of the difference between them (implementation.md,
+// "A moment that shows itself"):
+//
+//   - leaving — Fade, Strike, Collapse, Sweep — plays on the item that was
+//     acted on, before the request goes. The item is still on the screen while
+//     it runs, which is what makes the press unmistakable, and the key is deaf
+//     for exactly as long, which is what makes the second press impossible
+//   - arriving — Rise, Flash — plays on the page that comes back. It costs
+//     nothing on the clock, because that page is already there, and it has to
+//     be handed the moment it is about the way the cursor already is
+//   - over — Stamp — a wordless mark over the whole screen, and the only one
+//     of the eight that says *which* of the three things happened
+const (
+	AnimNone     = "none"
+	AnimFade     = "fade"
+	AnimStrike   = "strike"
+	AnimCollapse = "collapse"
+	AnimSweep    = "sweep"
+	AnimRise     = "rise"
+	AnimFlash    = "flash"
+	AnimStamp    = "stamp"
+)
+
+// animTakes is what each of the three keys is allowed to be set to, and the
+// three lists are deliberately not the same. A settings file is read once, so
+// a value that means nothing on the key it is written against would be a
+// setting that looks set for as long as the process lives — the failure every
+// string setting in this file is checked against.
+//
+// Strike is not offered on a delete: a line drawn through a title is the mark
+// for finished, and putting it on a thing being thrown away says the wrong
+// word. Collapse and Flash are not offered on back, because nothing is being
+// removed and nothing new is being acted on — the screen is simply somewhere
+// else, and an effect that says "this one, here" would be pointing at an item
+// that had nothing done to it.
+var animTakes = map[string][]string{
+	"anim.done":   {AnimNone, AnimFade, AnimStrike, AnimCollapse, AnimSweep, AnimRise, AnimFlash, AnimStamp},
+	"anim.delete": {AnimNone, AnimFade, AnimCollapse, AnimSweep, AnimRise, AnimFlash, AnimStamp},
+	"anim.back":   {AnimNone, AnimFade, AnimSweep, AnimRise, AnimStamp},
+}
+
 // Defaults are what the app runs with when there is no file at all, and what
 // any key left out of the file falls back to.
 //
@@ -139,8 +195,19 @@ const (
 // changes is a bug rather than a mode — they are settings at all only so that
 // either can be taken back out of the way without an edit to the code. The key
 // bar paints its controls as chips, because it is the quietest answer that
-// still says which of its entries are controls at all. Every one of them is
-// one line away from the opposite.
+// still says which of its entries are controls at all.
+//
+// The three moments are on, and each wears the effect that says its own word
+// rather than a general "something happened": a line drawn through a title is
+// what finished looks like, a thing folding shut while the list closes over it
+// is what thrown away looks like, and a screen sliding aside is what leaving
+// looks like. All three are leaving effects, which is the point — they are the
+// only family that makes the second press impossible without a deaf window
+// having to be built for them by hand (design.md, "A moment that shows
+// itself"). 160ms because it is under the threshold where a press stops
+// feeling instant and over the one where an effect is not seen at all.
+//
+// Every one of these is one line away from the opposite.
 func Defaults() Config {
 	return Config{
 		ZenShowsTimer:     false,
@@ -153,6 +220,10 @@ func Defaults() Config {
 		LinksReach:        ReachAny,
 		KeysMode:          ModeHybrid,
 		KeysBarStyle:      BarChip,
+		AnimDone:          AnimStrike,
+		AnimDelete:        AnimCollapse,
+		AnimBack:          AnimSweep,
+		AnimMS:            160,
 	}
 }
 
@@ -161,6 +232,13 @@ func Defaults() Config {
 // backup scheme rather than a hoard — at that scale the answer is something
 // that copies the directory off this machine, not a bigger number here.
 const MaxBackupDays = 365
+
+// MaxAnimMS is the ceiling on anim.ms. Past about a third of a second an
+// effect stops reading as the answer to a press and starts reading as the app
+// being slow, which is the one thing design.md's principles say it may not be
+// — 600 is twice that, and is already the far end of "I want to watch this
+// happen" rather than a number anybody works at.
+const MaxAnimMS = 600
 
 // MaxReviewDays is the ceiling on review.someday_days. An idea that can go
 // more than a year without being asked about is not parked, it is buried —
@@ -186,12 +264,13 @@ func (c *Config) ints() map[string]*int {
 	return map[string]*int{
 		"backup.days":         &c.BackupDays,
 		"review.someday_days": &c.ReviewSomedayDays,
+		"anim.ms":             &c.AnimMS,
 	}
 }
 
 // intChecks is each number key's range, with the ends explained in the
-// message — because the two keys disagree about zero: keeping no backups is
-// an answer, a review period of no days is not.
+// message — because the keys disagree about zero: keeping no backups is an
+// answer and so is no motion at all, while a review period of no days is not.
 var intChecks = map[string]func(int) error{
 	"backup.days": func(d int) error {
 		if d < 0 || d > MaxBackupDays {
@@ -202,6 +281,12 @@ var intChecks = map[string]func(int) error{
 	"review.someday_days": func(d int) error {
 		if d < 1 || d > MaxReviewDays {
 			return fmt.Errorf("it is %d, and the range is 1 (back on every review) to %d", d, MaxReviewDays)
+		}
+		return nil
+	},
+	"anim.ms": func(ms int) error {
+		if ms < 0 || ms > MaxAnimMS {
+			return fmt.Errorf("it is %d, and the range is 0 (no motion at all) to %d", ms, MaxAnimMS)
 		}
 		return nil
 	},
@@ -216,6 +301,9 @@ func (c *Config) strs() map[string]*string {
 		"links.reach":      &c.LinksReach,
 		"keys.mode":        &c.KeysMode,
 		"keys.bar_style":   &c.KeysBarStyle,
+		"anim.done":        &c.AnimDone,
+		"anim.delete":      &c.AnimDelete,
+		"anim.back":        &c.AnimBack,
 	}
 }
 
@@ -234,6 +322,23 @@ var checks = map[string]func(string) error{
 	"links.reach":      checkReach,
 	"keys.mode":        checkKeysMode,
 	"keys.bar_style":   checkBarStyle,
+	"anim.done":        checkAnim("anim.done"),
+	"anim.delete":      checkAnim("anim.delete"),
+	"anim.back":        checkAnim("anim.back"),
+}
+
+// checkAnim: one of the effects *this* key takes, which is not the same list
+// for all three — so the message says the key's own list rather than all eight
+// (see animTakes for why the lists differ).
+func checkAnim(key string) func(string) error {
+	return func(v string) error {
+		for _, ok := range animTakes[key] {
+			if v == ok {
+				return nil
+			}
+		}
+		return fmt.Errorf("%q is not an effect %s takes: they are %s", v, key, strings.Join(animTakes[key], ", "))
+	}
 }
 
 // checkBarStyle: one of five words, for the reason every other string setting
