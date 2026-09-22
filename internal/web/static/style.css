@@ -188,6 +188,41 @@ h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
 #panels-dialog button:hover { background: var(--row-hover); }
 #panels-dialog .state { color: var(--muted); font-size: .85rem; }
 
+/* The bookmarks dialog: the nine filter lines, read down (design.md,
+   "Bookmarked filters"). Wider than the panel chooser, because what is read
+   here is whole filter lines and a list of them must not shorten the thing it
+   is listing. The digit leads every row and is the one column of fixed width:
+   it is the whole address of a bookmark, so it is what the eye runs down, and
+   an empty slot has to line up under a full one to read as the place it is.
+   The rows are the app's rows, class and all, so j and k look in here the way
+   they look everywhere else. */
+#bookmarks-dialog {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg);
+  width: min(30rem, 92vw); padding: .85rem 1rem;
+}
+#bookmarks-dialog::backdrop { background: rgba(0,0,0,.45); }
+#bookmarks-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+/* the list holds the focus so that the clear mark does not (see the layout),
+   and it wears no ring for it: what says where the keyboard is here is the
+   row under the cursor, and a box drawn round all nine says nothing */
+#bookmarks-dialog .list { margin: 0; }
+#bookmarks-dialog .list:focus { outline: none; }
+#bookmarks-dialog .row { flex-wrap: nowrap; cursor: pointer; }
+#bookmarks-dialog .slot {
+  width: 1.1rem; flex: none; color: var(--muted); text-align: right;
+}
+#bookmarks-dialog .line { overflow-wrap: anywhere; }
+#bookmarks-dialog .empty { font-style: italic; }
+/* the clear mark sits at the right edge, away from the line it empties: it is
+   the one thing in the dialog that destroys something, and it must not be
+   under the finger that is reaching for the row */
+#bookmarks-dialog .clear {
+  margin-left: auto; padding: 0 .3rem; border: none; background: transparent;
+  color: var(--muted); cursor: pointer;
+}
+#bookmarks-dialog .clear:hover { color: var(--danger); }
+
 /* the view's own title line stays put as well, so scrolling never hides which
    view you are in or its primary action. A sticky child offsets from the
    scrollport's content edge, so top has to cancel main's own top padding for

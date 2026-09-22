@@ -117,10 +117,13 @@ type page struct {
 	Total       int    // items the view holds with no filters at all
 	Durations   []app.Duration
 	Nav         *app.NavCounts
-	Today       string
-	Ages        bool // the ages on rows are shown rather than hidden
-	Conf        conf.Config
-	Error       string
+	// Bookmarks is the nine filter lines, for the ctrl-0 dialog. On every
+	// page because the dialog is in the layout, like the panel chooser.
+	Bookmarks []bookmark
+	Today     string
+	Ages      bool // the ages on rows are shown rather than hidden
+	Conf      conf.Config
+	Error     string
 	// SelfURL is this page's own address, filters and all, so the background
 	// refresh can ask for exactly the page it is standing on rather than for a
 	// fragment endpoint that would have to be kept in step with it (see
@@ -170,6 +173,7 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	if p.Nav == nil {
 		p.Nav = &app.NavCounts{}
 	}
+	p.Bookmarks = s.bookmarks().rows()
 	// the trail starts at the view, with the same count the nav badge shows —
 	// one number, one rule, whichever panel you are reading it off. A screen
 	// under no view starts at its own title instead, which is all it has.
@@ -192,6 +196,17 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 // viewFilters implements the persistent per-view filter set: a request
 // carrying the "f" marker saves its filters for the view; a bare request
 // gets the remembered set back, still applied.
+//
+// What the view does not filter by is dropped, the way the read API drops it
+// (see api.go): every view offers its own subset and answers by that subset
+// (design.md, "The filter line"). The screen itself never sends a token
+// outside the subset — the box refuses it as it is typed — so this bites on
+// exactly two things, a URL written by hand and a bookmark, which is
+// view-agnostic by design and so is the one thing that routinely arrives
+// holding more than this view can use (design.md, "Bookmarked filters"). It
+// is dropped rather than refused: the line is written back out of the
+// filters, so what the box shows afterwards is what the list is narrowed by
+// and nothing is left sitting in it doing nothing.
 func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
 	q := r.URL.Query()
 	if q.Get("f") == "1" {
@@ -203,7 +218,8 @@ func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
 			}
 		}
 	}
-	return s.parseFilters(q)
+	f, _ := app.NarrowToView(view, s.parseFilters(q))
+	return f
 }
 
 // agesState is the one display flag the app carries, kept where the per-view

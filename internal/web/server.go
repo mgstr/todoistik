@@ -246,6 +246,10 @@ func (s *Server) routes() {
 	// the panels around a view, toggled from the ctrl-v dialog
 	m.HandleFunc("POST /panels/{which}", s.panelsToggle)
 
+	// the nine filter lines under the digits: ctrl-N keeps one, and the
+	// ctrl-0 dialog is where they are read and cleared
+	m.HandleFunc("POST /bookmark", s.bookmarkSave)
+
 	// settings: tag / context list management
 	m.HandleFunc("GET /settings", s.settingsPage)
 	m.HandleFunc("POST /settings/create", s.settingsCreate)
