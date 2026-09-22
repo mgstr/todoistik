@@ -107,7 +107,7 @@ type page struct {
 	Processing  bool   // the nav slot named by View reads "Processing…" instead
 	Notation    bool   // the ? panel also explains how an action is written
 	When        bool   // the ? panel also explains what a schedule's When takes
-	Vocab       struct{ Contexts, Tags []string }
+	Vocab       struct{ Contexts, Tags, Verbs []string }
 	Filters     app.Filters
 	FilterQuery string // current filter query string (for sort/order links)
 	Hidden      int    // how many items the filters hide
@@ -196,6 +196,11 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 	// and two short lists are cheaper to carry than to ask for
 	p.Vocab.Contexts, _ = s.app.Contexts()
 	p.Vocab.Tags, _ = s.app.Tags()
+	// the verbs ride along for the same reason: the title box is marked while
+	// it is being typed, which is the key layer's job and not the server's, so
+	// the list has to be on the page the box is on (see implementation.md,
+	// "The verb a title opens with")
+	p.Vocab.Verbs, _ = s.app.Verbs()
 	return p
 }
 
@@ -1983,8 +1988,13 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
+	verbs, err := s.app.VerbList()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
 	line := s.settingsLine(r)
-	d := &settingsData{Cloud: app.NarrowNames(tags, contexts, line), Made: r.URL.Query().Get("made")}
+	d := &settingsData{Cloud: app.NarrowNames(tags, contexts, verbs, line), Made: r.URL.Query().Get("made")}
 	var names []string
 	for _, t := range tags {
 		names = append(names, "#"+t.Name)
@@ -2069,6 +2079,8 @@ func (s *Server) settingsRemove(w http.ResponseWriter, r *http.Request) {
 		err = s.app.RemoveContext(r.FormValue("name"))
 	case "params":
 		err = s.app.RemoveContextParam(r.FormValue("context"), r.FormValue("value"))
+	case "verbs":
+		err = s.app.RemoveVerb(r.FormValue("word"))
 	default:
 		http.NotFound(w, r)
 		return

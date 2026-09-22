@@ -155,6 +155,11 @@ var nameTokenRe = regexp.MustCompile(`^([@#])([^\s()]+)(\(([^()]*)\))?$`)
 // Create, and it takes the notation rather than a kind and a name because the
 // sigil is the only thing on that screen saying which list is meant.
 //
+// A bare word is the third list, the verbs: `@` and `#` are spoken for, and a
+// verb is written with no sigil everywhere else in the app because it is a
+// word in a title rather than notation. So the line spells the thing it makes,
+// here as elsewhere — `#bike` a tag, `@garage` a context, `call` a verb.
+//
 // Three refusals are its own. A name that differs from one already on the list
 // only by case is the drift the list exists to stop (design.md, "Contexts"). A
 // tag has no parameter. And a parameter needs its context to exist first: the
@@ -164,7 +169,10 @@ func (a *App) CreateName(line string) error {
 	line = strings.TrimSpace(line)
 	m := nameTokenRe.FindStringSubmatch(line)
 	if m == nil {
-		return fmt.Errorf("%q is not one name: #name, @name or @name(parameter)", line)
+		if plainVerb(line) {
+			return a.AddVerb(line)
+		}
+		return fmt.Errorf("%q is not one name: #name, @name, @name(parameter) or a verb", line)
 	}
 	sigil, name, hasParam, param := m[1], m[2], m[3] != "", strings.TrimSpace(m[4])
 	if sigil == "#" {

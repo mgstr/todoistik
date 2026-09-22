@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS item_tags (
 	PRIMARY KEY (item_type, item_id, tag)
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS contexts (name TEXT PRIMARY KEY) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS verbs (word TEXT PRIMARY KEY) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS context_params (
 	context TEXT NOT NULL,
 	value TEXT NOT NULL,
@@ -155,7 +156,10 @@ func (a *App) migrate() error {
 			return err
 		}
 	}
-	return nil
+	// The verb list starts with something on it, once and once only — a seed
+	// rather than a set of defaults, so that a word taken off stays off (see
+	// verbs.go).
+	return a.seedVerbs()
 }
 
 func (a *App) hasColumn(table, column string) (bool, error) {

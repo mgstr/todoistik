@@ -142,26 +142,27 @@ func (a *App) count(query string) (int, error) {
 	return n, err
 }
 
-// NameCloud is the two remembered lists as the Settings screen shows them
-// through its filter line: what is left of each, and how many names are on
-// the screen out of how many there are. A parameter counts as a name of its
-// own, because it is removed on its own.
+// NameCloud is the remembered lists as the Settings screen shows them through
+// its filter line: what is left of each, and how many names are on the screen
+// out of how many there are. A parameter counts as a name of its own, because
+// it is removed on its own, and so does a verb.
 type NameCloud struct {
-	Tags, Contexts []NameUse
-	Shown, Total   int
+	Tags, Contexts, Verbs []NameUse
+	Shown, Total          int
 }
 
-// NarrowNames narrows both lists by a filter line. Every word has to match,
-// the rule the name filter uses everywhere else (see matchName). A word with
-// # asks about tags only and one with @ about contexts only, so the notation
-// that writes a name also says which list it is looked for on; a bare word
-// asks both. `@person(mar` asks about the parameters under a context.
+// NarrowNames narrows the three lists by a filter line. Every word has to
+// match, the rule the name filter uses everywhere else (see matchName). A word
+// with # asks about tags only and one with @ about contexts only, so the
+// notation that writes a name also says which list it is looked for on; a bare
+// word asks all three, which is what a verb is written as anywhere else.
+// `@person(mar` asks about the parameters under a context.
 //
 // A context whose own name does not match is still shown when one of its
 // parameters does, with only those parameters under it: a parameter read
 // without its context is a bare word, and `Marju` means nothing until it is
 // `@person(Marju)` (design.md, "Contexts").
-func NarrowNames(tags, contexts []NameUse, line string) NameCloud {
+func NarrowNames(tags, contexts, verbs []NameUse, line string) NameCloud {
 	var words []nameWord
 	for _, w := range strings.Fields(strings.ToLower(line)) {
 		words = append(words, parseNameWord(w))
@@ -197,7 +198,13 @@ func NarrowNames(tags, contexts []NameUse, line string) NameCloud {
 		shown.Params = params
 		c.Contexts = append(c.Contexts, shown)
 	}
-	c.Shown = len(c.Tags)
+	for _, v := range verbs {
+		c.Total++
+		if all(func(w nameWord) bool { return w.verb(v.Name) }) {
+			c.Verbs = append(c.Verbs, v)
+		}
+	}
+	c.Shown = len(c.Tags) + len(c.Verbs)
 	for _, ctx := range c.Contexts {
 		c.Shown += 1 + len(ctx.Params)
 	}
@@ -232,6 +239,13 @@ func (w nameWord) tag(name string) bool {
 
 func (w nameWord) context(name string) bool {
 	return w.sigil != "#" && !w.hasParam && strings.Contains(strings.ToLower(name), w.name)
+}
+
+// A verb is written with no sigil anywhere in the app — it is a word in a
+// title — so only a bare word on the line asks about one. `@` and `#` are
+// asking the other two lists, and a verb has nothing to say to either.
+func (w nameWord) verb(word string) bool {
+	return w.sigil == "" && !w.hasParam && strings.Contains(word, w.name)
 }
 
 // A parameter is found by its own text or by the context it sits under, so

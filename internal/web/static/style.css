@@ -14,6 +14,14 @@
   --accent: light-dark(#2456d6, #7da2ff); --danger: light-dark(#c02626, #ff7b7b);
   --ok: light-dark(#1a7f37, #5fc07a); --ext: light-dark(#9b2fae, #d99ae8);
   --badge-bg: light-dark(#f0f0f0, #23262d); --row-hover: light-dark(#f6f8ff, #1d2129);
+  /* Not-quite-right, as against --danger's this-is-wrong. The one thing
+     wearing it is the title that does not open with a verb, which is saved
+     exactly as written — so it may not look like a refusal (design.md,
+     "Inbox Zero"). Themed, unlike the key bar's Russian marker, which is the
+     same yellow on both schemes on purpose: that one has to shout across a
+     page it does not own, and this one is a border on a box the eye is
+     already resting on. */
+  --warn: light-dark(#b07800, #f5c518);
   --select: light-dark(#eef2ff, #22304d);
   --bar-bg: light-dark(#eceef3, #1f232b);
   /* What `anim.done = flash` and `anim.delete = flash` pulse the item in. Not
@@ -1017,6 +1025,22 @@ button:disabled:hover { border-color: var(--line); }
 /* the token box draws its border on the input, and its mirror sits behind:
    the mark belongs to the one the eye reads as the box */
 .fbox .unsaved { border-style: dashed; border-color: var(--accent); }
+
+/* A title that does not open with a verb (design.md, "Inbox Zero"). The whole
+   of the enforcement: the border changes colour and the save goes through, so
+   writing it anyway costs one press and nothing else — except that the mark is
+   still there the next time the action is opened, which is what stops it being
+   free. Solid rather than dashed, because dashed already means "not written
+   down yet" two rules up and this is about what is written; and two pixels,
+   because a one-pixel border in a colour is a border a screen away from being
+   the same border. */
+input.notverb { border: 2px solid var(--warn); }
+/* The same thing said on a review row, where there is no box to draw a border
+   on (design.md, "Weekly review"). Outlined rather than filled, like `parked`
+   and unlike `error`: a filled badge is the row's loudest thing, and this is
+   a remark about the wording next to items whose own state — stalled, snoozed,
+   waiting — is what the walk is actually for. */
+.badge.noverb { color: var(--warn); border: 1px solid var(--warn); background: transparent; }
 
 /* ===== A moment that shows itself ========================================
    Three keys leave a screen and bring another one of the same shape back —

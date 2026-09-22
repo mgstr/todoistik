@@ -53,5 +53,29 @@
     </li>
   {{end}}
   </ul>
+
+  {{/* The verbs an action title may open with (design.md, "Inbox Zero"). A
+       third cloud rather than a screen of its own: it is a remembered list,
+       and this is the screen the remembered lists are kept on. Bare words,
+       because a verb is written bare in a title — the sigils belong to the
+       two lists that are notation.
+
+       The delete control is written here instead of coming from "namedelete",
+       because that template disables itself on a name in use and this list
+       means the opposite: the count says how much of your work opens with the
+       word, which is how you tell the ones worth keeping from the hundred
+       that were seeded — it never says whether it may go (see RemoveVerb). */}}
+  <ul class="cloud verbs">
+  {{range .Data.Cloud.Verbs}}
+    <li class="name" data-kb-row {{if eq .Name $made}}data-kb-arrive{{end}}>
+      <span class="title">{{.Name}}</span>
+      <span class="badge count">{{.Count}}</span>
+      <form method="post" action="/settings/verbs/remove" class="inline kb-delete">
+        <input type="hidden" name="word" value="{{.Name}}">
+        <button class="small danger" title="delete">×</button>
+      </form>
+    </li>
+  {{end}}
+  </ul>
 </div>
 {{template "bottom" .}}

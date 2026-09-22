@@ -495,6 +495,7 @@ internal/app/             the domain — everything design.md describes, indepen
   query.go                the filter line: `@home #car milk` read into a filter set and written back out
   nav.go                  per-view item counts, for the nav badges
   meta.go                 the remembered tag/context lists
+  verbs.go                the remembered verb list an action title is asked to open with, and its seed
   requests.go             completion requests: what one names, and confirming it
   app_test.go             behavior tests for the load-bearing rules — not CRUD plumbing
 

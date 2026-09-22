@@ -1511,6 +1511,9 @@
       paintBox(e.target);
       showSuggest(e.target);
     }
+    // the title's mark follows the typing, so that fixing the word takes the
+    // yellow off in the same keystroke that earned it
+    if (e.target.matches && e.target.matches("[data-verbcheck]")) markVerb(e.target);
     disarmDiscard();
     const scope = e.target.closest && e.target.closest("form, dialog");
     if (scope) { gate(scope); renderKeybar(); }
@@ -1842,10 +1845,19 @@
   // The line is the name: `#bike` typed and matching nothing is what creating
   // #bike looks like. The button is offered for exactly one #name or @name that
   // neither list holds, compared without case — `#Car` beside #car is the drift
-  // the list is there to stop, so it is not something to offer. A bare word
-  // says neither list and gets nothing. What the page cannot tell is whether
-  // @shop(Lidl) has a context to go under; that is the server's refusal to say.
+  // the list is there to stop, so it is not something to offer. What the page
+  // cannot tell is whether @shop(Lidl) has a context to go under; that is the
+  // server's refusal to say.
+  //
+  // A bare word is the verb list, which is the one remembered list written
+  // with no sigil because a verb is written with no sigil in a title. It is
+  // the only way a verb is learned, so the button says which list it means:
+  // `Create #bike` is unambiguous from the word itself and `Create call` is
+  // not, and a button that does not say what it makes is worse than a longer
+  // one. Compared in lower case for the reason the others are compared
+  // without it — `Call` and `call` are the same verb (see normVerb).
   const CREATABLE = /^([@#])[\p{L}\p{N}_-]+(\([^()]+\))?$/u;
+  const CREATABLE_VERB = /^[\p{L}][\p{L}-]*$/u;
 
   function createForm() {
     const form = document.querySelector("form[data-create]");
@@ -1860,16 +1872,106 @@
     const holder = document.querySelector("[data-names]");
     const names = (holder ? holder.dataset.names : "").toLowerCase().split("\n");
     const m = CREATABLE.exec(line);
-    const ok = !filterBar().hidden && !!m && !(m[1] === "#" && m[2]) &&
-      names.indexOf(line.toLowerCase()) < 0;
+    const verb = !m && CREATABLE_VERB.test(line) &&
+      vocabNames("verbs").indexOf(line.toLowerCase()) < 0;
+    const ok = !filterBar().hidden && (verb ||
+      (!!m && !(m[1] === "#" && m[2]) && names.indexOf(line.toLowerCase()) < 0));
     form.hidden = !ok;
     if (ok) {
       form.querySelector("[name=q]").value = line;
-      form.querySelector("button").textContent = "Create " + line;
+      form.querySelector("button").textContent = verb ? "Create verb " + line : "Create " + line;
     }
   }
 
   function paintAll() { tokenBoxes().forEach(paintBox); }
+
+  // ---- The verb a title opens with ---------------------------------------
+  //
+  // design.md ("Inbox Zero") asks an action's title to start with a verb, and
+  // this is the whole of the asking: the box is drawn yellow and the save goes
+  // through untouched. Nothing here refuses anything, which is why it can live
+  // in the browser alone — there is no second copy of this rule on the server,
+  // because there is nothing for the server to decide.
+  //
+  // Two answers, because the two languages answer differently. A Cyrillic
+  // first word is read by shape: a Russian action title is an infinitive —
+  // "Позвонить маме", "Купить молоко" — and an infinitive ends -ть, -ти or
+  // -чь, so the list never has to hold one. A Latin first word has no shape to
+  // read at all, the English imperative being the bare stem, and only the
+  // remembered list can tell.
+  //
+  // The list is the escape hatch for both. A Russian imperative — "Позвони
+  // маме" — is not an infinitive, and is learned exactly the way an English
+  // verb is: written on the Settings line and created there.
+
+  // CYRILLIC is the layout marker's, up in "Which layout is typing". One test
+  // for "is this Russian", and one place it can be wrong.
+  // -ся and -сь ride behind the ending rather than replacing it, so a
+  // reflexive infinitive — "Разобраться с договором" — is the same rule with a
+  // tail on it.
+  const RU_INFINITIVE = /(ть|ти|чь)(ся|сь)?$/;
+  // The nouns that end the way an infinitive does. -ость is the productive
+  // half and is a rule; the rest is a list, because there is no rule
+  // separating them from a verb — -есть was one until "Прочесть отчёт" walked
+  // into it, and a rule that rejects a verb is worse than a list that misses a
+  // noun. Deliberately not exhaustive, for that reason: a noun slipping
+  // through is a mark that does not appear, which is the cheap way to be
+  // wrong, and the expensive way is marking a title that was written right.
+  const RU_NOUN_END = /ость$/;
+  const RU_NOUNS = [
+    "мать", "дочь", "ночь", "речь", "часть", "сеть", "смерть", "честь",
+    "весть", "повесть", "месть", "лесть", "кость", "гость", "шерсть",
+    "мелочь", "печать", "кровать", "память", "власть", "страсть", "треть",
+    "четверть", "дичь",
+  ];
+
+  // The word a title opens with, spelled the way the verb list spells one.
+  // The server has its own copy of this (app.FirstWord) for counting; this
+  // one is here because the mark follows the typing.
+  function firstWord(title) {
+    const w = (title || "").trim().split(/\s+/)[0] || "";
+    return w.replace(/^[^\p{L}]+/u, "").replace(/[^\p{L}-]+$/u, "").toLowerCase();
+  }
+
+  function startsWithVerb(title) {
+    // an empty box is not a title that got it wrong, it is one not written
+    // yet — and the form's own Create is already disabled while it is empty
+    if (!(title || "").trim()) return true;
+    const w = firstWord(title);
+    // written, and opening with something that is not a word at all: "2
+    // letters" is as far from a verb as "milk" is, and the two are told apart
+    // only by checking the box before the word
+    if (!w) return false;
+    if (vocabNames("verbs").indexOf(w) >= 0) return true;
+    if (!CYRILLIC.test(w)) return false;
+    if (RU_NOUN_END.test(w) || RU_NOUNS.indexOf(w) >= 0) return false;
+    return RU_INFINITIVE.test(w);
+  }
+
+  // Two things wear data-verbcheck, and the second is a review row. Outside
+  // the review a title that got it wrong is left alone: a list you are working
+  // from is not the place to be argued with about wording, and a badge on
+  // every such row in Next actions would be a complaint you learn to read past.
+  // The review is where the titles are being read rather than acted on, so it
+  // is where they are pointed out (design.md, "Weekly review").
+  function verbText(el) {
+    if (el.tagName === "INPUT") return el.value;
+    const t = el.querySelector(".title");
+    return t ? t.textContent : "";
+  }
+
+  function markVerb(el) {
+    const ok = startsWithVerb(verbText(el));
+    const said = el.querySelector(".noverb");
+    // a row says it in a word; a box says it in its own border, having no room
+    // beside it for one
+    if (said) said.hidden = ok;
+    else el.classList.toggle("notverb", !ok);
+  }
+
+  function markVerbs(scope) {
+    (scope || document).querySelectorAll("[data-verbcheck]").forEach(markVerb);
+  }
 
   // ---- The filter line follows the typing ------------------------------
   //
@@ -1949,7 +2051,7 @@
         if (window.htmx) window.htmx.process(el);
       });
       if (window.htmx) window.htmx.process(main);
-      paintAll(); setupPickers(); gateAll(); growAll();
+      paintAll(); setupPickers(); gateAll(); growAll(); markVerbs();
       renderKeybar();
     }).catch(function () { delete bar.dataset.sent; });
   }
@@ -3438,6 +3540,7 @@
   setupPickers();
   gateAll();
   growAll();
+  markVerbs();
 
   // Whether a background refresh may replace the list under you. The poll in
   // the layout is filtered on this, and it is deliberately generous about
@@ -3516,7 +3619,7 @@
     wearTheme();
     restoreFilter();
     paintAll();
-    renderKeybar(); setupPickers(); gateAll();
+    renderKeybar(); setupPickers(); gateAll(); markVerbs();
     growAll();
     // the place before the cursor: a row claimed onto a screen that is already
     // scrolled where it was is in view, and `scrollIntoView({block:"nearest"})`
