@@ -954,10 +954,12 @@ a page load, and what the bar derives itself from.
   because the screen with a timer on it has no ages and every screen with ages
   has no timer — they can never both want it at once, and the doing screen
   renders no ages control at all so the collision cannot even be built
-- `ctrl-1` to `ctrl-9` keep the filter that is on the screen or go to the one
-  kept there, and `ctrl-0` puts the nine of them up — see "Bookmarked filters".
-  The only keys in the app that are digits, and the reason the mode must leave
-  a key that is not a letter alone (keys.md, "What is built")
+- `ctrl-1` to `ctrl-9` keep the filter that is on the screen or go to the
+  bookmark kept there, and `ctrl-0` puts the nine of them up — see "Bookmarked
+  filters". `g 1` to `g 9` are the going half said the way every other going is
+  said, and work where the chords do not. The only keys in the app that are
+  digits, and the reason the mode must leave a key that is not a letter alone
+  (keys.md, "What is built")
 - `ctrl-enter` submits the form being typed in — see "The meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
@@ -3400,27 +3402,48 @@ that the app can be told which, and that being told is remembered.
 
 ## Bookmarked filters
 
-design.md, "Bookmarked filters" asks for nine filter lines under the digits,
-kept and reached by one key each way, and keys.md has the keys. This is the
-wiring (`internal/web/bookmarks.go`, and the section of the same name in
-`app.js`).
+design.md, "Bookmarked filters" asks for nine bookmarks under the digits — a
+view and a line each — kept and reached by one key each way, and keys.md has
+the keys. This is the wiring (`internal/web/bookmarks.go`, and the section of
+the same name in `app.js`).
 
 - **they live in `app_state`, beside the panels and the per-view filter sets.**
-  One row holding one query string, `1=@home+%23car&7=%23car`, so nine slots
-  are one read and one write and a slot nobody has filled costs nothing. It is
-  the same argument the panels make: a single-user app has one place for screen
-  state, and a bookmark kept in the browser would go with the tab it was made
-  in, which is not what the word promises
+  One row holding one query string, `1=@home+%23car&v1=next&7=%23car&v7=archive`,
+  so nine slots are one read and one write and a slot nobody has filled costs
+  nothing. It is the same argument the panels make: a single-user app has one
+  place for screen state, and a bookmark kept in the browser would go with the
+  tab it was made in, which is not what the word promises
+- **the digit holds the line and `v` plus the digit holds the view**, side by
+  side in that one query string rather than one nested inside the other. A
+  nested encoding would have to be escaped twice to be read once, and the point
+  of the notation is that the stored value can be read at a glance. It also
+  makes the old shape a case of the new one: a slot kept before a bookmark knew
+  its view has no `v`, and decodes as a line with no view — which is what it
+  is. The key layer still applies such a slot to the screen it is standing on,
+  where it always did, and `g`+digit passes over it when that screen has no
+  filter line either
 - **what is stored is the filter set written back out**, not the keystrokes:
-  the line is parsed and `Filters.Query()` writes it again (`readableLine`), so
-  a name the app cannot read is dropped once, on the way in, rather than on
-  every use — and the same filter always reads the same way whatever order it
+  the line is parsed, narrowed to the bookmark's own view and written again by
+  `Filters.Query()` (`readableLine`), so a name the app cannot read — or one
+  that view does not filter by — is dropped once, on the way in, rather than on
+  every use, and the same filter always reads the same way whatever order it
   was typed in. That is the codec rule the box already follows (see "Token
-  boxes"), applied at the one other place a line is kept
-- **one endpoint, `POST /bookmark`, with `slot` and `q`.** An empty `q` clears
-  the slot, because storing and clearing are the same write with a different
-  value; a second route would be a second place to get the numbering wrong. A
-  slot outside 1–9 is a 404 rather than a silently ignored write
+  boxes"), applied at the one other place a line is kept. The narrowing is
+  belt-and-braces where the line came off that view's own box, and it is what
+  makes the stored line true of the slot rather than of the screen it came from
+- **one endpoint, `POST /bookmark`, with `slot`, `view` and `q`.** An empty `q`
+  clears the slot, because storing and clearing are the same write with a
+  different value; a second route would be a second place to get the numbering
+  wrong. A slot outside 1–9 is a 404 rather than a silently ignored write, and
+  so is a `view` the app does not filter by (`app.Filterable`) — a bookmark
+  pointing at a view with no filter line is an address that leads nowhere. That
+  refusal is decided from the raw `q`, before the line is narrowed: narrowing
+  to such a view empties any line at all, and a refusal must never arrive
+  looking like a slot being cleared
+- **the view comes from the page, in the hidden form.** `{{.View}}` is
+  rendered into it, so the key layer posts which view it is on without
+  working it out from the filter bar's `action` — the server already answers
+  that question for everything else on the page
 - **it answers JSON when the caller asks for it**, and the key layer does. The
   caret is usually still in the filter line when the digit is pressed, and a
   redirect back to the page would throw away the line being typed — the same
@@ -3429,21 +3452,30 @@ wiring (`internal/web/bookmarks.go`, and the section of the same name in
   what the server stored rather than from what was sent, so the screen never
   shows a line the app would not filter by
 - **the dialog is rendered on every page**, like the panel chooser, and holds
-  all nine rows whatever is in them. The key layer reads the lines off it — no
-  copy of the nine in the browser — and `ctrl-0` only opens it where the screen
-  has a filter line, since a bookmark on the Inbox would have nothing to narrow
-- **going to one is the request typing the line would make**:
-  `/<view>?f=1&q=<line>`. Nothing about applying a filter is special-cased for
-  bookmarks, so a bookmark leaves the view exactly as a typed filter leaves it —
-  narrowed, remembered for the view, bar up
-- **the view narrows the line, in `viewFilters`.** The UI now drops what a view
-  does not offer the way the read API always has (`NarrowToView`, see
-  design.md, "The filter line"). It was not needed before, because the box
-  refuses an out-of-view token as it is typed; a bookmark is the first line
-  that routinely arrives holding more than the view can use. Dropping rather
-  than refusing is design.md's call, and what keeps it honest is that the box
-  is written back out of the filters — the token is not left sitting in the
-  line doing nothing
+  all nine rows whatever is in them. Each row carries `data-view` beside
+  `data-line` and reads as the view's full name and then the line, the name
+  muted: the line is what is read down the list and the view is what qualifies
+  it. The key layer reads both off the row — no copy of the nine in the browser
+  — and `ctrl-0` only opens it where the screen has a filter line, since that
+  key's other half is keeping the filter that is up
+- **going to one is the request typing the line would make, on the view the
+  slot names**: `/<view>?f=1&q=<line>`. Nothing about applying a filter is
+  special-cased for bookmarks, so a bookmark leaves the view exactly as a typed
+  filter leaves it — narrowed, remembered for the view, bar up
+- **`g`+digit goes to one, and is the half that works anywhere.** `ctrl-N`
+  still needs a filter bar, because its other meaning is keeping the filter on
+  the screen and a view without one has nothing to keep; a bookmark that names
+  its own view needs nothing from the screen it is pressed on, so it belongs
+  with the other goings (see "Navigation"). An empty slot is spent silently:
+  the pending `g` is cleared and nothing happens, which is what `g` and any
+  other unbound letter already does
+- **the view still narrows the line in `viewFilters`.** The UI drops what a
+  view does not offer the way the read API always has (`NarrowToView`, see
+  design.md, "The filter line"). Nothing the keys send arrives in that shape
+  any more — a bookmark is narrowed where it is kept — but a hand-written URL
+  and a slot kept before bookmarks knew their view both do, so the rule stays
+  where it can catch them. What keeps it honest is that the box is written back
+  out of the filters — the token is not left sitting in the line doing nothing
 - **the clear mark is out of the tab order and the list takes the focus.** A
   browser opening a dialog focuses the first focusable thing inside it, which
   here is the one control that destroys something; a focus ring on `⌫` says
@@ -3550,7 +3582,7 @@ Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every
 | Waiting for | `W` | Settings | `E` |
 | Calendar | `C` | | |
 
-Two `g` sequences do not jump to a view:
+Three `g` sequences do not jump to a view:
 
 - **`g g` opens the capture dialog** (see "Capture"). The `+` at the head of the
   nav carries a `G` tag of its own while the overlay is up, so the sequence is
@@ -3565,6 +3597,15 @@ Two `g` sequences do not jump to a view:
   and only while the inbox is non-empty — so the bar still never offers a key
   with nothing to do. That state is read off the nav's own alert, which is on
   every page
+- **`g 1`…`g 9` go to a bookmark**, which names its own view and so is a
+  destination like the thirteen (design.md, "Bookmarked filters"). A digit is
+  free after `g` for the reason it is free on the match list: the jumps are
+  letters, one per view, and there is no fourteenth view wanting a number. It
+  gets no tag of its own either — the nine are drawn in a dialog that is shut
+  while the overlay is up — so **the bar carries them as a range**, `1…9 a
+  bookmark`, and only while some slot is full: the same shape and the same
+  rule as `^1…9`. A digit with nothing under it clears the pending `g` and
+  does nothing else
 
 ## Keeping an open page current
 

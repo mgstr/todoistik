@@ -401,6 +401,10 @@
       // there is an inbox to work down, or it would be a key that does nothing
       const view = [["\u2026", "press a marked key"]];
       if (document.querySelector(".pane[data-inbox-full]")) view.push(["z", "inbox zero"]);
+      // the nine have nothing on screen to pin a tag to either \u2014 the dialog
+      // they are drawn in is shut \u2014 so the bar carries them, as a range and
+      // only where there is one to go to, the shape `^1\u20269` already has
+      if (anyBookmark()) view.push(["1\u20269", "a bookmark"]);
       view.push(["esc", "cancel"]);
       return { view: view, global: [] };
     }
@@ -2185,13 +2189,17 @@
 
   // ---- The bookmarked filters ------------------------------------------
   //
-  // Nine filter lines under the digits, and ctrl-0 is the nine of them on the
-  // screen (design.md, "Bookmarked filters"). One key with two answers, and
-  // the filter line decides which: with a filter up, the digit keeps it; with
-  // no filter up, the digit goes to what is kept. That is one idea said from
-  // whichever end you are standing at — this digit and this filter belong
-  // together — rather than two meanings on one key, and it is what makes a
-  // bookmark cost one press in each direction with no mode to remember.
+  // Nine bookmarks under the digits — a view and a line each — and ctrl-0 is
+  // the nine of them on the screen (design.md, "Bookmarked filters"). One key
+  // with two answers, and the filter line decides which: with a filter up, the
+  // digit keeps it; with no filter up, the digit goes to what is kept. That is
+  // one idea said from whichever end you are standing at — this digit and this
+  // filter belong together — rather than two meanings on one key, and it is
+  // what makes a bookmark cost one press in each direction with no mode to
+  // remember. `g 1`…`g 9` is the same going, said the way every other going in
+  // the app is said, and it works where the chord cannot: a screen with no
+  // filter line has no `^N`, and a bookmark that carries its own view does not
+  // need one.
   //
   // The nine live on the server, like the panels and the per-view filter sets.
   // Nothing is kept in here: the dialog the server rendered is where the lines
@@ -2225,16 +2233,23 @@
     return box.defaultValue.trim();
   }
 
-  // Going to one makes exactly the request typing the line would make, so a
-  // bookmark leaves the view in the state a typed filter leaves it in:
-  // narrowed, remembered for the view, and with the bar up saying so. What
-  // this view does not filter by the server drops on the way in — a bookmark
-  // is not about a view, so a line kept on "Next" is a line that can be
-  // pressed on "Tasks" with the half of it that means something there.
+  // Going to one opens the view the bookmark holds with the line it holds,
+  // which is exactly the request typing that line on that view would make — so
+  // a bookmark leaves the view in the state a typed filter leaves it in:
+  // narrowed, remembered for the view, and with the bar up saying so.
+  //
+  // A slot kept before a bookmark knew its view holds a line and no view; that
+  // one is still applied here, where it always was, which is what it meant
+  // when it was kept. With no view and no filter line on this screen either
+  // there is nowhere for it to land, and the press does nothing.
   function goToBookmark(n) {
-    const bar = filterBar(), line = bookmarkLine(n);
-    if (!bar || !line) return;
-    window.location.href = bar.getAttribute("action") + "?f=1&q=" + encodeURIComponent(line);
+    const row = bookmarkRow(n);
+    if (!row || !row.dataset.line) return false;
+    const bar = filterBar();
+    const to = row.dataset.view ? "/" + row.dataset.view : bar && bar.getAttribute("action");
+    if (!to) return false;
+    window.location.href = to + "?f=1&q=" + encodeURIComponent(row.dataset.line);
+    return true;
   }
 
   // Keeping one must not move the screen: the caret is usually still in the
@@ -2242,33 +2257,45 @@
   // would cost the line being typed. So it is the write and nothing else —
   // the same shape the token box uses to learn a name — and the row is filled
   // in from what the server stored rather than from what was sent, since the
-  // server is what decides how a line reads once it is a filter set.
+  // server is what decides how a line reads once it is a filter set — and
+  // which view the bookmark now opens, which the form carries and the key
+  // layer never works out for itself.
   function writeBookmark(n, line) {
     const form = document.querySelector("[data-bookmark-save]");
     if (!form) return;
+    const view = form.querySelector("[name=view]");
     fetch(form.getAttribute("action"), {
       method: "POST",
       headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ slot: String(n), q: line }).toString(),
+      body: new URLSearchParams({ slot: String(n), view: view ? view.value : "", q: line }).toString(),
     }).then(function (res) {
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     }).then(function (kept) {
-      showBookmark(kept.slot, kept.line);
+      showBookmark(kept.slot, kept.view, kept.name, kept.line);
     }).catch(function () { /* nothing was stored, and nothing on screen says it was */ });
   }
 
-  // The row, saying what the slot now holds. An empty slot still reads as a
-  // slot, because the empty ones are the answer to "where does the next one
-  // go" (see the dialog in the layout).
-  function showBookmark(n, line) {
+  // The row, saying what the slot now holds — the view it opens and the line
+  // it opens it with, in that order and drawn the way the layout draws them.
+  // An empty slot still reads as a slot, because the empty ones are the answer
+  // to "where does the next one go" (see the dialog in the layout).
+  function showBookmark(n, view, name, line) {
     const row = bookmarkRow(n);
     if (!row) return;
     row.dataset.line = line;
+    row.dataset.view = view || "";
     const text = row.querySelector(".line");
     text.textContent = "";
-    if (line) text.textContent = line;
-    else {
+    if (line) {
+      if (name) {
+        const where = document.createElement("span");
+        where.className = "in";
+        where.textContent = name;
+        text.appendChild(where);
+      }
+      text.appendChild(document.createTextNode(line));
+    } else {
       const none = document.createElement("span");
       none.className = "empty";
       none.textContent = "empty";
@@ -2298,8 +2325,7 @@
     const line = liveFilter();
     if (line) { writeBookmark(n, line); return true; }
     if (!bookmarkLine(n)) return false;
-    goToBookmark(n);
-    return true;
+    return goToBookmark(n);
   }
 
   function openBookmarks() {
@@ -3086,6 +3112,15 @@
       setPending(false);
       const to = keyOf(e);
       if (to === "g") { e.preventDefault(); openCapture(); return; }
+      // a bookmark is a going like any other now that it holds its own view
+      // (design.md, "Bookmarked filters"), so it answers the key the app says
+      // "go to" with. An empty slot is a destination that does not exist and
+      // the press is spent on nothing — left to the browser rather than
+      // swallowed, which is what an unbound letter after `g` already does
+      if (/^[1-9]$/.test(to)) {
+        if (goToBookmark(Number(to))) e.preventDefault();
+        return;
+      }
       const dest = jumps[to];
       if (dest) {
         e.preventDefault();

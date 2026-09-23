@@ -247,6 +247,10 @@ h2.stalled {
   width: 1.1rem; flex: none; color: var(--muted); text-align: right;
 }
 #bookmarks-dialog .line { overflow-wrap: anywhere; }
+/* the view a bookmark opens, in front of the line it opens it with: muted and
+   not a second full-strength phrase, because the line is what is being read
+   down the list and the view is what qualifies it */
+#bookmarks-dialog .in { color: var(--muted); margin-right: .4rem; }
 #bookmarks-dialog .empty { font-style: italic; }
 /* the clear mark sits at the right edge, away from the line it empties: it is
    the one thing in the dialog that destroys something, and it must not be
