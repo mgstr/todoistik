@@ -3082,9 +3082,9 @@ off it (see "Panels").
   which is a question about what is on screen and not about where else I could
   go
 - **a view's header line, where it still has one, is fixed too**, not just the
-  nav — it carries the view's primary action (Inbox's "Process — Inbox Zero"),
-  which is worth no less at item 200 than at item 1. It carries neither the
-  view's *name* nor its count any more: the title bar says both on every screen
+  nav — what it carries is worth no less at item 200 than at item 1. It carries
+  neither the view's *name* nor its count any more: the title bar says both on
+  every screen
   (see "Panels"), and the `?` panel is where the full name is spelled out where
   the nav abbreviates it — "Next actions" for "Next", "Someday/Maybe" for
   "Someday"
@@ -3100,7 +3100,19 @@ off it (see "Panels").
   on every screen (see "Panels"). Two headers saying the same number is one too
   many, and the one that goes is the one that only some screens had. The partial
   that rendered them (`counthead`) went with them; `pagehead` is left to the
-  headers that carry something else, like the Scheduler's create button
+  headers that carry something else — a review step, which is the one place a
+  count is still a heading's own business
+- **and no view draws a way to make a new item.** The Scheduler's create
+  button did, sitting in a `pagehead` that the move into the key bar (see "The
+  key bar is the buttons") had not reached. A header holding one button is the
+  bar's left half drawn a second time, in the place the eye lands first — the
+  very thing that move was about — and it made the Scheduler the one list in
+  the app showing a way to make a new one, when Projects, Tasks and
+  Someday/Maybe all leave that to `c` and the bar. It is an `actionsbar` now,
+  so it is hidden with the rest and comes back under the list on a screen
+  wearing no bar. What is still drawn in a `pagehead` is a review step's
+  `Back`, which is the way *out* of a screen rather than something the view
+  does — not an argued exception so much as the next thing to look at
 - **the key bar is tinted away from the page colour** and separated by a rule.
   It is chrome, and must not read as the last row of the list
 - **the bar offers only keys that will currently do something.** It is built
@@ -3290,6 +3302,17 @@ the default way through rather than the alternative to a row of buttons.
 - **dialogs keep their buttons.** A dialog is a question and its buttons are
   the answers; take those away and what is left is a box that does not say
   what it is for. The bar lists them there too, exactly as it always did
+- **a control outside an `actionsbar` was missed, and the Scheduler's create
+  button was it.** The rule above is written about `.actionsbar` and
+  `.branches`, which is what the row under a form is made of — so a control
+  sitting anywhere else went on being drawn, and one was: the Scheduler's
+  `Create`, in a `pagehead` of its own. It was the only list in the app
+  offering a visible way to make a new item, which is how it was noticed. A
+  screen-level control goes in an `actionsbar` wherever on the page it sits —
+  the Scheduler's is after the list, so a barless screen draws it under the
+  thing it is about, the way a form's row does. That is the thing to check
+  when adding one: a control the hide rule does not name is a control drawn
+  twice
 
 #### keys.bar_style
 
