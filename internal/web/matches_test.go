@@ -232,3 +232,33 @@ func TestMatchingCanBeTurnedOff(t *testing.T) {
 		t.Error("none should draw nothing")
 	}
 }
+
+// A row is badged with the word the thing would be found under: a standalone
+// action is a task, one inside a project is an action, and the copy link still
+// names the branch that creates it (design.md, "Matches while processing").
+func TestAMatchIsBadgedWithTheWordItIsFoundUnder(t *testing.T) {
+	s, a := matchServer(t)
+	finished(t, a, app.ActionFields{Title: "Change the tyres"})
+	if _, err := a.CreateProject(
+		app.ProjectFields{Title: "Winter-proof the car", DOD: "it starts in January"},
+		[]app.ActionFields{{Title: "Change the tyres over"}},
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := a.Capture("Change the tyres", app.SourceApp); err != nil {
+		t.Fatal(err)
+	}
+
+	body := getPage(t, s, "/process?item=1&one=1")
+	if !strings.Contains(body, `<span class="badge">task</span>`) {
+		t.Error("the standalone action is not badged a task")
+	}
+	if !strings.Contains(body, `<span class="badge">action</span>`) {
+		t.Error("the action inside a project is not badged an action")
+	}
+	// the badge changed and the branch did not: a copy still opens the form
+	// that creates an action
+	if !strings.Contains(body, "&amp;as=action&amp;from=") {
+		t.Error("the copy link no longer names the branch it opens")
+	}
+}
