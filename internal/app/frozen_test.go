@@ -148,7 +148,7 @@ func TestACompletedProjectTakesNoNewAction(t *testing.T) {
 	if _, err := a.CreateAction(p.ID, ActionFields{Title: "Balance them"}, false); !errors.Is(err, ErrCompleted) {
 		t.Errorf("adding an action to a completed project: err=%v, want ErrCompleted", err)
 	}
-	it, _, err := a.Capture("Balance the wheels")
+	it, _, err := a.Capture("Balance the wheels", SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestTheFreezeDoesNotBlockACompletionRequest(t *testing.T) {
 	*now = now.Add(72 * time.Hour)
 	it, _, err := a.Capture(request.Write(request.Line{
 		Source: "reminders", ItemID: act.ID, At: finished, Name: act.Title,
-	}))
+	}), "reminders")
 	if err != nil {
 		t.Fatal(err)
 	}

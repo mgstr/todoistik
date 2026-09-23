@@ -299,7 +299,7 @@ func (a *App) fireSchedules(tx *sql.Tx) error {
 		fired := false
 		for _, day := range occ {
 			text := applySuffix(s.Text, s.Suffix, day)
-			_, accepted, err := a.captureTx(tx, text)
+			_, accepted, err := a.captureTx(tx, text, SourceSchedule)
 			if err != nil {
 				return err
 			}

@@ -5,7 +5,11 @@
   <div class="subject">
     <h1 class="capture-text">{{linkify $d.Line}}</h1>
     {{if $d.Body}}<p class="capture-body">{{linkify $d.Body}}</p>{{end}}
-    <p class="cap">captured {{age $d.CreatedAt}}</p>
+    {{/* the hour and the way in: the two things about a capture that are not
+         in its words, and the only screen that has any use for either
+         (design.md, "Inbox item"). A source of "" is an item captured before
+         the field existed and says nothing rather than guessing. */}}
+    <p class="cap">captured {{age $d.CreatedAt}} at {{clock $d.CreatedAt}}{{if $d.Source}} · via {{$d.Source}}{{end}}</p>
   </div>
 
   {{/* What this capture looks like, between the subject and the answers,

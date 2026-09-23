@@ -25,7 +25,7 @@ func backupFiles(t *testing.T, a *App) []string {
 
 func TestBackupIsNamedForItsHourAndReadableOnItsOwn(t *testing.T) {
 	a, now := newTestApp(t)
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	file, err := a.Backup(*now)
@@ -63,7 +63,7 @@ func TestBackupTwiceInAnHourOverwrites(t *testing.T) {
 	if _, err := a.Backup(*now); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Later in the hour"); err != nil {
+	if _, _, err := a.Capture("Later in the hour", SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	*now = now.Add(30 * time.Minute)

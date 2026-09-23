@@ -44,8 +44,13 @@ func Base(s string) string { return strings.TrimRight(strings.TrimSpace(s), "/")
 // Capture posts one line and reports what the app did with it: "accepted" or
 // "duplicate". Both mean the app has the text; anything else is an error, and
 // the reminder stays where it is.
-func (c *Client) Capture(text string) (string, error) {
-	body, err := json.Marshal(map[string]string{"text": text})
+//
+// source is the channel the calling program is, sent beside the text so that
+// the item says where it came from (design.md, "Inbox item"). Four programs
+// share this client and each is a different way in, so it is a parameter here
+// and a constant there.
+func (c *Client) Capture(text, source string) (string, error) {
+	body, err := json.Marshal(map[string]string{"text": text, "source": source})
 	if err != nil {
 		return "", err
 	}

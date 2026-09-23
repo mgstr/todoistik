@@ -82,7 +82,7 @@ func move(list, base, token string, dry bool) (int, error) {
 			continue
 		}
 
-		status, err := c.Capture(text)
+		status, err := c.Capture(text, source)
 		if err != nil {
 			// a wrong token or an unreachable app fails identically for every
 			// remaining reminder, so stop asking — but still delete what the

@@ -27,13 +27,13 @@ func newTestApp(t *testing.T) (*App, *time.Time) {
 // never meant to identify anything (design.md, "Duplicate captures").
 func TestCaptureCollapsesOnTheWholeTextAndNotTheLine(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, acc, err := a.Capture("Re: the quote\nfrom Marju, 240 eur"); err != nil || !acc {
+	if _, acc, err := a.Capture("Re: the quote\nfrom Marju, 240 eur", SourceApp); err != nil || !acc {
 		t.Fatalf("first: %v %v", acc, err)
 	}
-	if _, acc, _ := a.Capture("Re: the quote\nfrom the garage, 190 eur"); !acc {
+	if _, acc, _ := a.Capture("Re: the quote\nfrom the garage, 190 eur", SourceApp); !acc {
 		t.Fatal("a different body is a different capture, not a duplicate")
 	}
-	if _, acc, _ := a.Capture("Re: the quote\nfrom Marju, 240 eur"); acc {
+	if _, acc, _ := a.Capture("Re: the quote\nfrom Marju, 240 eur", SourceApp); acc {
 		t.Fatal("the identical capture is still a duplicate")
 	}
 }
@@ -43,7 +43,7 @@ func TestCaptureCollapsesOnTheWholeTextAndNotTheLine(t *testing.T) {
 // has to be the same string, or the second would never collapse into the first.
 func TestCaptureNormalizesLineEndings(t *testing.T) {
 	a, _ := newTestApp(t)
-	it, acc, err := a.Capture("  Book the tyre change\r\nquoted 240 eur\r\n  ")
+	it, acc, err := a.Capture("  Book the tyre change\r\nquoted 240 eur\r\n  ", SourceApp)
 	if err != nil || !acc {
 		t.Fatalf("capture: %v %v", acc, err)
 	}
@@ -53,18 +53,18 @@ func TestCaptureNormalizesLineEndings(t *testing.T) {
 	if it.Line() != "Book the tyre change" || it.Body() != "quoted 240 eur" {
 		t.Fatalf("line %q, body %q", it.Line(), it.Body())
 	}
-	if _, acc, _ := a.Capture("Book the tyre change\nquoted 240 eur"); acc {
+	if _, acc, _ := a.Capture("Book the tyre change\nquoted 240 eur", SourceApp); acc {
 		t.Fatal("the same capture posted with LF is a duplicate of the CRLF one")
 	}
 }
 
 func TestCaptureDuplicates(t *testing.T) {
 	a, _ := newTestApp(t)
-	_, acc, err := a.Capture("Pay the rent")
+	_, acc, err := a.Capture("Pay the rent", SourceApp)
 	if err != nil || !acc {
 		t.Fatalf("first capture: acc=%v err=%v", acc, err)
 	}
-	_, acc, err = a.Capture("Pay the rent")
+	_, acc, err = a.Capture("Pay the rent", SourceApp)
 	if err != nil || acc {
 		t.Fatalf("duplicate should be dropped: acc=%v err=%v", acc, err)
 	}
@@ -76,7 +76,7 @@ func TestCaptureDuplicates(t *testing.T) {
 	if err := a.ProcessTrash(items[0].ID); err != nil {
 		t.Fatal(err)
 	}
-	_, acc, _ = a.Capture("Pay the rent")
+	_, acc, _ = a.Capture("Pay the rent", SourceApp)
 	if !acc {
 		t.Fatal("comparison must be against the open inbox only, not history")
 	}
@@ -434,7 +434,7 @@ func TestReviewOutstanding(t *testing.T) {
 	if err := a.SnoozeAction(p.Actions[0].ID, "2027-01-01"); err != nil {
 		t.Fatal(err)
 	}
-	if _, acc, err := a.Capture("Learn the banjo"); err != nil || !acc {
+	if _, acc, err := a.Capture("Learn the banjo", SourceApp); err != nil || !acc {
 		t.Fatalf("capture: acc=%v err=%v", acc, err)
 	}
 	items, _ := a.Inbox()
@@ -526,7 +526,7 @@ func TestReviewMarkFlipsBothWays(t *testing.T) {
 // outstanding the other.
 func TestReviewMarkFollowsTheSomedayCadence(t *testing.T) {
 	a, now := newTestApp(t)
-	if _, acc, err := a.Capture("Learn the banjo"); err != nil || !acc {
+	if _, acc, err := a.Capture("Learn the banjo", SourceApp); err != nil || !acc {
 		t.Fatalf("capture: acc=%v err=%v", acc, err)
 	}
 	items, _ := a.Inbox()
@@ -815,7 +815,7 @@ func TestProcessActionIntoProject(t *testing.T) {
 		t.Fatal("an empty name means standalone, not every project")
 	}
 
-	it, _, _ := a.Capture("Book the winter tyre change")
+	it, _, _ := a.Capture("Book the winter tyre change", SourceApp)
 	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID, false)
 	if err != nil {
 		t.Fatal(err)
@@ -837,7 +837,7 @@ func TestProcessActionParkedAndStandalone(t *testing.T) {
 	p, _ := a.CreateProject(ProjectFields{Title: "Kitchen renovation", DOD: "kitchen usable"},
 		[]ActionFields{{Title: "Measure the wall"}})
 
-	it, _, _ := a.Capture("Price the worktop")
+	it, _, _ := a.Capture("Price the worktop", SourceApp)
 	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Price the worktop"}, p.ID, true)
 	if err != nil {
 		t.Fatal(err)
@@ -846,7 +846,7 @@ func TestProcessActionParkedAndStandalone(t *testing.T) {
 		t.Fatal("a parked action is not a next action")
 	}
 
-	it2, _, _ := a.Capture("Pay the rent")
+	it2, _, _ := a.Capture("Pay the rent", SourceApp)
 	if _, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0, true); err == nil {
 		t.Fatal("parking a standalone action must be refused")
 	}
@@ -874,7 +874,7 @@ func TestProcessActionRejectsCompletedProject(t *testing.T) {
 	if err := a.CompleteProject(p.ID); err != nil {
 		t.Fatal(err)
 	}
-	it, _, _ := a.Capture("File the VAT return")
+	it, _, _ := a.Capture("File the VAT return", SourceApp)
 	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "File the VAT return"}, p.ID, false); err == nil {
 		t.Fatal("a completed project must not take a new action")
 	}
@@ -932,7 +932,7 @@ func TestProjectCandidates(t *testing.T) {
 	}
 
 	// filing an action into a project makes it the most recent again
-	it, _, _ := a.Capture("Order the worktop")
+	it, _, _ := a.Capture("Order the worktop", SourceApp)
 	kitchen, _, _ := a.ProjectCandidates("Kitchen renovation", 0)
 	*now = now.Add(time.Minute)
 	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID, false); err != nil {
@@ -1179,10 +1179,10 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	if err := a.AddTag("hobby"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Learn to sail"); err != nil {
+	if _, _, err := a.Capture("Learn to sail", SourceApp); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Repaint the shed"); err != nil {
+	if _, _, err := a.Capture("Repaint the shed", SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	inbox, _ := a.Inbox()

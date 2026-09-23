@@ -89,7 +89,7 @@ A **static bearer token**, one long-lived secret, checked on every request.
 
 The endpoints, matching design.md exactly:
 
-- `POST /api/capture` — text payload in, an inbox item out. Replies distinctly for **accepted** and **duplicate**, so a script can tell the two apart (see design.md, "Duplicate captures")
+- `POST /api/capture` — text payload in, an inbox item out. Replies distinctly for **accepted** and **duplicate**, so a script can tell the two apart (see design.md, "Duplicate captures"). The caller may name the channel it is, as `?source=` or as a `"source"` beside `"text"`; one that names none is recorded as `api` (see "Which way in a capture came by")
 - `GET /api/context` — every view in one answer, in the navigation rail's order. Same formats, one parameter of its own (see "Every view in one answer")
 - `GET /api/view/<name>` — one endpoint per view, returning the view as JSON, or as plain text with `?format=text` (see "A read is spelled as data or as text"). The caller passes its own filters as query parameters (e.g. `?context=home&tag=car&name=tyre`) — exactly the filters that view offers on screen, same semantics, nothing more. No parameters returns the complete view. Independent of the UI's filter state in both directions (see design.md, "The read API")
   - **which filters a view offers is `app.FiltersFor`**, a table in the domain rather than in a screen, and `app.NarrowToView` drops what the named view does not offer and says so — a `@home` asked of "Tasks" is reported as `not-in-view`, whether it was written in a `q` or spelled out as `?context=home`. The screen's own copy of the table is `BOX_RULES` in `app.js` (see "Token boxes"), which is about what a box will *let you type*; this one is about what a read may answer with, and the two have to agree, so a view gaining a filter changes both. Before it existed the check lived only in the browser, so the read API answered questions the screen could not ask — which contradicted design.md's "nothing can be asked for that a view does not already offer" for every caller that was not a browser
@@ -156,6 +156,15 @@ not read: #cra is no tag
   `overdue` mark the row paints red, the day it was completed in the Archive,
   and `app.Action.Errors` — each of which is derived rather than stored, and so
   has no token
+- **an inbox row carries the hour and the channel**, `captured:2026-09-23T17:42
+  via:telegram`, where every other item's `captured:` is a day. The stamp is a
+  moment on this one kind of item and on no other (design.md, "Time fields"),
+  and the `T` keeps it one token, since these fields are separated by spaces
+  and a space inside one would read as two. An item captured before the field
+  existed carries no `via:` at all rather than an empty one — `fields()` drops
+  what is empty, which is the same way every other optional token is left out.
+  JSON carries both as ordinary fields of the item, so the two spellings are
+  still one answer
 - **dates are absolute, and the header says today's.** Ages elsewhere in the
   app are written out as "3 weeks ago" (see "Ages are written out, not coded")
   because a person glancing at a list wants to know what is rotting; a text
@@ -1223,6 +1232,53 @@ day, which is the same permanently-open-control problem as the filter panels
   cases, and these two keys are the entire interaction. Centring, the backdrop
   and the focus trap are still the browser's
 
+### Which way in a capture came by
+
+`inbox_items.source`, one lowercase word, written by whatever made the capture
+and never edited afterwards (design.md, "Where it came from").
+
+- **each name is written in exactly one place**, which is what stops the same
+  channel being counted twice under two spellings. The four the app itself
+  writes are constants in `internal/app/capture.go` — `app` (the dialog),
+  `api` (a caller that named none), `schedule` (a firing) and `someday` (an
+  idea sent back to the inbox). The other four are constants in the programs
+  that make them: `mail` in `cmd/mailsync`, `telegram` in `cmd/telegrambot`,
+  `reminders` in `cmd/remindersync` and `mcp` in `cmd/todoistikmcp`. Those four
+  talk to the running app over HTTP and never import the domain, by design (see
+  "Reminders, both ways"), so a shared constant would be a dependency bought
+  for one word
+- **`reminders` covers both directions of that bridge**, the list moved in and
+  the completion requests filed. It is the same word `request.Line.Source`
+  already carries for the same reason, and one channel is what it is: a request
+  arrived from Reminders like everything else there, and what makes it a request
+  is the shape of its line, read where it is processed (see "A completion
+  request asks one question")
+- **an agent is `mcp` and not the model's name.** Which model, or which
+  session, is a different answer every month, and the count exists to be read
+  over a year
+- **the name is folded, not validated**: lowercased, trimmed, and anything that
+  is not a letter, digit, dash or underscore dropped, to 32 characters. A name
+  is never a reason to refuse a capture — that would make the one rule capture
+  has (it may fail on an empty text and on nothing else) depend on a field the
+  person capturing never sees. A caller that misspells itself gets its thought
+  in and shows up as its own row in the counts, which is where a misspelling is
+  cheap to notice and cheap to fix
+- **an empty source is an item captured before the field existed**, and every
+  screen and format says nothing rather than guessing. The migration adds the
+  column with `''` in every row; backfilling a name would put captures in a
+  channel's count that the channel never made (see "Schema changes")
+- **`POST /api/capture` takes `?source=` or a `"source"` beside `"text"`**, and
+  falls back to `api` when what it was given folds to nothing. Both spellings
+  because a caller sending JSON has a field to hand and a `curl -d` posting raw
+  text does not, and neither should have to change shape to say one word. The
+  accepted reply already echoes the whole item, so a script can see the name it
+  was recorded under — the same reasoning that makes the endpoint report
+  duplicate and accepted apart
+- **a duplicate records nothing at all**, so a capture that collapsed is not
+  counted against the channel that sent it (design.md, "Duplicate captures").
+  `captureTx` returns before the insert, and there is deliberately no second
+  table counting attempts: the number worth having is what actually landed
+
 ## Processing from the Inbox
 
 The Inbox view holds a list and nothing else — no heading, no count of its own,
@@ -1315,6 +1371,16 @@ and all eight branches on screen at once — three buttons and five forms in
   has no fields (design.md, "Inbox item"). The body keeps its own line breaks:
   it arrived with them, they are most of what made it a body, and this is the
   one screen where they are read
+- **one line under the capture says when it arrived and how**, `captured
+  yesterday at 17:42 · via reminders`, and it is the line that was already
+  there — the age gained the hour and the channel joined it rather than either
+  arriving as furniture of its own (design.md, "Where it came from"). It is
+  `.cap` and not `.agetext`, so `ctrl-t` does not take it away: the flag hides
+  ages, and the hour and the channel are not one. An item captured before the
+  field existed drops the `· via …` half and keeps the rest, because a source
+  of `""` has nothing to say and a screen may not guess. The hour is written
+  24-hour, in the app's one configured timezone (`clock` in
+  `internal/web/server.go`), which is the only time of day this app draws
 - **deciding and describing are two stages.** The question a branch answers is
   *what is this*, and that is one click. Everything a branch then needs — a
   title in valid form, a context, a definition of done — belongs to a second
@@ -4264,6 +4330,13 @@ still reports it, a value rewritten only where the old value is still there.
 - **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
   rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
   current
+- **a column added is added with the value that says it was never set**, and
+  never with a backfill. `inbox_items.source` arrives as `''` in every row that
+  existed before it, and `''` reads everywhere as "captured before this was
+  recorded" (see "Which way in a capture came by"). A guessed backfill would be
+  indistinguishable from a recorded fact, which is the one thing a field kept
+  for counting may not be — and the column is added only when
+  `pragma_table_info` says it is missing, like every other step here
 - **a seed is a migration step, and is guarded by state rather than by the
   schema.** `verbs` is created empty like any other table and then filled once,
   behind `app_state.verbs_seeded` — the table being non-empty is not the guard,

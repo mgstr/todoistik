@@ -9,8 +9,13 @@ import "time"
 const DateFormat = "2006-01-02"
 
 type InboxItem struct {
-	ID        int64     `json:"id"`
-	Text      string    `json:"text"`
+	ID   int64  `json:"id"`
+	Text string `json:"text"`
+	// Source is the way in this capture arrived by — the app's own dialog, a
+	// schedule firing, mail, Telegram, Reminders, an agent, a script. It is
+	// asserted by whatever made the capture and never edited afterwards, which
+	// is what a field counted over a year has to be (design.md, "Inbox item").
+	Source    string    `json:"source"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 

@@ -42,6 +42,12 @@ func syncRun(args []string, eh flag.ErrorHandling) (int, error) {
 
 // source is what a request says it came from: this program's name for itself,
 // and the word a future second kind of sync would not share.
+//
+// It is also what every capture this program makes is recorded under (design.md,
+// "Inbox item"), in both directions — the list moved into the inbox and the
+// completion requests filed here. One name for the two, because a request
+// arrived from Reminders like everything else does, and what makes it a request
+// is the shape of its line, read where it is processed and nowhere else.
 const source = "reminders"
 
 // desired is one item as the list should hold it: the title it is written
@@ -158,7 +164,7 @@ func sync(list, base, token, view, query string, dry bool) (int, error) {
 	// get back
 	spent := make([]string, 0, len(p.Requests))
 	for _, q := range p.Requests {
-		status, err := c.Capture(q.line)
+		status, err := c.Capture(q.line, source)
 		if err != nil {
 			fmt.Fprintf(errOut, "kept: %s (%v)\n", q.line, err)
 			left++

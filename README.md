@@ -86,6 +86,11 @@ One way in, one way out — both under the same bearer token:
 curl -X POST -H "Authorization: Bearer $TOK" -d "Buy new winter tyres" http://host:8390/api/capture
 # → {"status":"accepted", ...} or {"status":"duplicate"}
 
+# name the channel you are, so the item says where it came from: ?source=name,
+# or "source" beside "text" in the JSON. A caller that names none is "api"
+curl -X POST -H "Authorization: Bearer $TOK" -d "Buy new winter tyres" \
+  "http://host:8390/api/capture?source=shortcuts"
+
 # read (the only way out): any view, with the caller's own filters
 curl -H "Authorization: Bearer $TOK" "http://host:8390/api/view/next?tag=car&context=online"
 

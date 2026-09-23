@@ -138,7 +138,7 @@ func (a *App) ReturnToInbox(id int64) error {
 		for _, t := range it.Tags {
 			text += " #" + t
 		}
-		_, _, err = a.captureTx(tx, text)
+		_, _, err = a.captureTx(tx, text, SourceSomeday)
 		return err
 	})
 }
@@ -159,30 +159,30 @@ func (a *App) removeSomedayTx(tx *sql.Tx, id int64, event string) (*SomedayItem,
 
 // --- Inbox Zero branches -------------------------------------------------
 // Each branch consumes the inbox item and produces the decided outcome in one
-// transaction. The inbox is the only source: an idea that has become worth
-// moving on goes back to the inbox first (design.md, "Reshaping items"), so
-// that every decision is made in one place, on one kind of item.
+// transaction. The inbox is the only place decisions are made: an idea that has
+// become worth moving on goes back to the inbox first (design.md, "Reshaping
+// items"), so every decision is made in one place, on one kind of item.
 
-func (a *App) consumeSource(tx *sql.Tx, id int64, event string) error {
+func (a *App) consumeInboxItem(tx *sql.Tx, id int64, event string) error {
 	_, err := a.removeInboxItem(tx, id, event)
 	return err
 }
 
 // ProcessTrash: the item is deleted, recorded in the audit log.
 func (a *App) ProcessTrash(id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvTrashed) })
+	return a.tx(func(tx *sql.Tx) error { return a.consumeInboxItem(tx, id, EvTrashed) })
 }
 
 // ProcessReference: sent out of the app to wherever reference material is
 // kept; the app stores none. The audit entry is the record it existed.
 func (a *App) ProcessReference(id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvReference) })
+	return a.tx(func(tx *sql.Tx) error { return a.consumeInboxItem(tx, id, EvReference) })
 }
 
 // ProcessTwoMinute: done right now, under two minutes — completed in the
 // audit log without ever becoming an action.
 func (a *App) ProcessTwoMinute(id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeSource(tx, id, EvTwoMinute) })
+	return a.tx(func(tx *sql.Tx) error { return a.consumeInboxItem(tx, id, EvTwoMinute) })
 }
 
 // ProcessAction: the item becomes an action, standalone when projectID is 0
@@ -214,7 +214,7 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bo
 	}
 	var act *Action
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeSource(tx, id, EvDeleted); err != nil {
+		if err := a.consumeInboxItem(tx, id, EvDeleted); err != nil {
 			return err
 		}
 		now := a.now().UTC()
@@ -241,7 +241,7 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bo
 // action required — the Inbox Zero project branch).
 func (a *App) ProcessProject(id int64, f ProjectFields, actions []ActionFields) (*Project, error) {
 	if err := a.tx(func(tx *sql.Tx) error {
-		return a.consumeSource(tx, id, EvDeleted)
+		return a.consumeInboxItem(tx, id, EvDeleted)
 	}); err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (a *App) ProcessSomeday(id int64, f SomedayFields) (*SomedayItem, error) {
 	}
 	var it *SomedayItem
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeSource(tx, id, EvDeleted); err != nil {
+		if err := a.consumeInboxItem(tx, id, EvDeleted); err != nil {
 			return err
 		}
 		now := a.now().UTC()
