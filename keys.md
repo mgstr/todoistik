@@ -296,6 +296,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
 | `↵` `o` | open the selected row |
 | `g` + letter | a view — see implementation.md, "Navigation" |
+| `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
 | `z` | Inbox Zero over the whole inbox |
 | `w` | the selected action, alone on the doing screen |
@@ -308,7 +309,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | `^o` | follow a link in the item under the cursor |
 | `^m` | jump to a control on the screen already open |
 | `^f` | the filter line, and a second press takes it and every filter away |
-| `^1`…`^9` | the nine bookmarked filters: keep the one on the screen, or go to the one kept |
+| `^1`…`^9` | the nine bookmarks: keep the filter on the screen, or go to the one kept |
 | `^0` | the nine of them, on the screen |
 | `^v` | the panel chooser; a second `^v` presses zen |
 | `^↵` | submit the form being typed in |
@@ -329,15 +330,38 @@ processing screen's `2` therefore stays bare in every mode, which is what
 keeps it out of the bookmarks' way: a `^2` there would have been the same
 chord twice.
 
-Both are offered only where the screen has a filter line, because a bookmark
-is a filter and there is nothing on the Inbox for one to narrow — the same
-rule that stops the bar advertising anything else that would do nothing.
+Both are offered only where the screen has a filter line, because the chord's
+other half is keeping the filter that is up and there is none on the Inbox —
+the same rule that stops the bar advertising anything else that would do
+nothing.
+
+**A bookmark now names its own view, so it is also a `g`.** `g 1`…`g 9` open
+the bookmark under that digit — its view, with its filter on it — and that is
+the one half of the pair that needs nothing from the screen it is pressed on,
+so it works everywhere, the Inbox and the review included. A digit is free
+after `g` because every jump is a letter — one per view, and there is no
+fourteenth view wanting a number — so nothing had to be given up for it.
+
+The two are not two meanings: `^3` with a filter up *makes* a bookmark and is
+pressed with your hands in the filter line, `g 3` *goes to* one and is pressed
+with your hands anywhere. Making one where there is nothing to make it from is
+not a thing to spend a second key on, and going somewhere is the app's most
+ordinary move and already has a key — so each half sits under the key its own
+half of the job already belongs to.
+
+**A `g` on an empty slot does nothing and says nothing.** `g 4` with slot 4
+empty spends the press: no message, no empty view. That is the standing rule
+rather than an exception to it — a key with nothing to do is never offered,
+and "there is nothing under 4" is not news to whoever pressed 4. While `g` is
+armed the bar says `1…9 a bookmark` only when some slot is full, so the offer
+and the answer cannot disagree.
 
 **`^0` is a list, and inside it the digits are bare**, meaning exactly what
 they mean outside: keep this filter here, or go to what is here. `j` `k` move,
 `↵` is the digit of the row under the cursor, `⌫` empties a slot, and `esc`
 closes. All nine are shown whatever is in them — design.md, "Bookmarked
-filters" says why the empty ones are part of the answer.
+filters" says why the empty ones are part of the answer — and a full row reads
+as the view it opens and then the line it opens it with.
 
 `^e` is *elapsed*, which is the one word that covers both halves of what the
 key means: an age is elapsed time and a timer counts it. It has to cover both,

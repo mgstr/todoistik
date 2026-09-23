@@ -120,6 +120,12 @@ var viewFilters = map[string]ViewFilters{
 // FiltersFor is what the named view's line may say.
 func FiltersFor(view string) ViewFilters { return viewFilters[view] }
 
+// Filterable says whether the named view has a filter line at all, which is
+// the same question as whether it can hold a bookmark: a bookmark is a view
+// and a line (design.md, "Bookmarked filters"), and a view that filters by
+// nothing has no line for one to be.
+func Filterable(view string) bool { return viewFilters[view] != ViewFilters{} }
+
 // NarrowToView drops what the view does not offer and says what it dropped, so
 // that a filter a view does not have is a refusal rather than a filter that
 // silently did nothing — which would be a list you cannot trust for the same

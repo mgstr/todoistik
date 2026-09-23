@@ -108,9 +108,14 @@
      form for all nine, because the slot is a field and not a route: the key
      layer fills in which digit was pressed and what the line says, the way it
      fills in the panel chooser's forms by pressing them. Hidden, having
-     nothing to show that the ctrl-0 dialog does not already show. */}}
+     nothing to show that the ctrl-0 dialog does not already show.
+
+     The view rides in the form rather than being worked out by the key layer:
+     a bookmark is a view and a line (design.md, "Bookmarked filters"), and
+     which view this is is the server's answer everywhere else on the page. */}}
 <form method="post" action="/bookmark" hidden data-bookmark-save>
   <input type="hidden" name="slot" value="">
+  <input type="hidden" name="view" value="{{.View}}">
   <input type="hidden" name="q" value="">
 </form>
 {{/* Not aria-hidden any more: the bar holds the screen's controls rather than
@@ -195,8 +200,8 @@
     <button>Zen mode<span class="state">{{if .Panels.Zen}}on{{else}}off{{end}}</span></button>
   </form>
 </dialog>
-{{/* The nine bookmarked filter lines (design.md, "Bookmarked filters"). All
-     nine are listed whatever is in them: the empty ones are the answer to
+{{/* The nine bookmarks — a view and a line each (design.md, "Bookmarked
+     filters"). All nine are listed whatever is in them: the empty ones are the answer to
      "where can the next one go", and a list that showed only the full slots
      would renumber itself every time one was cleared — the digit is the whole
      address of a bookmark, so it has to be the thing that stands still.
@@ -205,7 +210,11 @@
      what it means outside — keep this filter, or go to that one — and a
      dialog that navigated on every press could not be the place you look
      things up in. What it presses still goes to the server, which is the only
-     copy (see implementation.md, "Bookmarked filters"). */}}
+     copy (see implementation.md, "Bookmarked filters").
+
+     It is on every page and not only on the ones with a filter line, because
+     the key layer reads the nine off it: `g 1`…`g 9` go to a bookmark from
+     anywhere, and a shut dialog is where they find out where. */}}
 <dialog id="bookmarks-dialog" aria-labelledby="bookmarks-title">
   <h2 id="bookmarks-title">Bookmarks</h2>
   {{/* The list takes the focus on the way in. A browser opening a dialog
@@ -216,9 +225,12 @@
        and the cursor is already on its first row. */}}
   <ul class="list bookmarks" tabindex="-1" autofocus>
   {{range .Bookmarks}}
-    <li class="row bookmark" data-kb-row data-slot="{{.N}}" data-line="{{.Line}}">
+    <li class="row bookmark" data-kb-row data-slot="{{.N}}" data-view="{{.View}}" data-line="{{.Line}}">
       <span class="slot">{{.N}}</span>
-      <span class="line">{{if .Line}}{{.Line}}{{else}}<span class="empty">empty</span>{{end}}</span>
+      {{/* the view leads the line, because it is what the digit does first —
+           it opens that view — and because two slots holding the same line on
+           different views are told apart by nothing else */}}
+      <span class="line">{{if .Line}}{{with .Name}}<span class="in">{{.}}</span>{{end}}{{.Line}}{{else}}<span class="empty">empty</span>{{end}}</span>
       {{/* out of the tab order, so opening the dialog does not land the focus
            ring on the one control in it that destroys something — the cursor
            reaches it with ⌫, and the mouse by clicking it */}}
