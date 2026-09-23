@@ -13,7 +13,7 @@
 <div class="item" data-cancel="{{$d.Back}}">
   <form method="post" action="/project/{{$d.ProjectID}}/addaction" class="stack">
     {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
-      "Fixed" $d.ProjectTitle "Focus" true)}}
+      "Fixed" $d.ProjectTitle "Focus" true "Siblings" $d.Siblings)}}
 
     {{/* the row promote.html carries, with this screen's verb in it: what
          this makes, and the way out that makes nothing */}}

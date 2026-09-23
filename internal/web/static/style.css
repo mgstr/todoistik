@@ -425,7 +425,13 @@ section.project.done { opacity: .8; }
 .fsuggest {
   position: absolute; z-index: 6; top: 100%; left: 0;
   margin: .15rem 0 0; padding: .2rem; list-style: none;
-  min-width: 12rem; max-height: 14rem; overflow-y: auto;
+  /* 14rem fitted the eight date words exactly, which was right until a
+     `snooze:` started offering the project's actions after them: the dates
+     filled the panel to the pixel and the actions sat below the fold, so the
+     one list that is about *this* screen was the one you could not see. Tall
+     enough for the dates and the first few actions; the rest scrolls, and
+     typing a word of a title is the quicker way past six of them. */
+  min-width: 12rem; max-height: 19rem; overflow-y: auto;
   background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
 }
 .fsuggest li { padding: .2rem .45rem; border-radius: 5px; white-space: nowrap; cursor: pointer; }

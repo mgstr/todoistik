@@ -127,8 +127,25 @@ func (a *App) VocabularyIn(projectID, self int64) (*Vocabulary, error) {
 		return nil, err
 	}
 	v.Self = self
+	v.Siblings, err = a.Siblings(projectID)
+	return v, err
+}
+
+// Siblings are the open actions of a project — what a `snooze:` written in it
+// may name. It is exported because the box that completes a half-typed line
+// needs the same list the parser resolves against: one answer to "what may
+// this name", read by both (implementation.md, "Token boxes").
+//
+// The action being edited is left *in*, and taken out by whoever knows which
+// one that is. The parser needs it there in order to say "an action cannot
+// wait on itself" rather than the much worse "that is not an action of this
+// project", which is true of nothing and would send you looking for a typo.
+//
+// projectID 0 is empty rather than an error: a standalone action has no
+// siblings, which is the same fact whichever side is asking.
+func (a *App) Siblings(projectID int64) ([]Sibling, error) {
 	if projectID == 0 {
-		return v, nil
+		return nil, nil
 	}
 	rows, err := a.db.Query(`SELECT id, title FROM actions
 		WHERE project_id=? AND completed_at IS NULL ORDER BY id`, projectID)
@@ -136,14 +153,15 @@ func (a *App) VocabularyIn(projectID, self int64) (*Vocabulary, error) {
 		return nil, err
 	}
 	defer rows.Close()
+	var out []Sibling
 	for rows.Next() {
 		var sib Sibling
 		if err := rows.Scan(&sib.ID, &sib.Title); err != nil {
 			return nil, err
 		}
-		v.Siblings = append(v.Siblings, sib)
+		out = append(out, sib)
 	}
-	return v, rows.Err()
+	return out, rows.Err()
 }
 
 // A token starts a word: preceded by the start of the text or by whitespace.

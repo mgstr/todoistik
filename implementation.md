@@ -2312,6 +2312,47 @@ which notation this one accepts.
   already normalises everything else it writes back. And a number completes
   to `3weeks`, `3months` and `3years` rather than `3days`, a count of days
   being the rolling window this filter deliberately does not have
+- **a `snooze:` also completes the actions it may name**, after the dates
+  rather than among them: a date is what a snooze usually is and the list is
+  read from the top, so the actions are last because they are the longer
+  answer, not the rarer one. Four things had to be settled to make that work,
+  and each is a rule the dates did not need:
+
+  - **the list hangs on the box, not on the pane.** The remembered names are
+    the same on every screen and ride on `.pane` because any page may hold a
+    box; what a `snooze:` may name depends on which project's action *this*
+    box is writing. So `data-siblings` is an attribute of the input, filled by
+    `siblingsJSON` in `ui.go` from the same `app.Siblings` the parser resolves
+    against — one answer to "what may this name", read by both. JSON rather
+    than the space-separated form the other lists use, because a title has
+    spaces in it and an id is a second field.
+  - **it carries the ids as well as the titles**, for the one decision a title
+    cannot settle: two open actions may share a name, and completing to
+    `snooze:(…)` would then write a line the server refuses as ambiguous.
+    Knowing the ids, the box writes `snooze:#42` for exactly those — and the
+    row still reads the title with the id after it, because two rows saying
+    `snooze:#1` and `snooze:#2` are a choice between two things you cannot
+    tell apart, which is the ambiguity moved rather than answered.
+  - **the two halves are capped separately.** Nine rows of dates as before,
+    six of actions. Sharing one cap meant a bare `snooze:` spent every row on
+    dates and showed a single action, which is the list not being there at all
+    on the keystroke most likely to open it. The panel grew from 14rem to
+    19rem for the same reason: 14 fitted the eight date words exactly, so the
+    actions sat below the fold.
+  - **an open bracket is a token being typed.** `snooze:(buy the fr` needs its
+    own typing regex, every other half-typed value being one word, and it
+    needs the marks suppressed from the bracket to the caret: until it is
+    closed the line honestly reads as an unreadable date followed by loose
+    prose, and would be underlined three or four times while you spell one
+    action's name. The marks come back when the bracket closes, which is also
+    when the line means anything.
+
+  What this does *not* reach is the processing screen, whose project is chosen
+  on the screen itself: the siblings are not known until it has been, and the
+  notation still works if typed. The screens where a plan is actually ordered
+  are an action's own page and the project's add-action screen, and those are
+  the two that carry the list.
+
 - **a value that stopped being a window is dropped, not kept.**
   `parseFilters` clears a `completed` it cannot read, which is what a filter
   set remembered from before this saying `lastweek` arrives as. Kept, it would

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"html"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -102,4 +103,64 @@ func TestMetaLineWritesTheWaiting(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "matches no open action") {
 		t.Fatalf("the refusal must say why: %s", rec.Body.String())
 	}
+}
+
+// The meta box completes a `snooze:` from the project's other open actions, so
+// the list has to reach the box. It hangs on the box rather than on the pane
+// because it is the one completion list that differs per screen
+// (implementation.md, "Token boxes").
+func TestTheMetaBoxCarriesTheActionsASnoozeMayName(t *testing.T) {
+	s, a := newTestServer(t)
+	p, buy := pictureProject(t, a)
+	hang, err := a.CreateAction(p.ID, app.ActionFields{Title: "Hang it"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := getPage(t, s, "/action/"+itoa(hang.ID))
+	if !strings.Contains(body, "data-siblings=") {
+		t.Fatalf("the box carries no completion list: %s", body)
+	}
+	if !strings.Contains(body, "Buy the picture") {
+		t.Errorf("the sibling is not offered: %s", body)
+	}
+	// itself is never on the list: an action cannot wait on itself, and a
+	// completion that wrote a refusal would be worse than none
+	sibs := attrValue(t, body, "data-siblings")
+	if strings.Contains(sibs, "Hang it") {
+		t.Errorf("the action being edited is on its own completion list: %s", sibs)
+	}
+	if !strings.Contains(sibs, itoa(buy.ID)) {
+		t.Errorf("the list carries no ids, so an ambiguous title has no way out: %s", sibs)
+	}
+
+	// a standalone action has no plan to be ordered inside, so no list at all
+	loose, _ := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"})
+	if body := getPage(t, s, "/action/"+itoa(loose.ID)); strings.Contains(body, "data-siblings=") {
+		t.Errorf("a standalone action offers siblings it cannot have: %s", body)
+	}
+
+	// and the add-action screen offers every open action, there being no
+	// action yet for one of them to be
+	body = getPage(t, s, "/project/"+itoa(p.ID)+"/addaction")
+	sibs = attrValue(t, body, "data-siblings")
+	if !strings.Contains(sibs, "Buy the picture") || !strings.Contains(sibs, "Hang it") {
+		t.Errorf("the add-action box should offer both open actions: %s", sibs)
+	}
+}
+
+// attrValue pulls one attribute's value out of rendered HTML, with the entity
+// escaping undone — the list is JSON, so it arrives full of &#34;.
+func attrValue(t *testing.T, body, attr string) string {
+	t.Helper()
+	i := strings.Index(body, attr+`="`)
+	if i < 0 {
+		t.Fatalf("no %s in the page", attr)
+	}
+	rest := body[i+len(attr)+2:]
+	j := strings.Index(rest, `"`)
+	if j < 0 {
+		t.Fatalf("unterminated %s", attr)
+	}
+	return html.UnescapeString(rest[:j])
 }
