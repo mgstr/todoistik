@@ -1,7 +1,4 @@
 {{template "top" .}}
-<header class="pagehead">
-  <a class="button primary" href="/schedule/new" data-key="c" data-key-label="create" data-key-typing>Create</a>
-</header>
 {{template "filterbar" .}}
 {{if not .Data}}<p class="empty">Nothing scheduled.</p>{{end}}
 <ul class="list">
@@ -14,4 +11,14 @@
   </li>
 {{end}}
 </ul>
+{{/* Create is in the key bar like every other control, and drawn under the
+     list only where there is no bar (style.css, "The controls are in the key
+     bar"). This was the last screen drawing a button of its own, and it read
+     as the exception it was: a header holding one button is the bar's left
+     half a second time, in the place the eye lands first — and the Scheduler
+     is a list like Projects, Tasks and Someday/Maybe, none of which draws a
+     way to make a new one. */}}
+<div class="actionsbar">
+  <a class="button primary" href="/schedule/new" data-key="c" data-key-label="create" data-key-typing>Create</a>
+</div>
 {{template "bottom" .}}

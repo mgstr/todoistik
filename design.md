@@ -429,7 +429,7 @@ Some screens open in zen without being asked, because they are screens you are i
 
 **Nothing else changes when a panel goes.** Every key still works with the bar hidden, every view is still reachable with the rail hidden: hiding a list of where you could go does not close the doors. A panel is a thing shown, never a thing enabled - which is what makes turning them off safe enough to be worth offering.
 
-This is why a screen with no key bar puts the row of buttons back under its form. The bar owns the keys no more than the rail owns the views, but it *is* where the controls are drawn, and a panel that took the controls away with it would be a panel that disabled something. So the buttons go wherever there is room for them: in the bar when there is a bar, on the form when there is not. Zen mode is the case that matters, since two screens open in it unasked - and both of those are screens you are in the middle of one item on, where a menu under the item is the right shape anyway.
+This is why a screen with no key bar puts the row of buttons back under its form. The bar owns the keys no more than the rail owns the views, but it *is* where the controls are drawn, and a panel that took the controls away with it would be a panel that disabled something. So the buttons go wherever there is room for them: in the bar when there is a bar, and under whatever the screen is about when there is not - the form on an item's page, the list on a view that carries a control of its own. Zen mode is the case that matters, since two screens open in it unasked - and both of those are screens you are in the middle of one item on, where a menu under the item is the right shape anyway.
 
 ### Theme
 The app is painted in one of two palettes, light or dark, and which one is in force has three answers: either palette, or the machine's.
@@ -684,6 +684,7 @@ It is the only view holding something you have not committed to, and the only on
 - it shows the text, the rule in readable form, when it next fires and when it last did. A rule with nothing ahead of it says so rather than leaving the space blank - it is a schedule on its last day in the list, and a blank would read as a missing value rather than as an answer
 - it carries the filter line, matching the text of the schedule - see "Filtering by name" and "The filter line". By text and by nothing else: a schedule has no context and no tag to narrow it by, so its line is words, and the box says so rather than ignoring a name quietly
 - it carries no tag cloud. A schedule has no tags: it is not a commitment and belongs to no area of responsibility. What it produces does, once accepted
+- **a new schedule is made with `c`, and the view draws no button saying so.** It used to, and it was the only list in the app that did - Projects, Tasks, Someday/Maybe and the rest all leave making a new one to the key and the key bar (see "Panels"). One view answering the same question differently is the kind of difference that has to be re-learned every time it is met, and there is nothing about a schedule that earns it
 - it is reviewed during the weekly review, at step 7
 
 ### The read API
