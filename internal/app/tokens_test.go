@@ -2,6 +2,7 @@ package app
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -564,4 +565,94 @@ func TestSeedGivesASomedayItemTheWholeCapture(t *testing.T) {
 	if s.Description != "" {
 		t.Fatalf("description: %q — the someday form has no second box", s.Description)
 	}
+}
+
+// Renaming the blocker must not break what waits on it. The link is the row
+// id, never the words, so the title is only ever how the line reads — and it
+// reads as whatever the blocker is called now (design.md, "Time fields").
+func TestRenamingTheBlockerKeepsTheWaiting(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	hang, err := a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: buy.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := a.Action(hang.ID); got.Meta() != "snooze:(Buy the picture)" {
+		t.Fatalf("before the rename the line reads %q", got.Meta())
+	}
+
+	if err := a.UpdateAction(buy.ID, ActionFields{Title: "Order the print from Marju"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := a.Action(hang.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.SnoozeActionID != buy.ID {
+		t.Fatal("renaming the blocker must not break the link")
+	}
+	if !got.IsSnoozed(a.Today()) {
+		t.Fatal("it is still waiting")
+	}
+	if got.Meta() != "snooze:(Order the print from Marju)" {
+		t.Fatalf("the line must read as the new title, got %q", got.Meta())
+	}
+
+	// and the line that now reads back still saves: re-parsing what was
+	// written resolves to the same action, so an ordinary open-and-save on the
+	// waiting action does not quietly drop the waiting
+	v, err := a.VocabularyIn(p.ID, hang.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := ParseMeta(got.Meta(), v)
+	if err != nil {
+		t.Fatalf("the rewritten line no longer parses: %v", err)
+	}
+	if f.SnoozeActionID != buy.ID {
+		t.Fatalf("re-reading the line resolved to %d, want %d", f.SnoozeActionID, buy.ID)
+	}
+}
+
+// Renaming a blocker into a title another open sibling already has does not
+// lose the waiting — the link is an id and is untouched. What it costs is that
+// the line no longer reads unambiguously, so saving the waiting action needs
+// the id spelling. That is reported rather than guessed at, which is the rule
+// every ambiguous name on this line follows.
+func TestRenamingABlockerIntoADuplicateTitle(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	frame, _ := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame"})
+	hang, err := a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: buy.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.UpdateAction(buy.ID, ActionFields{Title: "Buy the frame"}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _ := a.Action(hang.ID)
+	if got.SnoozeActionID != buy.ID {
+		t.Fatal("the waiting is an id and survives any rename, ambiguous or not")
+	}
+	v, _ := a.VocabularyIn(p.ID, hang.ID)
+	if _, err := ParseMeta(got.Meta(), v); err == nil {
+		t.Fatal("two siblings now share that title, so the line must be refused rather than guessed")
+	}
+	// and the id spelling is the way through, naming the one that was meant
+	f, err := ParseMeta("snooze:#"+itoa64(buy.ID), v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.SnoozeActionID != buy.ID || f.SnoozeActionID == frame.ID {
+		t.Fatalf("the id named %d, want %d", f.SnoozeActionID, buy.ID)
+	}
+}
+
+func itoa64(n int64) string {
+	return strconv.FormatInt(n, 10)
 }

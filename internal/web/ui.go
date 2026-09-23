@@ -1277,6 +1277,40 @@ type actionPageData struct {
 	Contexts []string
 	Tags     []string
 	Back     string // the view this was opened from, for Back and esc
+	Siblings string // the actions `snooze:` may name here, as JSON — see siblingsJSON
+}
+
+// siblingsJSON is the list the meta box completes a `snooze:` from: this
+// project's open actions, less the one being edited, as `[{"id":…,"t":"…"}]`.
+//
+// It carries the id beside the title because the box has one decision to make
+// that the title alone cannot settle: two open actions may share a name, and
+// completing to `snooze:(…)` would then write a line the server refuses as
+// ambiguous. Knowing the ids, the box writes `snooze:#42` for exactly those
+// and the readable form for everything else.
+//
+// JSON rather than the space-separated attributes the remembered lists use,
+// because a title has spaces in it and an id is a second field.
+func siblingsJSON(sibs []app.Sibling, self int64) string {
+	type entry struct {
+		ID    int64  `json:"id"`
+		Title string `json:"t"`
+	}
+	out := []entry{}
+	for _, s := range sibs {
+		if s.ID == self {
+			continue
+		}
+		out = append(out, entry{ID: s.ID, Title: s.Title})
+	}
+	if len(out) == 0 {
+		return ""
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return ""
+	}
+	return string(b)
 }
 
 // homeOf is where an item lives when nothing said where you came from: its
@@ -1297,6 +1331,13 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 	d := &actionPageData{Action: act, Back: s.parentView(r, homeOf(act))}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
+	// what this action's `snooze:` may name. Empty for a standalone one, which
+	// has no plan to be ordered inside, and empty on a completed one, whose
+	// line is read rather than typed
+	if act.CompletedAt == nil {
+		sibs, _ := s.app.Siblings(act.ProjectID)
+		d.Siblings = siblingsJSON(sibs, act.ID)
+	}
 	// the title bar says which screen this is, not which item is on it: the
 	// item's name is the biggest thing on the page already, and the trail is
 	// the one place that answers "where am I" (design.md, "Panels")
@@ -1528,10 +1569,14 @@ func (s *Server) projectAddAction(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/project/"+itoa(proj.ID), http.StatusSeeOther)
 		return
 	}
+	sibs, _ := s.app.Siblings(proj.ID)
 	d := &addActionPageData{
 		ProjectID:    proj.ID,
 		ProjectTitle: proj.Title,
 		Back:         "/project/" + itoa(proj.ID),
+		// nothing to exclude: the action being written does not exist yet, so
+		// every open action of the project is one it may be filed behind
+		Siblings: siblingsJSON(sibs, 0),
 	}
 	// the trail reads Projects / Add an action, the same shape promoting has:
 	// the item this is about is named by the form's own project box, not twice
@@ -1545,6 +1590,7 @@ type addActionPageData struct {
 	ProjectID    int64
 	ProjectTitle string
 	Back         string // the project, which is where this screen was opened from
+	Siblings     string // the actions `snooze:` may name here, as JSON
 }
 
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {

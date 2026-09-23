@@ -287,8 +287,14 @@
      the list could not sit exactly under the box. */}}
 <span class="fbox">
   <span class="fmirror" aria-hidden="true"></span>
+  {{/* data-siblings is the one completion list that is not the same on every
+       screen: the remembered names ride on the pane because any page may hold
+       a box, while what a `snooze:` may name depends on which project's action
+       this particular box is writing. So it hangs on the box (see
+       implementation.md, "Token boxes"). */}}
   <input name="{{.Name}}" value="{{.Value}}" data-tokenbox="{{.Mode}}"
          autocomplete="off" spellcheck="false"
+         {{with .Siblings}}data-siblings="{{.}}"{{end}}
          {{if .Label}}aria-label="{{.Label}}"{{end}}>
   <ul class="fsuggest" hidden></ul>
 </span>
@@ -416,7 +422,7 @@
 {{else if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
-<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action")}}</label>
+<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action" "Siblings" .Siblings)}}</label>
 <label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="1" data-grow spellcheck="false">{{.Description}}</textarea></label>
 {{template "extlinks" .Description}}
 {{end}}

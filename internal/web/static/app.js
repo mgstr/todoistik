@@ -1666,6 +1666,10 @@
   // `snooze:` rather than one character
   const TYPING_RE = /(^|\s)([@#])([\p{L}\p{N}_-]*)$/u;
   const TYPING_DATE_RE = /(^|\s)([a-z]+:)([\p{L}\p{N}-]*)$/u;
+  // and the same thing once the bracket is open: `snooze:(buy the fr`. It
+  // needs a regex of its own because what is inside the brackets is a title,
+  // so it has spaces in it — every other half-typed value is one word.
+  const TYPING_SNOOZE_ACTION_RE = /(^|\s)(snooze:)\(([^)]*)$/u;
   const DATE_OK = /^\d{4}-\d{2}-\d{2}$/;
   const NDAYS_OK = /^\d+(d|days?)$/;
   const NDAYS_ZERO = /^0+(d|days?)$/;
@@ -1830,7 +1834,22 @@
         out.push({ kind: "prose", start: w.index, end: w.index + w[0].length, text: w[0], name: w[0], sigil: "" });
       }
     }
-    return out.sort(function (a, b) { return a.start - b.start; });
+    out.sort(function (a, b) { return a.start - b.start; });
+    // An open `snooze:(` is a title being typed, and a title is words with
+    // spaces in it — so until the bracket is closed the line honestly reads as
+    // an unreadable date followed by loose prose, and would be marked three or
+    // four times while you spell one action's name. Nothing else on the line
+    // has this problem: every other value is a single word, so a half-typed
+    // one is a single mark that lands where the caret already is.
+    //
+    // So the span from the open bracket to the caret is left alone. The marks
+    // come back the moment the bracket is closed, which is also the moment the
+    // line means anything.
+    const typing = typingToken(box);
+    if (typing && typing.bracket) {
+      return out.filter(function (p) { return p.end <= typing.start; });
+    }
+    return out;
   }
 
   // What is wrong with a date token's value, "" when nothing is. `ahead` is
@@ -2092,9 +2111,47 @@
   function typingToken(box) {
     if (!box || document.activeElement !== box) return null;
     const before = box.value.slice(0, box.selectionStart);
+    // the bracketed form first: `snooze:(buy` also matches TYPING_DATE_RE's
+    // shape at the `snooze:` and would be read as a half-typed date word
+    const open = TYPING_SNOOZE_ACTION_RE.exec(before);
+    if (open) {
+      return {
+        sigil: open[2], prefix: open[3], bracket: true,
+        start: before.length - open[2].length - open[3].length - 1, // the "(" too
+      };
+    }
     const m = TYPING_RE.exec(before) || TYPING_DATE_RE.exec(before);
     if (!m) return null;
     return { sigil: m[2], prefix: m[3], start: before.length - m[2].length - m[3].length };
+  }
+
+  // The actions this box's `snooze:` may name, off the box itself — unlike the
+  // remembered names, which are the same on every screen and ride on the pane.
+  function siblings(box) {
+    if (!box || !box.dataset.siblings) return [];
+    try {
+      const all = JSON.parse(box.dataset.siblings);
+      return Array.isArray(all) ? all : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // How a chosen sibling is written, and how its row reads. The readable form
+  // normally; the id where two open actions share a title, because
+  // `snooze:(…)` would then name both and the server refuses it as ambiguous
+  // (design.md, "Writing an action").
+  //
+  // The row still says the title in that case, with the id after it. Two rows
+  // reading `snooze:#1` and `snooze:#2` are a choice between two things you
+  // cannot tell apart — which is the ambiguity moved rather than answered.
+  function snoozeEntry(all, sib) {
+    const twins = all.filter(function (o) {
+      return o.t.toLowerCase() === sib.t.toLowerCase();
+    }).length > 1;
+    const readable = "snooze:(" + sib.t + ")";
+    if (!twins) return { insert: readable, label: readable };
+    return { insert: "snooze:#" + sib.id, label: readable + " #" + sib.id };
   }
 
   // What a half-typed token may still become: the remembered names after an @
@@ -2105,28 +2162,72 @@
   // The names are sorted because that list is a lookup; the dates are left in
   // the order they are written down in, because theirs is an order everybody
   // already knows and alphabetical would open with Friday.
+  // Every entry is {name, insert}: what is matched against what has been
+  // typed, and the text that replaces the half-typed token when it is taken.
+  // insert is only needed where the two differ, which is the sibling snooze —
+  // it is matched on the action's title and written as `snooze:(that title)`.
+  // name is what the typed letters are matched against, insert the text that
+  // replaces the half-typed token, label what the row reads. The last two
+  // differ only where a title is not enough to name one action — see
+  // snoozeEntry.
+  function entry(name, insert, label, sib) {
+    return { name: name, insert: insert, label: label, sib: !!sib };
+  }
+
   function poolFor(box, t) {
-    if (t.sigil === "@" || t.sigil === "#") return knownNames(box, t.sigil).slice().sort();
+    if (t.sigil === "@" || t.sigil === "#") {
+      return knownNames(box, t.sigil).slice().sort().map(function (n) { return entry(n); });
+    }
     const spec = rulesFor(box).dates[t.sigil.slice(0, -1)];
     if (!spec) return [];
-    const words = spec.words.slice();
+    // inside the brackets only an action can be meant, so the dates are not
+    // offered there — `snooze:(mon` is not a half-typed Monday
+    const words = t.bracket ? [] : spec.words.slice();
     // a number is a count of days, and the unit is the only part of it left to
     // say. It goes first because it is what was already being typed
     const digits = /^\d+$/.test(t.prefix);
     const zero = digits && Number(t.prefix) === 0;
-    if (spec.days && digits && !(spec.ahead && zero)) words.unshift(t.prefix + "days");
-    if (spec.periods && digits && !zero) words.unshift(t.prefix + "weeks", t.prefix + "months", t.prefix + "years");
-    return words;
+    if (!t.bracket && spec.days && digits && !(spec.ahead && zero)) words.unshift(t.prefix + "days");
+    if (!t.bracket && spec.periods && digits && !zero) words.unshift(t.prefix + "weeks", t.prefix + "months", t.prefix + "years");
+    const out = words.map(function (n) { return entry(n); });
+    // and the actions this one may wait on, after the dates rather than among
+    // them: a date is what a snooze usually is, and the list is read from the
+    // top. They are last because they are the longer answer, not the rarer one
+    if (!spec.action) return out;
+    const all = siblings(box);
+    return out.concat(all.map(function (sib) {
+      const e = snoozeEntry(all, sib);
+      return entry(sib.t, e.insert, e.label, true);
+    }));
   }
+
+  // How many rows each half of a `snooze:` list may have. The dates keep nine,
+  // for the reason they always had: the list is nine long and cutting Sunday
+  // off the end costs more than one more row does. The actions are counted
+  // separately rather than sharing that nine, because sharing it meant a bare
+  // `snooze:` spent every row on dates and showed one action — which is the
+  // list not being there at all on the one keystroke most likely to open it.
+  //
+  // Six is what fits under the box without the panel becoming a view of its
+  // own; past that, typing a word of the title is the way through, and the box
+  // scrolls in the meantime.
+  const SUGGEST_DATES = 9;
+  const SUGGEST_ACTIONS = 6;
 
   function suggestionsFor(box, t) {
     const pool = poolFor(box, t);
     const p = t.prefix.toLowerCase();
-    const starts = pool.filter(function (n) { return n.toLowerCase().indexOf(p) === 0; });
-    const holds = pool.filter(function (n) { return n.toLowerCase().indexOf(p) > 0; });
-    // nine rather than eight, because the date list is nine long and cutting
-    // Sunday off the end of it would cost more than one more row does
-    return starts.concat(holds).slice(0, 9);
+    // what starts with the typed letters first, then what merely contains
+    // them — a title is several words and the one you remember may be the
+    // second, so containing is worth offering rather than only leading
+    const rank = function (list) {
+      const starts = list.filter(function (e) { return e.name.toLowerCase().indexOf(p) === 0; });
+      const holds = list.filter(function (e) { return e.name.toLowerCase().indexOf(p) > 0; });
+      return starts.concat(holds);
+    };
+    const dates = rank(pool.filter(function (e) { return !e.sib; })).slice(0, SUGGEST_DATES);
+    const sibs = rank(pool.filter(function (e) { return e.sib; })).slice(0, SUGGEST_ACTIONS);
+    return dates.concat(sibs);
   }
 
   function showSuggest(box) {
@@ -2136,10 +2237,13 @@
     const names = t ? suggestionsFor(box, t) : [];
     if (!names.length) { hideSuggest(); return; }
     list.textContent = "";
-    names.forEach(function (n, i) {
+    names.forEach(function (e, i) {
       const li = document.createElement("li");
-      li.textContent = t.sigil + n;
-      li.dataset.name = n;
+      // the row says the whole token it will write, so what an entry does is
+      // read off the list rather than worked out from the letters typed so far
+      li.textContent = e.label || t.sigil + e.name;
+      li.dataset.name = e.name;
+      if (e.insert) li.dataset.insert = e.insert;
       if (i === 0) li.className = "on";
       list.appendChild(li);
     });
@@ -2167,10 +2271,12 @@
 
   // taking a name writes it where the half-typed one was, and leaves a space:
   // a line is a list of names and the next one is usually coming
-  function takeSuggest(box, name) {
+  // insert, when given, is the whole token — a sibling snooze writes brackets
+  // round a title, or an id, neither of which is sigil-plus-name.
+  function takeSuggest(box, name, insert) {
     const t = typingToken(box);
     if (!t || !box) return;
-    const head = box.value.slice(0, t.start) + t.sigil + name + " ";
+    const head = box.value.slice(0, t.start) + (insert || t.sigil + name) + " ";
     box.value = head + box.value.slice(box.selectionStart);
     box.setSelectionRange(head.length, head.length);
     hideSuggest();
@@ -3080,7 +3186,7 @@
       }
       if (open && (e.key === "Enter" || e.key === "Tab")) {
         const on = list.querySelector("li.on");
-        if (on) { e.preventDefault(); takeSuggest(box, on.dataset.name); return; }
+        if (on) { e.preventDefault(); takeSuggest(box, on.dataset.name, on.dataset.insert); return; }
       }
       // enter applies the filter line; on a meta line it submits the form it
       // is in, which is the browser's own answer and is checked on the way
@@ -3258,7 +3364,7 @@
       e.preventDefault();
       const box = pick.closest(".fbox").querySelector("[data-tokenbox]");
       box.focus();
-      takeSuggest(box, pick.dataset.name);
+      takeSuggest(box, pick.dataset.name, pick.dataset.insert);
       return;
     }
     if (!e.target.closest(".fbox")) hideSuggest();
