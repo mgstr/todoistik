@@ -2603,9 +2603,20 @@
   // the URL, and the answer has to be about the page that is actually on
   // screen. The pane carries it, and not the nav, because the nav is a panel
   // and can be off (implementation.md, "Panels").
+  //
+  // A view's name is not enough on its own: a screen inside a view borrows it,
+  // so the project page opened from Next calls itself `next` exactly as the
+  // Next list does — and the two have different lists on them. Completing the
+  // last action of a project from Next then handed the cursor to the project's
+  // own action list, which put it on the action just completed and took the
+  // screen's own Done off the bar with it. `data-step` is the app's existing
+  // answer to "is this the view's list, or a screen inside it" — the trail's
+  // second crumb, set by ui.go's step() — carried onto the pane.
   function viewKey() {
     const pane = document.querySelector(".pane[data-view]");
-    return pane ? pane.dataset.view || location.pathname : location.pathname;
+    if (!pane) return location.pathname;
+    const view = pane.dataset.view || location.pathname;
+    return pane.hasAttribute("data-step") ? view + "/step" : view;
   }
 
   function handSelectionOn(row) {
@@ -2640,6 +2651,17 @@
     } catch (err) { /* no session storage: the place is lost, nothing else is */ }
   }
 
+  // The two handovers are taken back the same way, and only where they were
+  // claimed or found to be nonsense — a stored line that will not parse is not
+  // something to keep offering the next page.
+  function dropPlace() {
+    try { sessionStorage.removeItem(PLACE); } catch (err) { /* nothing to undo */ }
+  }
+
+  function dropSelection() {
+    try { sessionStorage.removeItem(HANDOVER); } catch (err) { /* nothing to undo */ }
+  }
+
   function claimPlace() {
     let raw = null;
     try { raw = sessionStorage.getItem(PLACE); } catch (err) { return; }
@@ -2648,13 +2670,14 @@
     // either — the same rule the selection is claimed under, for the same
     // screen: doing is reached from a row and comes straight back to the list
     if (!rows().length) return;
-    try { sessionStorage.removeItem(PLACE); } catch (err) { /* nothing to undo */ }
     let want;
-    try { want = JSON.parse(raw); } catch (err) { return; }
+    try { want = JSON.parse(raw); } catch (err) { dropPlace(); return; }
     // and only on the screen it was handed from: completing an action can
     // answer with the project page, where an offset down the list it was
-    // completed on means nothing
+    // completed on means nothing. It is not cleared there either, for the
+    // reason a screen with no list does not clear it — see claimSelection
     if (!want || want.view !== viewKey()) return;
+    dropPlace();
     const main = document.querySelector("main");
     // a list that is now shorter clamps this itself, which is the answer
     // wanted: the end of what is left rather than an offset past it
@@ -2669,14 +2692,19 @@
     // doing is a screen you go to from a row and come straight back to it, and
     // the row is expected to be where it was (design.md, "Doing one action")
     if (!rows().length) return;
-    try { sessionStorage.removeItem(HANDOVER); } catch (err) { /* nothing to undo */ }
     let want;
-    try { want = JSON.parse(raw); } catch (err) { return; }
-    // only on the screen it was handed from. Completing an action can answer
-    // with the project page instead of the list, and a row position means
-    // nothing there — a selection restored onto a different screen would be
-    // the app choosing an item nobody pointed at
+    try { want = JSON.parse(raw); } catch (err) { dropSelection(); return; }
+    // Only the list it was handed from claims it, and only that list clears
+    // it. Completing an action can answer with the project page, which has a
+    // list of its own — the project's actions — and a row position from the
+    // list you were working means nothing on it: restoring the cursor there
+    // would be the app choosing an item nobody pointed at. Throwing it away
+    // there would be as wrong, and for the reason a screen with no rows keeps
+    // it: you are one press from being back on the list it belongs to, and it
+    // is expected to still be where you left it (design.md, "Doing one
+    // action")
     if (!want || want.view !== viewKey()) return;
+    dropSelection();
     const all = rows();
     let row = want.href && all.find(function (r) { return r.dataset.href === want.href; });
     // the row can be gone, which is what completing one does. Then the

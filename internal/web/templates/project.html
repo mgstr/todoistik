@@ -2,7 +2,12 @@
 {{$d := .Data}}{{$p := $d.Project}}
 <div class="item" data-cancel="{{$d.Back}}"
   {{with itemlinks $p.DOD}}data-links="{{.}}"{{end}}>
-  {{if $p.Stalled}}<p class="error-banner">STALLED — this project has no next action.</p>{{end}}
+  {{/* Stalled is not said up here. A banner across the top of the screen is
+       the loudest thing the app has, and what it was shouting about is one
+       list further down — the mark belongs on that list's own heading, where
+       the thing that is missing would be added (implementation.md, "Writing a
+       project"). The error banners stay: they are about the fields directly
+       under them, which is where they are fixed. */}}
   {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
   {{if $p.CompletedAt}}
@@ -40,21 +45,12 @@
 
   {{else}}
 
-  {{if $d.Ask}}
-  <div class="ask">
-    <h2>No next action left.</h2>
-    <p>DOD: <em>{{linkify $p.DOD}}</em></p>
-    <div class="actionsbar">
-      {{if not $p.OpenActions}}
-      <form method="post" action="/project/{{$p.ID}}/complete" class="inline">
-        <input type="hidden" name="back" value="{{$d.Back}}">
-        <button class="primary">Done</button>
-      </form>
-      {{end}}
-      <span class="muted">…or mark an action as next / add one below. Doing nothing is allowed — the project will shout as stalled.</span>
-    </div>
-  </div>
-  {{end}}
+  {{/* Nothing here says "no next action left" a second time. The panel that
+       used to — reached by completing the last action, with the DOD quoted
+       back and a Done of its own — said in a paragraph what the marked
+       Actions heading below says by being marked, and its Done was a second
+       copy of the one in the action bar. One screen, drawn one way however it
+       was arrived at: see design.md, "Completing a next action". */}}
 
   {{/* the same fields, in the same order, as the screen a project is created
        on — see the "projectfields" partial */}}
@@ -64,7 +60,11 @@
       "Required" false "Focus" false)}}
   </form>
 
-  <h2>Actions</h2>
+  {{/* Stalled is said here and only here: the heading of the list the next
+       action is missing from, ringed in red. It is the same rule the error
+       banners follow — a problem is marked where it is fixed — and it says
+       which list to look at without a sentence explaining itself. */}}
+  <h2{{if $p.Stalled}} class="stalled"{{end}}>Actions</h2>
   <ul class="list">
   {{range $p.Actions}}
     {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}

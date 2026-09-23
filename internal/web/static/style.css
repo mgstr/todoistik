@@ -158,6 +158,17 @@ nav a.on.alert .badge.navcount { border-color: var(--danger); color: #fff; }
 
 h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
 h2 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; }
+/* A heading ringed in red: the list under it is missing something it must
+   have — today, a project's action list with no next action in it. It is a
+   ring and a colour rather than a filled bar because the point is to say
+   which list to look at, not to fill the top of the screen; the mark is on
+   the thing the eye goes to next anyway. Inline-block so the ring is the
+   width of the word rather than of the pane. */
+h2.stalled {
+  display: inline-block; color: var(--danger);
+  border: 1px solid var(--danger); border-radius: 8px;
+  padding: .1rem .5rem; margin-left: -.5rem;
+}
 /* The title bar: the third panel, and the one that says where you are. A strip
    at the top of the pane rather than inside main, so it keeps its place the
    way the rail and the key bar keep theirs and nothing scrolls it away. The

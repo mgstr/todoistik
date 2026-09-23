@@ -151,7 +151,7 @@ been.
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
 | `a` | Add | project, promote, the project branch of processing |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done | every list row, action, project, the completion request, doing |
+| `d` | Done | every list row, action, project, doing |
 | `r` | the review mark | a row of a weekly review step |
 | `t` | Today | every list row that carries the mark, and an action's page |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
@@ -480,7 +480,13 @@ never be advertised without working:
   screen's if there is not, which is how an action's page and a row of the
   list it was opened from answer the same key. A row under the cursor is never
   stepped over: with no such form on it the key does nothing rather than
-  reaching past it.
+  reaching past it. Which puts the weight on the cursor only ever being
+  somewhere you put it — a row the app selected on your behalf would silently
+  take the screen's own keys off the bar. That is what the row handover is
+  careful about, and where it was not careful enough is written up in
+  implementation.md, "Keyboard": a project page reached by completing an
+  action used to arrive with the completed action under the cursor, and so
+  with no `d done` on it at all.
 - **`kb-review` is a fourth row form, and the one that does not leave.** `r`
   presses it, and it is the only one of the four whose answer is a row redrawn
   where it stands rather than a screen replaced — so it takes no deaf window

@@ -1407,15 +1407,21 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 			// completing is the moment with the most context: check the project
 			st, serr := s.app.ProjectState(act.ProjectID)
 			if serr == nil && !st.HasNext {
+				// The project's own page is the ask. It carries no marker of
+				// having been reached this way: what it has to say — the
+				// Actions heading ringed in red, and Done and Add in the bar
+				// under the list — it says however it was arrived at, and a
+				// screen that read differently depending on the last key
+				// pressed is a second screen to keep true.
 				home := "/project/" + itoa(act.ProjectID)
-				to := home + "?ask=1"
+				to := home
 				// where the action was opened from goes with it: the screen
 				// that asks about the project is still on the way back to
 				// that view, and its own Referer is a page that is not one.
 				// Unless it is this project — an action opened from its own
 				// project comes back to it, and a page cannot be its own way out
 				if from := localPath(r.FormValue("back"), ""); from != "" && from != home {
-					to += "&from=" + url.QueryEscape(from)
+					to += "?from=" + url.QueryEscape(from)
 				}
 				http.Redirect(w, r, to, http.StatusSeeOther)
 				return
@@ -1494,7 +1500,6 @@ func itoa(id int64) string {
 
 type projectPageData struct {
 	Project  *app.Project
-	Ask      bool // show the after-completion prompt
 	Contexts []string
 	Tags     []string
 	Back     string // the view this was opened from, for Back and esc
@@ -1508,7 +1513,6 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d := &projectPageData{
 		Project: proj,
-		Ask:     r.URL.Query().Get("ask") == "1",
 		Back:    s.parentView(r, "/projects"),
 	}
 	d.Contexts, _ = s.app.Contexts()

@@ -847,16 +847,37 @@ a page load, and what the bar derives itself from.
   end with the cursor gone and `j` pressed to get back to the row you were
   already on. The row is handed to the page the response renders and claimed
   once, on arrival. Three rules keep that from selecting things nobody pointed
-  at: it is claimed only on the screen it was handed from — which is read off
-  the nav's own highlight, since on a boosted post the new page is in the DOM
-  before htmx has finished with the URL — only for a row that was selected when
-  the key was pressed, and only once, so a later `g` jump never arrives with
-  something already selected. When the row itself is gone, which is what `c`
+  at: it is claimed only on the screen it was handed from — read off the pane
+  rather than the address bar, since on a boosted post the new page is in the
+  DOM before htmx has finished with the URL — only for a row that was selected
+  when the key was pressed, and only once, so a later `g` jump never arrives
+  with something already selected. When the row itself is gone, which is what `c`
   does to it, the selection stays at that *position* instead: the item that
   moved up is under the cursor and a list can be worked straight down. This is
   the one thing the key layer keeps across a page load, and it keeps it in
   `sessionStorage` rather than on the server, because it decides nothing and
   survives nothing — losing it costs a keystroke (see "Stack")
+- **"the screen it was handed from" is a list, not a view.** The view's name
+  alone was the test, and it is not enough: a screen inside a view wears the
+  view's name too, so the project page opened from "Next actions" called
+  itself `next` exactly as the Next list does — and completing a project's
+  last action from Next handed the Next cursor straight onto the project's own
+  action list, where it landed on the action just completed. A selected row
+  takes the screen's keys off the bar in favour of its own, and a completed
+  action offers Undone rather than Done, so the project's Done disappeared
+  from the key bar at the one moment it was wanted. The pane says which kind
+  of screen this is with `data-step`, from the trail having a second crumb —
+  the app's existing answer to that question (`step()` already turns the
+  background refresh off by it) rather than a second list of screen names to
+  keep true
+- **a screen that cannot claim a handover does not clear it either.** It used
+  to be taken out of `sessionStorage` before the screen was checked, so the
+  project page threw away a cursor it was not entitled to and `b` came back to
+  a Next with nothing selected. Both handovers are now cleared only where they
+  are claimed — or where the stored line will not parse, which is not something
+  to keep offering the next page. This is the rule a screen with no rows at all
+  already followed, and for the same reason: doing is a screen you go to from a
+  row and come straight back to
 - **the place in the list survives it too**, and is handed on the same way and
   under the same rules. `main` is the scrollport and not the window (see
   "Screen layout"), so every answer arrives as a brand-new `main` scrolled to
@@ -2648,7 +2669,6 @@ Which screens get which:
 |---|---|
 | processing screen — the capture's line and its body | inline |
 | an inbox row's first line | inline (the row is not a link; the whole row opens the item) |
-| a project's "no next action left" DOD | inline |
 | description, definition of done, idea — under the box | chips |
 | a Someday/Maybe row | chips (its title already links to the item's page) |
 
@@ -3752,11 +3772,13 @@ elsewhere.
 - **the new screen's create button is gated like every other**, by the title
   being required — so it opens dead and the bar offers `ctrl-enter` only once
   there is something to create, with no rule of its own (see "Create buttons")
-- **the "no next action left" ask no longer opens anything.** It used to
-  unfold the box; it now says the same sentence over the same button, one
-  press away. A screen that opens with a form already open is a screen that
-  has decided what you came to do, and the ask is a question, not an
-  instruction
+- **the "no next action left" ask no longer opens anything** — and, since it
+  stopped being a panel at all, no longer says anything either. It used to
+  unfold the box; then it said a sentence over the same button, one press
+  away; now the marked `Actions` heading is the whole of it and `Add` is that
+  one press (see "Writing a project"). A screen that opens with a form already
+  open is a screen that has decided what you came to do, and the ask is a
+  question, not an instruction
 - **a refused meta line is a plain 400 here**, the way it is on an action's own
   page rather than the way it is on the processing screen: nothing is written,
   the reason arrives as a banner (see "A refused post is never silent"), and
@@ -3823,8 +3845,8 @@ elsewhere.
   `Undone` the one form on these screens that carries no destination, which
   is what "Reading a completed item" says of it
 - **the project ask carries the destination on.** When the completion leaves
-  the project with no next action, the redirect to `/project/{id}?ask=1` adds
-  `&from=` the `back` that was posted, so the screen asking the question hands
+  the project with no next action, the redirect to `/project/{id}` adds
+  `?from=` the `back` that was posted, so the screen asking the question hands
   the way out along and Back there still reaches the view the action was opened
   from. Without it the chain broke at the ask: a project's page reads its Back
   off the Referer, and the Referer at that point is the action's page, which is
@@ -4073,9 +4095,25 @@ its action list — and the same row of buttons an action's page carries:
   action's page had. `projectGone` says the pile the project was in instead,
   which is the honest answer to "then what" when nothing said where you came
   from
-- **the "no next action left" ask posts `back` too.** It is reached by
-  completing an action, so the destination it was handed on the URL has to
-  survive the one press that screen exists for (see "Writing an action")
+- **stalled is marked on the `Actions` heading**, ringed in red, and nowhere
+  else on the page. The heading is the list's own name and sits directly above
+  the rows, so the mark lands on the thing that is short of something (see
+  design.md, "Stalled projects"). It is a ring the width of the word, pulled
+  left by its own padding so the word does not move as the mark comes and
+  goes — a heading that shifted sideways would say "something changed here"
+  every time the last next action was completed
+- **the error banners stay at the top.** They are about the fields right under
+  them — a project with no DOD — and that is where they are fixed. Two marks
+  in two places is not two ways of saying the same thing: each one points at
+  its own half of the screen
+- **there is no "no next action left" panel, and no `?ask=1`.** The check that
+  runs on completing an action redirects to the project's page and nothing
+  more (design.md, "Completing a next action"); the page is rendered the same
+  way however it was reached. The panel it replaces carried a heading, the DOD
+  quoted back, and a Done of its own — all three already on the page below it,
+  the Done twice over. What the redirect still carries is `from`: the screen
+  it opens is on the way back to the view the action was completed in, and
+  that destination has to survive the one press (see "Writing an action")
 - **where each resolution lands is pinned by a test**
   (`internal/web/leaving_test.go`), because it is invisible in the templates:
   a missing hidden field looks like nothing at all, and the page it fails to

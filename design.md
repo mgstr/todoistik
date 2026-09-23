@@ -187,6 +187,8 @@ This is the single most common way things silently die: the project stays visibl
 
 Stalled projects stay visible in the normal views, clearly marked as stalled (red, or similarly loud). They are not hidden away in a dedicated screen, and they are not something only the weekly review surfaces.
 
+**On the project's own page the mark is on its action list, not across the top.** A list is where the missing next action would be added, so that is where the app says it is missing - the same rule the error state follows, which marks the field it is about. A banner over the whole screen was louder without being clearer: it shouted at a page you had opened *because* you already knew, and it said in a sentence what a mark on the list says by being there. Loud belongs in the views, where a stalled project is one line among many and has to catch an eye that is not looking for it; on the page about that one project, the question is only *which part of it is wrong*.
+
 The app never prevents a project from being stalled. Forcing a next action to be invented at a moment when there is no time or energy for it produces a bad action, and a bad action is worse than a stalled project that is shouting about itself and will be dealt with at the weekly review or sooner.
 
 ### Time fields
@@ -818,6 +820,8 @@ Completing a next action is the moment with the most context about what comes ne
 - there are still open actions, but none of them is marked as a next action - ask to mark one of them as the next action
 - there are no open actions left - ask whether to complete the project, showing the DOD for reference, or to create a next action
 - in that last case, doing nothing is always allowed. If there is no time or energy to decide right now, nothing is forced and the project immediately becomes stalled
+
+**The ask is the project's own page, opened.** Both questions above are the same question - *this project has no next action; now what* - and every answer to it already lives on that page: the DOD in its box, the action list with the mark on its heading, and the project's own Done and Add. A panel on top of that page asked the question a second time in prose and offered a second copy of the controls underneath it, which is two of everything and one more thing to keep true. So the check does not put up a question; it takes you to where the answer is given. Nothing about the page changes because you arrived this way - a screen that read differently depending on the last key pressed would be a second screen to maintain, and the next visit would be missing whatever the first one said.
 
 Completing a standalone action asks nothing. There is no project to check and nothing to leave stalled - it is simply done.
 
