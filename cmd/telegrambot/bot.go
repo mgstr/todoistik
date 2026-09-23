@@ -10,6 +10,12 @@ import (
 	"todoistik/internal/apiclient"
 )
 
+// source is what this program is called in an inbox item's "source" (design.md,
+// "Inbox item"). One name for the bot and not one per chat: the channel is the
+// phone in your pocket, and which conversation it was typed in is not something
+// a count of channels has any use for.
+const source = "telegram"
+
 // view is one command: a view of the app, read through the read API.
 type view struct {
 	command string // what follows the slash, and the read API's name for it
@@ -100,7 +106,7 @@ func (b *bot) answer(text string) outcome {
 // item"). The reply says which of the two things happened, because a capture
 // that might have vanished is one that has to be checked at the desk.
 func (b *bot) capture(text string) outcome {
-	status, err := b.app.Capture(text)
+	status, err := b.app.Capture(text, source)
 	if err != nil {
 		return outcome{
 			replies: []string{"Not saved: " + err.Error()},

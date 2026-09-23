@@ -10,6 +10,12 @@ import (
 	"todoistik/internal/apiclient"
 )
 
+// source is what this program is called in an inbox item's "source" (design.md,
+// "Inbox item"): every capture made here is an agent's, whichever agent it is.
+// Naming the model or the session instead would make the channel a different
+// one every month, and the count exists to be read over a year.
+const source = "mcp"
+
 // Three tools, and the app's whole outside in them: the situation, one view,
 // and the one way in.
 //
@@ -133,7 +139,7 @@ func newServer(c *apiclient.Client) *mcp.Server {
 			// would be about a body it never received
 			return nil, nil, errEmptyCapture
 		}
-		status, err := c.Capture(in.Text)
+		status, err := c.Capture(in.Text, source)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -45,6 +45,10 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 			return ""
 		},
 		"dateAge": humanDateAge,
+		// the hour a capture arrived, in the one configured timezone — see
+		// clockTime, and design.md, "Time fields" for why this one field has
+		// a time of day at all
+		"clock": func(t time.Time) string { return clockTime(t, a.Loc()) },
 		"joinTags": func(v any) string {
 			tags, ok := v.([]string)
 			if !ok {
@@ -93,6 +97,14 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 	s.tmpl = t
 	s.routes()
 	return s, nil
+}
+
+// clockTime is the one time of day this app writes: the hour a capture
+// arrived, read against the single configured timezone every date here is read
+// against (design.md, "Time fields"). 24 hours and no am/pm, because this is a
+// stamp being read off a record and not a clock being told the time.
+func clockTime(t time.Time, loc *time.Location) string {
+	return t.In(loc).Format("15:04")
 }
 
 // humanAge writes an age the way it would be said out loud, rather than as a

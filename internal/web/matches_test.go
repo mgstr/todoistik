@@ -50,7 +50,7 @@ func finished(t *testing.T, a *app.App, f app.ActionFields) *app.Action {
 func TestTheMatchListIsStageOnesAlone(t *testing.T) {
 	s, a := matchServer(t)
 	finished(t, a, app.ActionFields{Title: "Pay the rent"})
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -75,7 +75,7 @@ func TestOnlyTheFinishedHalfCanBeCopied(t *testing.T) {
 	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"}, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	body := getPage(t, s, "/process?item=1&one=1")
@@ -92,7 +92,7 @@ func TestOnlyTheFinishedHalfCanBeCopied(t *testing.T) {
 func TestAMatchRowKeepsItsKeyOutOfTheBar(t *testing.T) {
 	s, a := matchServer(t)
 	finished(t, a, app.ActionFields{Title: "Pay the rent"})
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	body := getPage(t, s, "/process?item=1&one=1")
@@ -105,7 +105,7 @@ func TestAMatchRowKeepsItsKeyOutOfTheBar(t *testing.T) {
 // "The map").
 func TestTheTwoMinuteRuleIsDone(t *testing.T) {
 	s, a := matchServer(t)
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	body := getPage(t, s, "/process?item=1&one=1")
@@ -129,7 +129,7 @@ func TestCopyingAFinishedActionSeedsTheForm(t *testing.T) {
 		Title: "Pay the rent for August", Context: "home", Duration: app.DurShort,
 		Description: "Reference RENT-2026", DueDate: "2026-08-01",
 	})
-	if _, _, err := a.Capture("Pay the rent for October\nthe new amount is 640"); err != nil {
+	if _, _, err := a.Capture("Pay the rent for October\nthe new amount is 640", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -169,7 +169,7 @@ func TestCopyingAFinishedProjectBringsThePlan(t *testing.T) {
 	if err := a.CompleteProject(p.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Winter-proof the car"); err != nil {
+	if _, _, err := a.Capture("Winter-proof the car", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -195,7 +195,7 @@ func TestAStaleCopyFallsBackToTheCapture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := a.Capture("Book the tyre change"); err != nil {
+	if _, _, err := a.Capture("Book the tyre change", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	for _, from := range []string{itoa(open.ID), "999"} {
@@ -223,7 +223,7 @@ func TestMatchingCanBeTurnedOff(t *testing.T) {
 		t.Fatal(err)
 	}
 	finished(t, a, app.ActionFields{Title: "Pay the rent"})
-	if _, _, err := a.Capture("Pay the rent"); err != nil {
+	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()

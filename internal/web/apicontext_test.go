@@ -57,7 +57,7 @@ func TestTheBundleAnswersEveryViewTheReadAPIHas(t *testing.T) {
 // section cut out of the paste is still a complete answer.
 func TestEachTextSectionIsThatViewsOwnAnswer(t *testing.T) {
 	s, a := newTestServer(t)
-	if _, _, err := a.Capture("Renew the parking permit"); err != nil {
+	if _, _, err := a.Capture("Renew the parking permit", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := a.CreateAction(0, app.ActionFields{Title: "Buy new winter tyres"}, false); err != nil {

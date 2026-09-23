@@ -115,7 +115,7 @@ func TestProcessCompletion(t *testing.T) {
 	ticked := time.Date(2026, 9, 5, 14, 30, 0, 0, time.UTC)
 	*now = time.Date(2026, 9, 7, 9, 0, 0, 0, time.UTC) // and answered two days later
 
-	item, _, err := a.Capture(aRequest(act.ID, ticked))
+	item, _, err := a.Capture(aRequest(act.ID, ticked), SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestProcessCompletion(t *testing.T) {
 func TestIgnoringACompletionRequestLeavesTheAction(t *testing.T) {
 	a, _ := newTestApp(t)
 	act := anAction(t, a)
-	item, _, err := a.Capture(aRequest(act.ID, time.Now()))
+	item, _, err := a.Capture(aRequest(act.ID, time.Now()), SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func TestProcessCompletionRefusesWhatItCannotComplete(t *testing.T) {
 	a, _ := newTestApp(t)
 	act := anAction(t, a)
 
-	item, _, err := a.Capture(aRequest(act.ID, time.Now()))
+	item, _, err := a.Capture(aRequest(act.ID, time.Now()), SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestProcessCompletionRefusesWhatItCannotComplete(t *testing.T) {
 		t.Errorf("inbox holds %d items, want the request still there", len(items))
 	}
 
-	plain, _, err := a.Capture("Buy new winter tyres")
+	plain, _, err := a.Capture("Buy new winter tyres", SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}

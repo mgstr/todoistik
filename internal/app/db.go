@@ -43,6 +43,7 @@ const schema = `
 CREATE TABLE IF NOT EXISTS inbox_items (
 	id INTEGER PRIMARY KEY,
 	text TEXT NOT NULL,
+	source TEXT NOT NULL DEFAULT '',
 	created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS someday_items (
@@ -153,6 +154,20 @@ func (a *App) migrate() error {
 		{"<5min", "short"}, {"<15min", "short"}, {"<1h", "medium"}, {">1h", "long"},
 	} {
 		if _, err := a.db.Exec(`UPDATE actions SET duration=? WHERE duration=?`, m[1], m[0]); err != nil {
+			return err
+		}
+	}
+	// An inbox item says which way in it arrived by (design.md, "Inbox item").
+	// A database made before the field existed gets the column with '' in every
+	// row, and '' is read as "captured before this was recorded": there is no
+	// honest name to backfill with, and picking one would put captures in a
+	// channel's count that it never made.
+	has, err = a.hasColumn("inbox_items", "source")
+	if err != nil {
+		return err
+	}
+	if !has {
+		if _, err := a.db.Exec(`ALTER TABLE inbox_items ADD COLUMN source TEXT NOT NULL DEFAULT ''`); err != nil {
 			return err
 		}
 	}

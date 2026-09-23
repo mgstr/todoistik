@@ -27,6 +27,12 @@ import (
 	"todoistik/internal/apiclient"
 )
 
+// source is what this program is called in an inbox item's "source" (design.md,
+// "Inbox item"). One name and not one per label or per account: the channel is
+// mail, and which mailbox it came out of is in the capture's own body, where
+// the link to the message already is.
+const source = "mail"
+
 func main() {
 	fs := flag.NewFlagSet("mailsync", flag.ExitOnError)
 	var (
@@ -133,7 +139,7 @@ func run(c config) (int, error) {
 			continue
 		}
 
-		status, err := app.Capture(text)
+		status, err := app.Capture(text, source)
 		if err != nil {
 			// a wrong token or an unreachable app fails identically for every
 			// message left, so stop asking — but still unlabel what the app

@@ -33,16 +33,29 @@ func (s *Server) apiCapture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	text := string(body)
+	// The caller names the channel it is, in the query string or in the JSON
+	// payload beside the text — whichever it was already writing. Nothing here
+	// is rejected over it: an unknown name is a channel this app has not met
+	// yet, and `api` is what a caller that said nothing is (design.md,
+	// "External capture").
+	source := r.URL.Query().Get("source")
 	// accept both raw text and {"text": "..."}
 	if strings.HasPrefix(strings.TrimSpace(text), "{") {
 		var payload struct {
-			Text string `json:"text"`
+			Text   string `json:"text"`
+			Source string `json:"source"`
 		}
 		if json.Unmarshal(body, &payload) == nil && payload.Text != "" {
 			text = payload.Text
+			if payload.Source != "" {
+				source = payload.Source
+			}
 		}
 	}
-	item, accepted, err := s.app.Capture(text)
+	if app.NormalizeSource(source) == "" {
+		source = app.SourceAPI
+	}
+	item, accepted, err := s.app.Capture(text, source)
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, err.Error())
 		return

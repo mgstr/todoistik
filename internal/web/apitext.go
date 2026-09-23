@@ -58,7 +58,15 @@ func (s *Server) textAnswer(view string, f app.Filters, problems []apiProblem, d
 	case []*app.InboxItem:
 		count = len(v)
 		for _, it := range v {
-			textRow(&body, it.ID, fields(it.Line(), "captured:"+day(it.CreatedAt, loc)), it.Body())
+			// the inbox is the one list whose stamp is a moment and not a day,
+			// and the one whose items say which way in they arrived by
+			// (design.md, "Inbox item"). An item captured before the field
+			// existed carries no via: at all, which fields() drops for us
+			via := ""
+			if it.Source != "" {
+				via = "via:" + it.Source
+			}
+			textRow(&body, it.ID, fields(it.Line(), "captured:"+moment(it.CreatedAt, loc), via), it.Body())
 			endItem(&body)
 		}
 
@@ -258,6 +266,14 @@ func tags(t []string) string {
 }
 
 func day(t time.Time, loc *time.Location) string { return t.In(loc).Format(app.DateFormat) }
+
+// moment is a day with the hour on it, written as one token so that a field
+// stays one field: these rows are space separated, and "captured:2026-09-23
+// 17:42" would read as two. The `T` is ISO 8601's, which is what makes it
+// sortable and parseable by anything reading over your shoulder.
+func moment(t time.Time, loc *time.Location) string {
+	return t.In(loc).Format(app.DateFormat + "T15:04")
+}
 
 func items(n int) string {
 	if n == 1 {

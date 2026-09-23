@@ -435,7 +435,7 @@ func (s *Server) inboxPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) capturePost(w http.ResponseWriter, r *http.Request) {
-	if _, _, err := s.app.Capture(r.FormValue("text")); err != nil {
+	if _, _, err := s.app.Capture(r.FormValue("text"), app.SourceApp); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -636,6 +636,7 @@ type processData struct {
 	Text      string
 	Line      string // the capture's first line — what the inbox showed
 	Body      string // what it carried under that line, empty for most captures
+	Source    string // the way in it arrived by — read here and nowhere else
 	CreatedAt time.Time
 	Remaining int
 	One       bool // processing one named item, not working down the inbox
@@ -790,7 +791,7 @@ func (s *Server) processItem(id int64) (*processData, error) {
 		}
 	}
 	d.ID, d.Text, d.CreatedAt, d.Remaining = it.ID, it.Text, it.CreatedAt, len(items)
-	d.Line, d.Body = it.Line(), it.Body()
+	d.Line, d.Body, d.Source = it.Line(), it.Body(), it.Source
 	return d, nil
 }
 
