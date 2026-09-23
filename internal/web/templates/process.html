@@ -25,7 +25,7 @@
       {{range $d.Open}}
       <li class="row">
         <span class="title">{{.Title}}</span>
-        <span class="badge">{{.Kind}}</span>
+        <span class="badge">{{.Noun}}</span>
         {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
         <span class="age">{{age .When}}</span>
       </li>
@@ -48,7 +48,7 @@
           <span class="check">☑</span>
           <span class="title">{{.Title}}</span>
         </a>
-        <span class="badge">{{.Kind}}</span>
+        <span class="badge">{{.Noun}}</span>
         {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
         <span class="age">{{age .When}}</span>
       </li>

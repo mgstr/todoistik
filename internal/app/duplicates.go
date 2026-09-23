@@ -63,13 +63,34 @@ func (m *Match) Title() string {
 	return m.Project.Title
 }
 
-// Kind is "action" or "project", which is both what the row says and which
-// form a copy of it opens (design.md, "Copying a finished one").
+// Kind is "action" or "project": which branch of processing a copy of this
+// match opens (design.md, "Copying a finished one"). It names the item that
+// would be created and not the word the row is badged with — those came apart
+// when the branch was renamed, and `Noun` is the other half.
 func (m *Match) Kind() string {
 	if m.Action != nil {
 		return "action"
 	}
 	return "project"
+}
+
+// Noun is what the row calls this match: "task" for a standalone action,
+// "action" for one inside a project, "project" for a project. The same three
+// words every other view uses, because the question the list answers is "have
+// I written this before" and the answer has to be recognisable as the thing
+// it would be found as (design.md, "Tasks", "Matches while processing").
+//
+// Split from Kind rather than folded into it: Kind is a branch name on a URL
+// and this is a word on a screen, and the moment a standalone action stopped
+// being called an action they stopped being the same string.
+func (m *Match) Noun() string {
+	if m.Action == nil {
+		return "project"
+	}
+	if m.Action.ProjectTitle == "" {
+		return "task"
+	}
+	return "action"
 }
 
 // ID is the matched item's own id, within its kind.

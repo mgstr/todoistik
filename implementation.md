@@ -1586,6 +1586,14 @@ the screen draws two short lists: what is still open, then what is finished.
   exceptions (see "Ages are hidden by default"); the ordering already puts the
   most recent of equals first, so the date is confirmation rather than the way
   the list is read
+- **the badge is `Match.Noun`, and `Match.Kind` is a different question.**
+  Kind is the branch a copy of the row opens - it goes on the URL as `as=` and
+  names the item that would be created, which for an action is still `action`.
+  Noun is the word the row is badged with, and a standalone action is badged
+  `task` (design.md, "Matches while processing"). The two were one string
+  until the branch was renamed and they stopped agreeing; splitting them is
+  cheaper than a badge that has to be translated or a URL that has to be
+  mapped, and each now has exactly one caller
 - **the open rows are not links.** The keys on this screen cannot reach one —
   there is no row cursor at stage one — and a row only a pointer can open is a
   control the bar cannot name, which is the rule the whole bar is built on
