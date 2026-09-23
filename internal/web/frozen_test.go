@@ -49,7 +49,7 @@ func TestACompletedActionOpensWithNoFormOnIt(t *testing.T) {
 	act, err := a.CreateAction(0, app.ActionFields{
 		Title:       "Change the winter tyres",
 		Description: "quote at https://example.com/tyres",
-	}, false)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestACompletedActionRowHasNoCheckboxToPress(t *testing.T) {
 // or a stale tab does not open a form the app would refuse to act on.
 func TestTheScreensBehindTheRemovedControlsTurnAway(t *testing.T) {
 	s, a := newTestServer(t)
-	act, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"}, false)
+	act, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -494,7 +494,7 @@ then deleted.
     way it will
 - **a ticked reminder files its request whether or not its action is still in
   the view.** The marker is an identity and the app resolves one without a view,
-  so an action snoozed, parked or untagged between the tick and the run does not
+  so an action snoozed or untagged between the tick and the run does not
   lose the tick. Treating the filter as the channel was the alternative, and it
   drops the only signal this direction has, silently. The price is a request
   that resolves to "completed here already" when both sides did the same work,
@@ -904,7 +904,7 @@ a page load, and what the bar derives itself from.
   left, rather than a gap past it. It is claimed before the selection is, so
   that the cursor lands on a row that is already on screen and
   `scrollIntoView({ block: "nearest" })` has nothing left to move
-- single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit, tag and park/unpark are wanted and not yet built — keys.md, "What is built" is the ledger of which is which
+- single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit and tag are wanted and not yet built — keys.md, "What is built" is the ledger of which is which
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - **a screen may declare keys on its own controls**, with `data-key` and
   `data-key-label` on the form, link or button the key presses. A declared key
@@ -1701,10 +1701,12 @@ quietly break.
   gets the line exactly as captured and the meta box stays empty. Half a
   reading is the bad outcome — the half that moved is visible in a box and the
   half that was dropped is not
-- **the action form reads it as though the action had a project**, so `#parked`
-  becomes a token rather than the error that would cost the whole line its
-  reading. Filing it standalone then refuses it by name, on the form, with the
-  captured line still on the screen above (see "The meta line")
+- **a `snooze:` naming an action never survives a capture.** A captured line
+  belongs to no project, so there are no siblings for the name to resolve
+  against and the whole line is left alone rather than half-read. Which is the
+  right answer as well as the cheap one: what a new action waits on is decided
+  on the form, with the project it is being filed into already chosen (see
+  "The meta line")
 - **the narrow forms take the tags and leave the rest in the title.** A project
   and a someday/maybe item hold nothing else, so `@garage` on such a capture
   stays in the words — it is not dropped, and it is not moved into a box that
@@ -1785,11 +1787,12 @@ quietly break.
   wrong when naming the one an action should join — a stray hit on some action's
   wording would file it under a project you never named. `MatchProjects` says so
   where it is defined
-- **park is not a control here.** It went with the other fields when the meta
-  line took them over, and `#parked` is what writes it — refused while a project
-  is being created, where every action written becomes a next action (see
-  "Writing a project"), and accepted everywhere an action is written into a
-  project that already exists
+- **waiting on a sibling is not a control here, and cannot be.** The project
+  being filed into is chosen on this screen, so at the moment the meta line is
+  read the siblings are known — but what the action waits on is a choice among
+  them, and a picker for it would be a second project picker underneath the
+  first. It is written on the action's own page afterwards, where the plan it
+  is joining is on the screen to be read (see "The meta line")
 
 ## The someday item's page
 
@@ -1920,19 +1923,18 @@ things.
 | `Delete` | destroys it |
 | `Done` | finishes it, and `Undone` lifts that again |
 | `Today` | picks it for today, and `Not today` drops the pick |
-| `Next` | makes it the project's next action, and `Parked` is its reverse |
 | `Save` | writes the open form's edits |
 
-- **a state toggle is named for the state, not for the act.** `Done`/`Undone`,
-  `Today`/`Not today` and `Next`/`Parked` each say what the item becomes, so a
-  pair reads as one setting with two positions. `Complete` against `Bring
-  back`, and `Mark as next` against `Park`, read as two unrelated verbs that
-  happen to sit near each other, which is what they were
-- **`Next`/`Parked` keeps both words positive** where the other two pairs
-  negate. The row badge already renders `parked` and the meta line already
-  takes `#parked` (see "The meta line"), so the button now says the word the
-  item is described by in two other places — spending `Not next` would have
-  thrown that away to buy symmetry nothing needed
+- **a state toggle is named for the state, not for the act.** `Done`/`Undone`
+  and `Today`/`Not today` each say what the item becomes, so a pair reads as
+  one setting with two positions. `Complete` against `Bring back` read as two
+  unrelated verbs that happen to sit near each other, which is what they were
+- **there were three such pairs, and `Next`/`Parked` was the third.** It went
+  when `#parked` did. What it toggled was an action's availability said as a
+  bare state, and a button is the wrong shape for what replaced it: the
+  waiting now names its reason, and one of the two kinds of reason is a
+  sibling, which no button can name. It is written on the meta line instead
+  (design.md, "Time fields")
 - **`Add` opens, `Create` commits.** The two had collided: the project branch
   carries a control that opens the draft dialog directly above the one that
   creates the project, and both wanted to be called the same thing. The opener
@@ -2083,8 +2085,8 @@ short names in a column wastes a screen saying nothing.
 - **every name carries its count**, built-in ones included. The count comes
   from wherever the name actually lives, which for a built-in is a column
   rather than the tag table — `#short` counts actions whose duration is short,
-  `#parked` counts open actions in a project with no `becameNextActionAt`.
-  design.md says why that is worth showing rather than merely possible
+  `#focus` those that need quiet. design.md says why that is worth showing
+  rather than merely possible
 - **built-in names are drawn differently and never removable**: dashed outline,
   muted, with the reason on the control. They are fields wearing a name
 - **a name in use keeps its remove control, disabled; a built-in has none at
@@ -2138,7 +2140,7 @@ filter box" for how it is built, and design.md, "The filter line" for why.
   `filter-name` is the Scheduler's alone — the wording it was widened into is
   still the right one, and is now simply the truth about schedules
 - **an item row keeps its full information** — title, context, duration, tags,
-  due date, project, focus, parked/waiting state — shown inline, all at once.
+  due date, project, focus, snoozed/waiting state — shown inline, all at once.
   This was considered and deliberately kept as-is: density on a row is not the
   clutter problem, a permanently-open control panel above the list was
 - **open question, not yet decided:** the per-row controls (the
@@ -2331,8 +2333,8 @@ which notation this one accepts.
 - **the same rules are stated twice, on purpose.** The browser has to know
   which names are unknown before it submits, or it could not ask about them,
   so `problemsIn` in `app.js` repeats the three refusals `ParseQuery` makes: a
-  name on no remembered list, a second `@context`, and `#parked`, which is a
-  field rather than a tag. The Go side is the one that decides; the JS side
+  name on no remembered list, a second `@context`, and a `key:` the line does
+  not take. The Go side is the one that decides; the JS side
   only asks. The duplication is small and the alternative — a round trip per
   keystroke to find out whether a word is a name — is the thing the project
   picker was rebuilt to avoid (see "Stage two")
@@ -3761,18 +3763,32 @@ its column exactly as typed and is never read.
   doing wrong inside the description
 - **the columns stay the truth; the text is parsed into them and rendered back
   out of them**, not the other way around. The app changes those fields from
-  outside the box — picking for today, a detach stamping a parked action, a
-  delegation restamping the clock — and if the text owned them, every one of
-  those would have to rewrite prose. This way each is a column update, and the
-  box shows the new truth next time it is opened
-- **`#parked` is derived, never stored**: it is "inside a project, with no
-  `becameNextActionAt`". So it appears and disappears on its own when an action
-  is attached or detached, with nothing to keep in step
-- **`#today` and `#parked` are applied by comparison, not written over.** Both
-  sit behind existing operations (`ToggleTag`, `SetNext`) rather than being
-  fields on `ActionFields`, because writing them over would restamp a clock
-  nothing asked to restamp — `SetNext` deliberately keeps the original stamp
-  when an action is already next
+  outside the box — picking for today, a finished action waking whatever was
+  waiting on it, a delegation restamping the clock — and if the text owned
+  them, every one of those would have to rewrite prose. This way each is a
+  column update, and the box shows the new truth next time it is opened
+- **a `snooze:` naming an action stores the action, never the words.** The
+  title is resolved to a row id on the way in and the line is written back out
+  of that row's *current* title, so renaming the blocker cannot leave the line
+  naming something that no longer exists — the same rule a date word follows,
+  and for the same reason. It is also why both spellings can be accepted and
+  only one written: `snooze:#42` and `snooze:(Buy the frame)` reach the same
+  column, and the column is what the line is rendered from
+- **resolving it needs the siblings, so they travel on the `Vocabulary`.**
+  That type already carries what a name means right now — the remembered
+  lists, and the day a relative date word counts off from — and a sibling
+  title is one more name whose meaning is current. `VocabularyIn(projectID,
+  self)` is the constructor that fills it; with no project there are no
+  siblings, which is what makes a sibling snooze refuse itself on a standalone
+  action rather than needing a rule written for that case
+- **the notation resolves, the domain validates.** `resolveSibling` answers
+  "which action is this", and `checkBlockerTx` answers the questions that need
+  the graph and the transaction: same project, still open, and no ring. Two
+  layers because the parser has no database and the database has no opinion
+  about spelling
+- **`#today` is applied by comparison, not written over.** It sits behind
+  `ToggleTag` rather than being a field on `ActionFields`, because writing it
+  over would restamp a clock nothing asked to restamp
 - **a token has to start a word and carry a known name.** The word boundary
   alone already excludes `andres@home.example`; the vocabulary check excludes
   `invoice #12345` and everything else. They are design.md's anti-drift rule
@@ -3811,8 +3827,9 @@ its column exactly as typed and is never read.
   request, a page left open overnight cannot resolve yesterday's Friday
 - **a project's line goes through the same codec, narrowed.** `ParseProjectMeta`
   runs the same parser and then refuses, by name, everything a project does not
-  have — a context, a size, a due date, `@waitingFor`, `#focus`, `#today`,
-  `#parked`. Narrowing after the fact rather than writing a second parser is
+  have — a context, a size, a due date, `@waitingFor`, `#focus`, `#today`, and
+  a snooze naming an action. Narrowing after the fact rather than writing a
+  second parser is
   what stops a project's line becoming a second dialect of the same notation,
   and `WriteProjectMeta` goes back out through the same writer for the same
   reason
@@ -3824,8 +3841,11 @@ its column exactly as typed and is never read.
   four copies of a form is exactly how the meta line would have ended up on
   three of them
 - **the meta line has a fixed order** — context, waiting-for, size, focus,
-  parked, today, tags, then the dates. It is pinned by a test, because a codec
-  that reorders on every save would churn the field forever
+  today, tags, then the dates, and last of all the snooze that names an action.
+  It is pinned by a test, because a codec that reorders on every save would
+  churn the field forever. The sibling snooze sits at the end because it is
+  the only token that carries a whole title, and a long bracket in the middle
+  of a line of short names is what makes the rest of them hard to find
 - **neither box carries a placeholder.** This app has one user, who wrote the
   spec: there is no first pass to onboard and no stranger to reassure, so a
   line of instruction under a control is read for the hundredth time by the
@@ -4207,8 +4227,8 @@ inside the form.
   what separates finishing the form from opening the thing under the cursor. `u` is offered only
   when there is something above and `d` only when there is something below —
   the bar cannot advertise a key that would do nothing
-- **a draft row is dashed**, the way a parked badge is: it reads as a list row
-  because it is one, and the dashes say that nothing about it is saved yet
+- **a draft row is dashed**: it reads as a list row because it is one, and the
+  dashes say that nothing about it is saved yet
 
 The project's own page is the same form with the project already there, plus
 its action list — and the same row of buttons an action's page carries:
@@ -4225,6 +4245,26 @@ its action list — and the same row of buttons an action's page carries:
   action's page had. `projectGone` says the pile the project was in instead,
   which is the honest answer to "then what" when nothing said where you came
   from
+- **the action list is the one list drawn as a shape.** An action waiting on a
+  sibling sits directly under it, one level in, and `Project.ActionTree` is
+  what produces that order — roots first, each one followed by whatever waits
+  on it. Every other list in the app is an answer to a question and is
+  therefore flat; this one is a plan, and what a plan says is what comes
+  before what. Said as a flat list with a badge, that order was something you
+  reconstructed by reading every row and matching titles by eye
+- **the walk needs no visited set, and that is not an oversight.** An action
+  waits on at most one other and rings are refused when they would be written
+  (design.md, "Time fields"), so the graph is a forest and the recursion
+  terminates on its own. Anything whose blocker is not in the list — it has
+  left the project since — is drawn as a root, because a line with nothing
+  above it is still a line
+- **the indent is padding on the row, driven by a `--depth` custom property.**
+  Padding rather than margin so the row's hover and its selected ring still
+  reach the full width of the list: the row is indented, not narrowed. The
+  template's whole contribution is `--depth` and a `data-depth` attribute for
+  the rule to hook, so nesting never touches what a row *is* — `j`/`k` still
+  step through the rows in the order they are drawn, and every row key still
+  finds the same forms
 - **stalled is marked on the `Actions` heading**, ringed in red, and nowhere
   else on the page. The heading is the list's own name and sits directly above
   the rows, so the mark lands on the thing that is short of something (see
@@ -4327,6 +4367,22 @@ still reports it, a value rewritten only where the old value is still there.
   when an idea stopped having one (design.md, "Someday/maybe item"): the dates
   that were live at the time are still in the entries that recorded them, which
   is the only place a dropped column can honestly be kept
+- **a column that stops being nullable is backfilled, not redeclared.**
+  `became_next_at` used to mean "parked" when it was NULL; with the parked
+  state gone (design.md, "Deliberate omissions") every action has one, so the
+  step stamps the rows that had none. An open one is stamped with the moment
+  the parking was lifted — becoming available is an event and it is happening
+  now, which is what a detach already did — and a completed one with its own
+  `completed_at`, its clock being closed and no event reaching it. One
+  `COALESCE` says both. The column stays nullable in the schema because
+  rewriting a table to tighten a constraint is a bigger move than the
+  invariant is worth, and the code is the thing that holds it
+- **`snooze_action_id` carries its rule as `ON DELETE SET NULL`.** Deleting the
+  blocker is one of the two things that wakes what was waiting on it, so that
+  is the database's own behaviour rather than a tidy-up the app has to
+  remember at every delete path — project deletion included. Completion is the
+  other, and it cannot be a constraint, so `setActionCompleted` clears the
+  dependents explicitly in the same transaction
 - **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
   rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
   current

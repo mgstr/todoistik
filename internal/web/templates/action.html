@@ -73,12 +73,13 @@
       <button>Done</button>
     </form>
     <form method="post" action="/action/{{$a.ID}}/pick" class="inline kb-pick"><button>{{if hasTag $a.Tags "today"}}Not today{{else}}Today{{end}}</button></form>
+    {{/* No Next/Parked button any more, and nothing replaced it. What it used
+         to toggle was an action's own availability, said as a state with no
+         reason attached; what says it now is the snooze on the meta line
+         above, which names the reason — a date, or the sibling this one comes
+         after. A button cannot name a sibling, so the line is where it is
+         written (design.md, "Time fields"). */}}
     {{if $a.ProjectID}}
-      {{if $a.BecameNextAt}}
-      <form method="post" action="/action/{{$a.ID}}/park" class="inline"><button data-key="n" data-key-label="parked">Parked</button></form>
-      {{else}}
-      <form method="post" action="/action/{{$a.ID}}/next" class="inline"><button data-key="n" data-key-label="next">Next</button></form>
-      {{end}}
       <form method="post" action="/action/{{$a.ID}}/detach" class="inline"><button data-key="x" data-key-label="detach">Detach</button></form>
     {{else}}
       {{/* the view this action was opened from goes with it, so the trail on

@@ -155,7 +155,6 @@ been.
 | `r` | the review mark | a row of a weekly review step |
 | `t` | Today | every list row that carries the mark, and an action's page |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
-| `n` | Next / Parked | an action's page, inside a project |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
 | `u` | Undone | a completed action's page, a completed project's page |
@@ -374,13 +373,20 @@ times a day and a display flag is pressed occasionally.
 One, now: **Recapture** on the audit. It is reached with `^m c`, which is what
 `^m` is for — `g` goes to a view, `^m` goes one level in.
 
-The other five — **Parked / Next**, **Detach**, **Promote**, **Undone** and
-**Inbox** on a someday item — are in the map above. They moved because the
-tier stopped working: `^m` hangs its letters on the controls of the open
-screen, and with the buttons drawn in the bar rather than on the form there is
-no longer a button to hang one on. A letter each was the honest answer, and it
-cost less than it looked like it would — `n`, `x` and `u` were free, and the
-two that were not turned out to share a noun with the letter that held them.
+The other four — **Detach**, **Promote**, **Undone** and **Inbox** on a someday
+item — are in the map above. They moved because the tier stopped working: `^m`
+hangs its letters on the controls of the open screen, and with the buttons
+drawn in the bar rather than on the form there is no longer a button to hang
+one on. A letter each was the honest answer, and it cost less than it looked
+like it would — `x` and `u` were free, and the two that were not turned out to
+share a noun with the letter that held them.
+
+There were five. **Parked / Next** held `n`, and it went when `#parked` did:
+what it toggled was an action's availability said as a bare state, and what
+says it now is a snooze on the meta line, which names the reason — a date, or
+the sibling this action comes after. A button cannot name a sibling. So `n` is
+free, and deliberately left so rather than spent on something else while the
+fingers that used it are still finding that out (design.md, "Time fields").
 
 Recapture is the one that could not follow them, and the reason is worth
 writing down: it is a control **on a row**, one per line of the audit, and the

@@ -11,7 +11,7 @@ import (
 // one open action to be reported finished, and the request line naming it
 func anAction(t *testing.T, a *App) *Action {
 	t.Helper()
-	act, err := a.CreateAction(0, ActionFields{Title: "залогировать кеш 8 сентября"}, false)
+	act, err := a.CreateAction(0, ActionFields{Title: "залогировать кеш 8 сентября"})
 	if err != nil {
 		t.Fatal(err)
 	}

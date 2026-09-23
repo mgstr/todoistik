@@ -186,15 +186,17 @@ func (a *App) loadActions(where string, args ...any) ([]*Action, error) {
 	byID := map[int64]*Action{}
 	for rows.Next() {
 		act := &Action{}
-		var pid sql.NullInt64
+		var pid, blocker sql.NullInt64
 		var created, reviewed, dur string
 		var next, completed sql.NullString
 		if err := rows.Scan(&act.ID, &pid, &act.Title, &act.Context, &act.ContextParam, &dur,
 			&act.NeedsFocus, &act.Description, &act.AssignedTo, &act.DueDate, &created,
-			&reviewed, &next, &act.SnoozeUntil, &completed, &act.ProjectTitle); err != nil {
+			&reviewed, &next, &act.SnoozeUntil, &blocker, &act.SnoozeActionTitle,
+			&completed, &act.ProjectTitle); err != nil {
 			return nil, err
 		}
 		act.ProjectID = pid.Int64
+		act.SnoozeActionID = blocker.Int64
 		act.Duration = Duration(dur)
 		act.CreatedAt = parseTS(created)
 		act.LastReviewedAt = parseTS(reviewed)

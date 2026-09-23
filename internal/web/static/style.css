@@ -292,6 +292,15 @@ h2.stalled {
 .row .title { color: var(--fg); flex-shrink: 1; }
 .row.done .title { text-decoration: line-through; color: var(--muted); }
 .row.snoozed { opacity: .55; }
+/* An action waiting on a sibling is drawn under it, one step in per level.
+   Padding rather than a margin, so the whole row — its hover, its selected
+   ring — still reaches the full width of the list: the row is indented, not
+   narrowed. The rule reads --depth off the row itself, which is the only
+   thing the template has to say (implementation.md, "Writing a project"). */
+.row[data-depth] { padding-left: calc(var(--depth, 0) * 1.5rem); }
+/* and a mark on the step, so that one level in is legible without counting
+   pixels against the row above it */
+.row[data-depth] .title::before { content: "↳ "; color: var(--muted); }
 /* the ages are hidden until asked for — ctrl-t, see implementation.md,
    "Ages are hidden by default". The rule is on the pane and not the row, so
    one class settles every list on the screen at once */
@@ -352,7 +361,6 @@ h2.stalled {
 .badge.due.overdue, .badge.error { background: var(--danger); color: #fff; font-weight: 600; }
 .badge.ok { background: var(--ok); color: #fff; }
 .badge.wait { color: var(--accent); }
-.badge.parked { border: 1px dashed var(--line); background: transparent; }
 .badge.focus { color: #c88a00; }
 
 .error-banner {
@@ -561,8 +569,8 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 .row .check.done { color: var(--muted); }
 .row .pick.gap { visibility: hidden; }
 /* An action written before its project exists. It reads as a list row because
-   it is one — j/k reach it and the row keys act on it — but it is dashed, the
-   way a parked badge is, because nothing about it is saved yet. */
+   it is one — j/k reach it and the row keys act on it — but it is dashed,
+   because nothing about it is saved yet. */
 .drafts { margin: .25rem 0 .5rem; }
 .row.draft { border: 1px dashed var(--line); margin: .2rem 0; }
 .row.draft .draftmeta {
@@ -985,7 +993,7 @@ button:disabled:hover { border-color: var(--line); }
 /* The remembered lists, as clouds rather than rows: these are a vocabulary,
    and a vocabulary is read as a set. The count against every name — built-in
    ones included — is the only place the app says how much of the work is
-   short, or needs focus, or is parked. */
+   short, or needs focus. */
 .cloud { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem; padding: 0; margin: .5rem 0 1.25rem; }
 .cloud .name {
   display: inline-flex; align-items: center; gap: .3rem;
@@ -1051,8 +1059,8 @@ button:disabled:hover { border-color: var(--line); }
    the same border. */
 input.notverb { border: 2px solid var(--warn); }
 /* The same thing said on a review row, where there is no box to draw a border
-   on (design.md, "Weekly review"). Outlined rather than filled, like `parked`
-   and unlike `error`: a filled badge is the row's loudest thing, and this is
+   on (design.md, "Weekly review"). Outlined rather than filled, unlike
+   `error`: a filled badge is the row's loudest thing, and this is
    a remark about the wording next to items whose own state — stalled, snoozed,
    waiting — is what the walk is actually for. */
 .badge.noverb { color: var(--warn); border: 1px solid var(--warn); background: transparent; }

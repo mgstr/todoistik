@@ -56,7 +56,7 @@ func TestAProjectTitleIsNotVerbChecked(t *testing.T) {
 // other list stays quiet, including the one the same actions appear on.
 func TestOnlyTheReviewMarksARow(t *testing.T) {
 	s, a := newTestServer(t)
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "milk"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "milk"}); err != nil {
 		t.Fatal(err)
 	}
 	if body := getPage(t, s, "/review/next"); !strings.Contains(body, `class="badge noverb" hidden`) {

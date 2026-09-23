@@ -36,10 +36,10 @@ func TestTheRealAppsViewsReadAsLists(t *testing.T) {
 	if err := a.AddContext("home", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay rent", DueDate: today}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay rent", DueDate: today}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the tyres", Tags: []string{"car"}}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the tyres", Tags: []string{"car"}}); err != nil {
 		t.Fatal(err)
 	}
 	p, err := a.CreateProject(app.ProjectFields{Title: "Move flat", DOD: "keys handed over"}, []app.ActionFields{{Title: "Pack the books"}})
@@ -49,7 +49,7 @@ func TestTheRealAppsViewsReadAsLists(t *testing.T) {
 	if err := a.CompleteAction(p.Actions[0].ID); err != nil {
 		t.Fatal(err)
 	}
-	done, err := a.CreateAction(0, app.ActionFields{Title: "Renew the passport", DueDate: today}, false)
+	done, err := a.CreateAction(0, app.ActionFields{Title: "Renew the passport", DueDate: today})
 	if err != nil {
 		t.Fatal(err)
 	}

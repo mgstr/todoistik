@@ -60,7 +60,7 @@ func TestEachTextSectionIsThatViewsOwnAnswer(t *testing.T) {
 	if _, _, err := a.Capture("Renew the parking permit", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Buy new winter tyres"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Buy new winter tyres"}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -127,7 +127,7 @@ func TestArchiveNoneLeavesTheArchiveOut(t *testing.T) {
 // one inside it is in — the window is applied, not merely recorded.
 func TestTheArchiveWindowIsApplied(t *testing.T) {
 	s, a := newTestServer(t)
-	act, err := a.CreateAction(0, app.ActionFields{Title: "Book the tyre change"}, false)
+	act, err := a.CreateAction(0, app.ActionFields{Title: "Book the tyre change"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -94,7 +94,7 @@ func TestReadingAViewIsTheAppsOwnAnswer(t *testing.T) {
 	if err := a.AddTag("car"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Buy new winter tyres", Tags: []string{"car"}}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Buy new winter tyres", Tags: []string{"car"}}); err != nil {
 		t.Fatal(err)
 	}
 
