@@ -55,6 +55,24 @@ func TestAProjectWithANextActionDoesNotMarkItsHeading(t *testing.T) {
 	}
 }
 
+// The keyboard hands the selected row from one page to the next, and only the
+// list it came from may claim it. A view's name does not say which list that
+// is — the project page opened from Next calls itself `next` too — so the pane
+// says whether this is the view's own list or a screen inside it. Without it
+// the cursor handed on by completing an action landed on the project's action
+// list, on the action just completed, and took the screen's own Done off the
+// key bar (app.js, viewKey).
+func TestAScreenInsideAViewSaysSoOnItsPane(t *testing.T) {
+	s, a := newTestServer(t)
+	stalledProject(t, a, "Winter tyres on")
+	if body := getPage(t, s, "/next"); strings.Contains(body, "data-step") {
+		t.Errorf("the Next list calls itself a screen inside a view")
+	}
+	if body := getPage(t, s, "/project/1?from=%2Fnext"); !strings.Contains(body, "data-step") {
+		t.Errorf("the project page does not say it is a screen inside Next")
+	}
+}
+
 // The page is the same page however it was reached: completing the last
 // action lands on it with nothing in the address saying so, and it still
 // offers Done — the one Done, in the action bar, which `d` presses.

@@ -54,6 +54,11 @@
      and hiding the bar must not take the buttons with it. */}}
 <div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}} {{if not .Panels.Keybar}}barless{{end}}"
   data-view="{{.View}}"
+  {{/* a screen inside the view rather than the view's own list: the trail has
+       a second step on it, which is exactly what ui.go's step() means by it.
+       The keyboard's row handover reads this — a list and a screen under the
+       same view name are still two different lists (app.js, viewKey). */}}
+  {{if gt (len .Trail) 1}}data-step{{end}}
   data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
   data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
   data-verbs="{{range .Vocab.Verbs}}{{.}} {{end}}"

@@ -847,16 +847,37 @@ a page load, and what the bar derives itself from.
   end with the cursor gone and `j` pressed to get back to the row you were
   already on. The row is handed to the page the response renders and claimed
   once, on arrival. Three rules keep that from selecting things nobody pointed
-  at: it is claimed only on the screen it was handed from — which is read off
-  the nav's own highlight, since on a boosted post the new page is in the DOM
-  before htmx has finished with the URL — only for a row that was selected when
-  the key was pressed, and only once, so a later `g` jump never arrives with
-  something already selected. When the row itself is gone, which is what `c`
+  at: it is claimed only on the screen it was handed from — read off the pane
+  rather than the address bar, since on a boosted post the new page is in the
+  DOM before htmx has finished with the URL — only for a row that was selected
+  when the key was pressed, and only once, so a later `g` jump never arrives
+  with something already selected. When the row itself is gone, which is what `c`
   does to it, the selection stays at that *position* instead: the item that
   moved up is under the cursor and a list can be worked straight down. This is
   the one thing the key layer keeps across a page load, and it keeps it in
   `sessionStorage` rather than on the server, because it decides nothing and
   survives nothing — losing it costs a keystroke (see "Stack")
+- **"the screen it was handed from" is a list, not a view.** The view's name
+  alone was the test, and it is not enough: a screen inside a view wears the
+  view's name too, so the project page opened from "Next actions" called
+  itself `next` exactly as the Next list does — and completing a project's
+  last action from Next handed the Next cursor straight onto the project's own
+  action list, where it landed on the action just completed. A selected row
+  takes the screen's keys off the bar in favour of its own, and a completed
+  action offers Undone rather than Done, so the project's Done disappeared
+  from the key bar at the one moment it was wanted. The pane says which kind
+  of screen this is with `data-step`, from the trail having a second crumb —
+  the app's existing answer to that question (`step()` already turns the
+  background refresh off by it) rather than a second list of screen names to
+  keep true
+- **a screen that cannot claim a handover does not clear it either.** It used
+  to be taken out of `sessionStorage` before the screen was checked, so the
+  project page threw away a cursor it was not entitled to and `b` came back to
+  a Next with nothing selected. Both handovers are now cleared only where they
+  are claimed — or where the stored line will not parse, which is not something
+  to keep offering the next page. This is the rule a screen with no rows at all
+  already followed, and for the same reason: doing is a screen you go to from a
+  row and come straight back to
 - **the place in the list survives it too**, and is handed on the same way and
   under the same rules. `main` is the scrollport and not the window (see
   "Screen layout"), so every answer arrives as a brand-new `main` scrolled to
