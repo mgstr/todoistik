@@ -96,12 +96,18 @@ worth arguing about:
 
 **Hybrid reads the control, not the letter.** A control that is pressed with
 the caret in a box says so, and hybrid is the only mode that looks. Keyed on
-the letter instead, it is wrong the moment two buttons share one: `a` is Add
-inside a project form *and* the Action branch on the processing screen, which
-has no box on it at all — and a modifier there protects nothing while costing
-a chord on the app's commonest answer. Two buttons may share a letter
-(see "One letter, one button"); they do not thereby share a reason to spend a
-modifier.
+the letter instead, it is wrong the moment two buttons share one — and the
+pair that made the point was `a`: Add inside a project form, and the Task
+branch on the processing screen while that branch was still `a`, on a screen
+with no box on it at all. A modifier there protected nothing while costing a
+chord on the app's commonest answer. That pair has since come apart, because
+the branch is `t` now (see "The processing branches"), and no letter in the
+map currently carries both a typed control and an untyped one. The rule
+outlives the example on purpose: `data-key-typing` is a fact about where a
+control sits, so the next shared letter brings the case straight back, and a
+scheme that had meanwhile keyed the modifier to the letter would be wrong
+again the day it did. Two buttons may share a letter (see "One letter, one
+button"); they do not thereby share a reason to spend a modifier.
 
 `keys.mode` in the settings file chooses one. It exists because the question
 is not answerable in the abstract — it is a question about hands, and the only
@@ -161,8 +167,10 @@ been.
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
 
-**`r` is the one letter in the map that is spent twice, and it is worth saying
-why rather than pretending otherwise.** It is the processing screen's
+**`r` is one of the two letters in the map that are spent twice, and it is
+worth saying why rather than pretending otherwise** — `t` is the other, and it
+is argued for in "The processing branches" below, by this same paragraph's
+test. It is the processing screen's
 *reference material* branch and it is the review step's *mark* — two nouns, not
 one, which is exactly what the rule above forbids. What buys the exception is
 what the rule is actually protecting against: `t` was trash on one screen and
@@ -236,14 +244,37 @@ it.
 | `r` | reference material |
 | `d` | the two-minute rule |
 | `y` | someday/maybe |
-| `a` | make it an action |
+| `t` | make it a task |
 | `p` | make it a project |
 
-`a` stays although Add also has it: Add adds an action and this branch makes
-one, so it is one noun and one meaning, and the two are never on a screen
-together — stage one has no Add, stage two has no branches. They do not share
-a modifier, though: Add carries `data-key-typing` and this does not, because
-stage one has nothing on it to type into.
+**The task branch is `t`, and it was `a` while it was called Action.** The
+letter moved because the noun did: this answer makes a standalone action, and
+a standalone action is a *task* everywhere it is afterwards read — the view it
+lands in, the nav entry, the word design.md uses for it (design.md, "Tasks").
+The screen that names the thing was the one place still calling it the other
+word, which meant the commonest answer in the app was written under one noun
+and found under another.
+
+`t` is the second letter in the map spent twice, and it passes the test the
+`r` paragraph sets: Today and Task are never on a screen together — stage one
+carries no row with the mark on it, and every screen that does carries no
+branches — neither destroys anything, and both are the first letter of their
+own word. There is a sharper thing to say about it, since this file spends two
+paragraphs on `t` being the collision that had to go: what had to go was `t`
+meaning *trash* here and *today* elsewhere, and what made that one expensive
+was that one of the two destroys. This is the same letter coming back to the
+same screen with the other half of the objection absent.
+
+**The alternative was `k`, and it is taken.** Tasks is `g k` in the navigation
+map, which is the same collision answered the other way — `g t` was already
+Today, so the view took the next letter of its own name. The two maps are
+separate namespaces and each gets the letter that is free in it: here `k` is
+the cursor, always bare in every mode, and stage one has a match list to move
+through, so `k` is not free. Consistency between the two maps would have cost
+the guessable letter in the one place a letter is guessed at.
+
+`a` is now Add and nothing else, which is a small simplification and is not
+what the move was for.
 
 **`d` is the two-minute rule, and it was `2`.** The number was the rule's own
 number and the argument for it was that `d` is Done app-wide, so the two would
@@ -517,6 +548,14 @@ never be advertised without working:
   implementation.md, "Keyboard": a project page reached by completing an
   action used to arrive with the completed action under the cursor, and so
   with no `d done` on it at all.
+- **and that is what lets `t` be the task branch.** The three are read before
+  the declared keys, so `t` asks for a `kb-pick` first and only then for a
+  control on the page. Stage one of processing carries no such form — the
+  match list is rows of text and a digit, with no mark to press — so the ask
+  comes back empty and the branch takes the key. Nothing about the branch is
+  special-cased: the ordering was already there, and a screen with a Today
+  mark on it could not have taken `t` for anything else, which is the same
+  thing as saying the two are never on a screen together.
 - **`kb-review` is a fourth row form, and the one that does not leave.** `r`
   presses it, and it is the only one of the four whose answer is a row redrawn
   where it stands rather than a screen replaced — so it takes no deaf window

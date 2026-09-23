@@ -931,8 +931,10 @@ a page load, and what the bar derives itself from.
   a box adds `data-key-typing`, which only hybrid reads: that is a fact about
   where the control sits, and it is on the control rather than on the letter
   because two buttons may share a letter without sharing a form to be typed
-  into — `a` is Add inside a project form and the Action branch on a screen
-  with no box on it
+  into — the pair that made the point was `a`, Add inside a project form and
+  the Task branch on a boxless screen while that branch was still `a`. The
+  branch is `t` now and the pair has come apart, which changes nothing about
+  where the fact belongs; keys.md, "The three modes" says why
 - `ctrl-m` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
 - `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
@@ -1401,7 +1403,7 @@ and all eight branches on screen at once — three buttons and five forms in
     grouping is about what becomes of the item, not about what the answer costs
     to give, and what becomes of it here is that it moves and stays
     unclarified
-  - **it is actionable** — Action and Project, the only two answers in this row
+  - **it is actionable** — Task and Project, the only two answers in this row
     and the only two that create a commitment (see "Stage two"). They carried
     *"— a step"* and *"— an outcome"* while the row was new; the gloss was
     removed once it had been read, on the same argument as the rest of the
@@ -1661,8 +1663,13 @@ handler below it cannot tell the difference.
 
 ## Stage two
 
-Answering Action, Project or Someday/Maybe opens a form on the same screen, at
-`/process?item=&as=action|project|someday`. Server-rendered as its own
+Answering Task, Project or Someday/Maybe opens a form on the same screen, at
+`/process?item=&as=action|project|someday`. The task branch keeps `as=action`
+and posts to `/process/{id}/action`, because the URL names the item that is
+created and that is still an action — the branch was renamed, the item type
+was not (design.md, "Inbox Zero"). Renaming the route to match the button
+would have put the view's name on the one path that also makes actions inside
+a project. Server-rendered as its own
 page rather than revealed in place: the second stage has to survive a reload
 and a back button — it is where the typing happens — and a URL that names the
 stage is what gives it that for free. It also keeps the rule that the server is the single
@@ -3314,7 +3321,7 @@ the screen, and one answer that takes all three. This is how they are built.
   shows, read from `NavCounts.For` so the two numbers cannot come to differ —
   then whatever is being done inside it. `newPage` writes the first step from
   the view slug and a handler adds the rest with `step()`, which is why the
-  processing screens read "Inbox / Processing / Action"
+  processing screens read "Inbox / Processing / Task"
 - **the inbox count is red here too.** It is the one count design.md asks the
   app to say loudly, and the rail was the only place saying it — which stops
   being enough the moment the rail is a thing you can turn off. Every other
@@ -3328,7 +3335,7 @@ the screen, and one answer that takes all three. This is how they are built.
 - **the separators are drawn by CSS**, not written into the markup, so a step
   the browser adds is punctuated like the ones the server wrote. A dialog that
   is a step rather than a question says so with `data-crumb` and the key layer
-  appends it while it is open — that is where "Inbox / Processing / Action /
+  appends it while it is open — that is where "Inbox / Processing / Task /
   Create project" comes from, and adding another one is an attribute
 - **the screen only gets its say on arrival.** `zen.views` is applied when the
   trail's screen is not the one already recorded as open, so turning zen off by

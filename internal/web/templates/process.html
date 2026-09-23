@@ -82,7 +82,13 @@
   </div>
 
   <div class="branches">
-    <a class="button" href="{{$d.AsAction}}" data-key="a" data-key-label="action">Action</a>
+    {{/* Task and not Action: what this answer makes by default is a standalone
+         action, and a standalone action is called a task everywhere it is
+         read (design.md, "Tasks"). The noun it is written under on the one
+         screen that names it should be the noun it is found under later.
+         `t` is the letter, and it is the second one in the map spent twice —
+         see keys.md, "The processing branches". */}}
+    <a class="button" href="{{$d.AsAction}}" data-key="t" data-key-label="task">Task</a>
     <a class="button" href="{{$d.AsProject}}" data-key="p" data-key-label="project">Project</a>
   </div>
 </div>

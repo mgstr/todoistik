@@ -938,7 +938,7 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 	p := s.newPage("Processing", "inbox", r).help("processing").step("Processing", "processing")
 	switch d.As {
 	case "action":
-		p.step("Action", "").notation(s)
+		p.step("Task", "").notation(s)
 	case "project":
 		p.step("Project", "")
 	case "someday":
