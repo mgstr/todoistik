@@ -66,7 +66,7 @@ func TestNoMotionAtAllStillReachesThePage(t *testing.T) {
 // plain fade — which is a silent downgrade rather than an error.
 func TestTheDoingScreenOffersALineToStrikeThrough(t *testing.T) {
 	s, a := serverWith(t, conf.Defaults())
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"}); err != nil {
 		t.Fatal(err)
 	}
 	rec := httptest.NewRecorder()

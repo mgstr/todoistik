@@ -2,7 +2,6 @@ package app
 
 import (
 	"database/sql"
-	"errors"
 	"strings"
 )
 
@@ -188,20 +187,16 @@ func (a *App) ProcessTwoMinute(id int64) error {
 // ProcessAction: the item becomes an action, standalone when projectID is 0
 // and filed under that project otherwise (design.md, "Inbox Zero", the Action
 // branch). Deciding it is worth doing is what makes it next, so it is stamped
-// as a next action either way unless it is deliberately parked — which only
-// an action inside a project can be.
+// as a next action either way.
 //
 // A stalled or a snoozed project is a valid target: filing a next action into
 // a stalled project is exactly what resolves the stall, and a project's snooze
 // is about not being bugged, not about being closed to new work. A completed
 // one is not — it is finished, and reopening it is not a decision to make
 // while emptying the inbox.
-func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bool) (*Action, error) {
+func (a *App) ProcessAction(id int64, f ActionFields, projectID int64) (*Action, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
-	}
-	if parked && projectID == 0 {
-		return nil, errors.New("only an action inside a project can be parked")
 	}
 	if projectID != 0 {
 		p, err := a.Project(projectID)
@@ -223,11 +218,12 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64, parked bo
 			Title:     f.Title, Context: f.Context, ContextParam: f.ContextParam,
 			Duration: f.Duration, NeedsFocus: f.NeedsFocus,
 			Description: f.Description, AssignedTo: strings.TrimSpace(f.AssignedTo),
-			DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil, Tags: normTags(f.Tags),
-			CreatedAt: now, LastReviewedAt: now,
+			DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil, SnoozeActionID: f.SnoozeActionID,
+			Tags: normTags(f.Tags), CreatedAt: now, LastReviewedAt: now,
+			BecameNextAt: &now,
 		}
-		if !parked {
-			act.BecameNextAt = &now
+		if err := a.checkBlockerTx(tx, 0, projectID, act.SnoozeActionID); err != nil {
+			return err
 		}
 		return a.insertActionTx(tx, act)
 	})

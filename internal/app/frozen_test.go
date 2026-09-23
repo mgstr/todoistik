@@ -15,7 +15,7 @@ import (
 
 func completedAction(t *testing.T, a *App) *Action {
 	t.Helper()
-	act, err := a.CreateAction(0, ActionFields{Title: "Change the winter tyres"}, false)
+	act, err := a.CreateAction(0, ActionFields{Title: "Change the winter tyres"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,8 +57,6 @@ func TestACompletedActionRefusesEveryEdit(t *testing.T) {
 		"edit":     a.UpdateAction(act.ID, ActionFields{Title: "Change the summer tyres"}),
 		"complete": a.CompleteAction(act.ID),
 		"delete":   a.DeleteAction(act.ID),
-		"park":     a.SetNext(act.ID, false),
-		"next":     a.SetNext(act.ID, true),
 		"snooze":   a.SnoozeAction(act.ID, "2026-10-01"),
 		"tag":      a.ToggleTag("action", act.ID, "car"),
 		"pick":     a.ToggleTag("action", act.ID, TodayTag),
@@ -145,14 +143,14 @@ func TestACompletedProjectTakesNoNewAction(t *testing.T) {
 	a, _ := newTestApp(t)
 	p := completedProject(t, a)
 
-	if _, err := a.CreateAction(p.ID, ActionFields{Title: "Balance them"}, false); !errors.Is(err, ErrCompleted) {
+	if _, err := a.CreateAction(p.ID, ActionFields{Title: "Balance them"}); !errors.Is(err, ErrCompleted) {
 		t.Errorf("adding an action to a completed project: err=%v, want ErrCompleted", err)
 	}
 	it, _, err := a.Capture("Balance the wheels", SourceApp)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Balance the wheels"}, p.ID, false); !errors.Is(err, ErrCompleted) {
+	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Balance the wheels"}, p.ID); !errors.Is(err, ErrCompleted) {
 		t.Errorf("filing an inbox item into a completed project: err=%v, want ErrCompleted", err)
 	}
 	// and the inbox item is still there to be filed somewhere that exists
@@ -195,7 +193,7 @@ func TestBringingItBackUnfreezesIt(t *testing.T) {
 // — one that is not is already refused for saying so (see requests.go).
 func TestTheFreezeDoesNotBlockACompletionRequest(t *testing.T) {
 	a, now := newTestApp(t)
-	act, err := a.CreateAction(0, ActionFields{Title: "Change the winter tyres"}, false)
+	act, err := a.CreateAction(0, ActionFields{Title: "Change the winter tyres"})
 	if err != nil {
 		t.Fatal(err)
 	}

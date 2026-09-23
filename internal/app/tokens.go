@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -24,8 +25,10 @@ import (
 // The columns remain the truth. The text is parsed into them on save and
 // written back out of them on open, rather than the other way around, because
 // the app changes those fields from outside the box: picking for today, a
-// detach stamping a parked action, a delegation restamping the clock. If the
-// text owned them, every one of those would have to rewrite prose.
+// completed blocker waking what waited on it, a delegation restamping the
+// clock. If the text owned them, every one of those would have to rewrite
+// prose — and `snooze:(Buy the frame)` would go on naming an action that was
+// finished last week.
 
 // Names that always parse as tokens, whatever is on the remembered lists.
 // Each one stands for a column, which is why none of them can be removed in
@@ -33,14 +36,13 @@ import (
 const (
 	WaitingForContext = "waitingFor"
 	FocusTag          = "focus"
-	ParkedTag         = "parked"
 )
 
 // StructuralTags are the tags that are not tags: each is a field wearing a
 // tag's notation. TodayTag is here too — it was already built in.
 var StructuralTags = []string{
 	string(DurShort), string(DurMedium), string(DurLong),
-	FocusTag, ParkedTag, TodayTag,
+	FocusTag, TodayTag,
 }
 
 // Vocabulary is what makes an `@name` or a `#name` metadata rather than prose:
@@ -58,6 +60,21 @@ type Vocabulary struct {
 	// everything else a name means right now, rather than as one more
 	// parameter threaded through every parse.
 	Today string
+	// Siblings are the open actions of the project the line is being written
+	// in, and the only actions `snooze:(...)` may name. They are here for the
+	// same reason the day is: a title is a name whose meaning is an action,
+	// and what a name means right now is what this type carries. Empty for a
+	// standalone action, which has no siblings and so can wait on no one.
+	Siblings []Sibling
+	// Self is the action being edited, which may not wait on itself. 0 while
+	// writing a new one, which cannot be named yet either way.
+	Self int64
+}
+
+// Sibling is one action a snooze may name: its id, and the title that names it.
+type Sibling struct {
+	ID    int64
+	Title string
 }
 
 func (v *Vocabulary) knownContext(name string) bool {
@@ -95,6 +112,40 @@ func (a *App) Vocabulary() (*Vocabulary, error) {
 	return v, nil
 }
 
+// VocabularyIn is the same lists plus the actions a `snooze:` on this screen
+// may name: the open actions of the project being written in, and which of
+// them is the one being edited. projectID 0 leaves the list empty, which is
+// what makes `snooze:(…)` refuse itself on a standalone action rather than
+// needing a rule of its own.
+//
+// Completed siblings are deliberately not on it. Waiting on something already
+// finished is waiting on nothing, and a plan is written out of what is still
+// ahead of it.
+func (a *App) VocabularyIn(projectID, self int64) (*Vocabulary, error) {
+	v, err := a.Vocabulary()
+	if err != nil {
+		return nil, err
+	}
+	v.Self = self
+	if projectID == 0 {
+		return v, nil
+	}
+	rows, err := a.db.Query(`SELECT id, title FROM actions
+		WHERE project_id=? AND completed_at IS NULL ORDER BY id`, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sib Sibling
+		if err := rows.Scan(&sib.ID, &sib.Title); err != nil {
+			return nil, err
+		}
+		v.Siblings = append(v.Siblings, sib)
+	}
+	return v, rows.Err()
+}
+
 // A token starts a word: preceded by the start of the text or by whitespace.
 // That alone already excludes an email address, and the vocabulary check
 // excludes the rest.
@@ -105,6 +156,18 @@ var tokenRe = regexp.MustCompile(`(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?`)
 // not a name off a remembered list, and spelling it out keeps it readable
 // without a fourth sigil to learn.
 var dateRe = regexp.MustCompile(`(^|\s)(due|snooze):(\S+)`)
+
+// A snooze also takes an action instead of a date: `snooze:(Buy the frame)`
+// names a sibling by title, `snooze:#42` names one by id. Two spellings of one
+// thing, and they are not redundant — the title is what you would write and
+// read, and the id is the way out of the one case the title cannot express,
+// which is two open siblings called the same.
+//
+// The brackets are the notation `@waitingFor(marju)` already uses, for the
+// same reason: what is inside them is prose rather than a name off a list, and
+// a title has spaces in it. Matched before dateRe, which would otherwise take
+// `#42` for a date and refuse the line.
+var snoozeActionRe = regexp.MustCompile(`(^|\s)snooze:(?:\(([^)]*)\)|#(\d+))`)
 
 // Either date also takes a word that counts off from today: `tomorrow`, a day
 // name, or a number of days. The app knows what day it is, and making you work
@@ -184,16 +247,19 @@ type MetaFields struct {
 	AssignedTo   string
 	Duration     Duration
 	NeedsFocus   bool
-	Parked       bool
 	Today        bool
 	DueDate      string
 	SnoozeUntil  string
-	Tags         []string
+	// SnoozeActionID is the sibling named by `snooze:(...)` or `snooze:#42`,
+	// resolved here on the way in for the reason a date word is: what is
+	// stored is the thing itself, so that renaming the blocker cannot quietly
+	// break what was waiting on it. SnoozeActionTitle is how it reads back out.
+	SnoozeActionID    int64
+	SnoozeActionTitle string
+	Tags              []string
 }
 
-// ParseMeta reads a meta line into the fields it spells. inProject says
-// whether the action has a home, because parking is only meaningful inside one
-// (design.md, "Standalone actions").
+// ParseMeta reads a meta line into the fields it spells.
 //
 // Anything the notation does not account for is refused rather than kept.
 // While this was one box with the description, an unknown `@name` or `#name`
@@ -201,8 +267,8 @@ type MetaFields struct {
 // nothing but names there is no prose for it to stay as, so the choice is
 // between saying so and swallowing it. A name that is not on the remembered
 // lists is usually a name that was never added, which is worth being told.
-func ParseMeta(text string, v *Vocabulary, inProject bool) (MetaFields, error) {
-	f, left, err := parseTokens(text, v, inProject)
+func ParseMeta(text string, v *Vocabulary) (MetaFields, error) {
+	f, left, err := parseTokens(text, v)
 	if err != nil {
 		return f, err
 	}
@@ -214,10 +280,28 @@ func ParseMeta(text string, v *Vocabulary, inProject bool) (MetaFields, error) {
 
 // parseTokens takes what it recognises and hands back what it did not, so that
 // ParseMeta can refuse a leftover while the round-trip test can look at one.
-func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string, error) {
+func parseTokens(text string, v *Vocabulary) (MetaFields, string, error) {
 	var f MetaFields
 	var seenDuration, seenContext, seenWaiting bool
 	var err error
+
+	// the action form of the snooze goes first: `snooze:#42` would otherwise
+	// be read as a date and refused as one
+	text = snoozeActionRe.ReplaceAllStringFunc(text, func(m string) string {
+		sub := snoozeActionRe.FindStringSubmatch(m)
+		lead, name, id := sub[1], sub[2], sub[3]
+		if f.SnoozeActionID != 0 {
+			err = orFirst(err, errors.New("two snoozes on one action — it waits on one thing, not two"))
+			return m
+		}
+		sib, rerr := v.resolveSibling(name, id)
+		if rerr != nil {
+			err = orFirst(err, rerr)
+			return m
+		}
+		f.SnoozeActionID, f.SnoozeActionTitle = sib.ID, sib.Title
+		return lead
+	})
 
 	text = dateRe.ReplaceAllStringFunc(text, func(m string) string {
 		sub := dateRe.FindStringSubmatch(m)
@@ -237,6 +321,15 @@ func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string
 		case "snooze":
 			if f.SnoozeUntil != "" {
 				err = orFirst(err, fmt.Errorf("two snooze dates: %s and %s", f.SnoozeUntil, date))
+				return m
+			}
+			// a date and an action are two answers to one question. Which of
+			// them is meant is exactly what the person is in the middle of
+			// deciding, so it is reported rather than guessed at (design.md,
+			// "Writing an action")
+			if f.SnoozeActionID != 0 {
+				err = orFirst(err, fmt.Errorf("snoozed until %s and until %q — an action waits on one thing, not two",
+					date, f.SnoozeActionTitle))
 				return m
 			}
 			f.SnoozeUntil = date
@@ -292,12 +385,6 @@ func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string
 			switch name {
 			case FocusTag:
 				f.NeedsFocus = true
-			case ParkedTag:
-				if !inProject {
-					err = orFirst(err, errParkedStandalone)
-					return keep()
-				}
-				f.Parked = true
 			case TodayTag:
 				f.Today = true
 			default:
@@ -312,7 +399,71 @@ func parseTokens(text string, v *Vocabulary, inProject bool) (MetaFields, string
 	return f, strings.TrimSpace(collapseBlankLines(prose)), err
 }
 
-var errParkedStandalone = fmt.Errorf("#%s only means something inside a project — a standalone action is always a next action", ParkedTag)
+// resolveSibling turns what `snooze:` named into the action it means. Both
+// spellings land here, and both are refused by name rather than dropped: a
+// snooze that names nothing is a claim about an ordering that does not exist,
+// and swallowing it would leave the action looking workable when the person
+// had just said it was not.
+func (v *Vocabulary) resolveSibling(name, id string) (Sibling, error) {
+	if v == nil || len(v.Siblings) == 0 {
+		return Sibling{}, errors.New("snooze:(…) names an action in the same project, and this one has no siblings to wait on — a standalone action waits on a date")
+	}
+	if id != "" {
+		n, cerr := strconv.ParseInt(id, 10, 64)
+		if cerr != nil {
+			return Sibling{}, fmt.Errorf("snooze:#%s is not an action id", id)
+		}
+		for _, sib := range v.Siblings {
+			if sib.ID == n {
+				if sib.ID == v.Self {
+					return Sibling{}, errSnoozeSelf
+				}
+				return sib, nil
+			}
+		}
+		return Sibling{}, fmt.Errorf("snooze:#%s is not an open action of this project", id)
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return Sibling{}, errors.New("snooze:() names nothing — put the action it waits on in the brackets")
+	}
+	// the same word matching the name filter uses, for the reason filing an
+	// action into a project uses it: one way of naming something that already
+	// exists (design.md, "Filtering by name")
+	var hits []Sibling
+	for _, sib := range v.Siblings {
+		if sib.ID != v.Self && matchName(name, sib.Title) {
+			hits = append(hits, sib)
+		}
+	}
+	switch len(hits) {
+	case 1:
+		return hits[0], nil
+	case 0:
+		if v.Self != 0 && matchName(name, siblingTitle(v.Siblings, v.Self)) {
+			return Sibling{}, errSnoozeSelf
+		}
+		return Sibling{}, fmt.Errorf("snooze:(%s) matches no open action of this project", name)
+	default:
+		var titles []string
+		for _, h := range hits {
+			titles = append(titles, fmt.Sprintf("%q (#%d)", h.Title, h.ID))
+		}
+		return Sibling{}, fmt.Errorf("snooze:(%s) matches %s — name it more exactly, or by id",
+			name, strings.Join(titles, " and "))
+	}
+}
+
+func siblingTitle(sibs []Sibling, id int64) string {
+	for _, s := range sibs {
+		if s.ID == id {
+			return s.Title
+		}
+	}
+	return ""
+}
+
+var errSnoozeSelf = errors.New("an action cannot wait on itself")
 
 func orFirst(existing, e error) error {
 	if existing != nil {
@@ -344,8 +495,8 @@ func WriteMeta(act *Action) string {
 	f.AssignedTo = act.AssignedTo
 	f.Duration = act.Duration
 	f.NeedsFocus = act.NeedsFocus
-	f.Parked = act.ProjectID != 0 && act.BecameNextAt == nil
 	f.DueDate, f.SnoozeUntil = act.DueDate, act.SnoozeUntil
+	f.SnoozeActionID, f.SnoozeActionTitle = act.SnoozeActionID, act.SnoozeActionTitle
 	for _, t := range act.Tags {
 		if t == TodayTag {
 			f.Today = true
@@ -370,9 +521,6 @@ func (f MetaFields) String() string {
 	if f.NeedsFocus {
 		tokens = append(tokens, "#"+FocusTag)
 	}
-	if f.Parked {
-		tokens = append(tokens, "#"+ParkedTag)
-	}
 	if f.Today {
 		tokens = append(tokens, "#"+TodayTag)
 	}
@@ -388,6 +536,11 @@ func (f MetaFields) String() string {
 	}
 	if f.SnoozeUntil != "" {
 		tokens = append(tokens, "snooze:"+f.SnoozeUntil)
+	}
+	// always the title, never the id the line may have been typed with: the
+	// id is a way in for the ambiguous case and not a way of reading a plan
+	if f.SnoozeActionID != 0 {
+		tokens = append(tokens, "snooze:("+f.SnoozeActionTitle+")")
 	}
 	return strings.Join(tokens, " ")
 }
@@ -418,9 +571,7 @@ type ProjectMeta struct {
 // context written on a project is a mistake about where the thing belongs, and
 // silently dropping it would leave that mistake believed.
 func ParseProjectMeta(text string, v *Vocabulary) (ProjectMeta, error) {
-	// inProject so that #parked parses instead of erroring in an action's
-	// words; it is refused just below, in a project's
-	f, left, err := parseTokens(text, v, true)
+	f, left, err := parseTokens(text, v)
 	if err != nil {
 		return ProjectMeta{}, err
 	}
@@ -451,8 +602,8 @@ func nonTagField(f MetaFields) string {
 		return "#" + FocusTag
 	case f.Today:
 		return "#" + TodayTag
-	case f.Parked:
-		return "#" + ParkedTag
+	case f.SnoozeActionID != 0:
+		return "snooze on an action"
 	case f.DueDate != "":
 		return "due date"
 	}
@@ -469,9 +620,7 @@ func nonTagField(f MetaFields) string {
 // idea until a date, on a list you already chose to open, is hiding it from
 // the one walk that exists to look at it.
 func ParseSomedayMeta(text string, v *Vocabulary) ([]string, error) {
-	// inProject so that #parked parses rather than erroring in an action's
-	// words; it is refused just below, in a someday item's
-	f, left, err := parseTokens(text, v, true)
+	f, left, err := parseTokens(text, v)
 	if err != nil {
 		return nil, err
 	}
@@ -529,12 +678,13 @@ func (p *Project) Meta() string { return WriteProjectMeta(p) }
 // dropped would be invisible, and this is the one moment an item is being
 // looked at deliberately.
 //
-// It reads as though the action had a project, so that `#parked` becomes a
-// token rather than an error that costs the whole line its reading. Filing it
-// standalone then refuses it by name, on the form, with the line still on the
-// screen.
+// A `snooze:` naming an action never survives this: a capture belongs to no
+// project yet, so there are no siblings for it to name, and the whole line is
+// left alone rather than half-read. Which is right — what a new action waits
+// on is decided on the form, with the project it is being filed into already
+// chosen.
 func MetaFromText(text string, v *Vocabulary) (meta, rest string) {
-	f, left, err := parseTokens(text, v, true)
+	f, left, err := parseTokens(text, v)
 	if err != nil {
 		return "", text
 	}
@@ -636,10 +786,10 @@ func (a *Action) PromotedMeta() string {
 // which areas it belongs to (design.md, "Copying a finished one").
 //
 // Four of an action's fields are deliberately not in it, and they are the four
-// that describe an occasion rather than a job: a deadline and a snooze were
-// dates in a month that has passed, #today was a morning's pick, and #parked
-// is a position in a project this copy is not in yet. Delegation goes with
-// them — who does it is settled by the form being filled in now, which is
+// that describe an occasion rather than a job: a deadline was a date in a
+// month that has passed, #today was a morning's pick, and a snooze named
+// either that same month or a sibling of a project this copy is not in yet.
+// Delegation goes with them — who does it is settled by the form being filled in now, which is
 // exactly what design.md says the Action branch decides (see "Inbox Zero").
 func (a *Action) CopyMeta() string {
 	var tags []string

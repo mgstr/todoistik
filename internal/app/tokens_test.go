@@ -24,7 +24,7 @@ func vocab(contexts, tags []string) *Vocabulary {
 
 func TestParseMetaFields(t *testing.T) {
 	v := vocab([]string{"home", "person"}, []string{"car", "finance"})
-	f, err := ParseMeta("@home #short #focus #car @waitingFor(Marju) #today", v, true)
+	f, err := ParseMeta("@home #short #focus #car @waitingFor(Marju) #today", v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,14 +51,14 @@ func TestParseMetaRefusesWhatIsNotNotation(t *testing.T) {
 		"@home ring the fitter first", // prose, which belongs in the description
 		"mail marju@gmail.com",        // not a token at all
 	} {
-		if _, err := ParseMeta(in, v, false); err == nil {
+		if _, err := ParseMeta(in, v); err == nil {
 			t.Fatalf("%q should have been refused", in)
 		}
 	}
-	if _, err := ParseMeta("@home #car due:2026-09-20", v, false); err != nil {
+	if _, err := ParseMeta("@home #car due:2026-09-20", v); err != nil {
 		t.Fatalf("a line of nothing but notation must pass: %v", err)
 	}
-	if _, err := ParseMeta("   ", v, false); err != nil {
+	if _, err := ParseMeta("   ", v); err != nil {
 		t.Fatalf("an empty line is not an error: %v", err)
 	}
 }
@@ -67,7 +67,7 @@ func TestParseMetaRefusesWhatIsNotNotation(t *testing.T) {
 // and what is left over is then refused rather than taken for a context.
 func TestParseTokensNeedsAWordBoundary(t *testing.T) {
 	v := vocab([]string{"home"}, nil)
-	f, left, _ := parseTokens("write to andres@home.example", v, false)
+	f, left, _ := parseTokens("write to andres@home.example", v)
 	if f.Context != "" {
 		t.Fatalf("an address is not a context: %+v", f)
 	}
@@ -80,17 +80,15 @@ func TestParseMetaRejectsContradictions(t *testing.T) {
 	v := vocab([]string{"home", "online"}, nil)
 	cases := []struct {
 		name, text string
-		inProject  bool
 		wants      string
 	}{
-		{"two contexts", "@home @online", true, "at most one"},
-		{"two sizes", "#short #long", true, "Pick one"},
-		{"waiting with no name", "@waitingFor", true, "who or what"},
-		{"parked outside a project", "#parked", false, "inside a project"},
+		{"two contexts", "@home @online", "at most one"},
+		{"two sizes", "#short #long", "Pick one"},
+		{"waiting with no name", "@waitingFor", "who or what"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if _, err := ParseMeta(c.text, v, c.inProject); err == nil {
+			if _, err := ParseMeta(c.text, v); err == nil {
 				t.Fatal("expected an error")
 			} else if !strings.Contains(err.Error(), c.wants) {
 				t.Fatalf("error should say %q: %v", c.wants, err)
@@ -103,7 +101,7 @@ func TestParseMetaRejectsContradictions(t *testing.T) {
 func TestWriteMetaRoundTrips(t *testing.T) {
 	v := vocab([]string{"home"}, []string{"car"})
 	act := &Action{
-		ProjectID: 7, BecameNextAt: ptrNow(), // in a project and next, so not parked
+		ProjectID: 7, BecameNextAt: ptrNow(),
 		Description: "Ring the fitter first\nthen measure",
 		Context:     "home", ContextParam: "garage", Duration: DurMedium,
 		NeedsFocus: true, AssignedTo: "Marju", Tags: []string{"car", TodayTag},
@@ -113,12 +111,12 @@ func TestWriteMetaRoundTrips(t *testing.T) {
 	if strings.Contains(text, "Ring the fitter") {
 		t.Fatalf("the description has no business on the meta line: %q", text)
 	}
-	f, err := ParseMeta(text, v, true)
+	f, err := ParseMeta(text, v)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if f.Context != "home" || f.ContextParam != "garage" || f.Duration != DurMedium ||
-		!f.NeedsFocus || f.AssignedTo != "Marju" || !f.Today || f.Parked ||
+		!f.NeedsFocus || f.AssignedTo != "Marju" || !f.Today ||
 		f.DueDate != "2026-09-20" || f.SnoozeUntil != "2026-09-10" {
 		t.Fatalf("fields did not survive: %+v", f)
 	}
@@ -139,41 +137,98 @@ func TestWriteMetaRoundTrips(t *testing.T) {
 	}
 }
 
-// A parked action is one inside a project with no becameNextActionAt, and that
-// is what the token has to mean in both directions.
-func TestWriteMetaParked(t *testing.T) {
-	parked := &Action{ProjectID: 3}
-	if got := WriteMeta(parked); got != "#parked" {
-		t.Fatalf("parked: %q", got)
+// A snooze that names a sibling is read either way it is written and always
+// written back as the title, so that renaming the blocker cannot leave the
+// line naming something that no longer exists.
+func TestSnoozeOnAnAction(t *testing.T) {
+	v := vocab([]string{"home"}, nil)
+	v.Siblings = []Sibling{
+		{ID: 41, Title: "Buy the picture"},
+		{ID: 42, Title: "Buy the frame"},
 	}
-	now := timeNow()
-	next := &Action{ProjectID: 3, BecameNextAt: &now}
-	if got := WriteMeta(next); got != "" {
-		t.Fatalf("a next action carries no token: %q", got)
+	v.Self = 43
+
+	for _, in := range []string{"snooze:(buy the frame)", "snooze:#42", "snooze:(FRAME)"} {
+		f, err := ParseMeta(in, v)
+		if err != nil {
+			t.Fatalf("%s: %v", in, err)
+		}
+		if f.SnoozeActionID != 42 || f.SnoozeActionTitle != "Buy the frame" {
+			t.Fatalf("%s resolved to %d %q", in, f.SnoozeActionID, f.SnoozeActionTitle)
+		}
+		if f.SnoozeUntil != "" {
+			t.Fatalf("%s must not also set a date", in)
+		}
 	}
-	standalone := &Action{BecameNextAt: &now}
-	if got := WriteMeta(standalone); got != "" {
-		t.Fatalf("a standalone action carries no token: %q", got)
+
+	// the id is a way in, never a way out: the line always reads as the title
+	act := &Action{ProjectID: 7, SnoozeActionID: 42, SnoozeActionTitle: "Buy the frame"}
+	if got := WriteMeta(act); got != "snooze:(Buy the frame)" {
+		t.Fatalf("written back as %q", got)
+	}
+	// and what is written survives being read again
+	f, err := ParseMeta(WriteMeta(act), v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.SnoozeActionID != 42 {
+		t.Fatalf("did not round-trip: %+v", f)
+	}
+}
+
+func TestSnoozeOnAnActionRefusals(t *testing.T) {
+	v := vocab(nil, nil)
+	v.Siblings = []Sibling{
+		{ID: 41, Title: "Buy the picture"},
+		{ID: 42, Title: "Buy the frame"},
+		{ID: 43, Title: "Hang it"},
+	}
+	v.Self = 43
+
+	cases := []struct{ name, text, wants string }{
+		{"matches nothing", "snooze:(paint the wall)", "matches no open action"},
+		{"matches two", "snooze:(buy)", "name it more exactly"},
+		{"empty brackets", "snooze:()", "names nothing"},
+		{"unknown id", "snooze:#99", "not an open action"},
+		{"itself by name", "snooze:(hang it)", "cannot wait on itself"},
+		{"itself by id", "snooze:#43", "cannot wait on itself"},
+		{"a date as well", "snooze:2027-01-01 snooze:(buy the frame)", "waits on one thing"},
+		{"two siblings", "snooze:(buy the frame) snooze:#41", "waits on one thing, not two"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if _, err := ParseMeta(c.text, v); err == nil {
+				t.Fatal("expected an error")
+			} else if !strings.Contains(err.Error(), c.wants) {
+				t.Fatalf("error should say %q: %v", c.wants, err)
+			}
+		})
+	}
+
+	// with no siblings at all — a standalone action, or a project's first
+	// action before the project exists — it refuses itself
+	if _, err := ParseMeta("snooze:(buy the frame)", vocab(nil, nil)); err == nil {
+		t.Fatal("an action with no siblings cannot wait on one")
 	}
 }
 
 func TestParseMetaDates(t *testing.T) {
 	v := vocab(nil, nil)
-	f, err := ParseMeta("due:2026-09-20 snooze:2026-09-10", v, false)
+	f, err := ParseMeta("due:2026-09-20 snooze:2026-09-10", v)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if f.DueDate != "2026-09-20" || f.SnoozeUntil != "2026-09-10" {
 		t.Fatalf("dates: %+v", f)
 	}
-	if _, err := ParseMeta("due:soon", v, false); err == nil {
+	if _, err := ParseMeta("due:soon", v); err == nil {
 		t.Fatal("a due date that is not a date must be refused, not dropped")
 	}
-	if _, err := ParseMeta("due:2026-09-20 due:2026-09-21", v, false); err == nil {
+	if _, err := ParseMeta("due:2026-09-20 due:2026-09-21", v); err == nil {
 		t.Fatal("two due dates must be refused")
 	}
 	// a bare word with a colon is not a date token, so it is leftover prose
-	if _, left, _ := parseTokens("note: ring first", v, false); left != "note: ring first" {
+	if _, left, _ := parseTokens("note: ring first", v); left != "note: ring first" {
 		t.Fatalf("ordinary prose with a colon: %q", left)
 	}
 }
@@ -213,7 +268,6 @@ func TestParseProjectMeta(t *testing.T) {
 		{"#short", "no size"},
 		{"#focus", "no #focus"},
 		{"#today", "no #today"},
-		{"#parked", "no #parked"},
 		{"due:2026-10-01", "no due date"},
 		{"#nosuchtag", "is not notation"},
 		{"a house in the country", "is not notation"},
@@ -225,6 +279,15 @@ func TestParseProjectMeta(t *testing.T) {
 		if !strings.Contains(err.Error(), c.wants) {
 			t.Fatalf("%q: error should say %q: %v", c.text, c.wants, err)
 		}
+	}
+	// a project's snooze is a date and only a date: waiting on an action is
+	// something an action does, and a project is not one
+	sib := vocab(nil, nil)
+	sib.Siblings = []Sibling{{ID: 1, Title: "Measure the wall"}}
+	if _, err := ParseProjectMeta("snooze:(measure the wall)", sib); err == nil {
+		t.Fatal("a project cannot wait on an action")
+	} else if !strings.Contains(err.Error(), "snooze on an action") {
+		t.Fatalf("error should name the field: %v", err)
 	}
 }
 
@@ -267,7 +330,7 @@ func TestParseMetaRelativeDates(t *testing.T) {
 		{"due:30days", "2026-10-14"},
 	}
 	for _, c := range cases {
-		f, err := ParseMeta(c.in, v, false)
+		f, err := ParseMeta(c.in, v)
 		if err != nil {
 			t.Fatalf("%s: %v", c.in, err)
 		}
@@ -276,7 +339,7 @@ func TestParseMetaRelativeDates(t *testing.T) {
 		}
 	}
 	// snooze reads the same words, and is written back out as the date
-	f, err := ParseMeta("snooze:friday", v, false)
+	f, err := ParseMeta("snooze:friday", v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -293,13 +356,13 @@ func TestParseMetaRelativeDates(t *testing.T) {
 func TestParseMetaSnoozeRefusesToday(t *testing.T) {
 	v := vocab(nil, nil)
 	for _, in := range []string{"snooze:today", "snooze:0days", "snooze:0d"} {
-		if _, err := ParseMeta(in, v, false); err == nil {
+		if _, err := ParseMeta(in, v); err == nil {
 			t.Fatalf("%s was accepted", in)
 		}
 	}
 	// an explicit date in the past is still allowed: that is a claim that went
 	// stale, and the weekly review is what catches it
-	if _, err := ParseMeta("snooze:2020-01-01", v, false); err != nil {
+	if _, err := ParseMeta("snooze:2020-01-01", v); err != nil {
 		t.Fatalf("a past date is not an error: %v", err)
 	}
 }
@@ -309,7 +372,7 @@ func TestParseMetaSnoozeRefusesToday(t *testing.T) {
 func TestParseMetaRefusesUnknownDateWords(t *testing.T) {
 	v := vocab(nil, nil)
 	for _, in := range []string{"due:someday", "due:next-friday", "due:3weeks", "due:tomorow", "snooze:d3"} {
-		_, err := ParseMeta(in, v, false)
+		_, err := ParseMeta(in, v)
 		if err == nil {
 			t.Fatalf("%s was accepted", in)
 		}
@@ -330,7 +393,7 @@ func TestVocabularyCarriesToday(t *testing.T) {
 	if v.Today != "2026-09-04" {
 		t.Fatalf("today: %q", v.Today)
 	}
-	f, err := ParseMeta("due:monday snooze:tomorrow", v, false)
+	f, err := ParseMeta("due:monday snooze:tomorrow", v)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +420,6 @@ func TestParseSomedayMeta(t *testing.T) {
 		{"#short", "no size"},
 		{"#focus", "no #focus"},
 		{"#today", "no #today"},
-		{"#parked", "no #parked"},
 		{"due:2026-10-01", "no due date"},
 		{"snooze:2026-10-01", "no snooze"},
 		{"#nosuchtag", "is not notation"},
@@ -368,6 +430,13 @@ func TestParseSomedayMeta(t *testing.T) {
 		} else if !strings.Contains(err.Error(), c.wants) {
 			t.Fatalf("%q: error should say %q: %v", c.text, c.wants, err)
 		}
+	}
+	// neither half of the snooze belongs on an idea: it waits on the list
+	// until you decide about it, not on an action nobody has undertaken
+	sib := vocab(nil, nil)
+	sib.Siblings = []Sibling{{ID: 1, Title: "Measure the wall"}}
+	if _, err := ParseSomedayMeta("snooze:(measure the wall)", sib); err == nil {
+		t.Fatal("a someday/maybe item cannot wait on an action")
 	}
 }
 

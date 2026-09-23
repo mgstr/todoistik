@@ -311,7 +311,12 @@
      row does not show and never has (implementation.md, "Links in item text").
      The row is a title and its badges, and the reference material is one field
      down — the key is what reaches it without opening the item. */}}
+{{/* Depth is set only where a list is a plan — a project's own action list,
+     where an action waiting on a sibling is drawn under it. Everywhere else
+     the rows are a flat answer to a question and there is no plan to show the
+     shape of, so it is absent and the row sits where it always did. */}}
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
+    {{if .Depth}}data-depth="{{.Depth}}" style="--depth: {{.Depth}}"{{end}}
     {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}
     {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}>
   {{/* On a completed action the two controls are marks and nothing more —
@@ -342,8 +347,10 @@
   {{range $a.Tags}}{{if ne . "today"}}<span class="badge tag">#{{.}}</span>{{end}}{{end}}
   {{if $a.AssignedTo}}<span class="badge wait">→ {{$a.AssignedTo}}</span>{{end}}
   {{if $a.DueDate}}<span class="badge due {{if $a.IsOverdue $today}}overdue{{end}}">due {{$a.DueDate}}</span>{{end}}
-  {{if $a.IsSnoozed $today}}<span class="badge">zzz until {{$a.SnoozeUntil}}</span>{{end}}
-  {{if not $a.BecameNextAt}}<span class="badge parked">parked</span>{{end}}
+  {{/* one badge for both halves of the snooze: a date and a sibling are the
+       same fact to a list — this is not workable yet — and two shapes for it
+       would be two things to learn for one meaning (design.md, "Time fields") */}}
+  {{with $a.SnoozeLabel $today}}<span class="badge">{{.}}</span>{{end}}
   {{range $a.Errors}}<span class="badge error">{{.}}</span>{{end}}
   {{if $a.BecameNextAt}}<span class="age" title="how long this has been next">{{age $a.BecameNextAt}}</span>{{end}}
 </li>
@@ -542,11 +549,12 @@
     <dt>#short #medium #long</dt><dd>how big it is</dd>
     <dt>#focus</dt><dd>needs undivided attention</dd>
     <dt>#today</dt><dd>picked for today</dd>
-    <dt>#parked</dt><dd>inside a project: written down in advance, not yet next</dd>
     <dt>#name</dt><dd>tag</dd>
     <dt>due:2026-09-20</dt><dd>a real deadline</dd>
     <dt>snooze:2026-09-20</dt><dd>not ready to be worked on until then</dd>
     <dt>tomorrow · friday · 3days</dt><dd>either date, counted off from today and saved as the day it lands on. <code>due:</code> also takes <code>today</code>; a snooze names a day still ahead</dd>
+    <dt>snooze:(buy the frame)</dt><dd>waits on another action of this project instead of on a date — it wakes when that one is done or deleted</dd>
+    <dt>snooze:#42</dt><dd>the same, by id, for when two open actions share a title</dd>
   </dl>
   <p class="known"><b>contexts</b>
     {{range .Contexts}}<span class="badge ctx">@{{.}}</span>{{else}}<span class="muted">none yet</span>{{end}}</p>

@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS actions (
 	last_reviewed_at TEXT NOT NULL,
 	became_next_at TEXT,
 	snooze_until TEXT NOT NULL DEFAULT '',
+	snooze_action_id INTEGER REFERENCES actions(id) ON DELETE SET NULL,
 	completed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY) WITHOUT ROWID;
@@ -147,6 +148,33 @@ func (a *App) migrate() error {
 		if _, err := a.db.Exec(`ALTER TABLE someday_items DROP COLUMN snooze_until`); err != nil {
 			return err
 		}
+	}
+	// An action may now wait on a sibling instead of on a date, which is the
+	// column that link lives in. ON DELETE SET NULL is the rule itself and not
+	// a tidying-up convenience: deleting the blocker is one of the two things
+	// that wakes what was waiting on it (design.md, "Time fields").
+	has, err = a.hasColumn("actions", "snooze_action_id")
+	if err != nil {
+		return err
+	}
+	if !has {
+		if _, err := a.db.Exec(`ALTER TABLE actions ADD COLUMN snooze_action_id INTEGER
+			REFERENCES actions(id) ON DELETE SET NULL`); err != nil {
+			return err
+		}
+	}
+	// #parked is gone, and with it the one meaning an empty became_next_at
+	// had. Every action is a next action of its project now; what used to be
+	// said by parking is said by waiting on the sibling that comes first.
+	//
+	// An open action is stamped with the moment the parking was lifted, the
+	// way a detach stamps one — becoming available is an event, and it is
+	// happening now. A completed one is stamped with its own completion, since
+	// its clock is closed and no event is reaching it; COALESCE says both in
+	// one expression.
+	if _, err := a.db.Exec(`UPDATE actions SET became_next_at = COALESCE(completed_at, ?)
+		WHERE became_next_at IS NULL`, ts(a.now())); err != nil {
+		return err
 	}
 	// The duration buckets stopped naming minutes. Two of the four old buckets
 	// were both "small enough to just do", which is why they collapse together.

@@ -55,7 +55,7 @@ func TestVerbsAddAndRemove(t *testing.T) {
 	// Unlike a tag, a verb comes off while it is in use — removing it edits no
 	// item, it only means the box goes yellow the next time one of the titles
 	// that opens with it is opened.
-	if _, err := a.CreateAction(0, ActionFields{Title: "Ping the router"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Ping the router"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.RemoveVerb("Ping"); err != nil {
@@ -86,7 +86,7 @@ func TestFirstWord(t *testing.T) {
 func TestVerbListCounts(t *testing.T) {
 	a, _ := newTestApp(t)
 	for _, title := range []string{"Call the bank", "call Marju", "Buy milk"} {
-		if _, err := a.CreateAction(0, ActionFields{Title: title}, false); err != nil {
+		if _, err := a.CreateAction(0, ActionFields{Title: title}); err != nil {
 			t.Fatal(err)
 		}
 	}

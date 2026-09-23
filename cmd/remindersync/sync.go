@@ -351,8 +351,8 @@ type syncPlan struct {
 // **A ticked reminder is a message, not an item.** If it carries a marker it
 // files a completion request and is then taken off the list, whether or not its
 // action is still in the view: the marker is an identity and the app resolves
-// one without a view, so an action snoozed or parked between the tick and the
-// run does not lose the tick. Deleting it is what makes ignoring a request
+// one without a view, so an action snoozed or untagged between the tick and
+// the run does not lose the tick. Deleting it is what makes ignoring a request
 // stick — nothing anywhere remembers that one was made, so a tick left in
 // place would be filed again on every run. What keeps the item off the list on
 // the runs after, while the request waits, is that it no longer arrives here

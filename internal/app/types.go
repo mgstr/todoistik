@@ -78,18 +78,43 @@ type Action struct {
 	DueDate        string     `json:"dueDate,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	LastReviewedAt time.Time  `json:"lastReviewedAt"`
-	BecameNextAt   *time.Time `json:"becameNextActionAt,omitempty"` // nil = parked
+	BecameNextAt   *time.Time `json:"becameNextActionAt,omitempty"`
 	SnoozeUntil    string     `json:"snoozeUntil,omitempty"`
-	CompletedAt    *time.Time `json:"completedAt,omitempty"`
+	// SnoozeActionID is the sibling this action waits on, 0 when it waits on
+	// nothing. It is the other half of the snooze: a date says when this
+	// becomes workable and an action says what has to happen first, and an
+	// action carries at most one of the two (design.md, "Time fields").
+	SnoozeActionID    int64      `json:"snoozeActionId,omitempty"`
+	SnoozeActionTitle string     `json:"snoozeActionTitle,omitempty"` // derived, for reading and writing the line
+	CompletedAt       *time.Time `json:"completedAt,omitempty"`
 }
 
-// IsNext reports a real next action: becameNextActionAt set, not completed.
-func (a *Action) IsNext() bool { return a.BecameNextAt != nil && a.CompletedAt == nil }
+// IsNext reports a real next action: not completed. Every action is a next
+// action of whatever it belongs to — becameNextActionAt is always stamped —
+// and an action that cannot be started yet says so with a snooze rather than
+// by not being next at all (design.md, "Standalone actions").
+func (a *Action) IsNext() bool { return a.CompletedAt == nil }
 
 func (a *Action) IsWaiting() bool { return a.AssignedTo != "" && a.CompletedAt == nil }
 
+// IsSnoozed covers both halves. A blocker is cleared the moment it is
+// completed or deleted, so a set SnoozeActionID always means still waiting —
+// there is no date to compare it against and none is needed.
 func (a *Action) IsSnoozed(today string) bool {
-	return a.SnoozeUntil != "" && a.SnoozeUntil > today
+	return a.SnoozeActionID != 0 || (a.SnoozeUntil != "" && a.SnoozeUntil > today)
+}
+
+// SnoozeLabel is what the snooze is shown as, "" when there is none. One
+// badge says both halves, because to every view that shows it they are the
+// same fact: this is not workable yet.
+func (a *Action) SnoozeLabel(today string) string {
+	if a.SnoozeActionID != 0 {
+		return "zzz until " + a.SnoozeActionTitle
+	}
+	if a.SnoozeUntil != "" && a.SnoozeUntil > today {
+		return "zzz until " + a.SnoozeUntil
+	}
+	return ""
 }
 
 func (a *Action) IsOverdue(today string) bool {
@@ -112,9 +137,6 @@ func (a *Action) Errors() []string {
 	var errs []string
 	if a.SnoozeUntil != "" && a.DueDate != "" && a.SnoozeUntil > a.DueDate {
 		errs = append(errs, "snoozed past its due date")
-	}
-	if a.AssignedTo != "" && a.BecameNextAt == nil && a.CompletedAt == nil {
-		errs = append(errs, "assigned but not a next action")
 	}
 	return errs
 }
@@ -149,6 +171,51 @@ func (p *Project) ComputeStalled(today string) bool {
 		}
 	}
 	return true
+}
+
+// ActionNode is one line of a project's action list: the action, and how deep
+// it sits under whatever it is waiting on.
+type ActionNode struct {
+	*Action
+	Depth int `json:"depth,omitempty"`
+}
+
+// ActionTree is the project's action list ordered so that an action waiting on
+// a sibling is drawn directly under it, one level in. The plan is read to see
+// what comes before what, and a dependency written as a flat badge made that
+// order something you had to reconstruct by eye; nesting says it by shape.
+//
+// Depth is capped at what the cycle check guarantees — the graph is a forest,
+// since an action waits on at most one other and never on itself — so this
+// walk terminates without needing a visited set. Anything whose blocker is not
+// in the list (it has left the project, or the list is a filtered one) is
+// drawn as a root, because a line with nothing above it is still a line.
+func (p *Project) ActionTree() []ActionNode {
+	children := map[int64][]*Action{}
+	present := map[int64]bool{}
+	for _, a := range p.Actions {
+		present[a.ID] = true
+	}
+	var roots []*Action
+	for _, a := range p.Actions {
+		if a.SnoozeActionID != 0 && present[a.SnoozeActionID] {
+			children[a.SnoozeActionID] = append(children[a.SnoozeActionID], a)
+			continue
+		}
+		roots = append(roots, a)
+	}
+	out := make([]ActionNode, 0, len(p.Actions))
+	var walk func(act *Action, depth int)
+	walk = func(act *Action, depth int) {
+		out = append(out, ActionNode{Action: act, Depth: depth})
+		for _, c := range children[act.ID] {
+			walk(c, depth+1)
+		}
+	}
+	for _, r := range roots {
+		walk(r, 0)
+	}
+	return out
 }
 
 func (p *Project) OpenActions() []*Action {

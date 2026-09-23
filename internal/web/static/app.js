@@ -1650,6 +1650,16 @@
   const FILTER_OPEN = "kb-filter-open";
   const TOKEN_RE = /(^|\s)([@#])([\p{L}\p{N}_-]+)(\(([^)]*)\))?/gu;
   const DATE_RE = /(^|\s)([a-z]+):(\S+)/g;
+  // `snooze:(buy the frame)` and `snooze:#42` — the snooze that names an
+  // action rather than a day. It is taken out before DATE_RE runs, which
+  // would otherwise read `#42` as a date and underline it, and the brackets
+  // hold a title, so it cannot be one word the way every other value is.
+  //
+  // Whether the action it names exists is the server's to answer: this box
+  // knows the notation and not the project. So the shape is accepted here and
+  // a name that matches nothing comes back as a refusal on save, which is the
+  // same division every unknown name on this line already follows.
+  const SNOOZE_ACTION_RE = /(^|\s)snooze:(?:\(([^)]*)\)|#(\d+))/g;
   // what is being typed right now, which is a token that may still be empty.
   // A date key is a sigil like any other here — it is what has been committed
   // to and the rest is still open — except that its sigil is `due:` or
@@ -1678,7 +1688,11 @@
   const DUE_WINDOWS = ["today", "tomorrow", "thisweek", "nextweek"];
   const DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   const WHEN_DUE = { date: true, days: true, words: ["today", "tomorrow"].concat(DAY_NAMES) };
+  // `action` says this snooze also takes a sibling instead of a day. Only an
+  // action's line does: a project has no siblings to wait on, and neither has
+  // the filter line, which asks about items rather than writing one.
   const WHEN_SNOOZE = { date: true, days: true, ahead: true, words: ["tomorrow"].concat(DAY_NAMES) };
+  const WHEN_SNOOZE_ACTION = { date: true, days: true, ahead: true, action: true, words: ["tomorrow"].concat(DAY_NAMES) };
   const WHEN_WINDOW = { date: false, days: false, words: DUE_WINDOWS };
   // what was finished is asked about looking back: a day, a day name, or a
   // period. Any case, since `Monday` is how the word is written in prose
@@ -1695,8 +1709,8 @@
     "filter-name": { contexts: 0, fields: [], tags: false, dates: {}, prose: true },
     // the Settings line asks about names rather than items, so a name nobody
     // has heard of is not a mistake there: it is the one that may be created
-    "filter-names": { names: true, contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: {}, prose: true, waiting: true },
-    action: { contexts: 1, fields: ["short", "medium", "long", "focus", "parked", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE }, prose: false, waiting: true },
+    "filter-names": { names: true, contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: {}, prose: true, waiting: true },
+    action: { contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: { due: WHEN_DUE, snooze: WHEN_SNOOZE_ACTION }, prose: false, waiting: true },
     project: { contexts: 0, fields: [], dates: { snooze: WHEN_SNOOZE }, prose: false },
     // an idea carries tags and nothing else — not even its own snooze, which
     // is the date box beside the line (design.md, "Someday/maybe item")
@@ -1778,10 +1792,25 @@
     taken.forEach(function (t) { for (let i = t.start; i < t.end; i++) rest[i] = " "; });
     const left = rest.join("");
 
+    // the action form of the snooze first, and blanked out of `rest` where it
+    // matched, so that neither DATE_RE nor the prose sweep sees the title
+    // inside its brackets as words that do not belong on the line
+    let waited = [];
+    if (rules.dates.snooze && rules.dates.snooze.action) {
+      SNOOZE_ACTION_RE.lastIndex = 0;
+      let sm;
+      while ((sm = SNOOZE_ACTION_RE.exec(left)) !== null) {
+        const start = sm.index + sm[1].length;
+        waited.push({ start: start, end: sm.index + sm[0].length });
+      }
+      waited.forEach(function (t) { for (let i = t.start; i < t.end; i++) rest[i] = " "; });
+    }
+    const leftDates = waited.length ? rest.join("") : left;
+
     DATE_RE.lastIndex = 0;
     let m;
     const dated = [];
-    while ((m = DATE_RE.exec(left)) !== null) {
+    while ((m = DATE_RE.exec(leftDates)) !== null) {
       const start = m.index + m[1].length;
       const t = { start: start, end: m.index + m[0].length, name: m[2], param: m[3], sigil: "" };
       t.text = text.slice(t.start, t.end);

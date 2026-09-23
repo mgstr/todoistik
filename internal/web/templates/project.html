@@ -20,8 +20,8 @@
 
   <h2>Actions</h2>
   <ul class="list">
-  {{range $p.Actions}}
-    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{range $p.ActionTree}}
+    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
   {{end}}
   </ul>
   {{/* and no control under the list: a finished project takes no new work,
@@ -64,10 +64,15 @@
        action is missing from, ringed in red. It is the same rule the error
        banners follow — a problem is marked where it is fixed — and it says
        which list to look at without a sentence explaining itself. */}}
+  {{/* The one list in the app that is a plan rather than an answer, so it is
+       the one drawn as a shape: an action waiting on a sibling sits under it,
+       one level in. The order is what the plan says comes before what, and a
+       flat list made that something you reconstructed from badges
+       (implementation.md, "Writing a project"). */}}
   <h2{{if $p.Stalled}} class="stalled"{{end}}>Actions</h2>
   <ul class="list">
-  {{range $p.Actions}}
-    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{range $p.ActionTree}}
+    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
   {{end}}
   </ul>
 

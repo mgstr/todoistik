@@ -37,7 +37,7 @@ func matchServer(t *testing.T) (*Server, *app.App) {
 // copyable match comes in.
 func finished(t *testing.T, a *app.App, f app.ActionFields) *app.Action {
 	t.Helper()
-	act, err := a.CreateAction(0, f, false)
+	act, err := a.CreateAction(0, f)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestTheMatchListIsStageOnesAlone(t *testing.T) {
 // duplicate the list exists to point out.
 func TestOnlyTheFinishedHalfCanBeCopied(t *testing.T) {
 	s, a := matchServer(t)
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, _, err := a.Capture("Pay the rent", app.SourceApp); err != nil {
@@ -191,7 +191,7 @@ func TestCopyingAFinishedProjectBringsThePlan(t *testing.T) {
 // what the screen is about: the form seeds from it rather than erroring.
 func TestAStaleCopyFallsBackToTheCapture(t *testing.T) {
 	s, a := matchServer(t)
-	open, err := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"}, false)
+	open, err := a.CreateAction(0, app.ActionFields{Title: "Pay the rent"})
 	if err != nil {
 		t.Fatal(err)
 	}

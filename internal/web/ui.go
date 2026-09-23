@@ -965,57 +965,47 @@ func parseID(s string) int64 {
 }
 
 // writtenAction is an action as the form gives it: a title, a project, a meta
-// line and a description. Parked and Today do not live on ActionFields — one is
-// the absence of a timestamp and the other is a tag the app manages — so they
-// are carried alongside and applied by the handler.
+// line and a description. Today does not live on ActionFields — it is a tag
+// the app manages — so it is carried alongside and applied by the handler.
 type writtenAction struct {
 	Fields app.ActionFields
-	Parked bool
 	Today  bool
 }
 
 // readAction reads the fields of an action form. The meta line is parsed; the
 // description is stored exactly as typed, since nothing is read out of it.
-// inProject decides whether #parked means anything, since a standalone action
-// is always a next action (design.md, "Standalone actions").
-func (s *Server) readAction(r *http.Request, inProject bool) (writtenAction, error) {
+//
+// projectID and self are what a `snooze:` naming an action is read against:
+// the siblings it may name, and the one it may not, which is this action.
+// Both are 0 for an action with no project yet — a capture being filed
+// standalone, or the first action of a project that does not exist — and the
+// notation then refuses a sibling snooze by itself, because there is nothing
+// for it to name.
+func (s *Server) readAction(r *http.Request, projectID, self int64) (writtenAction, error) {
 	var wa writtenAction
-	v, err := s.app.Vocabulary()
+	v, err := s.app.VocabularyIn(projectID, self)
 	if err != nil {
 		return wa, err
 	}
-	d, err := app.ParseMeta(r.FormValue("meta"), v, inProject)
+	d, err := app.ParseMeta(r.FormValue("meta"), v)
 	if err != nil {
 		return wa, err
 	}
-	wa.Parked, wa.Today = d.Parked, d.Today
+	wa.Today = d.Today
 	wa.Fields = app.ActionFields{
-		Title:        strings.TrimSpace(r.FormValue("title")),
-		Context:      d.Context,
-		ContextParam: d.ContextParam,
-		Duration:     d.Duration,
-		NeedsFocus:   d.NeedsFocus,
-		Description:  strings.TrimSpace(r.FormValue("description")),
-		AssignedTo:   d.AssignedTo,
-		DueDate:      d.DueDate,
-		SnoozeUntil:  d.SnoozeUntil,
-		Tags:         d.Tags,
+		Title:          strings.TrimSpace(r.FormValue("title")),
+		Context:        d.Context,
+		ContextParam:   d.ContextParam,
+		Duration:       d.Duration,
+		NeedsFocus:     d.NeedsFocus,
+		Description:    strings.TrimSpace(r.FormValue("description")),
+		AssignedTo:     d.AssignedTo,
+		DueDate:        d.DueDate,
+		SnoozeUntil:    d.SnoozeUntil,
+		SnoozeActionID: d.SnoozeActionID,
+		Tags:           d.Tags,
 	}
 	return wa, nil
-}
-
-// setParked makes the #parked token mean what the Park button means. Like
-// today it is set by comparison rather than written over: the underlying field
-// is a timestamp, and restamping one that was already set would reset an age
-// that nothing asked to reset.
-func (s *Server) setParked(id int64, before *app.Action, parked bool) error {
-	if before.ProjectID == 0 {
-		return nil // a standalone action is always a next action
-	}
-	if (before.BecameNextAt == nil) == parked {
-		return nil
-	}
-	return s.app.SetNext(id, !parked)
 }
 
 // applyToday makes the #today token mean what the pick dot means. It is not an
@@ -1104,20 +1094,20 @@ func (s *Server) projectFromForm(r *http.Request) (app.ProjectFields, []app.Acti
 	if err != nil {
 		return pf, nil, nil, err
 	}
-	v, err := s.app.Vocabulary()
+	// no project id, so no siblings: an action written here cannot wait on
+	// one, because none of them exists yet. `snooze:(…)` refuses itself for
+	// that reason rather than needing a rule of its own, and the ordering
+	// inside a new plan is written once there is a plan to write it in
+	v, err := s.app.VocabularyIn(0, 0)
 	if err != nil {
 		return pf, nil, nil, err
 	}
 	var actions []app.ActionFields
 	var todays []bool
 	for _, d := range draftsFromForm(r) {
-		// inProject, because that is what it is about to be
-		m, err := app.ParseMeta(d.Meta, v, true)
+		m, err := app.ParseMeta(d.Meta, v)
 		if err != nil {
 			return pf, nil, nil, fmt.Errorf("%s: %w", d.Title, err)
-		}
-		if m.Parked {
-			return pf, nil, nil, fmt.Errorf("%s: an action written here becomes a next action of the new project — #%s only means something once the project exists", d.Title, app.ParkedTag)
 		}
 		actions = append(actions, app.ActionFields{
 			Title:        d.Title,
@@ -1238,7 +1228,7 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id int64) bool {
 	pid := parseID(strings.TrimSpace(r.FormValue("projectid")))
 	newProject := strings.TrimSpace(r.FormValue("newproject"))
-	wa, err := s.readAction(r, pid != 0 || newProject != "")
+	wa, err := s.readAction(r, pid, 0)
 	if err != nil {
 		s.bounce(w, r, id, "action", err.Error(), false)
 		return false
@@ -1262,7 +1252,7 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id 
 		return true
 	}
 
-	act, err := s.app.ProcessAction(id, f, pid, wa.Parked && pid != 0)
+	act, err := s.app.ProcessAction(id, f, pid)
 	if err != nil {
 		s.bounce(w, r, id, "action", err.Error(), false)
 		return false
@@ -1371,16 +1361,12 @@ func (s *Server) actionUpdate(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	wa, err := s.readAction(r, act.ProjectID != 0)
+	wa, err := s.readAction(r, act.ProjectID, id)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 	if err := s.app.UpdateAction(id, wa.Fields); err != nil {
-		httpError(w, err)
-		return
-	}
-	if err := s.setParked(id, act, wa.Parked); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -1434,10 +1420,6 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 		err = s.app.DeleteAction(id)
 	case "detach":
 		err = s.app.Detach(id)
-	case "next":
-		err = s.app.SetNext(id, true)
-	case "park":
-		err = s.app.SetNext(id, false)
 	case "snooze":
 		err = s.app.SnoozeAction(id, strings.TrimSpace(r.FormValue("until")))
 	case "tag":
@@ -1608,9 +1590,9 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 		err = s.app.ToggleTag("project", id, r.FormValue("tag"))
 	case "addaction":
 		var wa writtenAction
-		if wa, err = s.readAction(r, true); err == nil {
+		if wa, err = s.readAction(r, id, 0); err == nil {
 			var act *app.Action
-			if act, err = s.app.CreateAction(id, wa.Fields, wa.Parked); err == nil {
+			if act, err = s.app.CreateAction(id, wa.Fields); err == nil {
 				err = s.applyToday(act.ID, wa.Today)
 			}
 		}

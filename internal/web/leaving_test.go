@@ -46,7 +46,7 @@ func formOn(t *testing.T, body, action string) string {
 
 func TestCompletingAnActionFromItsPageGoesWhereThePageWasOpenedFrom(t *testing.T) {
 	s, a := newTestServer(t)
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the winter tyres"}); err != nil {
 		t.Fatal(err)
 	}
 	// the page carries where it was opened from, the way Save and Delete do

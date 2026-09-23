@@ -59,10 +59,10 @@ func TestTheReadAPIOffersOnlyWhatEachViewFiltersBy(t *testing.T) {
 	if err := a.AddContext("home", ""); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the tyres", Tags: []string{"car"}}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Change the tyres", Tags: []string{"car"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, app.ActionFields{Title: "Wash up", Context: "home"}, false); err != nil {
+	if _, err := a.CreateAction(0, app.ActionFields{Title: "Wash up", Context: "home"}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -40,9 +40,9 @@ const (
 	// ProblemSecondContext: an action carries one context, so asking for two
 	// is asking for nothing (design.md, "Filtering by context").
 	ProblemSecondContext = "second-context"
-	// ProblemNotAFilter: a name the app knows that is not something this line
-	// can ask for — `#parked`, which is a field and not a tag, and no view
-	// this line filters shows parked actions anyway.
+	// ProblemNotAFilter: a notation the app knows that is not something this
+	// line can ask for — `snooze:`, which says when an item becomes workable
+	// and is not a question any of these views is narrowed by.
 	ProblemNotAFilter = "not-a-filter"
 	// ProblemWindow: `due:` or `completed:` given something that is not one of
 	// the windows those filters have. The due windows are words rather than
@@ -334,8 +334,6 @@ func ParseQuery(q string, v *Vocabulary) (Filters, []QueryProblem) {
 			f.Durations = append(f.Durations, Duration(name))
 		case FocusTag:
 			f.Focus = "only"
-		case ParkedTag:
-			problems = append(problems, QueryProblem{Token: token, Name: name, Kind: ProblemNotAFilter})
 		default:
 			if !v.knownTag(name) {
 				problems = append(problems, QueryProblem{Token: token, Name: name, Kind: ProblemTag})

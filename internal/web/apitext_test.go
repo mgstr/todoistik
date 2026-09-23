@@ -47,7 +47,7 @@ func TestATextActionCarriesItsNotationAndItsDescription(t *testing.T) {
 		Tags:        []string{"car"},
 		DueDate:     "2000-01-01", // long past, so it is overdue whenever this runs
 		Description: "205/55 R16\nquoted 240 eur",
-	}, false)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -544,7 +544,7 @@ internal/app/             the domain — everything design.md describes, indepen
   types.go                the item structs (Action, Project, Schedule, ...) and their small derived methods (IsNext, ComputeStalled, ...)
   db.go                   SQLite open/schema/migrate, audit-log plumbing, the app_state key-value store
   capture.go              the inbox: Capture (with duplicate collapse), Inbox, edit/remove
-  actions.go              action CRUD, tags, detach, SetNext/park, snooze
+  actions.go              action CRUD, tags, detach, snooze (date or sibling)
   projects.go             project CRUD, completion rules, Promote
   someday.go              someday/maybe items, and every Inbox Zero branch (ProcessTrash, ProcessAction, ...)
   schedules.go            schedule CRUD, firing, DayStart (the lazy day boundary: #today clearing + firing)

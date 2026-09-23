@@ -10,7 +10,7 @@ import (
 //
 // A count is shown against every name including the built-in ones, and for
 // those it is not bookkeeping — it is the only place the app says how much of
-// your work is short, how much needs focus, how much is parked. The list you
+// your work is short, and how much of it needs quiet. The list you
 // keep the vocabulary on is a reasonable place to see the vocabulary being
 // used.
 
@@ -41,7 +41,6 @@ func (a *App) TagList() ([]NameUse, error) {
 		{string(DurMedium), `SELECT COUNT(*) FROM actions WHERE duration='medium'`},
 		{string(DurLong), `SELECT COUNT(*) FROM actions WHERE duration='long'`},
 		{FocusTag, `SELECT COUNT(*) FROM actions WHERE needs_focus=1`},
-		{ParkedTag, `SELECT COUNT(*) FROM actions WHERE project_id IS NOT NULL AND became_next_at IS NULL AND completed_at IS NULL`},
 	} {
 		n, err := a.count(q.query)
 		if err != nil {

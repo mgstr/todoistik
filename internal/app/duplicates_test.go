@@ -80,18 +80,18 @@ func TestSimilarSeesATypo(t *testing.T) {
 // what is finished is what can be copied.
 func TestMatchesSplitsOpenFromFinished(t *testing.T) {
 	a, _ := newTestApp(t)
-	open, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}, false)
+	open, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	done, err := a.CreateAction(0, ActionFields{Title: "Pay the rent for September"}, false)
+	done, err := a.CreateAction(0, ActionFields{Title: "Pay the rent for September"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := a.CompleteAction(done.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.CreateAction(0, ActionFields{Title: "Buy milk"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Buy milk"}); err != nil {
 		t.Fatal(err)
 	}
 	o, d, ot, dt, err := a.Matches("Pay the rent @home #short", defaultRule())
@@ -141,7 +141,7 @@ func TestMatchesFindsProjects(t *testing.T) {
 func TestMatchesCapsAtNineAndSaysSo(t *testing.T) {
 	a, _ := newTestApp(t)
 	for i := 0; i < 12; i++ {
-		act, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}, false)
+		act, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -161,7 +161,7 @@ func TestMatchesCapsAtNineAndSaysSo(t *testing.T) {
 // Off is off: the question is not asked and nothing is compared.
 func TestMatchesAsksNothingWhenTurnedOff(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}); err != nil {
 		t.Fatal(err)
 	}
 	o, d, _, _, err := a.Matches("Pay the rent", DupRule{Method: MatchNone})
@@ -177,7 +177,7 @@ func TestMatchesAsksNothingWhenTurnedOff(t *testing.T) {
 // empty string would otherwise match everything in the app.
 func TestMatchesIgnoresACaptureThatIsAllNotation(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Pay the rent"}); err != nil {
 		t.Fatal(err)
 	}
 	o, d, _, _, err := a.Matches("@home #short", defaultRule())
@@ -193,7 +193,7 @@ func TestMatchesIgnoresACaptureThatIsAllNotation(t *testing.T) {
 // came from and was not written to identify anything (design.md, "Inbox item").
 func TestMatchesReadsTheFirstLineOnly(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, err := a.CreateAction(0, ActionFields{Title: "Send the quote to Marju"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Send the quote to Marju"}); err != nil {
 		t.Fatal(err)
 	}
 	o, _, _, _, err := a.Matches("Ping\nSend the quote to Marju", defaultRule())
@@ -209,7 +209,7 @@ func TestMatchesReadsTheFirstLineOnly(t *testing.T) {
 // mean something: 100 is "every word of the shorter title".
 func TestOverlapThresholdDecides(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, err := a.CreateAction(0, ActionFields{Title: "Book the tyre change"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Book the tyre change"}); err != nil {
 		t.Fatal(err)
 	}
 	if o, _, _, _, _ := a.Matches("Book a tyre change", overlap(60)); len(o) != 1 {
@@ -227,7 +227,7 @@ func TestOverlapThresholdDecides(t *testing.T) {
 // one that finds a rewording the words miss.
 func TestSimilarRuleFindsWhatWordsMiss(t *testing.T) {
 	a, _ := newTestApp(t)
-	if _, err := a.CreateAction(0, ActionFields{Title: "Renew passport"}, false); err != nil {
+	if _, err := a.CreateAction(0, ActionFields{Title: "Renew passport"}); err != nil {
 		t.Fatal(err)
 	}
 	if o, _, _, _, _ := a.Matches("Renew passpport", similar(75)); len(o) != 1 {

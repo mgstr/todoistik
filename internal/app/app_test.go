@@ -327,7 +327,7 @@ func TestTodayTagClears(t *testing.T) {
 	if err := a.DayStart(); err != nil { // the day is opened before anything else happens
 		t.Fatal(err)
 	}
-	act, err := a.CreateAction(0, ActionFields{Title: "Call the bank"}, false)
+	act, err := a.CreateAction(0, ActionFields{Title: "Call the bank"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -382,7 +382,7 @@ func TestStalledDerivation(t *testing.T) {
 		t.Fatal("project with no open next action must be stalled")
 	}
 	// a waiting-for next action keeps it un-stalled
-	act, _ := a.CreateAction(p.ID, ActionFields{Title: "Ask Sam to confirm dates", AssignedTo: "Sam"}, false)
+	act, _ := a.CreateAction(p.ID, ActionFields{Title: "Ask Sam to confirm dates", AssignedTo: "Sam"})
 	got, _ = a.Project(p.ID)
 	if got.Stalled {
 		t.Fatal("a project whose only next action is waiting-for is not stalled")
@@ -398,13 +398,22 @@ func TestStalledDerivation(t *testing.T) {
 	if got.Stalled {
 		t.Fatal("a snoozed next action still counts for the stalled check")
 	}
-	// a parked-only project is stalled
-	if err := a.SetNext(act.ID, false); err != nil {
+	// an action waiting on a sibling keeps it un-stalled too, by the same rule
+	// — and the project is not quietly dead either, because the sibling it
+	// waits on is itself open and workable. That is what banning cycles buys:
+	// every chain of waiting ends at an action that can be started.
+	blocker, err := a.CreateAction(p.ID, ActionFields{Title: "Get the dates from the office"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.UpdateAction(act.ID, ActionFields{
+		Title: "Ask Sam to confirm dates", SnoozeActionID: blocker.ID,
+	}); err != nil {
 		t.Fatal(err)
 	}
 	got, _ = a.Project(p.ID)
-	if !got.Stalled {
-		t.Fatal("parked-only project must be stalled")
+	if got.Stalled {
+		t.Fatal("an action waiting on a sibling still counts for the stalled check")
 	}
 	// snoozing the project exempts it
 	if err := a.UpdateProject(p.ID, ProjectFields{Title: got.Title, DOD: got.DOD, SnoozeUntil: "2027-01-01"}); err != nil {
@@ -593,7 +602,7 @@ func TestCompletionRules(t *testing.T) {
 
 func TestDelegationRestampsClock(t *testing.T) {
 	a, now := newTestApp(t)
-	act, err := a.CreateAction(0, ActionFields{Title: "Draft the contract"}, false)
+	act, err := a.CreateAction(0, ActionFields{Title: "Draft the contract"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -614,33 +623,189 @@ func TestDelegationRestampsClock(t *testing.T) {
 	}
 }
 
-func TestDetachStampsParkedAction(t *testing.T) {
+// Detaching takes the action out of the plan, so the waiting goes with it —
+// in both directions. What it waited on is no longer a sibling, and neither is
+// it to whatever was waiting on it.
+func TestDetachClearsTheWaiting(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, _ := a.CreateProject(ProjectFields{Title: "Shed built", DOD: "Roof on"},
 		[]ActionFields{{Title: "Pour the base"}})
-	parked, err := a.CreateAction(p.ID, ActionFields{Title: "Paint the shed"}, true)
+	base := p.Actions[0]
+	paint, err := a.CreateAction(p.ID, ActionFields{Title: "Paint the shed", SnoozeActionID: base.ID})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parked.BecameNextAt != nil {
-		t.Fatal("parked action must not be next")
+	if paint.BecameNextAt == nil {
+		t.Fatal("every action is a next action of its project, waiting or not")
 	}
-	if err := a.Detach(parked.ID); err != nil {
+	if !paint.IsSnoozed(a.Today()) {
+		t.Fatal("an action waiting on a sibling is snoozed")
+	}
+	if next, _ := a.NextActions(Filters{}); len(next) != 1 {
+		t.Fatal("a waiting action is left out of Next actions, and only that view")
+	}
+	if err := a.Detach(paint.ID); err != nil {
 		t.Fatal(err)
 	}
-	got, _ := a.Action(parked.ID)
+	got, _ := a.Action(paint.ID)
 	if got.ProjectID != 0 || got.BecameNextAt == nil {
 		t.Fatalf("detached action must be standalone and next: %+v", got)
 	}
+	if got.SnoozeActionID != 0 {
+		t.Fatal("a detached action stops waiting on the sibling it left behind")
+	}
 	if tasks, _ := a.Tasks(Filters{}); len(tasks) != 1 {
 		t.Fatal("detached action should appear in Tasks")
+	}
+
+	// and the other direction: detaching the blocker wakes what waited on it
+	other, err := a.CreateAction(p.ID, ActionFields{Title: "Creosote the boards", SnoozeActionID: base.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Detach(base.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = a.Action(other.ID); got.SnoozeActionID != 0 {
+		t.Fatal("detaching the blocker must wake what was waiting on it")
+	}
+}
+
+// The waiting graph is a forest and stays one: an action may not wait on
+// itself, on something outside its project, on something already finished, or
+// on anything that is already waiting on it. The last is the one that matters
+// — a ring of actions can never be started, and a project holding one would go
+// quiet without ever reading as stalled.
+func TestWaitingOnASiblingIsRefusedWhenItWouldLoop(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	frame, err := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame", SnoozeActionID: buy.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hang, err := a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: frame.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// buy -> frame -> hang; closing the ring is refused at either end
+	if err := a.UpdateAction(buy.ID, ActionFields{Title: buy.Title, SnoozeActionID: hang.ID}); err == nil {
+		t.Fatal("a ring of waiting actions must be refused")
+	}
+	if err := a.UpdateAction(buy.ID, ActionFields{Title: buy.Title, SnoozeActionID: frame.ID}); err == nil {
+		t.Fatal("a two-action ring must be refused too")
+	}
+	if err := a.UpdateAction(buy.ID, ActionFields{Title: buy.Title, SnoozeActionID: buy.ID}); err == nil {
+		t.Fatal("an action must not wait on itself")
+	}
+	// a date and an action are two answers to one question
+	if err := a.UpdateAction(hang.ID, ActionFields{
+		Title: hang.Title, SnoozeUntil: "2027-01-01", SnoozeActionID: frame.ID,
+	}); err == nil {
+		t.Fatal("an action waits on a date or on a sibling, not on both")
+	}
+	// outside the project, and already finished, are both refused
+	loose, _ := a.CreateAction(0, ActionFields{Title: "Pay the rent"})
+	if err := a.UpdateAction(hang.ID, ActionFields{Title: hang.Title, SnoozeActionID: loose.ID}); err == nil {
+		t.Fatal("an action waits on one of its own siblings")
+	}
+	if err := a.UpdateAction(loose.ID, ActionFields{Title: loose.Title, SnoozeActionID: buy.ID}); err == nil {
+		t.Fatal("a standalone action has no siblings to wait on")
+	}
+}
+
+// Completing the blocker is what the waiting was for, so it wakes what waited.
+// Bringing the blocker back does not put them to sleep again: the ordering was
+// settled when it was finished, and an undo must not quietly pull work out of
+// the working view.
+func TestCompletingABlockerWakesWhatWaited(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	hang, err := a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: buy.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next, _ := a.NextActions(Filters{}); len(next) != 1 {
+		t.Fatal("the waiting action is not an answer to what do I do next")
+	}
+	if err := a.CompleteAction(buy.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := a.Action(hang.ID)
+	if got.SnoozeActionID != 0 {
+		t.Fatal("completing the blocker must wake what waited on it")
+	}
+	if next, _ := a.NextActions(Filters{}); len(next) != 1 {
+		t.Fatal("the woken action belongs in Next actions")
+	}
+	if err := a.UncompleteAction(buy.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ = a.Action(hang.ID); got.SnoozeActionID != 0 {
+		t.Fatal("bringing the blocker back must not re-snooze what it woke")
+	}
+}
+
+// Deleting the blocker is the other thing that wakes what waited on it, and it
+// is the database's own rule rather than a tidy-up the app remembers to do.
+func TestDeletingABlockerWakesWhatWaited(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	hang, err := a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: buy.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.DeleteAction(buy.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := a.Action(hang.ID)
+	if got.SnoozeActionID != 0 {
+		t.Fatal("deleting the blocker must wake what waited on it")
+	}
+}
+
+// The project's action list is drawn as the plan it is: what waits on a
+// sibling sits under it, one level in.
+func TestActionTreeNestsTheWaiting(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	frame, _ := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame", SnoozeActionID: buy.ID})
+	a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: frame.ID})
+	a.CreateAction(p.ID, ActionFields{Title: "Choose the wall"})
+
+	got, _ := a.Project(p.ID)
+	tree := got.ActionTree()
+	want := []struct {
+		title string
+		depth int
+	}{
+		{"Buy the picture", 0},
+		{"Buy the frame", 1},
+		{"Hang it", 2},
+		{"Choose the wall", 0},
+	}
+	if len(tree) != len(want) {
+		t.Fatalf("tree has %d rows, want %d", len(tree), len(want))
+	}
+	for i, w := range want {
+		if tree[i].Title != w.title || tree[i].Depth != w.depth {
+			t.Fatalf("row %d is %q at depth %d, want %q at %d",
+				i, tree[i].Title, tree[i].Depth, w.title, w.depth)
+		}
 	}
 }
 
 func TestNextActionsFilters(t *testing.T) {
 	a, _ := newTestApp(t)
 	mk := func(f ActionFields) *Action {
-		act, err := a.CreateAction(0, f, false)
+		act, err := a.CreateAction(0, f)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -684,7 +849,7 @@ func TestNextActionsFilters(t *testing.T) {
 func TestSeveralTagsNarrow(t *testing.T) {
 	a, _ := newTestApp(t)
 	mk := func(title string, tags ...string) {
-		if _, err := a.CreateAction(0, ActionFields{Title: title, Tags: tags}, false); err != nil {
+		if _, err := a.CreateAction(0, ActionFields{Title: title, Tags: tags}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -720,7 +885,7 @@ func TestSeveralTagsNarrow(t *testing.T) {
 func TestNextActionsHidesSnoozed(t *testing.T) {
 	a, _ := newTestApp(t) // 2026-09-04
 	mk := func(f ActionFields) *Action {
-		act, err := a.CreateAction(0, f, false)
+		act, err := a.CreateAction(0, f)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -764,7 +929,7 @@ func titles(acts []*Action) []string {
 
 func TestErrorStates(t *testing.T) {
 	a, _ := newTestApp(t)
-	act, _ := a.CreateAction(0, ActionFields{Title: "File the return", DueDate: "2026-09-10", SnoozeUntil: "2026-09-20"}, false)
+	act, _ := a.CreateAction(0, ActionFields{Title: "File the return", DueDate: "2026-09-10", SnoozeUntil: "2026-09-20"})
 	got, _ := a.Action(act.ID)
 	if len(got.Errors()) == 0 {
 		t.Fatal("snooze past due date must be an error state")
@@ -773,7 +938,7 @@ func TestErrorStates(t *testing.T) {
 
 func TestTagListManagement(t *testing.T) {
 	a, _ := newTestApp(t)
-	act, _ := a.CreateAction(0, ActionFields{Title: "Change the tyres", Tags: []string{"car"}}, false)
+	act, _ := a.CreateAction(0, ActionFields{Title: "Change the tyres", Tags: []string{"car"}})
 	if err := a.RemoveTag("car"); err == nil {
 		t.Fatal("removing a tag still in use must be refused")
 	}
@@ -816,7 +981,7 @@ func TestProcessActionIntoProject(t *testing.T) {
 	}
 
 	it, _, _ := a.Capture("Book the winter tyre change", SourceApp)
-	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID, false)
+	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Book the winter tyre change"}, p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -824,36 +989,45 @@ func TestProcessActionIntoProject(t *testing.T) {
 		t.Fatalf("action landed on project %d, want %d", act.ProjectID, p.ID)
 	}
 	if act.BecameNextAt == nil {
-		t.Fatal("an action filed into a project is its next action unless parked")
+		t.Fatal("an action filed into a project is its next action")
 	}
 	if items, _ := a.Inbox(); len(items) != 0 {
 		t.Fatal("the branch must consume the inbox item")
 	}
 }
 
-// Parking is the deliberate act, and it is only meaningful inside a project.
-func TestProcessActionParkedAndStandalone(t *testing.T) {
+// Deciding an item is worth doing is what makes it next, wherever it is filed.
+// An action may still be filed waiting on one of its new siblings, and a
+// standalone one may not — it has no plan to be part of.
+func TestProcessActionIsAlwaysNext(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, _ := a.CreateProject(ProjectFields{Title: "Kitchen renovation", DOD: "kitchen usable"},
 		[]ActionFields{{Title: "Measure the wall"}})
 
 	it, _, _ := a.Capture("Price the worktop", SourceApp)
-	act, err := a.ProcessAction(it.ID, ActionFields{Title: "Price the worktop"}, p.ID, true)
+	act, err := a.ProcessAction(it.ID, ActionFields{
+		Title: "Price the worktop", SnoozeActionID: p.Actions[0].ID,
+	}, p.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if act.BecameNextAt != nil {
-		t.Fatal("a parked action is not a next action")
+	if act.BecameNextAt == nil {
+		t.Fatal("an action filed into a project is a next action of it")
+	}
+	if !act.IsSnoozed(a.Today()) {
+		t.Fatal("it is waiting on the sibling it was filed behind")
 	}
 
 	it2, _, _ := a.Capture("Pay the rent", SourceApp)
-	if _, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0, true); err == nil {
-		t.Fatal("parking a standalone action must be refused")
+	if _, err := a.ProcessAction(it2.ID, ActionFields{
+		Title: "Pay the rent", SnoozeActionID: p.Actions[0].ID,
+	}, 0); err == nil {
+		t.Fatal("a standalone action has no siblings to wait on")
 	}
 	if items, _ := a.Inbox(); len(items) != 1 {
 		t.Fatal("a refused branch must leave the item in the inbox")
 	}
-	act2, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0, false)
+	act2, err := a.ProcessAction(it2.ID, ActionFields{Title: "Pay the rent"}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -875,7 +1049,7 @@ func TestProcessActionRejectsCompletedProject(t *testing.T) {
 		t.Fatal(err)
 	}
 	it, _, _ := a.Capture("File the VAT return", SourceApp)
-	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "File the VAT return"}, p.ID, false); err == nil {
+	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "File the VAT return"}, p.ID); err == nil {
 		t.Fatal("a completed project must not take a new action")
 	}
 	if items, _ := a.Inbox(); len(items) != 1 {
@@ -935,7 +1109,7 @@ func TestProjectCandidates(t *testing.T) {
 	it, _, _ := a.Capture("Order the worktop", SourceApp)
 	kitchen, _, _ := a.ProjectCandidates("Kitchen renovation", 0)
 	*now = now.Add(time.Minute)
-	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID, false); err != nil {
+	if _, err := a.ProcessAction(it.ID, ActionFields{Title: "Order the worktop"}, kitchen[0].ID); err != nil {
 		t.Fatal(err)
 	}
 	hits, _, _ = a.ProjectCandidates("", 0)
@@ -985,7 +1159,6 @@ func TestParseQuery(t *testing.T) {
 		{"@hoem", ProblemContext},
 		{"#kar", ProblemTag},
 		{"@home @grocery", ProblemSecondContext},
-		{"#parked", ProblemNotAFilter},
 	} {
 		_, problems := ParseQuery(tc.q, v)
 		if len(problems) != 1 || problems[0].Kind != tc.kind {
@@ -1129,7 +1302,7 @@ func TestArchiveCompletedFilter(t *testing.T) {
 	a, now := newTestApp(t) // Friday 2026-09-04
 	done := func(title string, at time.Time) {
 		*now = at
-		act, err := a.CreateAction(0, ActionFields{Title: title}, false)
+		act, err := a.CreateAction(0, ActionFields{Title: title})
 		if err != nil {
 			t.Fatal(err)
 		}

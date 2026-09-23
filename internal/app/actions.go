@@ -33,7 +33,12 @@ type ActionFields struct {
 	AssignedTo   string
 	DueDate      string
 	SnoozeUntil  string
-	Tags         []string
+	// SnoozeActionID is the sibling this action waits on, 0 for none. The
+	// meta line resolves a title or an id into it before it gets here; what
+	// this layer checks is the part notation cannot see — that the sibling is
+	// in the same project, still open, and not already waiting on this one.
+	SnoozeActionID int64
+	Tags           []string
 }
 
 func (f *ActionFields) validate() error {
@@ -50,6 +55,9 @@ func (f *ActionFields) validate() error {
 	if f.SnoozeUntil != "" && !ValidDate(f.SnoozeUntil) {
 		return fmt.Errorf("bad snooze date %q", f.SnoozeUntil)
 	}
+	if f.SnoozeUntil != "" && f.SnoozeActionID != 0 {
+		return errors.New("an action waits on a date or on another action, not on both")
+	}
 	f.Context = strings.TrimPrefix(strings.TrimSpace(f.Context), "@")
 	if f.Context == "" {
 		f.ContextParam = ""
@@ -57,17 +65,15 @@ func (f *ActionFields) validate() error {
 	return nil
 }
 
-// CreateAction creates an action. projectID 0 means standalone, and a
-// standalone action is always a next action, so becameNextActionAt is
-// stamped. An action added to a project is a next action too, by default —
-// parking is the deliberate act (design.md, "Editing items"). A non-empty
-// assignedTo makes it a waiting-for action (stamped as delegation date).
-func (a *App) CreateAction(projectID int64, f ActionFields, parked bool) (*Action, error) {
+// CreateAction creates an action. projectID 0 means standalone. Every action
+// is a next action of whatever it belongs to, so becameNextActionAt is always
+// stamped; an action that cannot be started yet carries a snooze, which is a
+// claim about when rather than about whether (design.md, "Time fields"). A
+// non-empty assignedTo makes it a waiting-for action (stamped as delegation
+// date).
+func (a *App) CreateAction(projectID int64, f ActionFields) (*Action, error) {
 	if err := f.validate(); err != nil {
 		return nil, err
-	}
-	if parked && projectID == 0 {
-		return nil, errors.New("only an action inside a project can be parked")
 	}
 	now := a.now().UTC()
 	act := &Action{
@@ -75,11 +81,9 @@ func (a *App) CreateAction(projectID int64, f ActionFields, parked bool) (*Actio
 		Context: f.Context, ContextParam: f.ContextParam,
 		Duration: f.Duration, NeedsFocus: f.NeedsFocus,
 		Description: f.Description, AssignedTo: strings.TrimSpace(f.AssignedTo),
-		DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil, Tags: normTags(f.Tags),
-		CreatedAt: now, LastReviewedAt: now,
-	}
-	if !parked {
-		act.BecameNextAt = &now
+		DueDate: f.DueDate, SnoozeUntil: f.SnoozeUntil, SnoozeActionID: f.SnoozeActionID,
+		Tags: normTags(f.Tags), CreatedAt: now, LastReviewedAt: now,
+		BecameNextAt: &now,
 	}
 	err := a.tx(func(tx *sql.Tx) error {
 		// a finished project takes no new work: the commitment it named is
@@ -88,6 +92,11 @@ func (a *App) CreateAction(projectID int64, f ActionFields, parked bool) (*Actio
 			if _, err := a.openProjectRowTx(tx, projectID); err != nil {
 				return err
 			}
+		}
+		// 0 is the new action's own id: it does not have one yet, and it
+		// cannot be waited on by anything, so no chain can run back to it
+		if err := a.checkBlockerTx(tx, 0, projectID, act.SnoozeActionID); err != nil {
+			return err
 		}
 		return a.insertActionTx(tx, act)
 	})
@@ -104,11 +113,12 @@ func (a *App) insertActionTx(tx *sql.Tx, act *Action) error {
 	}
 	res, err := tx.Exec(`INSERT INTO actions
 		(project_id, title, context, context_param, duration, needs_focus, description,
-		 assigned_to, due_date, created_at, last_reviewed_at, became_next_at, snooze_until, completed_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 assigned_to, due_date, created_at, last_reviewed_at, became_next_at, snooze_until,
+		 snooze_action_id, completed_at)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		pid, act.Title, act.Context, act.ContextParam, string(act.Duration), act.NeedsFocus,
 		act.Description, act.AssignedTo, act.DueDate, ts(act.CreatedAt), ts(act.LastReviewedAt),
-		tsPtr(act.BecameNextAt), act.SnoozeUntil, tsPtr(act.CompletedAt))
+		tsPtr(act.BecameNextAt), act.SnoozeUntil, nullID(act.SnoozeActionID), tsPtr(act.CompletedAt))
 	if err != nil {
 		return err
 	}
@@ -122,21 +132,26 @@ func (a *App) insertActionTx(tx *sql.Tx, act *Action) error {
 	return a.audit(tx, EvCreated, "action", act.ID, act)
 }
 
+// The blocker's title comes back with the row rather than being looked up
+// afterwards, because every caller that shows an action shows the snooze, and
+// a snooze that named an id would be a badge saying nothing.
 const actionCols = `a.id, a.project_id, a.title, a.context, a.context_param, a.duration,
 	a.needs_focus, a.description, a.assigned_to, a.due_date, a.created_at,
-	a.last_reviewed_at, a.became_next_at, a.snooze_until, a.completed_at`
+	a.last_reviewed_at, a.became_next_at, a.snooze_until, a.snooze_action_id,
+	COALESCE((SELECT b.title FROM actions b WHERE b.id = a.snooze_action_id), ''), a.completed_at`
 
 func scanAction(row rowScanner) (*Action, error) {
 	act := &Action{}
-	var pid sql.NullInt64
+	var pid, blocker sql.NullInt64
 	var created, reviewed, dur string
 	var next, completed sql.NullString
 	if err := row.Scan(&act.ID, &pid, &act.Title, &act.Context, &act.ContextParam, &dur,
 		&act.NeedsFocus, &act.Description, &act.AssignedTo, &act.DueDate, &created,
-		&reviewed, &next, &act.SnoozeUntil, &completed); err != nil {
+		&reviewed, &next, &act.SnoozeUntil, &blocker, &act.SnoozeActionTitle, &completed); err != nil {
 		return nil, err
 	}
 	act.ProjectID = pid.Int64
+	act.SnoozeActionID = blocker.Int64
 	act.Duration = Duration(dur)
 	act.CreatedAt = parseTS(created)
 	act.LastReviewedAt = parseTS(reviewed)
@@ -202,11 +217,15 @@ func (a *App) UpdateAction(id int64, f ActionFields) error {
 			now := a.now().UTC()
 			next = &now
 		}
+		if err := a.checkBlockerTx(tx, id, before.ProjectID, f.SnoozeActionID); err != nil {
+			return err
+		}
 		if _, err := tx.Exec(`UPDATE actions SET title=?, context=?, context_param=?, duration=?,
-			needs_focus=?, description=?, assigned_to=?, due_date=?, snooze_until=?, became_next_at=?
-			WHERE id=?`,
+			needs_focus=?, description=?, assigned_to=?, due_date=?, snooze_until=?,
+			snooze_action_id=?, became_next_at=? WHERE id=?`,
 			f.Title, f.Context, f.ContextParam, string(f.Duration), f.NeedsFocus,
-			f.Description, strings.TrimSpace(f.AssignedTo), f.DueDate, f.SnoozeUntil, tsPtr(next), id); err != nil {
+			f.Description, strings.TrimSpace(f.AssignedTo), f.DueDate, f.SnoozeUntil,
+			nullID(f.SnoozeActionID), tsPtr(next), id); err != nil {
 			return err
 		}
 		if err := a.setTagsTx(tx, "action", id, normTags(f.Tags)); err != nil {
@@ -262,6 +281,21 @@ func (a *App) setActionCompleted(tx *sql.Tx, id int64, at *time.Time) error {
 	if _, err := tx.Exec(`UPDATE actions SET completed_at=? WHERE id=?`, stamp, id); err != nil {
 		return err
 	}
+	// finishing this is what the actions waiting on it were waiting for, so
+	// they wake here — the same moment, in the same transaction, because an
+	// action that stayed asleep past its reason would be missing from "Next
+	// actions" with nothing left to explain why.
+	//
+	// Bringing this one back does not put them to sleep again, and that is
+	// deliberate: the waiting is a claim about an ordering, and the ordering
+	// was settled the moment the blocker was finished. Re-snoozing them would
+	// silently pull work out of the working view on the strength of an undo
+	// (design.md, "Time fields").
+	if at != nil {
+		if _, err := tx.Exec(`UPDATE actions SET snooze_action_id=NULL WHERE snooze_action_id=?`, id); err != nil {
+			return err
+		}
+	}
 	return a.audit(tx, event, "action", id, before)
 }
 
@@ -282,32 +316,10 @@ func (a *App) DeleteAction(id int64) error {
 	})
 }
 
-// SetNext marks an action as next (true) or parks it (false). Parking is
-// only meaningful inside a project; a standalone action is always next.
-func (a *App) SetNext(id int64, next bool) error {
-	return a.tx(func(tx *sql.Tx) error {
-		before, err := a.openActionTx(tx, id)
-		if err != nil {
-			return err
-		}
-		if !next && before.ProjectID == 0 {
-			return errors.New("a standalone action is always a next action; snooze it instead")
-		}
-		var at any
-		if next {
-			at = ts(a.now())
-			if before.BecameNextAt != nil {
-				return nil // already next; keep the original clock
-			}
-		}
-		if _, err := tx.Exec(`UPDATE actions SET became_next_at=? WHERE id=?`, at, id); err != nil {
-			return err
-		}
-		return a.audit(tx, EvEdited, "action", id, before)
-	})
-}
-
-// SnoozeAction sets or clears snoozeUntil ("" clears).
+// SnoozeAction sets or clears snoozeUntil ("" clears). Either way it clears
+// the other half of the snooze: an action waits on one thing, so naming a date
+// is also saying it is no longer waiting on a sibling, and clearing the snooze
+// means it is not waiting at all.
 func (a *App) SnoozeAction(id int64, until string) error {
 	if until != "" && !ValidDate(until) {
 		return fmt.Errorf("bad date %q", until)
@@ -317,16 +329,19 @@ func (a *App) SnoozeAction(id int64, until string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := tx.Exec(`UPDATE actions SET snooze_until=? WHERE id=?`, until, id); err != nil {
+		if _, err := tx.Exec(`UPDATE actions SET snooze_until=?, snooze_action_id=NULL WHERE id=?`, until, id); err != nil {
 			return err
 		}
 		return a.audit(tx, EvEdited, "action", id, before)
 	})
 }
 
-// Detach makes a project action standalone. A standalone action is always a
-// next action, so a parked one gets becameNextActionAt stamped with the
-// detach time. Everything else carries over (design.md, "Reshaping items").
+// Detach makes a project action standalone. Everything carries over except
+// what the project was holding: a snooze on a sibling is an ordering inside a
+// plan this action is leaving, so it goes, in both directions — what this one
+// waited on, and what was waiting on it. Neither is a sibling any more, and a
+// link pointing out of the project would be a plan that reads wrong from both
+// ends (design.md, "Reshaping items").
 func (a *App) Detach(id int64) error {
 	return a.tx(func(tx *sql.Tx) error { return a.detachTx(tx, id) })
 }
@@ -344,10 +359,82 @@ func (a *App) detachTx(tx *sql.Tx, id int64) error {
 		now := a.now().UTC()
 		next = &now
 	}
-	if _, err := tx.Exec(`UPDATE actions SET project_id=NULL, became_next_at=? WHERE id=?`, tsPtr(next), id); err != nil {
+	if _, err := tx.Exec(`UPDATE actions SET project_id=NULL, became_next_at=?, snooze_action_id=NULL
+		WHERE id=?`, tsPtr(next), id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`UPDATE actions SET snooze_action_id=NULL WHERE snooze_action_id=?`, id); err != nil {
 		return err
 	}
 	return a.audit(tx, EvDetached, "action", id, before)
+}
+
+// checkBlockerTx refuses a snooze that names an action it must not. The
+// notation layer has already turned a title or an id into one of this
+// project's open actions; what is left is the part that needs the graph.
+//
+// A cycle is the one that matters. Every other rule in the app tolerates a
+// contradiction and shouts about it — a project may be stalled, a project may
+// lose its definition of done — but a ring of actions each waiting on the next
+// is different in kind: nothing in it can ever be started, the project holds
+// open actions so it does not read as stalled, and the whole thing goes quiet.
+// That is the silent death the stalled check exists to catch, so it is refused
+// at the moment it would be written instead (design.md, "Time fields").
+//
+// Refusing it is also what makes the rest cheap: with no cycles the waiting
+// graph is a forest, so every chain ends at an action waiting on nothing,
+// which is what guarantees a project with open actions always has one that can
+// be started. ActionTree leans on the same fact.
+//
+// self is 0 for an action being created, which nothing can be waiting on yet.
+func (a *App) checkBlockerTx(tx *sql.Tx, self, projectID, blocker int64) error {
+	if blocker == 0 {
+		return nil
+	}
+	if blocker == self {
+		return errSnoozeSelf
+	}
+	if projectID == 0 {
+		return errors.New("a standalone action waits on a date, not on another action — it has no plan to be part of")
+	}
+	var bProject sql.NullInt64
+	var completed sql.NullString
+	var title string
+	if err := tx.QueryRow(`SELECT project_id, title, completed_at FROM actions WHERE id=?`, blocker).
+		Scan(&bProject, &title, &completed); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("no action #%d to wait on", blocker)
+		}
+		return err
+	}
+	if bProject.Int64 != projectID {
+		return fmt.Errorf("%q is in another project — an action waits on one of its own siblings", title)
+	}
+	if completed.Valid {
+		return fmt.Errorf("%q is already done, so waiting on it would be waiting on nothing", title)
+	}
+	// walk up from the blocker: if the chain reaches this action, the link
+	// about to be written would close a ring. The forest invariant bounds the
+	// walk, and the counter is there for a database that somehow lost it.
+	at := blocker
+	for i := 0; at != 0 && i <= 1000; i++ {
+		if at == self {
+			return fmt.Errorf("%q is already waiting on this one, directly or further down the chain", title)
+		}
+		var nextUp sql.NullInt64
+		if err := tx.QueryRow(`SELECT snooze_action_id FROM actions WHERE id=?`, at).Scan(&nextUp); err != nil {
+			return err
+		}
+		at = nextUp.Int64
+	}
+	return nil
+}
+
+func nullID(id int64) any {
+	if id == 0 {
+		return nil
+	}
+	return id
 }
 
 // ToggleTag adds or removes one tag on an action or project. #today is the
