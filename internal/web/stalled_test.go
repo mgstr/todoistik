@@ -7,11 +7,11 @@ import (
 	"todoistik/internal/app"
 )
 
-// A stalled project says so once, on the heading of the list the next action
-// is missing from (implementation.md, "Writing a project"). It used to say it
-// twice — a banner across the top and, if you had arrived by completing the
-// last action, a panel repeating it in a sentence — which is the thing these
-// pin down as gone.
+// A stalled project says so once, on the heading over the empty boxes the
+// next action is written in (implementation.md, "Writing a project"). It used
+// to say it twice — a banner across the top and, if you had arrived by
+// completing the last action, a panel repeating it in a sentence — which is
+// the thing these pin down as gone.
 
 func stalledProject(t *testing.T, a *app.App, title string) *app.Project {
 	t.Helper()
@@ -28,12 +28,17 @@ func stalledProject(t *testing.T, a *app.App, title string) *app.Project {
 	return p
 }
 
-func TestAStalledProjectMarksItsActionsHeading(t *testing.T) {
+func TestAStalledProjectMarksItsNextActionHeading(t *testing.T) {
 	s, a := newTestServer(t)
 	stalledProject(t, a, "Winter tyres on")
 	body := getPage(t, s, "/project/1")
-	if !strings.Contains(body, `<h2 class="stalled">Actions</h2>`) {
-		t.Errorf("the Actions heading is not marked on a stalled project")
+	if !strings.Contains(body, `<h2 class="nexthead stalled">`) {
+		t.Errorf("the Next action heading is not marked on a stalled project")
+	}
+	// and the boxes under it are the empty ones a next action is written in,
+	// which is what makes the mark point at where it is fixed
+	if !strings.Contains(body, `name="atitle" value=""`) {
+		t.Errorf("a stalled project offers no box to write the next action in: %s", body)
 	}
 	if strings.Contains(body, "error-banner") {
 		t.Errorf("a stalled project still carries a banner: %s", body)
@@ -50,8 +55,13 @@ func TestAProjectWithANextActionDoesNotMarkItsHeading(t *testing.T) {
 		[]app.ActionFields{{Title: "Book the garage"}}); err != nil {
 		t.Fatal(err)
 	}
-	if body := getPage(t, s, "/project/1"); !strings.Contains(body, "<h2>Actions</h2>") {
-		t.Errorf("the Actions heading is marked on a project that is not stalled")
+	body := getPage(t, s, "/project/1")
+	if strings.Contains(body, `class="nexthead stalled"`) {
+		t.Errorf("a project with a next action is marked stalled: %s", body)
+	}
+	// the action is in the boxes rather than on the list below them
+	if !strings.Contains(body, `name="atitle" value="Book the garage"`) {
+		t.Errorf("the next action is not open in the project's own boxes: %s", body)
 	}
 }
 

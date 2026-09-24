@@ -1052,7 +1052,7 @@
   function markUnsaved(forms) {
     forms.forEach(function (f) {
       if (!f.hasAttribute("data-dirty-save")) return;
-      Array.from(f.querySelectorAll("input, textarea, select")).forEach(function (el) {
+      fieldsIn(f).forEach(function (el) {
         let diff;
         if (el.type === "checkbox" || el.type === "radio") diff = el.checked !== el.defaultChecked;
         else if (el.tagName === "SELECT") {
@@ -1426,6 +1426,24 @@
   // outside the form and point at it with the form attribute — which is how
   // Save gets to stand in one row with Complete and Delete, each of which is
   // a form of its own (see implementation.md, "Writing an action")
+  // The fields a form owns, which is not the same as the fields inside it: a
+  // box may sit outside the form element and say which form it belongs to with
+  // its own `form` attribute. The project page's next action does exactly
+  // that, so that the two marks on its heading can be the little forms they
+  // are in every list (see implementation.md, "Writing a project").
+  //
+  // `form.elements` is the owned set and is what the browser will actually
+  // submit, which is the set the gate and the unsaved marks have to agree
+  // with. A dialog is not a form and still answers with what is inside it.
+  function fieldsIn(scope) {
+    const owned = scope.elements
+      ? Array.from(scope.elements)
+      : Array.from(scope.querySelectorAll("input, textarea, select"));
+    return owned.filter(function (el) {
+      return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
+    });
+  }
+
   function submitButton(form) {
     const inside = form.querySelector("button[type=submit], button:not([type]):not([type=button])");
     if (inside) return inside;
@@ -1442,8 +1460,8 @@
   // rather than the field means the bar says "needs a definition of done", in
   // the same words as the thing being pointed at.
   function missing(scope) {
-    return Array.from(scope.querySelectorAll("[required]"))
-      .filter(function (el) { return el.value.trim() === ""; })
+    return fieldsIn(scope)
+      .filter(function (el) { return el.hasAttribute("required") && el.value.trim() === ""; })
       .map(function (el) {
         // a requirement with no box of its own says what to call it, since
         // there is no label to read it off — see the project form's action
@@ -1464,7 +1482,7 @@
   function gate(scope) {
     const btn = makeButton(scope);
     if (!btn) return;
-    const needs = !!scope.querySelector("[required]");
+    const needs = fieldsIn(scope).some(function (el) { return el.hasAttribute("required"); });
     const dirty = scope.hasAttribute && scope.hasAttribute("data-dirty-save");
     if (!needs && !dirty) return;
     btn.hidden = false;
@@ -1476,7 +1494,7 @@
   // sent. Each field's own defaultValue is that very thing, so nothing has to
   // be remembered in here — the same trick the filter box's Apply uses.
   function changed(scope) {
-    return Array.from(scope.querySelectorAll("input, textarea, select")).some(function (el) {
+    return fieldsIn(scope).some(function (el) {
       if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
       if (el.tagName === "SELECT") {
         return Array.from(el.options).some(function (o) { return o.selected !== o.defaultSelected; });
@@ -1519,7 +1537,10 @@
     // yellow off in the same keystroke that earned it
     if (e.target.matches && e.target.matches("[data-verbcheck]")) markVerb(e.target);
     disarmDiscard();
-    const scope = e.target.closest && e.target.closest("form, dialog");
+    // the form this box belongs to, which is not always the one it sits
+    // inside: `el.form` is the owner, `form` attribute included, and that is
+    // the button this typing has to reach (see fieldsIn)
+    const scope = e.target.form || (e.target.closest && e.target.closest("form, dialog"));
     if (scope) { gate(scope); renderKeybar(); }
   });
   // the mirror is only right while it is scrolled exactly as far as the box
@@ -3433,13 +3454,13 @@
     row.querySelector("[name=adescription]").value = v.description;
   }
 
-  // The create button is gated on there being an action, the same way it is
-  // gated on a title and a DOD: a hidden required field the list keeps in step
-  // with itself, so the one gate still reads the whole form.
+  // Adding or removing a row changes nothing the gate reads — the action a
+  // project cannot be without is the open box above the list, and that is a
+  // required field like any other (see implementation.md, "Writing a
+  // project"). What is left is re-reading the form, because the row keys the
+  // bar offers depend on what is in the list.
   function syncDrafts(form) {
     if (!form) return;
-    const flag = form.querySelector("[name=hasaction]");
-    if (flag) flag.value = form.querySelector("[data-draft]") ? "1" : "";
     gate(form);
     renderKeybar();
   }
@@ -3473,13 +3494,11 @@
     const meta = dlg.querySelector("[name=meta]");
     const desc = dlg.querySelector("[name=description]");
     const ok = dlg.querySelector("[data-draft-ok]");
-    // the body the capture carried is written into the first action of the
-    // project, since a project has no description of its own and material a
-    // project needs belongs to whichever of its actions needs it (design.md,
-    // "Inbox Zero"). Only the first: it is one body, and the dialog that adds
-    // the second action opens empty like every one after it
-    const seed = list.children.length ? "" : (list.dataset.draftSeed || "");
-    const v = row ? draftValues(row) : { title: "", meta: "", description: seed };
+    // Nothing is seeded here. The capture's body goes to the project's first
+    // action, which the screen now shows open in its own boxes with the body
+    // already in it (design.md, "Inbox Zero") — this dialog only ever writes
+    // an action after that one, and those open empty.
+    const v = row ? draftValues(row) : { title: "", meta: "", description: "" };
     title.value = v.title; meta.value = v.meta; desc.value = v.description;
     dlg.querySelector("h2").textContent = row ? "Edit action" : "Add an action";
     ok.textContent = row ? "Save action" : "Create action";

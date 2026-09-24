@@ -155,7 +155,7 @@ been.
 | --- | --- | --- |
 | `s` | Save | action, project, someday item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
-| `a` | Add | project, promote, the project branch of processing |
+| `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
 | `d` | Done | every list row, action, project, doing |
 | `r` | the review mark | a row of a weekly review step |
@@ -548,6 +548,18 @@ never be advertised without working:
   implementation.md, "Keyboard": a project page reached by completing an
   action used to arrive with the completed action under the cursor, and so
   with no `d done` on it at all.
+
+  This split is what lets a project's page carry two Dones without spending a
+  second letter on one of them. The project's next action is shown open in its
+  own boxes there (design.md, "Editing items"), and its ☐ is on the heading
+  over them — which is that action's row, `data-kb-row` and all, the row it was
+  in the list before it was drawn open. So `d` with the heading selected
+  completes the action and `d` with nothing selected completes the project,
+  which is exactly what the two pressed when the action was still a line in
+  the list. `t` picks it for today the same way, `w` starts doing it, and `↵`
+  opens its own page, where Detach, Promote and Delete still live. No letter
+  moved, and none had to: one Done is a row's and the other is the screen's,
+  and the map already knew how to tell those apart.
 - **and that is what lets `t` be the task branch.** The three are read before
   the declared keys, so `t` asks for a `kb-pick` first and only then for a
   control on the page. Stage one of processing carries no such form — the
