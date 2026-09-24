@@ -3816,6 +3816,26 @@ The tag is drawn as an uppercase badge, which is styling rather than the key:
 and not as the first letter of a word. What is pressed is the lowercase letter
 keys.md writes down, and what the code holds in `jumps`.
 
+- **the pending `g` is answered before every other key on the page**, beside
+  the `^m` jump and for the same reason (see "Jumping to a control"). Four of
+  the fourteen letters are also buttons, and the prefix is the whole of what
+  makes that safe — which it can only be from in front of the keys it is
+  protecting. It was read after them until now, so with a row under the cursor
+  `g d` completed the row and went nowhere. There was no single line to slip it
+  in behind either: `rowCommand` is called twice, once above the ctrl guard for
+  modifier mode's `^d` and once below it for the bare letters, so anything
+  short of the top of the handler would have left one of the two in front. The
+  ordering is not readable from any screen or any rendered page, so it is
+  pinned by a test — `internal/web/jumpkeys_test.go`, which reads app.js out of
+  the embedded files and checks the two offsets. That is the only place Go
+  tests the keyboard layer, and it is here because this is the one invariant
+  whose breaking left the app looking entirely correct.
+- **a chord pressed while the overlay is up is spent taking it away**, and
+  presses nothing. Navigation is bare in every mode (keys.md, "The map"), so a
+  modified key is not a jump — and answering it as a button instead would put
+  the overlay's letters and the screen's letters on the keyboard at the same
+  time, which is the state the prefix exists to prevent.
+
 Three `g` sequences do not jump to a view:
 
 - **`g g` opens the capture dialog** (see "Capture"). The `+` at the head of the

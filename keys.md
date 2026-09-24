@@ -399,16 +399,22 @@ puts the keyboard in a state where only a jump can follow. Without the prefix
 these fourteen would have had to come out of the letters the buttons had not
 already taken, and there are not fourteen of those.
 
-**Those four do not yet behave that way, and writing the map down here is what
-showed it.** In `hybrid` and `command` modes the row commands are read before
-the pending `g` is, so with a row selected `g d` completes it instead of
-opening the Dashboard, and `g t`, `g r` and `g w` go the same way. In
-`modifier` mode the four are correct, because the buttons want ctrl there and a
-bare letter falls through to the jump. This is the collision the file was split
-out to catch — while half the map sat in implementation.md, no one place held
-both meanings of `d` at once — and it is a bug in the code rather than a
-decision to revisit: the rule above is what the app is supposed to do. It is
-listed again in "What is built".
+**They did not behave that way until the map was written down here, which is
+the argument for this file making itself.** The row commands were read before
+the pending `g` was, so with a row under the cursor `g d` completed it and went
+nowhere, and `g t`, `g r` and `g w` went the same way — in `hybrid` and
+`command` modes, which includes the default. Nothing on the page was wrong and
+no other test could see it; what made it visible was putting the fourteen
+letters next to the buttons they share, in the one file whose job is to notice
+that a letter is spent twice. The pending `g` is now answered before every
+other key on the page, which is where the `^m` jump was already read and for
+the same reason.
+
+**A chord pressed while the overlay is up is not a jump, and does not press the
+button either.** Navigation is bare in every mode, so `^d` after `g` is not the
+Dashboard; it is spent taking the overlay away and doing nothing else, which is
+the answer `^m` already gives a chord pressed into its hints. Holding shift to
+reach a key is not an answer at all and leaves the overlay standing.
 
 **Globals** — ctrl in every mode.
 
@@ -608,15 +614,6 @@ thing you meant.
 
 All of it. `keys.mode` defaults to `hybrid`, which is what the app did before
 any of this, so nothing about the trial is a one-way door.
-
-**Except the prefix guard on four letters.** `g d`, `g t`, `g r` and `g w` are
-claimed by the row commands before the pending `g` is looked at, so with a row
-selected they press the button instead of jumping — in `hybrid` and `command`
-modes, which includes the default. `rowCommand` is called ahead of the
-`gPending` branch in the key handler, and it has to be, because in `modifier`
-mode `d`, `t` and `b` arrive with ctrl held and the ctrl guard below would drop
-them. The fix is for the pending `g` to be answered first, not for either map
-to give up a letter — see "The map" for why the collision is allowed at all.
 
 Three mechanisms carry the whole map, and each one exists so that a key can
 never be advertised without working:
