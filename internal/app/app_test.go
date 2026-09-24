@@ -1436,9 +1436,17 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 	trashed := capture("A newsletter nobody reads")
 	referenced := capture("The boiler's model number")
 	instant := capture("Reply yes to Marju")
-	action := capture("Book the winter tyre change")
+	task := capture("Book the winter tyre change")
+	action := capture("Measure the bathroom wall")
 	project := capture("The bathroom")
 	someday := capture("Learn to solder properly")
+
+	// somewhere for the filed one to land
+	home, err := a.CreateProject(ProjectFields{Title: "Bathroom re-tiled", DOD: "tiles on"},
+		[]ActionFields{{Title: "Order the tiles"}})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if err := a.ProcessTrash(trashed); err != nil {
 		t.Fatal(err)
@@ -1449,7 +1457,10 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 	if err := a.ProcessTwoMinute(instant); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := a.ProcessAction(action, ActionFields{Title: "Book the winter tyre change"}, 0); err != nil {
+	if _, err := a.ProcessAction(task, ActionFields{Title: "Book the winter tyre change"}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessAction(action, ActionFields{Title: "Measure the bathroom wall"}, home.ID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := a.ProcessProject(project,
@@ -1479,7 +1490,10 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 		{trashed, EvTrashed, "trash"},
 		{referenced, EvReference, "reference material"},
 		{instant, EvTwoMinute, "the two minute rule"},
-		{action, EvBecameAction, "an action"},
+		// the Task branch makes two different things and the log says which:
+		// a standalone action is a task, one filed into a project is an action
+		{task, EvBecameTask, "a task"},
+		{action, EvBecameAction, "an action in a project"},
 		{project, EvBecameProject, "a project"},
 		{someday, EvBecameSomeday, "someday/maybe"},
 	} {
@@ -1491,7 +1505,7 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 	// and the snapshot beside each one is the capture as it arrived, which is
 	// what makes the channel countable long after the item is gone
 	for _, e := range log {
-		if e.ItemType == "inbox" && e.Event == EvBecameAction && !strings.Contains(e.Snapshot, `"source":"`+SourceApp+`"`) {
+		if e.ItemType == "inbox" && e.Event == EvBecameTask && !strings.Contains(e.Snapshot, `"source":"`+SourceApp+`"`) {
 			t.Errorf("the leaving entry carries no source: %s", e.Snapshot)
 		}
 	}

@@ -209,7 +209,14 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64) (*Action,
 	}
 	var act *Action
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeInboxItem(tx, id, EvBecameAction); err != nil {
+		// which of the two this branch just made: a task standing on its own,
+		// or a step inside a project. The log says which, because they are
+		// read under different nouns everywhere else (see the Ev… constants)
+		became := EvBecameTask
+		if projectID != 0 {
+			became = EvBecameAction
+		}
+		if err := a.consumeInboxItem(tx, id, became); err != nil {
 			return err
 		}
 		now := a.now().UTC()

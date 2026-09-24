@@ -1474,17 +1474,24 @@ a link is a link being followed, the way `a` and `p` already were.
   the collision does: the screens are disjoint, the bar names the key on both,
   and trashing is recoverable from the audit log by recapturing (design.md,
   "Audit entry"). Worth revisiting if it ever fires by accident
-- **each branch writes its own audit event**, and the three that create
-  something write `became-an-action`, `became-a-project` and `became-someday`
-  rather than the `deleted` they shared (`internal/app/types.go`, the `Ev…`
-  constants; `internal/app/someday.go`, the three `consumeInboxItem` calls).
-  The entry is written against the *inbox item's* id and carries the capture as
-  it arrived as its snapshot — which is what keeps the channel countable after
-  the item is gone (design.md, "Where it came from"). `internal/app/app_test.go`
-  pins all six.
+- **each branch writes its own audit event**, and the ones that create
+  something write `became-a-task`, `became-an-action`, `became-a-project` and
+  `became-someday` rather than the `deleted` they shared
+  (`internal/app/types.go`, the `Ev…` constants; `internal/app/someday.go`, the
+  `consumeInboxItem` calls). The entry is written against the *inbox item's* id
+  and carries the capture as it arrived as its snapshot — which is what keeps
+  the channel countable after the item is gone (design.md, "Where it came
+  from"). `internal/app/app_test.go` pins all seven.
+  - **the Task branch writes two of them**, chosen on the `projectID` it was
+    given: nothing means a standalone action, which is a task, and a project
+    means an action inside one. It is the same split `Match.Kind` and
+    `Match.Noun` draw on the screen the branch is answered from (see "The match
+    list") — the item type is `action` either way, and the noun is where the
+    thing is found. One event for both would put one word on the two things
+    that screen had just been fixed to keep apart
   - **the Audit view's Recapture button follows the event rather than a rule of
     its own**, and it offers itself on `trashed`, `deleted` and
-    `sent-to-reference` (`audit.html`). The three new events are deliberately
+    `sent-to-reference` (`audit.html`). The four new events are deliberately
     not on that list: nothing was lost, so recapturing would put a second copy
     of a live commitment in the inbox. Before the split those rows *did* carry
     the button, because they said `deleted` — which is the clearest measure of

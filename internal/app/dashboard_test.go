@@ -58,7 +58,7 @@ func TestDashboardCounts(t *testing.T) {
 	for _, r := range d.Became.Rows {
 		got[r.Label] = r.Count
 	}
-	if got["an action"] != 1 || got["trashed"] != 1 {
+	if got["a task"] != 1 || got["trashed"] != 1 {
 		t.Errorf("what the inbox became: %v", got)
 	}
 	if _, ok := got["a project"]; ok {

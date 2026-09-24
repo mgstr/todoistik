@@ -232,14 +232,22 @@ func (a *App) monthStart(back int) time.Time {
 
 // --- the two distributions -----------------------------------------------
 
-// becameLabels turns a leaving event into what the row says. `deleted` is in
-// here because of what the log used to be: before every branch wrote its own
-// event, the three that create something shared that word, so an old log has
-// one bucket where a new one has three (design.md, "Audit entry"). It is shown
-// under its own name rather than folded into any of the three — a bucket that
-// silently joined "an action" would be the same lie in a new place.
+// becameLabels turns a leaving event into what the row says, and fixes the
+// order the rows are drawn in: what became a commitment first, then what
+// became nothing, which is the panel read from most answered-with-work to
+// least. A fixed order and not a ranking, unlike the channels below — the
+// branches are a closed set with a natural order, and a panel that reshuffled
+// itself between visits would have to be re-read each time rather than
+// recognised.
+//
+// `deleted` is in here because of what the log used to be: before every branch
+// wrote its own event, the ones that create something shared that word, so an
+// old log has one bucket where a new one has four (design.md, "Audit entry").
+// It is shown under its own name rather than folded into any of them — a
+// bucket that silently joined "a task" would be the same lie in a new place.
 var becameLabels = []struct{ Event, Label string }{
-	{EvBecameAction, "an action"},
+	{EvBecameTask, "a task"},
+	{EvBecameAction, "an action in a project"},
 	{EvBecameProject, "a project"},
 	{EvBecameSomeday, "someday/maybe"},
 	{EvTwoMinute, "done on the spot"},
