@@ -14,56 +14,56 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 
 <!-- toc -->
 
-- [Principles](#principles)
-  - [Goals](#goals)
-  - [Design principles](#design-principles)
-- [Items](#items)
-  - [Inbox item](#inbox-item)
-  - [Schedule](#schedule)
-  - [Someday/maybe item](#somedaymaybe-item)
-  - [Action](#action)
-  - [Project](#project)
-  - [Time fields](#time-fields)
-  - [Contexts](#contexts)
-  - [Tags](#tags)
-  - [Verbs](#verbs)
-  - [Completion](#completion)
-  - [Error state](#error-state)
-  - [Audit entry](#audit-entry)
-  - [Following a link](#following-a-link)
-  - [Writing an action](#writing-an-action)
-  - [Writing a project](#writing-a-project)
-- [Views](#views)
-  - [Panels](#panels)
-  - [Theme](#theme)
-  - [A moment that shows itself](#a-moment-that-shows-itself)
-  - [The filter line](#the-filter-line)
-  - [Bookmarked filters](#bookmarked-filters)
-  - [Filtering by name](#filtering-by-name)
-  - [Filtering by tag](#filtering-by-tag)
-  - [Filtering by context](#filtering-by-context)
-  - [Filtering the remembered lists](#filtering-the-remembered-lists)
-  - [Inbox](#inbox)
-  - [Someday/Maybe](#somedaymaybe)
-  - [Projects](#projects)
-  - [Tasks](#tasks)
-  - [Next actions](#next-actions)
-  - [Today](#today)
-  - [Waiting for](#waiting-for)
-  - [Calendar](#calendar)
-  - [Archive](#archive)
-  - [Scheduler](#scheduler)
-  - [Dashboard](#dashboard)
-  - [The read API](#the-read-api)
-- [Processes](#processes)
-  - [Inbox Zero](#inbox-zero)
-  - [Doing one action](#doing-one-action)
-  - [Completing a next action](#completing-a-next-action)
-  - [Weekly review](#weekly-review)
-  - [Editing items](#editing-items)
-  - [Reshaping items](#reshaping-items)
-- [Out of scope](#out-of-scope)
-  - [Deliberate omissions](#deliberate-omissions)
+- [Principles](#principles) — what the app is for, and the rules that decide what gets built
+  - [Goals](#goals) — nothing is held in my head, and nothing dies silently
+  - [Design principles](#design-principles) — only what I will use, keyboard-only, and the app never nags
+- [Items](#items) — the objects the app works with, and the fields each one carries
+  - [Inbox item](#inbox-item) — the raw capture, near-schemaless so that capturing costs no decision
+  - [Schedule](#schedule) — a piece of text and a rule for when to put it back in the inbox
+  - [Someday/maybe item](#somedaymaybe-item) — an idea worth revisiting, that you are not ready to work on
+  - [Action](#action) — one non-breakable task with a visible effect
+  - [Project](#project) — a result needing more than one step, and its definition of done
+  - [Time fields](#time-fields) — creation, due, snooze and completion, and which items take which
+  - [Contexts](#contexts) — `@name`, the physical prerequisite for doing an action at all
+  - [Tags](#tags) — `#name`, what an item is about rather than what it needs
+  - [Verbs](#verbs) — an action's title is asked to open with one, and never made to
+  - [Completion](#completion) — the two ways an item is resolved, and why nothing is implicit
+  - [Error state](#error-state) — fields that contradict each other, kept loudly visible until fixed
+  - [Audit entry](#audit-entry) — what every write records, so that nothing dies silently
+  - [Following a link](#following-a-link) — a link in an item's text is pressable wherever the text is shown
+  - [Writing an action](#writing-an-action) — one form wherever an action is written, in one partial
+  - [Writing a project](#writing-a-project) — a project and its first actions are created in one submit
+- [Views](#views) — every list is a query, and none can be created, renamed or deleted
+  - [Panels](#panels) — the title bar, the key bar and the rail, each removable
+  - [Theme](#theme) — `light-dark()`, and how being told which palette is remembered
+  - [A moment that shows itself](#a-moment-that-shows-itself) — the animation that proves a destructive press landed
+  - [The filter line](#the-filter-line) — one typed line, absent until a key asks for it
+  - [Bookmarked filters](#bookmarked-filters) — `internal/web/bookmarks.go`, the wiring under the nine digits
+  - [Filtering by name](#filtering-by-name) — the same name filter on every view that can grow long
+  - [Filtering by tag](#filtering-by-tag) — `#car` in the line, as many tags as you like
+  - [Filtering by context](#filtering-by-context) — Next actions only, and one context at a time
+  - [Filtering the remembered lists](#filtering-the-remembered-lists) — tags, contexts and verbs shown as three clouds
+  - [Inbox](#inbox) — undecided captures, oldest first, and the one view with a rule attached
+  - [Someday/Maybe](#somedaymaybe) — ideas, on their own longer review cadence
+  - [Projects](#projects) — the active ones, with stalled loudly marked and snoozed set apart
+  - [Tasks](#tasks) — the standalone actions: no project, not yet done
+  - [Next actions](#next-actions) — the working view, and what is on you to act on
+  - [Today](#today) — what has run out of time, and what was picked this morning
+  - [Waiting for](#waiting-for) — next actions where the ball is in someone else's court
+  - [Calendar](#calendar) — everything with a real deadline, soonest first
+  - [Archive](#archive) — the completed commitments, newest first
+  - [Scheduler](#scheduler) — the schedules, ordered by when they next fire
+  - [Dashboard](#dashboard) — what the app counts about itself, and the one view showing no item
+  - [The read API](#the-read-api) — the views readable from outside, so that an AI can look
+- [Processes](#processes) — the rituals that carry items through the app
+  - [Inbox Zero](#inbox-zero) — one capture at a time, oldest first, and the answers it may be given
+  - [Doing one action](#doing-one-action) — the selected action alone on an otherwise empty screen
+  - [Completing a next action](#completing-a-next-action) — the moment with the most context about what comes next
+  - [Weekly review](#weekly-review) — the ritual every view's trustworthiness rests on
+  - [Editing items](#editing-items) — editable while open, frozen once finished, audited either way
+  - [Reshaping items](#reshaping-items) — nothing is retyped: detach, promote, and send back to the inbox
+- [Out of scope](#out-of-scope) — what will not be built, written down so it stops coming back
+  - [Deliberate omissions](#deliberate-omissions) — priority, sub-projects and the rest, each with its reason
 
 <!-- /toc -->
 

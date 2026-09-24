@@ -633,7 +633,14 @@ For an agent (or a person) picking this up cold:
   Regenerate the list with `./doctoc.sh` whenever you add, rename or remove a
   heading — it carries no line numbers on purpose, because a line number is
   wrong as soon as anything above it is edited and a wrong one is worse than
-  none.
+  none. Each entry also carries a one-line gloss after an em dash, so that a
+  section can be ruled out without being opened; the glosses are written by
+  hand and `./doctoc.sh` carries each one across to the rewritten entry. A
+  heading that is renamed comes back bare rather than keeping the old gloss,
+  which is the right way round: a renamed section is one whose summary has to
+  be reread, and a bare entry asks for that where a stale one would hide it.
+  The entries are one line each and deliberately not wrapped — the script
+  parses them a line at a time.
 - **Small commits, one topic each.** Prefer a docs-only commit separate from the
   code commit that implements it, matching this repo's existing history, over
   one commit that mixes design discussion with implementation.
