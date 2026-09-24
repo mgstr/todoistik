@@ -22,7 +22,8 @@ Flags (each also readable from the environment):
 | `-tz`    | `TODOISTIK_TZ`    | `Local`          | the one timezone that defines "today"      |
 | `-config`| `TODOISTIK_CONFIG`| `todoistik.conf` | settings file; missing is fine, wrong is fatal |
 
-Open the address in a browser and enter the token once. Press `?` for the key map.
+Open the address in a browser and enter the token once. Press `?` for the key
+map.
 
 ## Backups
 
@@ -101,11 +102,14 @@ curl -H "Authorization: Bearer $TOK" "http://host:8390/api/view/next?format=text
 curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?format=text"
 ```
 
-Views: `inbox someday projects tasks next today waiting calendar archive scheduler review`.
+Views: `inbox someday projects tasks next today waiting calendar archive
+scheduler review`.
 Filter parameters (each view accepts the ones its screen offers): `name`,
 `tag` (repeatable), `context` (repeatable), `duration` (repeatable), `focus`
 (`exclude`/`only`), `due` (`today`/`tomorrow`/`thisweek`/`nextweek`),
-`completed` (`2026-09-13`, `today`/`yesterday`, a day name, `week`/`month`/`year`, `2weeks`/`3months`/`2years`), `sort` (`age`/`title`), `desc`.
+`completed` (`2026-09-13`, `today`/`yesterday`, a day name,
+`week`/`month`/`year`, `2weeks`/`3months`/`2years`), `sort` (`age`/`title`),
+`desc`.
 
 `format` says how the answer is written down, and never what is in it: `json`
 (the default) or `text`. An unknown one is refused rather than answered in the
@@ -577,16 +581,62 @@ internal/web/              HTTP and HTML — thin: talks to internal/app, never 
 
 For an agent (or a person) picking this up cold:
 
-- **keys.md is the keyboard.** Every key, what it presses, and the rules that decide what a key may be. It is a third file rather than a section of either because a key is both halves at once — which letter means Done is a design decision, whether that letter can fire while a box is being typed in is a fact about the browser — and while the map was split across the other two, the same letter could be spent twice without either being wrong. It also carries its own register of what is decided but not yet built.
-- **design.md is the spec, implementation.md is the build.** design.md says what the app does and why, with no mention of Go, SQLite or HTTP. implementation.md says what it's built out of. Code should never contradict either — a mismatch is a bug (fix the code), unless the docs themselves are wrong or silent on the point, in which case fix the docs first and say so.
-- **Never silently reinterpret a design decision.** A change that would contradict something design.md or implementation.md already says is a design conversation, not a code change — flag it and get a decision before touching code. This repo's commit history is the record of exactly that conversation; read it for the pattern (and the *why*, which the docs' own prose carries — the docs are written to justify every rule, not just state it).
-- **Keep the docs in sync with the code, in the same unit of work.** Any change to behavior updates design.md; any change to a technical or UI decision updates implementation.md. Not as an afterthought, and not batched into some later cleanup pass.
-- **internal/app has no knowledge of HTTP.** It's called from internal/web today and could be called from a CLI or a test just as easily. Domain rules belong there, not in internal/web/ui.go.
-- **internal/web is thin.** A handler parses the request, calls one or two internal/app methods, renders a template or redirects. If a handler needs to know a domain rule (is this action stalled? is this project a valid completion target?), that logic belongs in internal/app, not in the handler or the template.
-- **Every SQL query lives in internal/app.** internal/web never imports database/sql.
-- **The audit log always gets a snapshot.** Any create/edit/delete going through a.tx(...) should call a.audit(...) with enough of the item to recover it — see design.md, "Audit entry" and "Editing items".
-- **Small, verifiable steps.** Build, vet and test before calling a change done (commands below). The tests in internal/app/app_test.go exist to pin down rules that are easy to get subtly wrong — duplicate collapse, schedule firing and back-firing, stalled derivation, delegation restamping, completion validations. Extend them when you touch that logic; don't just eyeball it.
-- **Small commits, one topic each.** Prefer a docs-only commit separate from the code commit that implements it, matching this repo's existing history, over one commit that mixes design discussion with implementation.
+- **keys.md is the keyboard.** Every key, what it presses, and the rules that
+  decide what a key may be. It is a third file rather than a section of either
+  because a key is both halves at once — which letter means Done is a design
+  decision, whether that letter can fire while a box is being typed in is a fact
+  about the browser — and while the map was split across the other two, the same
+  letter could be spent twice without either being wrong. It also carries its
+  own register of what is decided but not yet built.
+- **design.md is the spec, implementation.md is the build.** design.md says what
+  the app does and why, with no mention of Go, SQLite or HTTP. implementation.md
+  says what it's built out of. Code should never contradict either — a mismatch
+  is a bug (fix the code), unless the docs themselves are wrong or silent on the
+  point, in which case fix the docs first and say so.
+- **Never silently reinterpret a design decision.** A change that would
+  contradict something design.md or implementation.md already says is a design
+  conversation, not a code change — flag it and get a decision before touching
+  code. This repo's commit history is the record of exactly that conversation;
+  read it for the pattern (and the *why*, which the docs' own prose carries —
+  the docs are written to justify every rule, not just state it).
+- **Keep the docs in sync with the code, in the same unit of work.** Any change
+  to behavior updates design.md; any change to a technical or UI decision
+  updates implementation.md. Not as an afterthought, and not batched into some
+  later cleanup pass.
+- **internal/app has no knowledge of HTTP.** It's called from internal/web today
+  and could be called from a CLI or a test just as easily. Domain rules belong
+  there, not in internal/web/ui.go.
+- **internal/web is thin.** A handler parses the request, calls one or two
+  internal/app methods, renders a template or redirects. If a handler needs to
+  know a domain rule (is this action stalled? is this project a valid completion
+  target?), that logic belongs in internal/app, not in the handler or the
+  template.
+- **Every SQL query lives in internal/app.** internal/web never imports
+  database/sql.
+- **The audit log always gets a snapshot.** Any create/edit/delete going through
+  a.tx(...) should call a.audit(...) with enough of the item to recover it — see
+  design.md, "Audit entry" and "Editing items".
+- **Small, verifiable steps.** Build, vet and test before calling a change done
+  (commands below). The tests in internal/app/app_test.go exist to pin down
+  rules that are easy to get subtly wrong — duplicate collapse, schedule firing
+  and back-firing, stalled derivation, delegation restamping, completion
+  validations. Extend them when you touch that logic; don't just eyeball it.
+- **The long docs are written to be searched, not read end to end.** design.md
+  and implementation.md are past 200 KB each and still growing; nobody, agent or
+  person, should be paging through either to find the paragraph a change belongs
+  in. Two things keep that cheap, and both are conventions rather than tooling,
+  so both can be broken by hand: the prose is **wrapped at 80 columns**, so that
+  a grep returns the sentence that matched instead of the whole paragraph around
+  it (unwrapped, one search of design.md cost four times the text it does now);
+  and each file opens with a **contents list of every heading in it**, so the
+  way in is to pick the heading and `grep -n '^## That heading'` for its line.
+  Regenerate the list with `./doctoc.sh` whenever you add, rename or remove a
+  heading — it carries no line numbers on purpose, because a line number is
+  wrong as soon as anything above it is edited and a wrong one is worse than
+  none.
+- **Small commits, one topic each.** Prefer a docs-only commit separate from the
+  code commit that implements it, matching this repo's existing history, over
+  one commit that mixes design discussion with implementation.
 
 ## Development
 
@@ -595,4 +645,14 @@ go build ./...   # compile everything
 go vet ./...     # static checks
 go test ./...    # the domain test suite (internal/app, internal/cron)
 gofmt -l .       # should print nothing; gofmt -w . to fix
+./doctoc.sh      # rewrite the contents list in design.md and implementation.md
 ```
+
+`.claude/settings.json` is checked in, and pre-approves the read-only half of
+that work — the four commands above, the git commands that only report, and
+plain file reading and searching — so an agent does not stop to ask before every
+`go test`. It deliberately does not pre-approve writing, committing or pushing:
+those are the points where being asked is worth the interruption. Everything
+else under `.claude/` is ignored, since it is that machine's session state, and
+a worktree kept there is a second copy of the whole repository that would
+otherwise show up twice in every search.

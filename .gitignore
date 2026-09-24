@@ -9,3 +9,5 @@
 /mailsync
 /telegrambot
 .keytest/
+.claude/*
+!.claude/settings.json
