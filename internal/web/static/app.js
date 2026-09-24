@@ -3045,6 +3045,44 @@
       return;
     }
 
+    // And the same for the view jump, one level out: while `g` is pending the
+    // next key is the jump and nothing else, so this is read before every
+    // other key on the page too. It has to be. Four of the fourteen letters
+    // are also buttons — `d` is Done and the Dashboard, and `t`, `r` and `w`
+    // are spent twice the same way (keys.md, "The map") — and the prefix is
+    // the whole of what makes that safe, which it can only be from in front of
+    // the keys it is protecting. Read after them, as it was, `g d` completed
+    // the row under the cursor and went nowhere, on every screen with a
+    // selection: the row commands sit both above the ctrl guard and below it,
+    // so there is no single line this could have been slipped in behind.
+    if (gPending) {
+      // a modifier pressed on its own is not an answer, so it does not count
+      // as one: holding shift to reach a key must not throw the jump away
+      if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") return;
+      setPending(false);
+      // navigation is bare in every mode (keys.md, "The map"), so a chord is
+      // not a jump. It is spent taking the overlay away and does nothing else
+      // — the same answer ctrl-m gives a chord pressed into its hints
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const to = keyOf(e);
+      if (to === "g") { e.preventDefault(); openCapture(); return; }
+      // a bookmark is a going like any other now that it holds its own view
+      // (design.md, "Bookmarked filters"), so it answers the key the app says
+      // "go to" with. An empty slot is a destination that does not exist and
+      // the press is spent on nothing — left to the browser rather than
+      // swallowed, which is what an unbound letter after `g` already does
+      if (/^[1-9]$/.test(to)) {
+        if (goToBookmark(Number(to))) e.preventDefault();
+        return;
+      }
+      const dest = jumps[to];
+      if (dest) {
+        e.preventDefault();
+        window.location.href = dest;
+      }
+      return;
+    }
+
     // ctrl-v is the panels, from anywhere: the chooser if it is shut, and zen
     // if it is already up — the second press is the answer wanted most often,
     // and the dialog is a list of four keys rather than a place to be. Ctrl
@@ -3289,27 +3327,6 @@
     if (!e.altKey && !e.metaKey && rowCommand(e)) { e.preventDefault(); return; }
 
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-
-    if (gPending) {
-      setPending(false);
-      const to = keyOf(e);
-      if (to === "g") { e.preventDefault(); openCapture(); return; }
-      // a bookmark is a going like any other now that it holds its own view
-      // (design.md, "Bookmarked filters"), so it answers the key the app says
-      // "go to" with. An empty slot is a destination that does not exist and
-      // the press is spent on nothing — left to the browser rather than
-      // swallowed, which is what an unbound letter after `g` already does
-      if (/^[1-9]$/.test(to)) {
-        if (goToBookmark(Number(to))) e.preventDefault();
-        return;
-      }
-      const dest = jumps[to];
-      if (dest) {
-        e.preventDefault();
-        window.location.href = dest;
-      }
-      return;
-    }
 
     // a key the page declares beats the standing map: on a screen that has
     // its own answers, those are what the letters mean there
