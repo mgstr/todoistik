@@ -698,6 +698,12 @@
     const letter = /^Key([A-Z])$/.exec(e.code);
     if (letter) return letter[1].toLowerCase();
     if (e.code === "Slash") return e.shiftKey ? "?" : "/";
+    // and the same for `#`, for the same reason: it is a place on the keyboard
+    // and the place prints something else in Cyrillic — shift-3 is `№` there,
+    // so a key read off the character would work in Estonian and fail in
+    // Russian, which is the one thing any_layout exists to prevent. Bare 3
+    // still answers as 3, because this rule asks for the shift.
+    if (e.code === "Digit3" && e.shiftKey) return "#";
     if (e.key && e.key.length === 1) {
       const at = YCUKEN.indexOf(e.key.toLowerCase());
       if (at >= 0) return QWERTY[at];
@@ -1422,10 +1428,6 @@
     }
   }
 
-  // the button a form would submit with, if it has one. A button may sit
-  // outside the form and point at it with the form attribute — which is how
-  // Save gets to stand in one row with Complete and Delete, each of which is
-  // a form of its own (see implementation.md, "Writing an action")
   // The fields a form owns, which is not the same as the fields inside it: a
   // box may sit outside the form element and say which form it belongs to with
   // its own `form` attribute. The project page's next action does exactly
@@ -1444,6 +1446,10 @@
     });
   }
 
+  // the button a form would submit with, if it has one. A button may sit
+  // outside the form and point at it with the form attribute — which is how
+  // Save gets to stand in one row with Complete and Delete, each of which is
+  // a form of its own (see implementation.md, "Writing an action")
   function submitButton(form) {
     const inside = form.querySelector("button[type=submit], button:not([type]):not([type=button])");
     if (inside) return inside;
@@ -1505,6 +1511,9 @@
 
   function gateAll() {
     document.querySelectorAll("form, dialog").forEach(gate);
+    // the same pass: a control whose pressability is read off a box belongs
+    // with the buttons whose pressability is read off a form
+    syncMetaCopy();
     renderKeybar();
   }
   // Moving into or out of a box changes which keys are live, so the bar is
@@ -1537,6 +1546,10 @@
     // yellow off in the same keystroke that earned it
     if (e.target.matches && e.target.matches("[data-verbcheck]")) markVerb(e.target);
     disarmDiscard();
+    // a tag typed onto the project's line is one the mark can bring down, and
+    // one deleted off it is one it cannot — so the mark is re-read with every
+    // keystroke, the way the gate is
+    syncMetaCopy();
     // the form this box belongs to, which is not always the one it sits
     // inside: `el.form` is the owner, `form` attribute included, and that is
     // the button this typing has to reach (see fieldsIn)
@@ -3543,6 +3556,99 @@
       if (e.target !== desc) { e.preventDefault(); e.stopPropagation(); done(true); }
     };
   }
+
+  // The project's tags, onto its next action — `#` on the project's page, the
+  // third mark on the Next action heading (design.md, "Editing items").
+  //
+  // It is done in here and nothing is posted, for the reason the review mark
+  // is: the answer is a box on this page redrawn where it stands. Both lines
+  // belong to the one form and neither is saved until Save, so this moves a
+  // draft into a draft — and a press you did not want costs nothing but a
+  // second press or leaving without saving.
+  //
+  // Which form is said by the button (`data-copy-meta` holds its id) rather
+  // than looked up by shape, and the boxes are read off `form.elements`: the
+  // action's line sits outside the form element and belongs to it by its own
+  // `form` attribute (see fieldsIn).
+  function metaBoxes(btn) {
+    const form = document.getElementById(btn.dataset.copyMeta);
+    if (!form || !form.elements) return null;
+    const from = form.elements.namedItem("meta");
+    const into = form.elements.namedItem("ameta");
+    return from && into ? { form: form, from: from, into: into } : null;
+  }
+
+  function tokensOf(line) { return line.split(/\s+/).filter(Boolean); }
+
+  // Tags only. A project's line holds tags and a snooze and nothing else
+  // (design.md, "Writing a project"), and a snooze must not come down: on an
+  // action it means "not workable yet", so copying one would park the very
+  // action the project is waiting on.
+  //
+  // What it reads is the box, not what was saved: both lines are being written
+  // right now, and the tag you have just typed on the project is the one you
+  // want on the action.
+  function projectTags(b) {
+    return tokensOf(b.from.value).filter(function (t) { return t.charAt(0) === "#"; });
+  }
+
+  // One key, both ways, the way `t` and the review mark are — and with nothing
+  // stored to say which: whether the action already carries every one of the
+  // project's tags is read off the two lines. Null is nothing to copy, which
+  // is a control that cannot be pressed and therefore a key the bar must not
+  // offer (see keyUsable).
+  function metaCopyMode(b) {
+    const tags = projectTags(b);
+    if (!tags.length) return null;
+    const have = tokensOf(b.into.value);
+    return tags.every(function (t) { return have.includes(t); }) ? "drop" : "take";
+  }
+
+  function copyMeta(btn) {
+    const b = metaBoxes(btn);
+    const mode = b && metaCopyMode(b);
+    if (!mode) return;
+    const tags = projectTags(b);
+    let have = tokensOf(b.into.value);
+    if (mode === "drop") {
+      have = have.filter(function (t) { return !tags.includes(t); });
+    } else {
+      tags.forEach(function (t) { if (!have.includes(t)) have.push(t); });
+    }
+    b.into.value = have.join(" ");
+    // What an `input` event would have done, minus the one thing it would also
+    // have done: the completion list must not open, because nothing here is
+    // being typed. The line is written back in a fixed order when it is saved,
+    // so appending is all this has to get right (design.md, "Writing an
+    // action").
+    paintBox(b.into);
+    disarmDiscard();
+    syncMetaCopy();
+    gate(b.form);
+    renderKeybar();
+  }
+
+  // The mark says which way the next press goes, and the bar's entry says it
+  // too — the same rule the theme row's `h theme dark` follows: an entry names
+  // the answer it lands on, not the control it is.
+  function syncMetaCopy() {
+    document.querySelectorAll("[data-copy-meta]").forEach(function (btn) {
+      const b = metaBoxes(btn);
+      const mode = b && metaCopyMode(b);
+      btn.disabled = !mode;
+      btn.dataset.keyLabel = mode === "drop" ? "drop project tags" : "project tags";
+      btn.title = mode === "drop"
+        ? "take the project's tags off this action (#)"
+        : "put the project's tags on this action (#)";
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest && e.target.closest("[data-copy-meta]");
+    if (!btn) return;
+    e.preventDefault();
+    copyMeta(btn);
+  });
 
   // The project picker. A project is chosen, never typed, so what is submitted
   // is an id or a pending new project — never a name to be resolved. It owns

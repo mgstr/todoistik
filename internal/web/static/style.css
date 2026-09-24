@@ -592,6 +592,21 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 }
 .nexthead form { display: inline-flex; }
 .nexthead .check, .nexthead .pick, .nexthead .age { font-weight: 400; }
+/* The project's tags, brought down onto the action — two glyphs, so they are
+   set a size down and tracked in, to read as one mark beside ● and ☐ rather
+   than as a little word competing with the heading. Monospace because the `#`
+   is the notation it writes, which is the box's own face.
+
+   Disabled is the pale of the unpicked dot, not a hidden control: a project
+   with no tags has nothing to bring down, and the mark keeps its place so the
+   heading does not change width as tags come and go on the line above. */
+.nexthead .metacopy {
+  border: none; background: transparent; cursor: pointer;
+  font: 400 .82rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -.04em; padding: 0 .15rem; color: var(--muted);
+}
+.nexthead .metacopy:hover { color: var(--accent); }
+.nexthead .metacopy[disabled] { color: var(--line); cursor: default; }
 .nexthead .age { margin-left: auto; }
 .nexthead:hover { background: var(--row-hover); }
 .nexthead.kb-selected { background: var(--select); outline: 1px solid var(--accent); }

@@ -82,6 +82,47 @@ func TestTheNextActionIsOpenAndTheRestAreRows(t *testing.T) {
 	}
 }
 
+// The third mark on the heading: the project's tags, brought down onto the
+// action's line. It writes a box and posts nothing, so all the server decides
+// is whether it can be pressed at all — which is whether the project has tags
+// (implementation.md, "Writing a project").
+func TestTheProjectTagsMarkIsOfferedOnlyWhenThereAreTags(t *testing.T) {
+	s, a := newTestServer(t)
+	twoActionProject(t, a)
+
+	body := getPage(t, s, "/project/1")
+	if !strings.Contains(body, `data-copy-meta="itemform"`) {
+		t.Errorf("the heading carries no mark for the project's tags: %s", body)
+	}
+	// nothing to bring down yet, so the mark is there and dead — the key bar
+	// reads `disabled` and drops the key, which is the standing rule
+	if !strings.Contains(body, `data-key="#" data-key-label="project tags"`) {
+		t.Error("the mark does not declare its key")
+	}
+	i := strings.Index(body, "data-copy-meta")
+	if j := strings.Index(body[i:], ">"); !strings.Contains(body[i:i+j], "disabled") {
+		t.Errorf("a project with no tags offers a live mark: %s", body[i:i+j])
+	}
+
+	// give the project a tag and it comes alive
+	if err := a.AddTag("car"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.ToggleTag("project", 1, "car"); err != nil {
+		t.Fatal(err)
+	}
+	body = getPage(t, s, "/project/1")
+	i = strings.Index(body, "data-copy-meta")
+	if j := strings.Index(body[i:], ">"); strings.Contains(body[i:i+j], "disabled") {
+		t.Errorf("a project with a tag offers a dead mark: %s", body[i:i+j])
+	}
+	// it is a button and not a form: nothing is posted, the page's one Save
+	// commits what it writes
+	if strings.Contains(body, `action="/action/1/meta"`) {
+		t.Error("the mark posts something")
+	}
+}
+
 // The boxes belong to the project's form without sitting inside it: the two
 // marks above them are forms of their own, and a form cannot be nested in a
 // form.

@@ -4417,6 +4417,35 @@ buttons an action's page carries.
 - **`Required` on the open title box is whether there is an action there.** An
   action that exists cannot lose its title; an empty box has to stay saveable,
   for the same reason the DOD does on this screen
+- **the `#↓` mark writes a box and posts nothing.** It is a bare
+  `<button type="button">` carrying `data-copy-meta="itemform"`, and the
+  keyboard layer does the work — the same arrangement the review mark has, and
+  for the same reason: the answer is this page redrawn where it stands, and the
+  page's one Save is what commits it. Two glyphs where every mark in the app is
+  one, because it is the only mark on that heading that is not the action's
+  state: `#` is the cargo and `↓` is the direction, and the alternatives are
+  written up in `research/next-action-meta-study.html`
+- **it reads both lines off `form.elements`**, not off the DOM around the
+  button: the action's meta line sits outside the form element and belongs to
+  it by its own `form` attribute (see `fieldsIn`). `projectTags` keeps the
+  tokens beginning `#` and drops the rest, which is how a project's snooze is
+  left behind — design.md says why
+- **which way the press goes is derived, never stored.** `metaCopyMode` answers
+  `take`, `drop` or nothing at all by comparing the two lines, so the mark's
+  `title` and its `data-key-label` say the answer this press lands on — the
+  rule the theme row's `h theme dark` already follows. Nothing is remembered
+  about where a tag came from, which is what keeps the second press honest
+- **`disabled` is rendered by the server and then kept by the key layer.** The
+  template asks `$p.Tags`, which is the saved line; `syncMetaCopy` re-reads the
+  live box on every keystroke and on every gate pass, so a tag typed onto the
+  project brings the mark alive before either line is saved. `keyUsable`
+  already drops a disabled control from the bar, so the key goes with it and
+  nothing had to be added for that
+- **it does not fill the box through a synthetic `input` event**, though that
+  would have reused the whole listener: the listener also opens the completion
+  list, and nothing here is being typed. It calls the four things that do apply
+  — repaint the box, disarm the discard marks, re-read the mark, re-gate the
+  form — and leaves the suggest list shut
 
 - **completing or deleting the project leaves the page**, to the `back` the
   form posts (design.md, "Editing items"). Both went to `/projects`

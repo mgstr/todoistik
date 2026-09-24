@@ -166,6 +166,7 @@ been.
 | `u` | Undone | a completed action's page, a completed project's page |
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
+| `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
 
 **`r` is one of the two letters in the map that are spent twice, and it is
 worth saying why rather than pretending otherwise** — `t` is the other, and it
@@ -206,6 +207,36 @@ is where a numbered list's keys are read; the bar listing all six would be the
 screen written out a second time, in the one place that is supposed to say what
 is *not* on the screen. It starts at 2 and not at 1 for the reason above: a
 range is a claim about what can be pressed.
+
+**`#` is the one button in the map that is not a letter, and it is the
+notation it writes.** The mark it presses puts the project's tags on its next
+action (design.md, "Editing items"), and what a tag is written as is `#name` —
+so the key is the thing it does, which is a stronger claim to a place on the
+keyboard than the first letter of a word describing it. `m`, for Meta, was the
+obvious letter and the weaker one: it names the field, and the field is not
+what moves.
+
+Nothing collides. The digit under it is spoken for twice already — the
+review's `1`…`7` and the bookmarks' `^1`…`^9` — and both are pressed without
+shift, so the shifted place was free. Had the key been `m` instead, it would
+have had to be argued against `^m`, the jump prefix; that argument is winnable,
+because the globals are always ctrl and `m`/`^m` would have stayed apart the
+way `o`/`^o` do, but it did not have to be had.
+
+**Being a non-letter costs it one thing, and the cost is worth naming**: a key
+that is not a letter is itself in all three modes, because there is nothing for
+a mode to change about it — which means it can never be a `data-key-typing`
+key, so it cannot fire while the caret is in a box. From inside the meta line
+it is `esc` and then `#`. That is the same bargain `⌫` already makes, and the
+alternative was `^#`, which is ctrl-shift-3 and is not a key anybody presses.
+
+**It is a place on the keyboard and not a character, like every other key
+here.** Shift-3 prints `#` in Estonian and `№` in Russian, so `keyOf` answers
+for the place and not for what was printed — the rule that already keeps `?`
+working, which is the same physical key under a layout that prints `,` where
+the other prints `?` (see "Which layout the keyboard is in"). Without that, the
+one mark on the screen written in notation would have been the one key that
+stopped working in Cyrillic.
 
 **`h` is what is left of "theme" once `t` is spent.** Today is pressed many
 times a day and a palette is chosen when the light in the room changes, so the

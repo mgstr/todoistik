@@ -1,0 +1,563 @@
+<title>Next Action Meta Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-warn:    #a2571b;
+  --page-warn-bg: #fdf4e7;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --page-warn:    #e0a760;
+    --page-warn-bg: #241d12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --page-warn:    #e0a760;
+  --page-warn-bg: #241d12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 62rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; display: flex; flex-direction: column; gap: 2.25rem; }
+
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; }
+.dek { margin: .6rem 0 0; max-width: 38rem; color: var(--page-muted); }
+h2.part {
+  margin: 1.5rem 0 -.75rem;
+  font: 600 .74rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--page-muted);
+}
+
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  margin-top: 1.35rem; padding-top: 1.35rem; border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg); background: var(--page-card);
+  border: 1px solid var(--page-line); border-radius: 8px;
+  padding: .55rem .8rem; cursor: pointer;
+}
+.toggle[aria-pressed="true"] { border-color: var(--page-accent); color: var(--page-accent); }
+.note { font-size: .85rem; color: var(--page-muted); }
+
+.card {
+  background: var(--page-card); border: 1px solid var(--page-line);
+  border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+}
+.card > header {
+  display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap;
+  padding: 1rem 1.25rem .85rem; border-bottom: 1px solid var(--page-line);
+}
+.tag {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  border: 1px solid var(--page-line); border-radius: 6px;
+  padding: .3rem .45rem; color: var(--page-muted);
+}
+.card h3 { margin: 0; font-size: 1.02rem; font-weight: 600; }
+.card .glyph {
+  font: 400 1.25rem/1 -apple-system, "Segoe UI", system-ui, sans-serif;
+  color: var(--page-accent);
+}
+.card .why { margin-left: auto; font-size: .85rem; color: var(--page-muted); }
+.card .body { padding: 1.1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: .8rem; }
+.rail { display: flex; gap: .85rem; align-items: flex-start; }
+.rail .lbl {
+  flex: 0 0 auto; width: 2.8rem; padding-top: .7rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted);
+}
+.frame { flex: 1 1 auto; min-width: 0; border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden; }
+.take { margin: 0; font-size: .92rem; max-width: 44rem; }
+.take + .take { margin-top: -.2rem; }
+.take b { font-weight: 600; }
+
+/* ---- specimen: the project page's next action block, reproduced ----------
+   The values are style.css's own: the heading at 1.05rem, the marks at 1rem
+   with --line for the unpicked dot, the .45rem gap, the 7.5rem label gutter,
+   the 48rem form width. What is below is what would ship. */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--fg); padding: .9rem 1rem 1.1rem;
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2; --accent: #2456d6;
+  --badge-bg: #f0f0f0; --select: #eef2ff; --row-hover: #f6f8ff; --danger: #c02626;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36; --accent: #7da2ff;
+  --badge-bg: #23262d; --select: #22304d; --row-hover: #1d2129; --danger: #ff7b7b;
+}
+.app h2 {
+  font-size: 1.05rem; font-weight: 700; margin: 0 0 .35rem;
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  padding: .1rem .5rem; margin-left: -.5rem; border-radius: 6px;
+}
+.app h2.sel { background: var(--select); outline: 1px solid var(--accent); }
+.app h2 form, .app h2 .btnwrap { display: inline-flex; margin: 0; }
+.app button {
+  font-family: inherit; border: none; background: transparent; cursor: pointer;
+  font-weight: 400; color: inherit;
+}
+.app .check { padding: 0 .15rem; font-size: 1rem; }
+.app .pick { padding: 0 .15rem; color: var(--line); }
+.app .pick.picked { color: #c88a00; }
+.app .age { margin-left: auto; font-weight: 400; color: var(--muted); font-size: .82rem; }
+.app .stack { display: flex; flex-direction: column; gap: .5rem; max-width: 48rem; margin: .4rem 0 0; }
+.app label {
+  display: flex; flex-direction: row; align-items: baseline; gap: .6rem;
+  font-size: .85rem; color: var(--muted);
+}
+.app label > .lb { flex: 0 0 7.5rem; text-align: right; }
+.app label > input {
+  flex: 1 1 auto; min-width: 0; font: inherit; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: .35rem .5rem;
+}
+.app label > input.meta { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9rem; }
+.app .projmeta { color: var(--muted); font-size: .82rem; margin: .1rem 0 .7rem 8.1rem; }
+.app .projmeta code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* the new control, in each option's own dress */
+.app .meta-btn { padding: 0 .15rem; color: var(--muted); font-size: 1rem; }
+.app .meta-btn:hover { color: var(--accent); }
+.app .meta-btn[disabled] { color: var(--line); cursor: default; }
+.app .meta-btn.hash { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem; }
+.app .meta-btn.pair { font-size: .88rem; letter-spacing: -.02em; }
+.app .meta-btn.letter {
+  font: 600 .7rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid var(--line); border-radius: 5px; padding: .15rem .3rem;
+  color: var(--muted);
+}
+.app .meta-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .78rem; font-weight: 400; padding: .1rem .45rem;
+  border: 1px dashed var(--line); border-radius: 999px;
+  background: transparent; color: var(--muted);
+}
+.app .meta-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* the key bar, as the page draws it, so each option can be read as an entry */
+.bar {
+  display: flex; gap: .4rem; flex-wrap: wrap; align-items: center;
+  background: var(--bar-bg, #eceef3); padding: .4rem .55rem; margin-top: .9rem;
+  border-radius: 8px; font-size: .78rem;
+}
+.app.dark .bar { --bar-bg: #1f232b; }
+.bar .k {
+  display: inline-flex; gap: .3rem; align-items: baseline;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: .15rem .4rem;
+}
+.bar .k b { font: 600 .72rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.bar .k span { color: var(--muted); }
+
+.matrix { overflow-x: auto; border: 1px solid var(--page-line); border-radius: 12px; background: var(--page-card); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; min-width: 34rem; }
+th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+thead th { font: 600 .7rem/1 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--page-muted); }
+tbody tr:last-child td { border-bottom: none; }
+td.g { font-size: 1.15rem; text-align: center; width: 3rem; }
+.yes { color: var(--page-accent); font-weight: 600; }
+.no  { color: var(--page-warn); font-weight: 600; }
+
+.flag { border: 1px solid var(--page-warn); background: var(--page-warn-bg); border-radius: 12px; padding: 1rem 1.2rem; }
+.flag h4 { margin: 0 0 .4rem; font-size: .95rem; font-weight: 600; color: var(--page-warn); }
+.flag p, .flag li { margin: 0; font-size: .92rem; }
+.flag p + p, .flag ul { margin-top: .6rem; }
+.flag ul { padding-left: 1.2rem; }
+.flag li + li { margin-top: .45rem; }
+.flag code, .matrix code, .take code, .dek code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .88em; }
+
+.section { display: flex; flex-direction: column; gap: .75rem; }
+.section > p { margin: 0; color: var(--page-muted); font-size: .95rem; max-width: 44rem; }
+.rec { border-left: 3px solid var(--page-accent); padding: .1rem 0 .1rem 1rem; }
+.rec p { margin: 0; }
+.rec p + p { margin-top: .5rem; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">todoistik · the project page's next action</div>
+    <h1>Next Action Meta Study</h1>
+    <p class="dek">
+      A third mark on the <b>Next action</b> heading, beside the pick dot and the
+      check: press it and the project's own meta line is written into the
+      action's. Seven dresses for it, each in the real heading at the real
+      sizes. <b>Every one of them is live</b> — press the mark and watch the box
+      under it fill, then press again to see what a second press does.
+    </p>
+    <div class="controls">
+      <button class="toggle" id="emptyToggle" type="button" aria-pressed="false">Project has no meta line</button>
+      <span class="note">
+        The state that decides half of this: with nothing to copy, the app's own rule
+        says the control must not advertise itself.
+      </span>
+    </div>
+  </header>
+
+  <h2 class="part">The options</h2>
+
+  <section class="card">
+    <header>
+      <span class="tag">A</span>
+      <span class="glyph">↧</span>
+      <h3>Arrow to a bar</h3>
+      <span class="why">Recommended</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="↧" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="↧" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        <b>U+21A7, downwards arrow to bar.</b> The bar is the field it lands in, so
+        the glyph says both halves of the act — down, and <i>into this</i>. The
+        app's other arrows all point somewhere else (<code>←</code> <code>→</code>
+        <code>↳</code> <code>↵</code>), so a downward one is unspoken for and cannot
+        be misread as one of them.
+      </p>
+      <p class="take">
+        It is also the only candidate whose meaning survives the project having
+        two tags rather than one, or a snooze as well — it names the direction,
+        not the cargo.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">B</span>
+      <span class="glyph">⇣</span>
+      <h3>Double-stroke down arrow</h3>
+      <span class="why">The lighter A</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="⇣" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="⇣" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        <b>U+21E3.</b> Reads at a glance and sits at the same weight as
+        <code>●</code> and <code>☐</code> — it is the most restful of the seven on
+        the line. What it gives up is the destination: it says "down" and leaves
+        you to work out down <i>into what</i>, which on a screen with three boxes
+        under the heading is a real question.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">C</span>
+      <span class="glyph">#</span>
+      <h3>The notation itself</h3>
+      <span class="why">Says the cargo, not the act</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="#" data-class="hash" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="#" data-class="hash" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        A project's meta line holds tags and a snooze and nothing else
+        (design.md, "Writing a project"), so <code>#</code> is literally what is
+        being moved. In monospace it also matches the box it writes into.
+      </p>
+      <p class="take">
+        Against it: <code>#</code> is a noun where the other two marks are verbs.
+        <code>●</code> picks and <code>☐</code> completes; <code>#</code> says
+        "tag" and leaves the pressing unexplained — and it is the one glyph here
+        that could be read as a <i>filter</i>, which is what <code>#</code> means
+        in the box three lines below it.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">D</span>
+      <span class="glyph">#↓</span>
+      <h3>Both halves, spelled out</h3>
+      <span class="why">Unambiguous, and wide</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="#↓" data-class="pair" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="#↓" data-class="pair" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        Nobody will wonder what it does. But it is two glyphs where every other
+        mark in the app is one, and on a heading it reads as a little word rather
+        than a mark — which puts it in competition with "Next action" for the
+        same glance.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">E</span>
+      <span class="glyph">⧉</span>
+      <h3>The copy glyph</h3>
+      <span class="why">Borrowed convention</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="⧉" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="⧉" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        <b>U+29C9.</b> Two overlapping squares is the copy icon everywhere else on
+        a computer, so it arrives already meaning something. The trouble is that
+        what it already means is "copy to the clipboard", and this control does
+        not — and it sits one glyph away from <code>☐</code>, which is also a
+        square. At 1rem the two are easy to confuse, and one of them completes
+        the action.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">F</span>
+      <span class="glyph">m</span>
+      <h3>The letter it is pressed with</h3>
+      <span class="why">No glyph to learn</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="icon" data-mark="m" data-class="letter" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="icon" data-mark="m" data-class="letter" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        Honest about being a keyboard app, and it teaches its own shortcut. But
+        the key bar already says <code>m meta</code> at the foot of the screen,
+        and keys.md is firm that a control declares its letter and the mode
+        supplies the chord — a letter printed <i>on</i> a control would be the
+        one place a chord is written into the markup, and it would read wrong the
+        moment <code>keys.mode</code> is <code>modifier</code>.
+      </p>
+    </div>
+  </section>
+
+  <section class="card">
+    <header>
+      <span class="tag">G</span>
+      <span class="glyph">#car</span>
+      <h3>The tags themselves, pressable</h3>
+      <span class="why">The one non-icon option</span>
+    </header>
+    <div class="body">
+      <div class="rail"><span class="lbl">Light</span><div class="frame">
+        <div class="app light" data-spec data-kind="chip" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <div class="rail"><span class="lbl">Dark</span><div class="frame">
+        <div class="app dark" data-spec data-kind="chip" data-title="copy the project's meta line here (m)"></div>
+      </div></div>
+      <p class="take">
+        Not an icon: a dashed chip carrying the line it would copy, in the app's
+        own badge shape. It answers the question every icon above leaves open —
+        <i>what would this copy?</i> — before the press rather than after, and the
+        dashes are the same "nothing about this is saved yet" the draft rows wear.
+      </p>
+      <p class="take">
+        It costs width, and the width grows with the project's tags. It also
+        stops being a mark in a row of marks, which is what you asked for. It is
+        here because if the answer to "what does <code>↧</code> do" turns out to
+        be "you have to remember", this is the option that never needed
+        remembering.
+      </p>
+    </div>
+  </section>
+
+  <h2 class="part">Side by side</h2>
+
+  <div class="matrix">
+    <table>
+      <thead>
+        <tr><th></th><th></th><th>Option</th><th>Says the act</th><th>Says the cargo</th><th>One glyph</th><th>Safe beside <code>☐</code></th></tr>
+      </thead>
+      <tbody>
+        <tr><td>A</td><td class="g">↧</td><td>Arrow to a bar</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>B</td><td class="g">⇣</td><td>Down arrow</td><td>partly</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>C</td><td class="g">#</td><td>The notation</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>D</td><td class="g">#↓</td><td>Both</td><td class="yes">yes</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td></tr>
+        <tr><td>E</td><td class="g">⧉</td><td>Copy glyph</td><td>borrowed</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+        <tr><td>F</td><td class="g">m</td><td>The letter</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td></tr>
+        <tr><td>G</td><td class="g" style="font-size:.8rem">#car</td><td>The tags</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="section">
+    <div class="rec">
+      <p><b>A (<code>↧</code>), with G as the fallback.</b> It is a verb like the two
+      marks beside it, it names the direction rather than the cargo so it stays
+      true when a project carries two tags and a snooze, and no other arrow in the
+      app points down.</p>
+      <p>If the doubt is whether an arrow can be guessed at all, G is the option
+      that removes the guess — but it is a chip and not a mark, and you asked for
+      a mark.</p>
+    </div>
+  </section>
+
+  <h2 class="part">What the key does</h2>
+
+  <section class="section">
+    <p>
+      Bare <code>m</code> is free. The only <code>m</code> in the map is
+      <code>^m</code>, the jump prefix, and keys.md's globals are always ctrl in
+      every mode — so <code>m</code> and <code>^m</code> are the same legal pair
+      as <code>o</code> and <code>^o</code>. It is the first letter of the thing
+      it presses, which is what makes a letter guessable, and Meta is a noun no
+      other letter is spent on.
+    </p>
+    <p>
+      It belongs to the row, not the screen: the heading is the next action's own
+      row, so <code>m</code> would sit beside <code>d</code> and <code>t</code>
+      and fire on the selected row, and the bar would offer it only where the
+      control is drawn — which is why the state in the toggle above matters.
+    </p>
+  </section>
+
+  <div class="flag">
+    <h4>Three things the icon does not settle</h4>
+    <p>Each of these changes what gets built, and none of them is an icon question:</p>
+    <ul>
+      <li><b>A second press.</b> Try pressing any mark above twice. Does the line
+      get the tags once and stop, or does it toggle them back off the way
+      <code>t</code> and <code>r</code> go both ways? A one-way press is the
+      simpler rule; a two-way one is what every other mark on a row does.</li>
+      <li><b>What happens to what is already in the box.</b> The specimens merge —
+      the project's tags are added to whatever the action's line already says, and
+      a tag already there is not written twice. Replacing the line outright is the
+      other answer, and it would throw away a context or a size that the project
+      has no opinion about.</li>
+      <li><b>The snooze.</b> A project's meta line may carry
+      <code>snooze:friday</code>, and on an action a snooze means "not workable
+      yet" — copying one down would park the very action the project is waiting
+      on. The specimens copy tags only and leave the snooze behind.</li>
+    </ul>
+    <p>
+      And one that is not a question: <b>nothing is written until Save.</b> The
+      boxes belong to the project's form, so the mark fills the line and the
+      page's one Save commits it — which is also what makes a wrong press cost
+      nothing.
+    </p>
+  </div>
+
+</div>
+
+<script>
+// The specimen, built once per card so that every option is the same block of
+// markup with one mark swapped — the thing being compared is the mark.
+const PROJECT_META = "#car";
+
+function markup(kind, mark, cls, title) {
+  const btn = kind === "chip"
+    ? `<button type="button" class="meta-chip" data-copy title="${title}">${PROJECT_META}</button>`
+    : `<button type="button" class="meta-btn ${cls || ""}" data-copy title="${title}">${mark}</button>`;
+  return `
+    <h2 class="sel">
+      <span class="what">Next action</span>
+      <span class="btnwrap"><button type="button" class="pick" title="pick for today (t)">●</button></span>
+      <span class="btnwrap"><button type="button" class="check" title="complete (d)">☐</button></span>
+      <span class="btnwrap" data-slot>${btn}</span>
+      <span class="age">3 days</span>
+    </h2>
+    <p class="projmeta">the project's own line: <code data-projmeta>${PROJECT_META}</code></p>
+    <div class="stack">
+      <label><span class="lb">Title</span><input value="Call the garage for a slot"></label>
+      <label><span class="lb">Meta</span><input class="meta" data-metabox value="@phone #short"></label>
+      <label><span class="lb">Description</span><input value="they open at 8"></label>
+    </div>
+    <div class="bar">
+      <span class="k"><b>d</b><span>done</span></span>
+      <span class="k"><b>t</b><span>today</span></span>
+      <span class="k" data-barkey><b>m</b><span>meta</span></span>
+      <span class="k"><b>s</b><span>save</span></span>
+    </div>`;
+}
+
+// Merge, not replace: the project's tags are added to what the line already
+// says, and one already there is not written twice. See the flag box.
+function merge(line, from) {
+  const have = line.split(/\s+/).filter(Boolean);
+  const add = from.split(/\s+/).filter(Boolean).filter(t => !have.includes(t));
+  return have.concat(add).join(" ");
+}
+
+document.querySelectorAll("[data-spec]").forEach(function (spec) {
+  spec.innerHTML = markup(spec.dataset.kind, spec.dataset.mark, spec.dataset.class, spec.dataset.title);
+  const box = spec.querySelector("[data-metabox]");
+  const was = box.value;
+  spec.querySelector("[data-copy]").addEventListener("click", function () {
+    if (this.disabled) return;
+    box.value = merge(box.value, PROJECT_META);
+    box.style.borderColor = "var(--accent)";
+    setTimeout(() => { box.style.borderColor = ""; }, 400);
+  });
+  spec.dataset.was = was;
+});
+
+// The empty state: with nothing on the project's line there is nothing to
+// copy, so the control is not offered and the bar does not advertise it —
+// the app's standing rule, applied to a new mark.
+const toggle = document.getElementById("emptyToggle");
+toggle.addEventListener("click", function () {
+  const empty = this.getAttribute("aria-pressed") !== "true";
+  this.setAttribute("aria-pressed", String(empty));
+  document.querySelectorAll("[data-spec]").forEach(function (spec) {
+    spec.querySelector("[data-projmeta]").textContent = empty ? "(empty)" : PROJECT_META;
+    spec.querySelector("[data-slot]").hidden = empty;
+    spec.querySelector("[data-barkey]").hidden = empty;
+    spec.querySelector("[data-metabox]").value = spec.dataset.was;
+  });
+});
+</script>

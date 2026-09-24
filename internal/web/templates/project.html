@@ -92,6 +92,22 @@
       <form method="post" action="/action/{{.ID}}/complete" class="kb-complete inline">
         <button type="submit" title="complete (d)" class="check">☐</button>
       </form>
+      {{/* The project's own tags, brought down onto this action's line. Two
+           glyphs where every other mark is one, because it is the one mark
+           here that is not about the action's state: `#` is what is moving and
+           `↓` is where it goes, and a reader who has to guess at a mark will
+           guess wrong about the one that writes in a box (research/,
+           next-action-meta-study.html).
+
+           It posts nothing — it writes the action's meta line and the page's
+           one Save commits it — so it is a bare button and not a form. The
+           `disabled` here is the saved line's answer; the key layer re-reads it
+           off the box with every keystroke, so a tag typed on the project is
+           one this can bring down before either is saved. */}}
+      <button type="button" class="metacopy" data-copy-meta="itemform"
+              data-key="#" data-key-label="project tags"
+              {{if not $p.Tags}}disabled{{end}}
+              title="put the project's tags on this action (#)">#↓</button>
       {{range .Errors}}<span class="badge error">{{.}}</span>{{end}}
       {{/* the one thing about this action that is not in a box below: how long
            it has been the answer, which is the number a project is reviewed on
