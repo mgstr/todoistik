@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(go doc:*)",
+      "Bash(go list:*)",
+      "Bash(gofmt:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git cat-file:*)",
+      "Bash(git blame:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(diff:*)",
+      "Bash(comm:*)",
+      "Read(//Users/andres/projects/todoistik/**)",
+      "Glob",
+      "Grep"
+    ]
+  }
+}
