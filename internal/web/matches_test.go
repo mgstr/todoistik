@@ -152,7 +152,8 @@ func TestCopyingAFinishedActionSeedsTheForm(t *testing.T) {
 }
 
 // A copied project brings the plan: its definition of done and every action it
-// was completed with, held as drafts the way a refused form holds them.
+// was completed with — the first in the open next-action boxes, the rest held
+// as rows, which is the two places a project form keeps its actions.
 func TestCopyingAFinishedProjectBringsThePlan(t *testing.T) {
 	s, a := matchServer(t)
 	p, err := a.CreateProject(
@@ -182,8 +183,16 @@ func TestCopyingAFinishedProjectBringsThePlan(t *testing.T) {
 			t.Errorf("missing draft: %s", want)
 		}
 	}
-	if !strings.Contains(body, `name="hasaction" data-label="an action" required`+"\n"+`      value="1"`) {
-		t.Error("the create gate was not satisfied by the copied actions")
+	// the first lands in the open boxes, which is also what gates the create
+	// button now: a required title box, not a hidden field standing in for one
+	if !strings.Contains(body, `name="atitle" value="Book the tyre change" required data-verbcheck`) {
+		t.Error("the first copied action is not in the open next-action boxes")
+	}
+	if !strings.Contains(body, `<input type="hidden" name="atitle" value="Top up the screenwash">`) {
+		t.Error("the copied actions after the first are not rows")
+	}
+	if strings.Contains(body, "hasaction") {
+		t.Error("the create gate still stands on a hidden field of its own")
 	}
 }
 

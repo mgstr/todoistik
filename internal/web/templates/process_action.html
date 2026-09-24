@@ -18,6 +18,7 @@
 
   <form method="post" action="/process/{{$d.ID}}/action{{$d.Q}}" class="stack">
     {{template "actionfields" (dict
+      "Prefix" "" "Required" true
       "Title" ($d.Vals.Get "title")
       "Meta" ($d.Vals.Get "meta")
       "Description" ($d.Vals.Get "description")

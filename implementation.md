@@ -1676,10 +1676,12 @@ handler below it cannot tell the difference.
   is. It sits beside `PromotedMeta`, which makes the same kind of decision for
   a promotion, and the two are the only places a meta line is written for a
   form rather than for an item
-- **the project copy fills `Drafts`**, which is exactly what a bounced project
-  form already rebuilds from its own hidden fields — so a copied project and a
-  refused one arrive at the template the same way, and `hasaction` is
-  satisfied by there being drafts, with no special case
+- **the project copy fills `Next` and `Drafts`**, the two places the project
+  form keeps its actions: the first copied action in the open boxes, the rest
+  as rows. That is exactly what a bounce rebuilds from what was posted, so a
+  copied project and a refused one arrive at the template the same way, and the
+  create gate is satisfied by the copied title being in the required box, with
+  no special case
 - **the DOD is seeded here and nowhere else.** Every other route leaves it
   empty on purpose, and `projectFromForm` still refuses a blank one; this one
   is the sentence you wrote for this outcome and met, which is the opposite of
@@ -4002,14 +4004,25 @@ its column exactly as typed and is never read.
 One form, wherever an action is written (design.md, "Editing items"): the
 fields live in the `actionfields` partial and every screen that writes one
 uses it — the processing screen, the add-action dialog on a project being
-made, the screen a project that already exists adds one on, and the action's
-own page. The project control is the only difference between them, and it says
-which of the three answers this screen has: choose one (`Picker`), it is
-already decided and here is which (`Fixed`), or the screen has answered it
-elsewhere.
+made, the next action open inside a project form, the screen a project that
+already exists adds one on, and the action's own page. The project control is
+the only difference between them, and it says which of the three answers this
+screen has: choose one (`Picker`), it is already decided and here is which
+(`Fixed`), or the screen has answered it elsewhere.
 
-- **adding an action to a project is a screen, not a fold on the project's
-  page.** It used to be a `<details>` under the action list, opened by its own
+Three of the partial's parameters are about the form around the fields rather
+than about the action, and all three exist so that a project form can hold one
+without a second copy of the fields (see "Writing a project"): `Prefix` goes in
+front of every name, because a project form already owns `title` and `meta`;
+`Form` names the form the boxes belong to when they do not sit inside it; and
+`Required` says whether a title has to be there, which it does not for the
+empty next action of a stalled project.
+
+- **adding a *further* action to a project is a screen, not a fold on the
+  project's page.** The first is not added at all — it is the boxes the page
+  already carries under "Next action" (see "Writing a project"), so this
+  control and its key belong to the actions after it. Adding one used to be a
+  `<details>` under the action list, opened by its own
   summary and opened for you when the project had no next action left — the
   same four fields as everywhere else, in the one shape that had to be opened
   before it could be written in, on the screen where actions are added most.
@@ -4029,8 +4042,9 @@ elsewhere.
 - **the "no next action left" ask no longer opens anything** — and, since it
   stopped being a panel at all, no longer says anything either. It used to
   unfold the box; then it said a sentence over the same button, one press
-  away; now the marked `Actions` heading is the whole of it and `Add` is that
-  one press (see "Writing a project"). A screen that opens with a form already
+  away; now the marked `Next action` heading over an empty box is the whole of
+  it, and there is no press at all — the box is on the screen (see "Writing a
+  project"). A screen that opens with a form already
   open is a screen that has decided what you came to do, and the ask is a
   question, not an instruction
 - **a refused meta line is a plain 400 here**, the way it is on an action's own
@@ -4280,9 +4294,22 @@ second shape.
 
 A project and its actions are created in one submit, because until that submit
 there is nothing for an action to belong to — design.md will not make a project
-without one. So the screen holds the actions itself, as rows of hidden fields
-inside the form.
+without one. So the screen holds the actions itself: the first in boxes of its
+own, and the rest as rows of hidden fields inside the form.
 
+- **the first action is `actionfields`, open under a "Next action" heading**,
+  and the rows are what follows it under "More actions". design.md will not
+  make a project without an action, so the one action that is mandatory is
+  written rather than added — it was behind the Add button, which said "add"
+  about the only answer on the screen that could not be left out
+- **it posts as the first of the repeated fields the rows carry** —
+  `atitle`, `ameta`, `adescription` — so the server reads one list of actions
+  and the plan's order is the order they are on the screen. One reader, and
+  the open boxes are not a second shape for the same thing
+- **the names are `a`-prefixed because a project form already owns `title` and
+  `meta`.** `actionfields` takes a `Prefix` for it, so there is still one
+  definition of the fields an action is written in rather than a fourth copy
+  with different names (see "Writing an action")
 - **the fields are `projectfields`, and their names sit in the same gutter**
   every other form uses — including "Definition of done", which is the longest
   name in the app and so the one that sets the gutter's width (see "A field's
@@ -4297,11 +4324,14 @@ inside the form.
   from a `<template>` element when an action is added. A row it had to assemble
   out of parts would be a second answer to what a row is, and the two would
   drift the first time one changed
-- **the create button is gated on there being an action**, through a required
-  field with no box of its own that the list keeps in step. The gate already
-  reads what is missing off a form's required fields (see "Create buttons"), and
-  a project's missing action is missing in exactly that sense — so `ctrl-enter`
-  and the button agree here the way they agree everywhere, with no second rule
+- **the create button is gated on there being an action through the ordinary
+  route**: the open title box is `required`, so the gate that reads what is
+  missing off a form's required fields (see "Create buttons") finds a missing
+  action the way it finds a missing DOD. It used to be a hidden `hasaction`
+  field with no box of its own, kept in step by the keyboard layer — a
+  stand-in that existed only because the action had nothing to be missing
+  *from*. The box carries `data-label="a next action"`, because there are two
+  required titles on this form now and "needs title" would not say which
 - **the add-action dialog is the processing screen's own form**, with the
   project answered: `<this project>` in the same box the picker uses, read-only,
   because there is exactly one project it could belong to and a control that
@@ -4316,7 +4346,8 @@ inside the form.
   DOD, and one that has lost its DOD is in design.md's error state and still
   has to be saveable
 - **`#today` on one of them is applied after creation**, by index against the
-  actions that came back. It is not an `ActionFields` value — the tag is the
+  actions that came back — the open boxes are the first of that list, so the
+  index still lines up. It is not an `ActionFields` value — the tag is the
   app's to manage (see "The meta line") — and there is no action to hang it on
   until the project exists
 - **the keys are the list's, not the screen's.** `ctrl-a` adds, declared on the
@@ -4333,9 +4364,102 @@ inside the form.
   the bar cannot advertise a key that would do nothing
 - **a draft row is dashed**: it reads as a list row because it is one, and the
   dashes say that nothing about it is saved yet
+- **the capture's body is rendered into the open description box** rather than
+  seeded into the dialog when it first opens. It went in through a
+  `data-draft-seed` attribute the keyboard layer read, which was the only way
+  to put it in a field that did not exist until a dialog was opened; the field
+  is on the page now, so the server writes it there and a bounce hands back
+  what was posted like any other box
 
-The project's own page is the same form with the project already there, plus
-its action list — and the same row of buttons an action's page carries:
+The project's own page is the same form with the project already there: the
+project's fields, its next action open in `actionfields` the way the branch
+above has its first, the rest of the plan as a list, and the same row of
+buttons an action's page carries.
+
+- **which action is open is `Project.NextAction`** — the first open one in
+  `ActionTree` order, nil when there is none. A domain question, so it is
+  answered in internal/app: a project may have several next actions at once
+  (design.md, "Project"), and which of them is at the head is the plan's
+  answer, not the page's
+- **the list under it is `Project.RestTree`**, which is the same walk with that
+  one row left out and the depths untouched. What waited on the next action
+  stays one level in, because what it is indented under is directly above the
+  list — re-rooting those rows would draw them as waiting on nothing, which is
+  the one thing the shape exists to say
+- **the boxes are joined to the project's form by `form="itemform"`, not
+  nested in it.** The heading over them carries the action's own complete and
+  pick forms — the two marks it had as a row — and a form cannot be nested in
+  a form. So the form element holds the project's fields, and the three boxes
+  sit outside it and name it. `fieldsIn` in app.js reads a form's fields
+  through `form.elements` for exactly this reason: the gate, the unsaved marks
+  and the `input` handler have to agree with what the browser will submit, and
+  `querySelectorAll` inside the element does not
+- **the heading is that action's row**, `data-kb-row` with its `data-href` and
+  `data-doing`, so `j`/`k` reach it and `w` and `enter` do there what they do on
+  any row (keys.md) — which is how the action's own page, and the Detach,
+  Promote and Delete on it, stay one press away from a title that is now a box
+  rather than a link
+- **and it carries `data-kb-subject`, which makes its forms the screen's as
+  well.** `screenForm` skips forms inside a row, so that a screen key cannot
+  reach past the cursor into one; a row that says it is what the screen is
+  about is the exception, and this is the only one in the app. Without it `d`
+  and `t` did nothing on this page until the heading had been walked onto,
+  which is a cursor move demanded before the one action the page exists to show
+  you can be ticked off
+- **the project's own Done is drawn only when there is no next action**, and
+  that is the same condition `internal/app` enforces: `CompleteProject` answers
+  `ErrOpenActions` while any action is open, so the button spent most of its
+  life offering something the app refuses. Dropped rather than disabled, which
+  is what the list rows already do with the marks a completed action cannot
+  press. It leaves exactly one Done on the page at any moment — the action's
+  while there is one, the project's once there is not — so `d` needs no rule to
+  tell two of them apart and `screenForm`'s document order settles it anyway:
+  the subject row comes before the button bar
+- **one Save, and `projectUpdate` writes both halves.** It reads the project's
+  fields and the action's before writing either, so a meta line the app cannot
+  read refuses the whole press rather than keeping the project and dropping the
+  action (design.md, "Writing an action"). `readActionNamed` is `readAction`
+  with the `a` prefix — one reader, because it is one form
+- **the form posts `nextid`, and the handler checks it against the project.**
+  Not derived again on the way in: between the page being drawn and Save being
+  pressed the action may have been completed in another tab, and a save that
+  silently wrote to whatever is *now* at the head would edit an action nobody
+  was looking at. An id naming anything but this project's current next action
+  is refused and says so. Empty means the project had none, and then a title
+  typed into the box creates the action and anything else is left alone —
+  design.md never prevents a project from being stalled
+- **`Required` on the open title box is whether there is an action there.** An
+  action that exists cannot lose its title; an empty box has to stay saveable,
+  for the same reason the DOD does on this screen
+- **the `#↓` mark writes a box and posts nothing.** It is a bare
+  `<button type="button">` carrying `data-copy-meta="itemform"`, and the
+  keyboard layer does the work — the same arrangement the review mark has, and
+  for the same reason: the answer is this page redrawn where it stands, and the
+  page's one Save is what commits it. Two glyphs where every mark in the app is
+  one, because it is the only mark on that heading that is not the action's
+  state: `#` is the cargo and `↓` is the direction, and the alternatives are
+  written up in `research/next-action-meta-study.html`
+- **it reads both lines off `form.elements`**, not off the DOM around the
+  button: the action's meta line sits outside the form element and belongs to
+  it by its own `form` attribute (see `fieldsIn`). `projectTags` keeps the
+  tokens beginning `#` and drops the rest, which is how a project's snooze is
+  left behind — design.md says why
+- **which way the press goes is derived, never stored.** `metaCopyMode` answers
+  `take`, `drop` or nothing at all by comparing the two lines, so the mark's
+  `title` and its `data-key-label` say the answer this press lands on — the
+  rule the theme row's `h theme dark` already follows. Nothing is remembered
+  about where a tag came from, which is what keeps the second press honest
+- **`disabled` is rendered by the server and then kept by the key layer.** The
+  template asks `$p.Tags`, which is the saved line; `syncMetaCopy` re-reads the
+  live box on every keystroke and on every gate pass, so a tag typed onto the
+  project brings the mark alive before either line is saved. `keyUsable`
+  already drops a disabled control from the bar, so the key goes with it and
+  nothing had to be added for that
+- **it does not fill the box through a synthetic `input` event**, though that
+  would have reused the whole listener: the listener also opens the completion
+  list, and nothing here is being typed. It calls the four things that do apply
+  — repaint the box, disarm the discard marks, re-read the mark, re-gate the
+  form — and leaves the suggest list shut
 
 - **completing or deleting the project leaves the page**, to the `back` the
   form posts (design.md, "Editing items"). Both went to `/projects`
@@ -4369,13 +4493,17 @@ its action list — and the same row of buttons an action's page carries:
   the rule to hook, so nesting never touches what a row *is* — `j`/`k` still
   step through the rows in the order they are drawn, and every row key still
   finds the same forms
-- **stalled is marked on the `Actions` heading**, ringed in red, and nowhere
-  else on the page. The heading is the list's own name and sits directly above
-  the rows, so the mark lands on the thing that is short of something (see
-  design.md, "Stalled projects"). It is a ring the width of the word, pulled
-  left by its own padding so the word does not move as the mark comes and
-  goes — a heading that shifted sideways would say "something changed here"
-  every time the last next action was completed
+- **stalled is marked on the `Next action` heading**, ringed in red, and
+  nowhere else on the page. It sits directly over the empty boxes the missing
+  action is written in, so the mark lands on the thing that is short of
+  something (see design.md, "Stalled projects"). It was on the `Actions`
+  heading while that list was where the action would have been added; the same
+  ring, moved to where the writing now happens. It is a ring the width of the
+  word, pulled left by its own padding so the word does not move as the mark
+  comes and goes — a heading that shifted sideways would say "something changed
+  here" every time the last next action was completed. `.nexthead` carries that
+  padding and its answering negative margin at all times, for the same reason:
+  selecting the row must paint it without moving the word
 - **the error banners stay at the top.** They are about the fields right under
   them — a project with no DOD — and that is where they are fixed. Two marks
   in two places is not two ways of saying the same thing: each one points at

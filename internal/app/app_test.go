@@ -803,6 +803,73 @@ func TestActionTreeNestsTheWaiting(t *testing.T) {
 	}
 }
 
+// The head of the plan, which a project's page shows open in its own boxes
+// rather than as a row (implementation.md, "Writing a project"): the first
+// open action in the list's own order, and the list is then everything else
+// with the plan's depths untouched — what waited on the head is still drawn
+// one level in, hanging off the boxes directly above it.
+func TestNextActionIsTheHeadOfThePlan(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	buy := p.Actions[0]
+	a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: buy.ID})
+	a.CreateAction(p.ID, ActionFields{Title: "Choose the wall"})
+
+	got, _ := a.Project(p.ID)
+	if next := got.NextAction(); next == nil || next.Title != "Buy the picture" {
+		t.Fatalf("the next action is %+v, want the first of the plan", next)
+	}
+	rest := got.RestTree()
+	want := []struct {
+		title string
+		depth int
+	}{
+		{"Hang it", 1},
+		{"Choose the wall", 0},
+	}
+	if len(rest) != len(want) {
+		t.Fatalf("the rest has %d rows, want %d", len(rest), len(want))
+	}
+	for i, w := range want {
+		if rest[i].Title != w.title || rest[i].Depth != w.depth {
+			t.Fatalf("row %d is %q at depth %d, want %q at %d",
+				i, rest[i].Title, rest[i].Depth, w.title, w.depth)
+		}
+	}
+
+	// completing it hands the head to the next open one, which is the same
+	// order the list is drawn in — a completed action is never next
+	if err := a.CompleteAction(buy.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = a.Project(p.ID)
+	if next := got.NextAction(); next == nil || next.Title != "Hang it" {
+		t.Fatalf("the next action is %+v after the head was completed", next)
+	}
+	// and the completed one is on the list, which is where a project's own
+	// record of what it took still lives
+	if len(got.RestTree()) != 2 {
+		t.Fatalf("the rest has %d rows, want the completed head and the third action", len(got.RestTree()))
+	}
+
+	// a project with nothing open has no head, and is stalled for that reason
+	for _, act := range got.Actions {
+		if act.CompletedAt == nil {
+			if err := a.CompleteAction(act.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	got, _ = a.Project(p.ID)
+	if got.NextAction() != nil {
+		t.Errorf("a project with no open action still has a next one: %+v", got.NextAction())
+	}
+	if !got.ComputeStalled(a.Today()) {
+		t.Error("a project with no next action is not stalled")
+	}
+}
+
 func TestNextActionsFilters(t *testing.T) {
 	a, _ := newTestApp(t)
 	mk := func(f ActionFields) *Action {

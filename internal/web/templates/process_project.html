@@ -25,23 +25,43 @@
       "Title" ($d.Vals.Get "title") "DOD" ($d.Vals.Get "dod") "Meta" ($d.Vals.Get "meta")
       "Required" true "Focus" true)}}
 
-    {{/* design.md will not make a project without an action, so the create
-         button is gated on there being one. It is a required field with no
-         box: the gate already reads what is missing off the form's required
-         fields, and a project's missing action is missing in exactly that
-         sense. */}}
-    <input type="hidden" name="hasaction" data-label="an action" required
-      value="{{if $d.Drafts}}1{{end}}">
+    {{/* The first action is open on the screen rather than behind the Add
+         button. design.md will not make a project without one, so on this
+         screen it is never a thing you might add — it is a thing you are
+         writing, and a form that asked for it by opening a dialog made the
+         app's only mandatory action the one field you had to go and find
+         (design.md, "Writing a project").
+
+         It is also what gates the create button now, and through the ordinary
+         route: the title box is required, so the gate that reads a form's
+         required fields finds a project's missing action the way it finds a
+         missing DOD. The hidden `hasaction` field that used to stand in for it
+         is gone — it existed only because the action had no box to be missing
+         from.
+
+         `a`-prefixed names, because this form already owns `title` and `meta`;
+         it posts as the first of the same repeated fields the rows below carry,
+         so the server reads one list of actions and the plan's order is the
+         order they are on the screen. */}}
+    <h2>Next action</h2>
+    {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
+      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
+
+    {{/* Everything after the first, which most projects do not have: one next
+         action is enough to move a project forward, and the steps you already
+         know about are written here when planning them now is worth it
+         (design.md, "Project"). The button is under the list it adds to, the
+         way it is on the project's own page — the list no longer has to draw
+         the eye on an empty project, because the action that matters is above
+         it with its boxes open. */}}
+    <h2>More actions</h2>
+    <ul class="list drafts" data-draft-list>
+      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
+    </ul>
 
     <div class="actionsbar">
       <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
     </div>
-
-    {{/* after the button, because the button is what the eye goes to first on
-         an empty project and what the list grows away from once it is not */}}
-    <ul class="list drafts" data-draft-list data-draft-seed="{{$d.Body}}">
-      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
-    </ul>
 
     <div class="branches">
       <button class="primary" data-key="c" data-key-label="create" data-key-typing>Create</button>
@@ -56,8 +76,8 @@
 <dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
-    {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Focus" false)}}
+    {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
+      "Fixed" "<this project>" "Required" true "Focus" false)}}
     <div class="branches">
       <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>

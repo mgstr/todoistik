@@ -45,8 +45,8 @@
 
   <form method="post" action="/action/{{$a.ID}}" id="itemform" class="stack" data-dirty-save>
     <input type="hidden" name="back" value="{{$d.Back}}">
-    {{template "actionfields" (dict "Title" $a.Title "Meta" $a.Meta "Description" $a.Description
-      "Fixed" (or $a.ProjectTitle "<standalone>") "Focus" false "Siblings" $d.Siblings)}}
+    {{template "actionfields" (dict "Prefix" "" "Title" $a.Title "Meta" $a.Meta "Description" $a.Description
+      "Fixed" (or $a.ProjectTitle "<standalone>") "Required" true "Focus" false "Siblings" $d.Siblings)}}
   </form>
 
   {{/* The dates come last, over the buttons. They are the one thing on this

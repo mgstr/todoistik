@@ -218,6 +218,49 @@ func (p *Project) ActionTree() []ActionNode {
 	return out
 }
 
+// NextAction is the one at the head of the plan: the first open action in
+// ActionTree order, nil when the project has none and is therefore stalled.
+//
+// The project is read and worked on through this one action — it is the action
+// its page opens with its own fields showing (implementation.md, "Writing a
+// project") — so which one it is has to be the plan's own answer rather than
+// the page's. A project may have several next actions at once (design.md,
+// "Project"), and the plan's order is what says which of them is at the front:
+// the same order the list is drawn in, so the action shown open is the row that
+// would otherwise have been first.
+func (p *Project) NextAction() *Action {
+	for _, n := range p.ActionTree() {
+		if n.CompletedAt == nil {
+			return n.Action
+		}
+	}
+	return nil
+}
+
+// RestTree is the plan without the line the next action is on: what a
+// project's page lists under "More actions", the action shown open above it
+// having been lifted out.
+//
+// The depths are the plan's own, untouched. Anything that was waiting on the
+// next action stays one level in, and it still reads correctly, because what
+// it is indented under is directly above the list — the open boxes. Re-rooting
+// those rows would say they wait on nothing, which is the one thing the shape
+// exists to say.
+func (p *Project) RestTree() []ActionNode {
+	next := p.NextAction()
+	if next == nil {
+		return p.ActionTree()
+	}
+	full := p.ActionTree()
+	out := make([]ActionNode, 0, len(full))
+	for _, n := range full {
+		if n.Action.ID != next.ID {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
 func (p *Project) OpenActions() []*Action {
 	var open []*Action
 	for _, a := range p.Actions {

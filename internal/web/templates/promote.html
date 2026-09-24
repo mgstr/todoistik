@@ -12,14 +12,22 @@
     {{template "projectfields" (dict "Title" $a.Title "DOD" "" "Meta" $a.PromotedMeta
       "Required" true "Focus" true)}}
 
-    <input type="hidden" name="hasaction" data-label="an action" required value="1">
+    {{/* the first action open on the screen, for the reason the Project branch
+         has it open: it is the one action a project cannot be without, and
+         here it is the action being promoted, so this is where its words are
+         read back before the project is made */}}
+    <h2>Next action</h2>
+    {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
+      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
+
+    <h2>More actions</h2>
+    <ul class="list drafts" data-draft-list>
+      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
+    </ul>
 
     <div class="actionsbar">
       <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
     </div>
-    <ul class="list drafts" data-draft-list>
-      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
-    </ul>
 
     <div class="actionsbar">
       <button class="primary" data-key="c" data-key-label="promote" data-key-typing>Promote</button>
@@ -32,8 +40,8 @@
 <dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
-    {{template "actionfields" (dict "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Focus" false)}}
+    {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
+      "Fixed" "<this project>" "Required" true "Focus" false)}}
     <div class="branches">
       <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>

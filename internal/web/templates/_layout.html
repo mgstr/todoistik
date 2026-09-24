@@ -293,8 +293,12 @@
        a box, while what a `snooze:` may name depends on which project's action
        this particular box is writing. So it hangs on the box (see
        implementation.md, "Token boxes"). */}}
+  {{/* Form names the form this box belongs to when it does not sit inside it —
+       the project page's next action, whose own complete and pick forms would
+       otherwise be nested inside the project's (see implementation.md,
+       "Writing a project"). */}}
   <input name="{{.Name}}" value="{{.Value}}" data-tokenbox="{{.Mode}}"
-         autocomplete="off" spellcheck="false"
+         autocomplete="off" spellcheck="false"{{with .Form}} form="{{.}}"{{end}}
          {{with .Siblings}}data-siblings="{{.}}"{{end}}
          {{if .Label}}aria-label="{{.Label}}"{{end}}>
   <ul class="fsuggest" hidden></ul>
@@ -343,7 +347,7 @@
   </form>
   {{end}}
   <form method="post" action="/action/{{$a.ID}}/complete" class="kb-complete inline">
-    <button title="complete (c)" class="check">☐</button>
+    <button title="complete (d)" class="check">☐</button>
   </form>
   {{end}}
   <a href="/action/{{$a.ID}}" class="title">{{$a.Title}}</a>
@@ -381,13 +385,24 @@
 {{define "actionfields"}}
 {{/* The fields an action is written in, wherever it is being written: its own
      page, the processing screen, the add-action dialog on a project form, and
-     the box under a project's action list. One definition, because four
-     drifting copies of the same form is exactly how the meta line would end up
-     on three of them.
+     the next action shown open inside a project form. One definition, because
+     five drifting copies of the same form is exactly how the meta line would
+     end up on four of them.
 
-     The project control is the difference between the four. Picker means
+     The project control is the difference between them. Picker means
      choose one; Fixed means it is already decided and says which; neither
      means the screen has already answered it elsewhere.
+
+     Three parameters are about the form around the fields rather than about
+     the action. Prefix goes in front of every name, because a project form
+     already owns `title` and `meta` and the action written inside it needs
+     names of its own — `a` there, and nothing everywhere else. Form names the
+     form the boxes belong to when they do not sit inside it, which is how the
+     project page keeps its next action's own complete and pick forms from
+     being nested in the project's. Required is whether a title has to be
+     there: it does wherever an action is being made, and it does not on the
+     project page's empty next action, because the app never prevents a
+     project from being stalled (design.md, "Stalled projects").
 
      Two boxes for the writing, because they are read for different reasons:
      the meta line says what the app thinks this action is, the description
@@ -398,7 +413,11 @@
      no other box in the app: a project's title names an outcome and is
      deliberately not a thing to do, so the same mark there would be telling
      you to write the one kind of title the app does not want. */}}
-<label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required data-verbcheck {{if .Focus}}autofocus{{end}}
+{{/* data-label is what the gate calls this box when it is blank, and it is set
+     only inside a project form: there are two required titles there — the
+     project's and its next action's — and "needs title" would not say which
+     (see implementation.md, "Create buttons"). */}}
+<label class="gutter"><span class="lb">Title</span> <input name="{{.Prefix}}title" value="{{.Title}}" {{if .Required}}required{{end}} data-verbcheck{{with .Form}} form="{{.}}"{{end}}{{with .Label}} data-label="{{.}}"{{end}}{{if .Focus}} autofocus{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
 {{if .Picker}}
 <label class="gutter"><span class="lb">Project</span>
@@ -423,8 +442,9 @@
 {{else if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
-<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "action" "Siblings" .Siblings)}}</label>
-<label class="gutter"><span class="lb">Description</span> <textarea name="description" rows="1" data-grow spellcheck="false">{{.Description}}</textarea></label>
+<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict
+  "Name" (printf "%smeta" .Prefix) "Value" .Meta "Mode" "action" "Siblings" .Siblings "Form" .Form)}}</label>
+<label class="gutter"><span class="lb">Description</span> <textarea name="{{.Prefix}}description" rows="1" data-grow spellcheck="false"{{with .Form}} form="{{.}}"{{end}}>{{.Description}}</textarea></label>
 {{template "extlinks" .Description}}
 {{end}}
 

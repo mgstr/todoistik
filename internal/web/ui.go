@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -661,13 +662,18 @@ type processData struct {
 
 	// stage two: the branch has been chosen and the form for it is up.
 	// Empty As is stage one, the question itself.
-	As        string
-	Vals      url.Values    // what the fields show — seeded on the way in, echoed back on a bounce
-	NeedDOD   bool          // the name matched none, so the project would be a new one
-	Note      string        // why the form came back instead of being accepted
-	Picker    []pickerData  // every active project, newest activity first, for the picker
-	Drafts    []draftAction // the project screen's actions, written before the project exists
-	Back      string        // stage one for this item — where "back" and esc go
+	As      string
+	Vals    url.Values   // what the fields show — seeded on the way in, echoed back on a bounce
+	NeedDOD bool         // the name matched none, so the project would be a new one
+	Note    string       // why the form came back instead of being accepted
+	Picker  []pickerData // every active project, newest activity first, for the picker
+	// the project screen's actions, written before the project exists. Next is
+	// the first, which that screen shows open in its own boxes because a
+	// project cannot be made without one; Drafts is everything after it, held
+	// as rows (see implementation.md, "Writing a project")
+	Next      draftAction
+	Drafts    []draftAction
+	Back      string // stage one for this item — where "back" and esc go
 	AsAction  string
 	AsProject string
 	AsSomeday string
@@ -755,10 +761,15 @@ func (s *Server) copyFrom(d *processData, from int64) error {
 	d.Vals.Set("meta", seed.Meta)
 	if d.As == "project" {
 		d.Vals.Set("dod", seed.DOD)
-		for _, act := range seed.Actions {
-			d.Drafts = append(d.Drafts, draftAction{
-				Title: act.Title, Meta: act.Meta, Description: act.Description,
-			})
+		for i, act := range seed.Actions {
+			one := draftAction{Title: act.Title, Meta: act.Meta, Description: act.Description}
+			// the first of them lands in the open boxes and the rest in the
+			// rows, which is where the screen keeps those two things
+			if i == 0 {
+				d.Next = one
+				continue
+			}
+			d.Drafts = append(d.Drafts, one)
 		}
 		return nil
 	}
@@ -909,10 +920,14 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 			} else {
 				d.Vals.Set("title", seed.Title)
 			}
-			// the project form has no description box of its own: its body is
-			// written into the first action, by the dialog that adds one
+			// the project form has no description box of its own: its body
+			// goes to the first action, which is the one this screen shows
+			// open, because material a project needs belongs to whichever of
+			// its actions needs it (design.md, "Inbox Zero")
 			if d.As == "action" {
 				d.Vals.Set("description", seed.Description)
+			} else if d.As == "project" {
+				d.Next.Description = seed.Description
 			}
 		}
 	default:
@@ -1000,23 +1015,32 @@ type writtenAction struct {
 // notation then refuses a sibling snooze by itself, because there is nothing
 // for it to name.
 func (s *Server) readAction(r *http.Request, projectID, self int64) (writtenAction, error) {
+	return s.readActionNamed(r, "", projectID, self)
+}
+
+// readActionNamed is readAction where the fields are not called `title`,
+// `meta` and `description`: the project page writes its next action inside the
+// project's own form, which already owns two of those names, so there the
+// three are `a`-prefixed (see implementation.md, "Writing a project"). One
+// reader either way, because it is one form.
+func (s *Server) readActionNamed(r *http.Request, prefix string, projectID, self int64) (writtenAction, error) {
 	var wa writtenAction
 	v, err := s.app.VocabularyIn(projectID, self)
 	if err != nil {
 		return wa, err
 	}
-	d, err := app.ParseMeta(r.FormValue("meta"), v)
+	d, err := app.ParseMeta(r.FormValue(prefix+"meta"), v)
 	if err != nil {
 		return wa, err
 	}
 	wa.Today = d.Today
 	wa.Fields = app.ActionFields{
-		Title:          strings.TrimSpace(r.FormValue("title")),
+		Title:          strings.TrimSpace(r.FormValue(prefix + "title")),
 		Context:        d.Context,
 		ContextParam:   d.ContextParam,
 		Duration:       d.Duration,
 		NeedsFocus:     d.NeedsFocus,
-		Description:    strings.TrimSpace(r.FormValue("description")),
+		Description:    strings.TrimSpace(r.FormValue(prefix + "description")),
 		AssignedTo:     d.AssignedTo,
 		DueDate:        d.DueDate,
 		SnoozeUntil:    d.SnoozeUntil,
@@ -1065,6 +1089,11 @@ type draftAction struct {
 	Description string
 }
 
+// draftsFromForm reads every action a project form posted, in the order they
+// sit on the screen: the open boxes first, then the rows. Nothing is dropped
+// here, empty titles included, because the position is the identity — the
+// first of them is the project's next action whether or not anything has been
+// typed in it, and a bounce has to hand that box back as the box it was.
 func draftsFromForm(r *http.Request) []draftAction {
 	_ = r.ParseForm()
 	at := func(v []string, i int) string {
@@ -1074,12 +1103,24 @@ func draftsFromForm(r *http.Request) []draftAction {
 		return ""
 	}
 	metas, descs := r.Form["ameta"], r.Form["adescription"]
-	var out []draftAction
-	for i, t := range r.Form["atitle"] {
-		if t = strings.TrimSpace(t); t == "" {
-			continue
+	titles := r.Form["atitle"]
+	out := make([]draftAction, 0, len(titles))
+	for i, t := range titles {
+		out = append(out, draftAction{
+			Title: strings.TrimSpace(t), Meta: at(metas, i), Description: at(descs, i),
+		})
+	}
+	return out
+}
+
+// written is the ones that say something: an action is its title, so a triple
+// with none is a box that was left alone rather than an action to create.
+func written(drafts []draftAction) []draftAction {
+	out := make([]draftAction, 0, len(drafts))
+	for _, d := range drafts {
+		if d.Title != "" {
+			out = append(out, d)
 		}
-		out = append(out, draftAction{Title: t, Meta: at(metas, i), Description: at(descs, i)})
 	}
 	return out
 }
@@ -1122,7 +1163,7 @@ func (s *Server) projectFromForm(r *http.Request) (app.ProjectFields, []app.Acti
 	}
 	var actions []app.ActionFields
 	var todays []bool
-	for _, d := range draftsFromForm(r) {
+	for _, d := range written(draftsFromForm(r)) {
 		m, err := app.ParseMeta(d.Meta, v)
 		if err != nil {
 			return pf, nil, nil, fmt.Errorf("%s: %w", d.Title, err)
@@ -1187,7 +1228,11 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, id int64, as, no
 	d.One = r.URL.Query().Get("one") != ""
 	d.As, d.Note, d.NeedDOD = as, note, needDOD
 	d.Vals = r.Form
-	d.Drafts = draftsFromForm(r)
+	// the posted actions come back in the two places the screen keeps them:
+	// the first in the open boxes, the rest as rows
+	if acts := draftsFromForm(r); len(acts) > 0 {
+		d.Next, d.Drafts = acts[0], written(acts[1:])
+	}
 	d.links()
 	s.renderProcess(w, r, d)
 }
@@ -1397,8 +1442,10 @@ func (s *Server) promotePage(w http.ResponseWriter, r *http.Request) {
 		From:   s.parentView(r, homeOf(act)),
 		// title and description only: design.md, "Promoting an action" sends
 		// the tags to the project and leaves everything else with the action,
-		// since a context or a size describes doing something
-		Drafts: []draftAction{{Title: act.Title, Description: act.Description}},
+		// since a context or a size describes doing something. It is the
+		// project's first action, so it lands in the open boxes and there are
+		// no rows under it
+		Next: draftAction{Title: act.Title, Description: act.Description},
 	}
 	p := s.newPage("Promote", viewOf(d.From), r).
 		help("action").step("Promote action to project", "").notation(s)
@@ -1410,6 +1457,10 @@ type promotePageData struct {
 	Action *app.Action
 	Back   string // the action, which is where this screen was opened from
 	From   string // the view under it, which is where the new project lands
+	// the same two places the Project branch keeps its actions: the first in
+	// the open boxes, the rest as rows — and a promotion starts with exactly
+	// the one, so Drafts is empty until something is added
+	Next   draftAction
 	Drafts []draftAction
 }
 
@@ -1541,10 +1592,16 @@ func itoa(id int64) string {
 // --- projects ------------------------------------------------------------
 
 type projectPageData struct {
-	Project  *app.Project
-	Contexts []string
-	Tags     []string
-	Back     string // the view this was opened from, for Back and esc
+	Project *app.Project
+	// the action at the head of the plan, which the page shows open in its own
+	// boxes rather than as a row to be pressed (design.md, "Projects"). Nil
+	// when the project has none, and then the boxes are empty and make one
+	NextAction *app.Action
+	Next       draftAction // what those boxes show — the same triple a project form writes anywhere
+	Siblings   string      // what the next action's `snooze:` may name, as JSON
+	Contexts   []string
+	Tags       []string
+	Back       string // the view this was opened from, for Back and esc
 }
 
 func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
@@ -1556,6 +1613,25 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	d := &projectPageData{
 		Project: proj,
 		Back:    s.parentView(r, "/projects"),
+	}
+	// A completed project is read and does not write (design.md,
+	// "Completion"), so it has no boxes for a next action to be open in — and
+	// nothing it still holds is next.
+	if proj.CompletedAt == nil {
+		d.NextAction = proj.NextAction()
+		if a := d.NextAction; a != nil {
+			d.Next = draftAction{Title: a.Title, Meta: a.Meta(), Description: a.Description}
+		}
+		// what that box's `snooze:` may name: this project's open actions,
+		// less the one being written, which is the rule an action's own page
+		// follows. An empty box is writing an action that does not exist yet,
+		// so nothing is excluded
+		sibs, _ := s.app.Siblings(proj.ID)
+		self := int64(0)
+		if d.NextAction != nil {
+			self = d.NextAction.ID
+		}
+		d.Siblings = siblingsJSON(sibs, self)
 	}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
@@ -1611,15 +1687,71 @@ type addActionPageData struct {
 	Siblings     string // the actions `snooze:` may name here, as JSON
 }
 
+// projectUpdate saves the project's page, which is the project and the action
+// at the head of its plan — one screen, one Save. The two are written together
+// because the page reads as one thing: a project is what it is aimed at and
+// what is being done about it next, and two Saves would ask which half you
+// meant every time you changed a word in either.
+//
+// Both are read before either is written, so a meta line the app cannot read
+// refuses the whole press rather than keeping the project and dropping the
+// action (design.md, "Writing an action").
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
+	id := idParam(r)
 	f, err := s.projectMetaFromForm(r)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
-	if err := s.app.UpdateProject(idParam(r), f); err != nil {
+	// which action the boxes were about, as the form says. It is checked
+	// against the project rather than trusted: a page drawn before the action
+	// was completed somewhere else must not write to it, and an id from
+	// anywhere else must not reach an action this project does not own
+	nextID := parseID(strings.TrimSpace(r.FormValue("nextid")))
+	if nextID != 0 {
+		proj, perr := s.app.Project(id)
+		if perr != nil {
+			httpError(w, perr)
+			return
+		}
+		next := proj.NextAction()
+		if next == nil || next.ID != nextID {
+			httpError(w, errors.New("that is no longer this project's next action — open the project again"))
+			return
+		}
+	}
+	wa, err := s.readActionNamed(r, "a", id, nextID)
+	if err != nil {
 		httpError(w, err)
 		return
+	}
+	if err := s.app.UpdateProject(id, f); err != nil {
+		httpError(w, err)
+		return
+	}
+	// an empty box on a project with no next action is left alone: the app
+	// never prevents a project from being stalled (design.md, "Stalled
+	// projects"), so saving a DOD without inventing an action is a save
+	switch {
+	case nextID != 0:
+		if err := s.app.UpdateAction(nextID, wa.Fields); err != nil {
+			httpError(w, err)
+			return
+		}
+		if err := s.applyToday(nextID, wa.Today); err != nil {
+			httpError(w, err)
+			return
+		}
+	case wa.Fields.Title != "":
+		act, cerr := s.app.CreateAction(id, wa.Fields)
+		if cerr != nil {
+			httpError(w, cerr)
+			return
+		}
+		if err := s.applyToday(act.ID, wa.Today); err != nil {
+			httpError(w, err)
+			return
+		}
 	}
 	back(w, r)
 }

@@ -155,17 +155,18 @@ been.
 | --- | --- | --- |
 | `s` | Save | action, project, someday item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
-| `a` | Add | project, promote, the project branch of processing |
+| `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done | every list row, action, project, doing |
+| `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
-| `t` | Today | every list row that carries the mark, and an action's page |
+| `t` | Today | every list row that carries the mark, an action's page, and a project's next action |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
 | `u` | Undone | a completed action's page, a completed project's page |
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
+| `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
 
 **`r` is one of the two letters in the map that are spent twice, and it is
 worth saying why rather than pretending otherwise** — `t` is the other, and it
@@ -206,6 +207,36 @@ is where a numbered list's keys are read; the bar listing all six would be the
 screen written out a second time, in the one place that is supposed to say what
 is *not* on the screen. It starts at 2 and not at 1 for the reason above: a
 range is a claim about what can be pressed.
+
+**`#` is the one button in the map that is not a letter, and it is the
+notation it writes.** The mark it presses puts the project's tags on its next
+action (design.md, "Editing items"), and what a tag is written as is `#name` —
+so the key is the thing it does, which is a stronger claim to a place on the
+keyboard than the first letter of a word describing it. `m`, for Meta, was the
+obvious letter and the weaker one: it names the field, and the field is not
+what moves.
+
+Nothing collides. The digit under it is spoken for twice already — the
+review's `1`…`7` and the bookmarks' `^1`…`^9` — and both are pressed without
+shift, so the shifted place was free. Had the key been `m` instead, it would
+have had to be argued against `^m`, the jump prefix; that argument is winnable,
+because the globals are always ctrl and `m`/`^m` would have stayed apart the
+way `o`/`^o` do, but it did not have to be had.
+
+**Being a non-letter costs it one thing, and the cost is worth naming**: a key
+that is not a letter is itself in all three modes, because there is nothing for
+a mode to change about it — which means it can never be a `data-key-typing`
+key, so it cannot fire while the caret is in a box. From inside the meta line
+it is `esc` and then `#`. That is the same bargain `⌫` already makes, and the
+alternative was `^#`, which is ctrl-shift-3 and is not a key anybody presses.
+
+**It is a place on the keyboard and not a character, like every other key
+here.** Shift-3 prints `#` in Estonian and `№` in Russian, so `keyOf` answers
+for the place and not for what was printed — the rule that already keeps `?`
+working, which is the same physical key under a layout that prints `,` where
+the other prints `?` (see "Which layout the keyboard is in"). Without that, the
+one mark on the screen written in notation would have been the one key that
+stopped working in Cyrillic.
 
 **`h` is what is left of "theme" once `t` is spent.** Today is pressed many
 times a day and a palette is chosen when the light in the room changes, so the
@@ -548,6 +579,28 @@ never be advertised without working:
   implementation.md, "Keyboard": a project page reached by completing an
   action used to arrive with the completed action under the cursor, and so
   with no `d done` on it at all.
+
+  **A row may also be what the screen is about, and then its forms are the
+  screen's too.** It says so with `data-kb-subject`, and the project's page is
+  the one screen that has one: the next action is shown open in its own boxes
+  there (design.md, "Editing items"), with the ☐ and the ● it carried as a
+  row on the heading above them. Those marks answer `d` and `t` with nothing
+  selected as well as with the heading under the cursor — walking onto a
+  heading to tick off the one action the page opened in order to show you is a
+  press that asks the cursor for permission.
+
+  It is still a row, and that is the point of keeping it one: `j`/`k` reach it,
+  `↵` opens the action's own page, where Detach, Promote and Delete live, and
+  `w` starts doing it. What `data-kb-subject` adds is that the screen's keys no
+  longer have to wait for the cursor to arrive.
+
+  **And `d` means one thing on that page: finish what is in front of you.** The
+  next action while there is one, and the project once there is not. Not two
+  Dones told apart by whether a row is selected — the project's own Done is not
+  even on the screen while it has open work, because internal/app refuses to
+  complete a project that has any (design.md, "Completing a next action"). So
+  the letter is not spent twice and never was: there is one Done on that page
+  at any moment, and completing the last action is what changes which one.
 - **and that is what lets `t` be the task branch.** The three are read before
   the declared keys, so `t` asks for a `kb-pick` first and only then for a
   control on the page. Stage one of processing carries no such form — the

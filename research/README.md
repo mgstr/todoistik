@@ -439,3 +439,40 @@ weeks cannot be fifty-two rows and twelve can, and a month is the coarsest
 period that still shows a year's direction — which is all the long view was
 asked for. It costs the week-by-week resolution C's line had, and buys never
 having to read two kinds of picture on one screen.
+
+---
+
+## next-action-meta-study.html — the mark that puts the project's tags on its next action
+
+**2026-09-25 · decided: D, `#↓`, pressed with `#`.**
+The third mark on the "Next action" heading, beside the pick dot and the check
+— see design.md, "Editing items" and implementation.md, "Writing a project".
+
+Seven dresses, each live in the real heading at the real sizes, because the
+comparison is a mark in a row of marks and nothing smaller than that shows
+whether it reads. The page also carries a toggle for the state that decides
+half of the question: a project with no tags has nothing to bring down.
+
+| | Mark | Outcome |
+|---|---|---|
+| A | `↧` arrow to a bar | Recommended by the page: a verb like the marks beside it, and it names the direction rather than the cargo, so it stays true when a project carries two tags and a snooze |
+| B | `⇣` down arrow | The restful one, and the vaguest: says "down" and not down into which of three boxes |
+| C | `#` | Says the cargo and not the act — a noun between two verbs, and `#` already means *filter* in the box three lines below |
+| **D** | **`#↓`** | **Chosen.** Two glyphs where every other mark in the app is one, which is the cost; what it buys is that nobody has to guess, and the one mark here that writes in a box is the one a wrong guess is expensive on |
+| E | `⧉` copy glyph | Arrives meaning "to the clipboard", which this is not — and it is a square sitting one glyph from `☐`, which completes the action |
+| F | `m` the letter | Teaches its own shortcut, and is the one place a chord would be written into the markup — wrong the moment `keys.mode` is `modifier` |
+| G | `#car`, the tags as a pressable chip | Answers "what would this copy?" before the press instead of after. Not a mark, and it grows with the project's tags |
+
+**The key moved with the decision, from `m` to `#`.** Meta names the field and
+the field is not what moves; `#` is the notation being written, which is the
+stronger claim to a place on the keyboard — see keys.md, "The map". It also
+made `#` the first non-letter *button* in the map, which is where the cost of a
+non-letter got written down: it can never fire while the caret is in a box.
+
+Three things the page flagged as not being icon questions, and how they were
+settled: the press **goes both ways** (all the project's tags already there
+means the next press takes them off, the way the pick and review marks go both
+ways); it **merges** rather than replacing, so a context or a size the project
+has no opinion about survives; and the project's **snooze stays behind**,
+because on an action a snooze means "not workable yet" and copying one would
+park the very action the project is waiting on.
