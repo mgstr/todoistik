@@ -955,10 +955,23 @@
   // the same form (keys.md, "The map"). A row under the cursor is never
   // stepped over: if it carries no such form the key does nothing, rather
   // than reaching past it to act on the screen behind.
+  // A row's forms are the row's, and the screen's keys must not reach past the
+  // cursor into one — except where the row *is* what the screen is about, and
+  // it says so with data-kb-subject. The project page's next action is the one
+  // of those: it is drawn as its own row, because j/k, `enter` and `w` all
+  // still mean what they mean on a row, and it is also half of what the screen
+  // is for, so `d` and `t` answer for it with nothing selected. Walking onto a
+  // heading to tick the one action the page opened to show you is a press that
+  // asks the cursor for permission (keys.md, "What is built").
+  //
+  // Document order decides between candidates, which is what puts the subject
+  // ahead of the screen's own buttons further down the page.
   function screenForm(cls) {
     const all = document.querySelectorAll("form." + cls);
     for (let i = 0; i < all.length; i++) {
-      if (all[i].closest("[data-kb-row]") || !keyLive(all[i])) continue;
+      const row = all[i].closest("[data-kb-row]");
+      if (row && !row.hasAttribute("data-kb-subject")) continue;
+      if (!keyLive(all[i])) continue;
       const btn = all[i].querySelector("button");
       if (!btn || !btn.disabled) return all[i];
     }

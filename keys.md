@@ -157,9 +157,9 @@ been.
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
 | `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done | every list row, action, project, doing |
+| `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
-| `t` | Today | every list row that carries the mark, and an action's page |
+| `t` | Today | every list row that carries the mark, an action's page, and a project's next action |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
@@ -580,17 +580,27 @@ never be advertised without working:
   action used to arrive with the completed action under the cursor, and so
   with no `d done` on it at all.
 
-  This split is what lets a project's page carry two Dones without spending a
-  second letter on one of them. The project's next action is shown open in its
-  own boxes there (design.md, "Editing items"), and its ☐ is on the heading
-  over them — which is that action's row, `data-kb-row` and all, the row it was
-  in the list before it was drawn open. So `d` with the heading selected
-  completes the action and `d` with nothing selected completes the project,
-  which is exactly what the two pressed when the action was still a line in
-  the list. `t` picks it for today the same way, `w` starts doing it, and `↵`
-  opens its own page, where Detach, Promote and Delete still live. No letter
-  moved, and none had to: one Done is a row's and the other is the screen's,
-  and the map already knew how to tell those apart.
+  **A row may also be what the screen is about, and then its forms are the
+  screen's too.** It says so with `data-kb-subject`, and the project's page is
+  the one screen that has one: the next action is shown open in its own boxes
+  there (design.md, "Editing items"), with the ☐ and the ● it carried as a
+  row on the heading above them. Those marks answer `d` and `t` with nothing
+  selected as well as with the heading under the cursor — walking onto a
+  heading to tick off the one action the page opened in order to show you is a
+  press that asks the cursor for permission.
+
+  It is still a row, and that is the point of keeping it one: `j`/`k` reach it,
+  `↵` opens the action's own page, where Detach, Promote and Delete live, and
+  `w` starts doing it. What `data-kb-subject` adds is that the screen's keys no
+  longer have to wait for the cursor to arrive.
+
+  **And `d` means one thing on that page: finish what is in front of you.** The
+  next action while there is one, and the project once there is not. Not two
+  Dones told apart by whether a row is selected — the project's own Done is not
+  even on the screen while it has open work, because internal/app refuses to
+  complete a project that has any (design.md, "Completing a next action"). So
+  the letter is not spent twice and never was: there is one Done on that page
+  at any moment, and completing the last action is what changes which one.
 - **and that is what lets `t` be the task branch.** The three are read before
   the declared keys, so `t` asks for a `kb-pick` first and only then for a
   control on the page. Stage one of processing carries no such form — the

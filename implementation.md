@@ -4395,12 +4395,26 @@ buttons an action's page carries.
   and the `input` handler have to agree with what the browser will submit, and
   `querySelectorAll` inside the element does not
 - **the heading is that action's row**, `data-kb-row` with its `data-href` and
-  `data-doing`, so `j`/`k` reach it and `d`, `t`, `w` and `enter` do there what
-  they do on any row (keys.md). It is what keeps `d` meaning one thing on a
-  screen that now has two things called Done: `screenForm` skips forms inside a
-  row, so the project's Done in the bar is what `d` presses with nothing
-  selected, and the action's ☐ is what it presses with the heading selected —
-  the split the page already had when the action was a row in the list
+  `data-doing`, so `j`/`k` reach it and `w` and `enter` do there what they do on
+  any row (keys.md) — which is how the action's own page, and the Detach,
+  Promote and Delete on it, stay one press away from a title that is now a box
+  rather than a link
+- **and it carries `data-kb-subject`, which makes its forms the screen's as
+  well.** `screenForm` skips forms inside a row, so that a screen key cannot
+  reach past the cursor into one; a row that says it is what the screen is
+  about is the exception, and this is the only one in the app. Without it `d`
+  and `t` did nothing on this page until the heading had been walked onto,
+  which is a cursor move demanded before the one action the page exists to show
+  you can be ticked off
+- **the project's own Done is drawn only when there is no next action**, and
+  that is the same condition `internal/app` enforces: `CompleteProject` answers
+  `ErrOpenActions` while any action is open, so the button spent most of its
+  life offering something the app refuses. Dropped rather than disabled, which
+  is what the list rows already do with the marks a completed action cannot
+  press. It leaves exactly one Done on the page at any moment — the action's
+  while there is one, the project's once there is not — so `d` needs no rule to
+  tell two of them apart and `screenForm`'s document order settles it anyway:
+  the subject row comes before the button bar
 - **one Save, and `projectUpdate` writes both halves.** It reads the project's
   fields and the action's before writing either, so a meta line the app cannot
   read refuses the whole press rather than keeping the project and dropping the

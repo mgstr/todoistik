@@ -75,10 +75,47 @@ func TestTheNextActionIsOpenAndTheRestAreRows(t *testing.T) {
 	if !strings.Contains(body, `action="/action/1/pick"`) {
 		t.Error("the next action cannot be picked for today from the project's page")
 	}
-	// it is that action's row for the keyboard too, which is what keeps `d`
-	// meaning one thing on this screen (keys.md)
-	if !strings.Contains(body, `data-kb-row data-href="/action/1"`) {
+	// it is that action's row for the keyboard — j/k reach it, `enter` opens
+	// its page — and it says it is the screen's subject as well, so `d` and
+	// `t` answer for it with nothing selected (keys.md, "What is built")
+	if !strings.Contains(body, `data-kb-row data-kb-subject`) {
 		t.Error("the next action heading is not the row the keyboard walks")
+	}
+	if !strings.Contains(body, `data-href="/action/1"`) {
+		t.Error("the heading does not open the action's own page")
+	}
+}
+
+// One Done on the screen, and what it finishes is whatever is in front of
+// you. A project with open work cannot be completed — internal/app answers
+// ErrOpenActions — so the project's own Done is drawn only once there is no
+// next action left, which is exactly when the app would accept it.
+func TestTheProjectsDoneIsOfferedOnlyWithNoNextAction(t *testing.T) {
+	s, a := newTestServer(t)
+	p := twoActionProject(t, a)
+
+	body := getPage(t, s, "/project/1")
+	if strings.Contains(body, `action="/project/1/complete"`) {
+		t.Errorf("a project with a next action offers a Done the app refuses: %s", body)
+	}
+	// the one Done on the screen is the next action's, and it is the screen's
+	// own because the heading says it is the subject
+	if n := strings.Count(body, "kb-complete"); n != 2 {
+		t.Errorf("%d completes on the page, want the next action's and the one open row's", n)
+	}
+
+	for _, act := range p.Actions {
+		if err := a.CompleteAction(act.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	body = getPage(t, s, "/project/1")
+	if !strings.Contains(body, `action="/project/1/complete"`) {
+		t.Errorf("a project with nothing left open does not offer Done: %s", body)
+	}
+	// and it is the only one: a completed row carries marks, not forms
+	if n := strings.Count(body, "kb-complete"); n != 1 {
+		t.Errorf("%d completes on the page, want only the project's", n)
 	}
 }
 

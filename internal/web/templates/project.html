@@ -83,7 +83,14 @@
   {{$editing := false}}{{with $d.NextAction}}{{$editing = true}}{{end}}
   <div class="stack">
     {{with $d.NextAction}}
-    <h2 class="nexthead" data-kb-row data-href="/action/{{.ID}}" data-doing="/doing/{{.ID}}"
+    {{/* data-kb-subject: this row is half of what the screen is about, so `d`
+         and `t` answer for it with nothing selected as well as with the
+         heading under the cursor. It is still a row — j/k reach it, `enter`
+         opens the action's own page, `w` starts doing it — but the marks on
+         the one action the page opened to show you must not be behind a
+         cursor move (keys.md, "What is built"). */}}
+    <h2 class="nexthead" data-kb-row data-kb-subject
+        data-href="/action/{{.ID}}" data-doing="/doing/{{.ID}}"
         {{with itemlinks .Description}}data-links="{{.}}"{{end}}>
       <span class="what">Next action</span>
       <form method="post" action="/action/{{.ID}}/pick" class="kb-pick inline">
@@ -165,10 +172,20 @@
     {{/* complete and delete both say where to go, because the project this
          screen is about is finished or gone either way — implementation.md,
          "Writing a project" */}}
+    {{/* Done is here only when there is no next action left, and then it is
+         the only Done on the screen. A project with open work cannot be
+         completed — internal/app answers ErrOpenActions — so the button was
+         offering something the app refuses, and `d` had to be told which of
+         two Dones it meant by whether a row was selected. One Done, and what
+         it finishes is whatever is in front of you: the next action while
+         there is one, and the project once there is not (design.md,
+         "Completing a next action"). */}}
+    {{if not $d.NextAction}}
     <form method="post" action="/project/{{$p.ID}}/complete" class="inline kb-complete">
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button>Done</button>
     </form>
+    {{end}}
     <form method="post" action="/project/{{$p.ID}}/delete" class="inline kb-delete">
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button class="danger">Delete</button>
