@@ -641,6 +641,27 @@ For an agent (or a person) picking this up cold:
   be reread, and a bare entry asks for that where a stale one would hide it.
   The entries are one line each and deliberately not wrapped — the script
   parses them a line at a time.
+- **A name that points into a document is an address, and it is checked.**
+  design.md, implementation.md and keys.md point at each other's sections by
+  name, and some three hundred comments in the code cite the paragraph that
+  decided them — `design.md, "Standalone actions"`, `see "Token boxes"`. The
+  name is the whole of the address, deliberately, for the same reason the
+  contents list carries no line numbers. But it is also the one convention here
+  that breaks in silence: renaming a heading leaves the build green, the suite
+  passing and the app working, with every citation of the old name now pointing
+  at nothing, and no way to notice short of reading them all. `internal/docs`
+  holds no production code and exists to resolve every one of them, failing with
+  the file and line of each that no longer lands — so a rename is a short chore
+  (run the suite, fix what it lists) instead of a slow leak. Three things follow
+  from how it reads them, and all three are worth knowing before writing a
+  citation: a heading and the **bold lead** of a rule are both addresses, since
+  a rule like design.md's "Capture costs nothing" earns a name without earning a
+  section of its own; a bold lead has to be named in *full*, because most of
+  them are whole sentences written for emphasis and matching on the first few
+  words would let a stale name land on an unrelated one; and prose quoted from a
+  document has to appear in it verbatim, so rewording a sentence that another
+  file quotes is caught the same way a rename is.
+
 - **Small commits, one topic each.** Prefer a docs-only commit separate from the
   code commit that implements it, matching this repo's existing history, over
   one commit that mixes design discussion with implementation.
@@ -650,7 +671,8 @@ For an agent (or a person) picking this up cold:
 ```sh
 go build ./...   # compile everything
 go vet ./...     # static checks
-go test ./...    # the domain test suite (internal/app, internal/cron)
+go test ./...    # the domain suite (internal/app, internal/cron), and the
+                 # document-reference check (internal/docs)
 gofmt -l .       # should print nothing; gofmt -w . to fix
 ./doctoc.sh      # rewrite the contents list in design.md and implementation.md
 ```

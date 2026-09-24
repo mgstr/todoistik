@@ -926,8 +926,8 @@ a page load, and what the bar derives itself from.
 
 - `j` / `k` move through the current list, `Enter` opens the selected item.
   While a dialog is open its own rows are the current list — the answers in
-  the filter box's unknown-name dialog are moved through this way (see "The
-  filter box")
+  the filter box's unknown-name dialog are moved through this way (see "Token
+  boxes")
 - **the selection survives acting on the row.** A row key posts a form and the
   answer is a whole new page — boosted or not, the list is rebuilt and the
   class marking the selection goes with the old one, so pressing `t` used to
@@ -2238,8 +2238,8 @@ The panel of checkboxes and selects that this section is about was widest on
 the one screen the app is actually used from, and it sat between the nav and
 the list on every visit. What replaced it is a line you type, summoned by a
 key and gone otherwise — the progressive disclosure this section argues for,
-taken as far as it goes: not a collapsed panel but no panel at all. See "The
-filter box" for how it is built, and design.md, "The filter line" for why.
+taken as far as it goes: not a collapsed panel but no panel at all. See "Token
+boxes" for how it is built, and design.md, "The filter line" for why.
 
 - **the Archive was the last view with a panel**, open on every visit, and
   took the line the way the Scheduler did: `{{template "filterbar" .}}` in
@@ -2273,10 +2273,9 @@ filter box" for how it is built, and design.md, "The filter line" for why.
 - **the filter lives in `NextActions`, not in the handler or the template.**
   The view, the nav badge and the read API's `next` all read that one
   function, so filtering any further out would leave a count disagreeing with
-  the list it counts — which is the disagreement design.md's "there is no
-  separate what-can-I-do-now screen" argument exists to prevent. It tests with
-  `Action.IsSnoozed`, the same one the row styling uses, so "snoozed" keeps a
-  single definition
+  the list it counts — which is the disagreement design.md, "Next actions"
+  exists to prevent. It tests with `Action.IsSnoozed`, the same one the row
+  styling uses, so "snoozed" keeps a single definition
 - **the weekly review calls `NextActionsWithSnoozed` instead.** Step 5 has to
   walk the snoozed ones — their date is one of the claims being checked
   (design.md, "Weekly review") — and a step built on the view's query would

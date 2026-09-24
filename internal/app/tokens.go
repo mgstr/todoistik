@@ -785,7 +785,7 @@ func structuralTag(name string) bool {
 }
 
 // PromotedMeta is the project meta line a promotion starts from: this action's
-// tags, and nothing else it carries. design.md, "Promoting an action", sends
+// tags, and nothing else it carries. design.md, "Promote", sends
 // the tags to the project and everything else to its first action, so a
 // context or a size must not arrive here — and #today is a pick made this
 // morning, not something a new project should inherit.
