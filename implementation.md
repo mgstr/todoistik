@@ -1473,6 +1473,24 @@ a link is a link being followed, the way `a` and `p` already were.
   the collision does: the screens are disjoint, the bar names the key on both,
   and trashing is recoverable from the audit log by recapturing (design.md,
   "Audit entry"). Worth revisiting if it ever fires by accident
+- **each branch writes its own audit event**, and the three that create
+  something write `became-an-action`, `became-a-project` and `became-someday`
+  rather than the `deleted` they shared (`internal/app/types.go`, the `Ev…`
+  constants; `internal/app/someday.go`, the three `consumeInboxItem` calls).
+  The entry is written against the *inbox item's* id and carries the capture as
+  it arrived as its snapshot — which is what keeps the channel countable after
+  the item is gone (design.md, "Where it came from"). `internal/app/app_test.go`
+  pins all six.
+  - **the Audit view's Recapture button follows the event rather than a rule of
+    its own**, and it offers itself on `trashed`, `deleted` and
+    `sent-to-reference` (`audit.html`). The three new events are deliberately
+    not on that list: nothing was lost, so recapturing would put a second copy
+    of a live commitment in the inbox. Before the split those rows *did* carry
+    the button, because they said `deleted` — which is the clearest measure of
+    how wrong the shared word was
+  - **`deleted` still means deleted** everywhere else it is written — an action,
+    a project, a schedule — so the word did not have to be given up, only stopped
+    being borrowed
 - **there is no confirmation on `t`**, for the same reason there is none
   anywhere else — see design.md, "The protocol is followed, not enforced". The
   answer is recorded and recoverable, and a modal on the one screen worked

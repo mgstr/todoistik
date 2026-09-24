@@ -281,6 +281,18 @@ const (
 	EvScheduleExpired = "one-shot-expired"
 	EvReviewed        = "reviewed"
 	EvUnreviewed      = "unreviewed"
+
+	// The three Inbox Zero branches that create something. They used to write
+	// EvDeleted, which said the wrong thing twice: on the Audit screen an item
+	// that had become an action was recorded as deleted, and in the log the
+	// three commonest answers of a normal week were one undifferentiated
+	// bucket — so "what does my inbox turn into" had no answer, though every
+	// other branch had recorded its own answer since the first capture (see
+	// design.md, "Audit entry"). Entries already written stay as they are: the
+	// audit log is never rewritten (implementation.md, "Schema changes").
+	EvBecameAction  = "became-an-action"
+	EvBecameProject = "became-a-project"
+	EvBecameSomeday = "became-someday"
 )
 
 // TodayTag is the built-in pick-for-the-day tag. It is not on the editable

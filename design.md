@@ -350,6 +350,15 @@ Every action performed in the app is audited. An audit entry contains at minimum
 
 This keeps destructive operations (trashing an inbox item) and instant ones (completing an item under the two minute rule) reviewable and recoverable, without keeping those items among the active ones.
 
+**What happened is named as precisely as the act that did it.** An entry saying something weaker than what was decided is not a shorter record, it is a wrong one - and the place this was wrong was Inbox Zero, where the three branches that create something all recorded the capture as *deleted*. Nothing was deleted: the item became an action, a project or an idea for later, and the log said the opposite about the three commonest answers of a normal week, in the one place the app keeps to be read back. Each branch now records its own answer, as Delete, Send to reference materials and the two minute rule always did.
+
+Two things follow from that, and both are why it is worth the six event names rather than one:
+
+- **the log is the only place that knows what an inbox turns into.** By the time a capture is anything it has stopped being a capture, and the item it became carries no memory of having been one (see "Where it came from", which says the same about the channel). So "most of what I write down is thrown away" and "most of it becomes a project" are claims only the entries can settle, and they cannot settle them while three answers share a word
+- **recovery means something different for each.** A trashed item is recovered by recapturing its text; an item that became an action is not lost and has nothing to recover. An entry that said *deleted* about both was offering to put a live commitment back in the inbox as a second copy of itself
+
+Entries written before are not rewritten and keep the word they were written with. An old log therefore has one bucket where a new one has three, which is a gap in what can be counted and not a wrong answer: nothing claims the log says more about the past than it does.
+
 The one exception is `#today`, which is never audited - see "#today".
 
 ### Following a link
