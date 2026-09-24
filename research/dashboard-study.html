@@ -1,0 +1,883 @@
+<title>Dashboard Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ---- page chrome tokens (light is the bare :root) ---------------------- */
+:root {
+  --page-bg: #f4f6f9; --page-card: #ffffff; --page-fg: #171a20;
+  --page-muted: #616a7d; --page-line: #dde1e9; --page-accent: #2456d6;
+  --page-warn: #a2571b; --page-ok: #1a7f37;
+  --shadow: 0 1px 2px rgba(20,28,48,.05), 0 8px 24px -12px rgba(20,28,48,.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #101319; --page-card: #171b22; --page-fg: #e8eaf0;
+    --page-muted: #949cad; --page-line: #262b35; --page-accent: #8aa9ff;
+    --page-warn: #e0a760; --page-ok: #5fc07a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 2.5rem 1.5rem 6rem; background: var(--page-bg); color: var(--page-fg);
+  font: 15px/1.6 "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+}
+.wrap { max-width: 68rem; margin: 0 auto; }
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .4rem; letter-spacing: -.02em; }
+h2 { font-size: 1.3rem; margin: 3.2rem 0 .3rem; letter-spacing: -.01em;
+     padding-top: 1rem; border-top: 1px solid var(--page-line); }
+h3 { font-size: 1.02rem; margin: 2rem 0 .3rem; }
+p { margin: .5rem 0; }
+.sub { color: var(--page-muted); margin: 0 0 1.5rem; }
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-size: .88em; }
+table { border-collapse: collapse; width: 100%; margin: .8rem 0 1.2rem; font-size: .9rem; }
+th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+th { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--page-muted); }
+td.yes { color: var(--page-ok); font-weight: 600; white-space: nowrap; }
+td.no { color: var(--page-warn); font-weight: 600; white-space: nowrap; }
+.take { background: var(--page-card); border: 1px solid var(--page-line); border-left: 3px solid var(--page-accent);
+        border-radius: 8px; padding: .8rem 1rem; margin: 1rem 0; box-shadow: var(--shadow); }
+.take strong { color: var(--page-accent); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1rem 0 2rem; }
+@media (max-width: 62rem) { .pair { grid-template-columns: 1fr; } }
+.cap { font-size: .75rem; color: var(--page-muted); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 .35rem; }
+.note { font-size: .88rem; color: var(--page-muted); }
+ul.reasons { margin: .4rem 0 1rem; padding-left: 1.2rem; }
+ul.reasons li { margin: .3rem 0; }
+
+/* ================================================================== */
+/* The specimen frame: todoistik's own stylesheet, the rules a view    */
+/* uses, lifted from internal/web/static/style.css and scoped to .app. */
+/* ================================================================== */
+.app {
+  color-scheme: light dark;
+  --bg: light-dark(#ffffff, #16181d); --fg: light-dark(#1a1a1a, #e6e6e6);
+  --muted: light-dark(#777, #9a9a9a); --line: light-dark(#e2e2e2, #2c2f36);
+  --accent: light-dark(#2456d6, #7da2ff); --danger: light-dark(#c02626, #ff7b7b);
+  --ok: light-dark(#1a7f37, #5fc07a); --ext: light-dark(#9b2fae, #d99ae8);
+  --badge-bg: light-dark(#f0f0f0, #23262d); --row-hover: light-dark(#f6f8ff, #1d2129);
+  --warn: light-dark(#b07800, #f5c518); --select: light-dark(#eef2ff, #22304d);
+  display: flex; height: 33rem; overflow: hidden;
+  border: 1px solid var(--page-line); border-radius: 10px; box-shadow: var(--shadow);
+  background: var(--bg); color: var(--fg);
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+.app.light { color-scheme: light; }
+.app.dark  { color-scheme: dark; }
+.app.tall  { height: 42rem; }
+
+.app nav {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: .05rem; flex: 0 0 11.5rem;
+  padding: .6rem .5rem; border-right: 1px solid var(--line);
+  background: var(--bg); overflow-y: auto;
+}
+.app nav a, .app nav .addnew {
+  position: relative; display: flex; align-items: center; gap: .4rem;
+  padding: .28rem .5rem .28rem 1.55rem; border-radius: 6px;
+  font-size: .92rem; line-height: 1.45; white-space: nowrap;
+  color: var(--fg); text-decoration: none;
+}
+.app nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app nav a.alert { color: var(--danger); font-weight: 700; }
+.app nav .grp {
+  padding: .55rem .5rem .15rem 1.55rem;
+  font: 600 .62rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.app nav .grp:not(:first-of-type) { border-top: 1px solid var(--line); margin-top: .3rem; padding-top: .5rem; }
+.app nav .badge.navcount {
+  margin-left: auto; min-width: 1.15rem; height: 1.1rem; padding: 0 .3rem;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--badge-bg); color: var(--muted);
+  font-size: .68rem; font-weight: 700; line-height: 1rem; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.app nav a.alert .badge.navcount { background: var(--danger); border-color: var(--danger); color: #fff; }
+.app .pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.app #titlebar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: .4rem;
+  padding: .35rem 1.25rem; border-bottom: 1px solid var(--line); font-size: .85rem;
+}
+.app #titlebar .crumb { color: var(--muted); }
+.app #keybar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: .9rem;
+  padding: .3rem 1.25rem; border-top: 1px solid var(--line);
+  font-size: .78rem; color: var(--muted); white-space: nowrap; overflow: hidden;
+}
+.app #keybar b { color: var(--fg); font-weight: 600; }
+.app main { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 1rem 1.25rem 2rem; }
+.app h1 { font-size: 1.35rem; margin: .8rem 0 .4rem; }
+.app h2 { font-size: 1.05rem; margin: 1.3rem 0 .35rem; letter-spacing: 0; padding: 0; border: 0; }
+.app h2:first-child { margin-top: 0; }
+.app .muted { color: var(--muted); }
+.app .list { list-style: none; margin: .25rem 0; padding: 0; }
+.app .row { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; padding: .2rem .5rem; border-radius: 6px; }
+.app .row:hover { background: var(--row-hover); }
+.app .row .title { color: var(--fg); }
+.app .badge { font-size: .76rem; padding: .05rem .4rem; border-radius: 8px; background: var(--badge-bg); color: var(--muted); white-space: nowrap; }
+.app .badge.tag { color: var(--accent); }
+.app .badge.ctx { color: var(--ok); }
+.app .badge.error { background: var(--danger); color: #fff; font-weight: 600; }
+.app .age { font-size: .7rem; padding: .05rem .4rem; border-radius: 8px; background: var(--badge-bg); color: var(--muted); white-space: nowrap; }
+.app a { color: var(--accent); text-decoration: none; }
+
+/* ================================================================== */
+/* NEW VOCABULARY — everything below is what would lift into           */
+/* style.css, and which blocks lift depends on which variant wins.     */
+/* ================================================================== */
+
+/* --- shared by every variant: the panel, and the figure it leads with */
+.app .panel { margin: 0 0 1.5rem; }
+.app .panel > h2 { display: flex; align-items: baseline; gap: .5rem; }
+.app .panel > h2 .win { font-size: .68rem; font-weight: 400; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .08em; }
+.app .figure { display: flex; align-items: baseline; gap: .45rem; margin: .15rem 0 .5rem; flex-wrap: wrap; }
+.app .figure .big { font-size: 1.75rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.1;
+  font-variant-numeric: tabular-nums; }
+.app .figure .unit { color: var(--muted); font-size: .85rem; }
+.app .figure .vs { color: var(--muted); font-size: .85rem; }
+.app .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem 2.5rem; }
+@media (max-width: 52rem) { .app .grid2 { grid-template-columns: 1fr; } }
+
+/* --- A: no chart at all. The numbers, said. ------------------------- */
+.app .say { margin: .15rem 0 .35rem; }
+.app .say .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+.app .series { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .86rem; }
+.app .series b { color: var(--fg); font-weight: 600; }
+
+/* --- B: the bar is the row. A proportion drawn as length, in the row  */
+/*        shape every list in the app already uses. ------------------- */
+.app .barrow { display: flex; align-items: center; gap: .5rem; padding: .13rem .5rem; border-radius: 6px; }
+.app .barrow:hover { background: var(--row-hover); }
+.app .barrow .lbl { flex: 0 0 6.5rem; color: var(--muted); font-size: .82rem; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; }
+.app .barrow .bar { flex: 1 1 auto; height: .55rem; border-radius: 3px; background: var(--badge-bg); position: relative; }
+.app .barrow .bar::before { content: ""; position: absolute; inset: 0 auto 0 0; border-radius: 3px;
+  width: calc(var(--v, 0) * 100%); background: var(--accent); opacity: .8; }
+.app .barrow.out .bar::before { opacity: .42; }
+.app .barrow .num { flex: 0 0 2.6rem; text-align: right; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.app .barrow .pct { flex: 0 0 2.6rem; text-align: right; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.app .barrow.today .lbl, .app .barrow.today .num { color: var(--fg); font-weight: 600; }
+
+/* --- C: small charts. Inline SVG, one hue, no axes and no gridlines — */
+/*        the label says what it is and the figure says how much. ----- */
+.app .strip { display: block; width: 100%; height: 3rem; }
+.app .strip rect { fill: var(--accent); opacity: .8; }
+.app .strip rect.out { opacity: .38; }
+.app .strip rect.ghost { fill: var(--badge-bg); opacity: 1; }
+.app .striplab { display: flex; margin-top: .15rem; font-size: .7rem; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.app .striplab span { flex: 1 1 0; text-align: center; }
+.app .striplab span.today { color: var(--fg); font-weight: 600; }
+.app .spark { display: block; width: 100%; height: 3.4rem; }
+.app .spark .area { fill: var(--accent); opacity: .12; stroke: none; }
+.app .spark .line { fill: none; stroke: var(--accent); stroke-width: 1.5; vector-effect: non-scaling-stroke;
+  stroke-linejoin: round; }
+.app .spark .line.out { stroke-dasharray: 3 2.5; opacity: .6; }
+.app .spark .mean { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.app .sparklab { display: flex; justify-content: space-between; font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+.app .stack100 { display: flex; height: .75rem; border-radius: 4px; overflow: hidden; background: var(--badge-bg); }
+.app .stack100 i { display: block; background: var(--accent); }
+.app .legend { display: flex; flex-wrap: wrap; gap: .15rem 1.1rem; margin-top: .5rem; font-size: .8rem; }
+.app .legend span { display: flex; align-items: center; gap: .35rem; }
+.app .legend i { width: .6rem; height: .6rem; border-radius: 2px; background: var(--accent); flex: 0 0 auto; }
+.app .legend b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.app .legend em { font-style: normal; color: var(--muted); }
+
+/* --- the text histogram, for the close-up ---------------------------- */
+.app .hist { font: 400 .92rem/1.4 "IBM Plex Mono", ui-monospace, Menlo, monospace; margin: .3rem 0; }
+.app .hist div { white-space: pre; }
+.app .hist .blocks { color: var(--accent); }
+.app .hist .lbl { color: var(--muted); }
+</style>
+
+<div class="wrap">
+<h1>The Dashboard — what it can honestly say, and what it should look like</h1>
+<p class="sub">Five panels were asked for. This page settles two things before any of them is built: what the
+stored record can actually answer, and how much chart vocabulary the app is willing to own. Every specimen is
+rendered with todoistik's own stylesheet rather than a mockup of it, in both themes, with the same invented
+week behind all of them.</p>
+
+<div class="take">
+<p><strong>2026-09-24 · decided: B, the bar is the row.</strong> The page recommended D — B's rows for the
+distributions and C's column strip for the two time series — and B was taken whole instead. One shape and no
+second one: every number on the screen is a row with a name, a length and the figure written beside it. The
+app gains exactly one new visual idea rather than two, which is the trade, and it is the one the rest of the
+app is already made of.</p>
+<p><strong>What that settles, which the variant as rendered left open: the year is twelve monthly rows</strong>
+— the bar being that month's average per day. Fifty-two weeks cannot be fifty-two rows, and twelve can; a
+month is also the coarsest period that still shows a year's direction, which is all the long view was ever
+asked for. It costs the week-by-week resolution C's line had, and buys never having to read two kinds of
+picture on one screen.</p>
+<p><strong>Decided with it:</strong> the three creating branches now write their own audit events, so the
+"what the inbox became" panel can be built — see the ledger below, which is what found it.</p>
+</div>
+
+<h2>1. The ledger: what the record can actually answer</h2>
+<p>A dashboard is only worth the honesty of its numbers, so this comes first. Every panel below was checked
+against what is actually stored — <code>audit_log</code> with its per-event snapshot, and the live tables.</p>
+
+<table>
+<tr><th>Panel</th><th>Where it comes from</th><th>Available today</th></tr>
+<tr>
+  <td><b>Inbound, per day</b></td>
+  <td><code>audit_log</code> where <code>event='created'</code> and <code>item_type='inbox'</code>. Permanent and complete — a capture is audited even when the item it made is long gone. Dropped duplicates are deliberately not audited, so this counts what actually entered the inbox, which is the number design.md already calls the one worth having.</td>
+  <td class="yes">Yes</td>
+</tr>
+<tr>
+  <td><b>Outbound, per day</b></td>
+  <td>Depends on what <em>out</em> means, and the two readings are different pipes — see the note under this table.</td>
+  <td class="no">Needs a decision</td>
+</tr>
+<tr>
+  <td><b>What the inbox became</b></td>
+  <td>The event written when the item left the inbox. <code>trashed</code>, <code>sent-to-reference</code>, <code>two-minute-rule</code> and <code>completion-confirmed</code> each say what happened — but <b>Action, Project and Someday all write <code>deleted</code></b> (<code>internal/app/someday.go</code>, the three <code>consumeInboxItem(tx, id, EvDeleted)</code> calls), so the three answers that make up most of a normal week are one undifferentiated bucket.</td>
+  <td class="no">Needs a change</td>
+</tr>
+<tr>
+  <td><b>Where captures come from</b></td>
+  <td>For items still in the inbox, the <code>source</code> column. For every item ever captured, <code>json_extract(snapshot,'$.source')</code> on the <code>created</code>/<code>inbox</code> entries — which is exactly the use design.md names when it says the audit log is "where the year of captures is".</td>
+  <td class="yes">Yes</td>
+</tr>
+<tr>
+  <td><b>Average age in the system</b></td>
+  <td>Two honest readings, both computable, neither one being "capture to done" — see the second note.</td>
+  <td class="yes">Yes, as two</td>
+</tr>
+</table>
+
+<h3>Note 1 — inbound and outbound are not one pipe</h3>
+<p>One inbox item can become a project with five actions; another is answered by the two-minute rule and
+becomes nothing at all. So a chart drawing arrivals against completions is drawing two different populations
+and inviting the eye to subtract them. There are two coherent readings and the app can serve either:</p>
+<ul class="reasons">
+<li><b>The inbox pipe</b> — captured against processed. Both ends are inbox items, the subtraction is real, and
+the difference is literally the number sitting in the Inbox. This measures <em>the practice</em>: am I emptying
+what arrives.</li>
+<li><b>The work pipe</b> — commitments made against commitments completed (actions and projects, plus the
+two-minute answers, which are work done without an item ever existing). This measures <em>the load</em>: am I
+finishing what I take on.</li>
+</ul>
+<p>Both are rendered below, stacked, because on inspection they are the two halves of the same question and
+neither answers for the other. If only one ships, it should be the inbox pipe: it is the one whose two lines
+belong on the same axis.</p>
+
+<h3>Note 2 — "age in the system" has no single answer, and the good one is a duration, not an age</h3>
+<p>Nothing links an inbox item to the action it became: the item is deleted and a new action is inserted, with
+no lineage kept (design.md, "Items" — an item is stored as itself). So <em>capture to completion</em> cannot be
+computed, and no panel should pretend otherwise. What <em>is</em> computable, from the audit log alone:</p>
+<ul class="reasons">
+<li><b>Time in the inbox</b> — capture to decision, by pairing each leaving event with the <code>created</code>
+entry for the same <code>item_id</code> immediately before it. (Ids are reused after a delete, so it must be the
+<em>nearest preceding</em> one; an id is live at most once at a time, which makes that exact.) This is the real
+measure of the practice's speed, and it is already in the record, untouched, going back to the first capture.</li>
+<li><b>Time as a commitment</b> — creation to completion, the same pairing on <code>action</code> and
+<code>project</code> ids.</li>
+<li><b>Age of what is open now</b> — a plain read of the live tables, per view. This is what "nothing dies
+silently" actually asks about, and it is the only one of the three that is about the present.</li>
+</ul>
+
+<h2>2. Three whole dashboards, and the mix</h2>
+<p>Turning numbers into shapes is not a change to one panel, so each variant is rendered as the whole screen —
+the same five panels, the same data, the rail alongside so the new row can be seen where it lands. A is drawn
+with the rail; B, C and D drop it to give the panels the width.</p>
+
+<h3>A — no chart at all: the dashboard is a list</h3>
+<p>The starting position, and the one that has to be beaten: the app has no chart vocabulary anywhere today,
+and "add only functionality I will use" is a design principle. Everything here is a number, a word and a badge —
+shapes the app already owns.</p>
+
+<div class="pair">
+<div>
+<p class="cap">A · light</p>
+<div class="app light" data-variant="a"></div>
+</div>
+<div>
+<p class="cap">A · dark</p>
+<div class="app dark" data-variant="a"></div>
+</div>
+</div>
+
+<ul class="reasons">
+<li><b>What it gets right.</b> Nothing on it can be misread, it costs no new CSS, and it reads at any width.
+The seven days as <code>6 · 9 · 3 · 2 · 11 · 7 · 4</code> is genuinely legible — seven numbers is under the
+limit where a row of digits still parses as a shape.</li>
+<li><b>Where it fails.</b> The year. A trend over fifty-two weeks is the one thing on this screen that a
+sentence cannot say: "5.8 a day" is an average with no direction in it, and whether the number has been
+climbing since March is exactly what the panel was asked for. A also has no way to show one distribution
+against another — seven sources as seven numbers is a table you have to sort in your head.</li>
+</ul>
+
+<h3>B — the bar is the row</h3>
+<p>Every chart is a list, because a list is the shape this app is made of. A day is a row, a source is a row,
+and the bar is a fill drawn inside the row it belongs to — the same <code>.row</code> geometry, hover and all,
+with one new declaration on it. No SVG anywhere.</p>
+
+<div class="pair">
+<div>
+<p class="cap">B · light</p>
+<div class="app light tall" data-variant="b" data-norail></div>
+</div>
+<div>
+<p class="cap">B · dark</p>
+<div class="app dark tall" data-variant="b" data-norail></div>
+</div>
+</div>
+
+<ul class="reasons">
+<li><b>What it gets right.</b> The distributions. A ranked list of names with a length beside each is exactly
+what "where do captures come from" is, and it arrives already sorted, already labelled, and already able to
+carry a count and a percentage without a legend. It is also the only variant where a row could later become a
+link into a filtered view without anything being redesigned.</li>
+<li><b>Where it fails.</b> The year again, and worse than A: fifty-two weeks cannot be fifty-two rows, so B has
+to either drop the long view or borrow a shape from C. Seven days as seven rows also spends a lot of height on
+very little information, and it turns a week — which is a thing with a left-to-right direction — into a
+vertical list, which is the one orientation a week does not have.</li>
+</ul>
+
+<h3>C — small charts: inline SVG</h3>
+<p>A column strip for the week, a line for the year, a hundred-percent stacked bar for the distributions. One
+hue throughout — the accent, at descending opacity — because a second colour in this app already means
+something (green is a context, red is overdue, purple leaves the app).</p>
+
+<div class="pair">
+<div>
+<p class="cap">C · light</p>
+<div class="app light tall" data-variant="c" data-norail></div>
+</div>
+<div>
+<p class="cap">C · dark</p>
+<div class="app dark tall" data-variant="c" data-norail></div>
+</div>
+</div>
+
+<ul class="reasons">
+<li><b>What it gets right.</b> Time. The week reads as a week, the year reads as a direction, and the dotted
+mean line answers "is this week normal" without a word being written. This is the only variant that answers
+the question the two speed panels were actually asked.</li>
+<li><b>Where it fails.</b> The stacked bar. Seven sources in one bar needs seven shades of one hue and a legend
+underneath, and by the time the legend carries every name and every count the bar has become decoration above a
+table that already said it. It is also the loudest thing in the app by some distance — four charts on one
+screen, in an app whose every other screen is text.</li>
+</ul>
+
+<h3>D — the mix, and the page's recommendation</h3>
+<p>C's column strip wherever the x axis is time; B's bar-in-a-row wherever it is a list of names; A's discipline
+on all of it, which is that every chart carries its own number in words. Nothing is drawn that is not also
+written.</p>
+
+<div class="pair">
+<div>
+<p class="cap">D · light</p>
+<div class="app light tall" data-variant="d" data-norail></div>
+</div>
+<div>
+<p class="cap">D · dark</p>
+<div class="app dark tall" data-variant="d" data-norail></div>
+</div>
+</div>
+
+<ul class="reasons">
+<li><b>The argument.</b> A distribution and a time series are not the same kind of fact, and the two variants
+that tried to draw both with one shape each failed on the other one. Splitting them costs a second shape and
+buys both. The two shapes also stay in their lanes with no rule to remember: length along a row for a name,
+height along a strip for a day.</li>
+<li><b>What it deliberately does not have.</b> No axes, no gridlines, no tick labels, no tooltips, no legend
+except where a stack genuinely needs one, and no second hue. A chart here is an outline of a number that is
+already written next to it — if the chart vanished, the screen would still say everything.</li>
+<li><b>Known trade-off, accepted.</b> The year line has no scale on it, so it says direction and not
+magnitude. That is the right trade for a panel whose headline figure is the magnitude, and it is why the mean
+line is drawn: it is the one reference value worth having, and it is labelled.</li>
+</ul>
+
+<h2>3. Close-ups: the two shapes that do the work</h2>
+
+<h3>The week, four ways</h3>
+<p>Seven days is small enough that all four treatments are legible, which is what makes this the honest
+comparison — the question is not which can be read but which is worth the machinery.</p>
+<div class="pair">
+<div>
+  <p class="cap">light</p>
+  <div class="app light" style="height:auto" data-closeup="week"></div>
+</div>
+<div>
+  <p class="cap">dark</p>
+  <div class="app dark" style="height:auto" data-closeup="week"></div>
+</div>
+</div>
+<p class="note"><b>The text histogram</b> is in here because a keyboard-only app is the one place it is not a
+joke: it needs no CSS at all, it copies and pastes into a chat, and it is what the read API's
+<code>format=text</code> would have to emit anyway if the dashboard were ever readable from outside. It is not
+recommended for the screen — the blocks quantise to whole characters, so a 9 and an 11 can draw the same width,
+which is precisely the misreading a chart is supposed to prevent.</p>
+
+<h3>The distribution, three ways</h3>
+<div class="pair">
+<div>
+  <p class="cap">light</p>
+  <div class="app light" style="height:auto" data-closeup="dist"></div>
+</div>
+<div>
+  <p class="cap">dark</p>
+  <div class="app dark" style="height:auto" data-closeup="dist"></div>
+</div>
+</div>
+<p class="note">The ranked rows win on every count that matters here: they name the thing, they carry both the
+count and the share, they sort themselves, and a long tail of one-off sources — the misspelled channel name
+design.md says should "show up as its own row in the counts, where it is obvious and cheap to fix" — is
+<em>visible</em> rather than being a 1% sliver nobody can hit.</p>
+
+<h2>4. What else could be on it</h2>
+<p>Eight candidates, each rendered so it can be kept or dropped by looking at it rather than by imagining it.
+The test applied to each was the app's own: does it answer a question no view can answer, and is it a question
+worth an answer more than once.</p>
+
+<div class="pair">
+<div>
+  <p class="cap">light</p>
+  <div class="app light tall" data-closeup="extras"></div>
+</div>
+<div>
+  <p class="cap">dark</p>
+  <div class="app dark tall" data-closeup="extras"></div>
+</div>
+</div>
+
+<table>
+<tr><th>Candidate</th><th>What it answers</th><th>Verdict</th></tr>
+<tr><td><b>The practice</b><br><span class="note">inbox last empty, last review, streak</span></td>
+    <td>Whether the discipline the whole app rests on is actually being kept. design.md says the weekly review
+    "is what keeps them trustworthy, and everything else in this document is bookkeeping in service of it" —
+    and nothing in the app says when the last one was.</td>
+    <td class="yes">Keep — first</td></tr>
+<tr><td><b>The backlog</b><br><span class="note">open commitments over the year</span></td>
+    <td>Whether the system is growing or shrinking. It is the one line that says "you are taking on more than
+    you finish" before the feeling arrives, and it is a single cumulative series over data already stored.</td>
+    <td class="yes">Keep</td></tr>
+<tr><td><b>The oldest thing in each view</b></td>
+    <td>"Nothing dies silently", in one panel: one row per view, its oldest open item and that item's age,
+    each row a link straight to it. It is the only candidate here that is <em>actionable</em> — every other
+    panel is something to know, this one is something to go and fix.</td>
+    <td class="yes">Keep</td></tr>
+<tr><td><b>How much of Next is not workable</b></td>
+    <td>The Next count against the count of actions that are neither snoozed, blocked nor delegated. If the
+    two drift far apart, "what can I do now" has quietly become a list you cannot act from.</td>
+    <td class="yes">Keep</td></tr>
+<tr><td><b>Stalled projects, and for how long</b></td>
+    <td>The stalled mark is already loud in Projects, so the count is not news. How long the current ones have
+    been stalled is — a project stalled for six weeks is a different fact from one stalled since Tuesday.</td>
+    <td class="no">Keep the duration only</td></tr>
+<tr><td><b>Captures by hour of day</b></td>
+    <td>The hour is stored and shown on the processing screen, so the data is free. But what it tells you is
+    about you rather than about the system, and it does not change what you do next.</td>
+    <td class="no">Drop</td></tr>
+<tr><td><b>Tags, by how much is open under each</b></td>
+    <td>"Which part of your life is being starved" — design.md's own words for what tags are read for at review
+    time. Strong candidate, and the one thing that argues against it is that it belongs on the review rather
+    than here.</td>
+    <td class="no">Open</td></tr>
+<tr><td><b>Schedule share of inbound</b></td>
+    <td>How much of the inbox you wrote and how much arrived on its own. It falls out of the source panel for
+    free — it is one row of it — so it is not a panel.</td>
+    <td class="no">Drop — already a row</td></tr>
+</table>
+
+<h2>5. What it would take</h2>
+<ul class="reasons">
+<li><b>design.md</b> — a "### Dashboard" section under "Views", and an admission in the "Views" preamble that
+this one is not a query over items but a count of them, which is the first screen in the app that is neither a
+list of items nor one item shown in full. Every panel's window needs stating (the week is the last seven days,
+not the calendar week) and every figure needs its definition beside it, for the same reason the filter line has
+to confess what it hides: a number whose definition is not on the screen is a number that gets misread once and
+distrusted afterwards.</li>
+<li><b>The audit events</b> — the third panel needs Action, Project and Someday to stop all writing
+<code>deleted</code>. Beyond the dashboard, the audit log currently says "deleted" about an item that became an
+action, which is visible on the Audit screen today and is arguably wrong on its own terms. Entries already
+written stay ambiguous and would have to read as one bucket, which is an argument for doing it sooner.</li>
+<li><b>implementation.md</b> — the queries (all of them aggregates over <code>audit_log</code>, which has no
+index on <code>at</code> or <code>event</code> today), the panel layout, and the new CSS. Note that
+<code>NavCounts</code> already runs eleven queries per page render; the dashboard's are heavier and must not
+join that set.</li>
+<li><b>keys.md</b> — <code>g d</code> for the view. Free: the taken letters are
+<code>i t n p k w c s h r a u e z</code>. Nothing else on the screen is pressable, so the Dashboard is the first
+view with no keys of its own — which is worth saying out loud in that file rather than leaving as a gap.</li>
+<li><b>The nav</b> — between Audit and Settings, in the Records group, carrying no badge, like the other three
+there. A count on it would have nothing to count.</li>
+</ul>
+<p class="note">One thing noticed and not acted on: nothing here is reachable from the read API, so an agent
+asked "is my system keeping up" still cannot answer it. That is a bigger question than this page — the API is
+"any view, with the caller's own filters", and the Dashboard is not a view in that sense.</p>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/* One invented week, behind every specimen on the page.              */
+/* ------------------------------------------------------------------ */
+const DAYS = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
+const IN   = [6, 9, 3, 2, 11, 7, 4];        // captured
+const PROC = [4, 6, 1, 0, 14, 9, 3];        // processed out of the inbox
+const DONE = [5, 2, 0, 1, 7, 6, 4];         // commitments completed
+
+const sum = a => a.reduce((x, y) => x + y, 0);
+const avg = a => sum(a) / a.length;
+const f1  = n => n.toFixed(1);
+
+/* fifty-two weekly averages, deterministic so the page is a record */
+function series(seed, base, swing) {
+  let s = seed, out = [], v = base;
+  for (let i = 0; i < 52; i++) {
+    s = (s * 1103515245 + 12345) % 2147483648;
+    v = v * 0.72 + (base + ((s / 2147483648) - 0.5) * swing) * 0.28;
+    out.push(Math.max(0.4, v));
+  }
+  return out;
+}
+const YEAR_IN  = series(7, 5.8, 5.2);
+const YEAR_OUT = series(31, 5.1, 4.6);
+
+const SOURCES = [
+  ["dialog", 148], ["reminders", 71], ["telegram", 44],
+  ["schedule", 38], ["mail", 22], ["api", 9], ["shortucts", 3],
+];
+const BECAME = [
+  ["action", 96], ["two-minute rule", 58], ["trashed", 41],
+  ["someday", 29], ["reference", 22], ["project", 17], ["confirmed", 6],
+];
+
+/* ------------------------------------------------------------------ */
+/* Shapes                                                              */
+/* ------------------------------------------------------------------ */
+function barrows(rows, opts) {
+  opts = opts || {};
+  const max = opts.max || Math.max.apply(null, rows.map(r => r[1]));
+  const total = sum(rows.map(r => r[1]));
+  return `<ul class="list">` + rows.map((r, i) => `
+    <li class="barrow ${opts.markLast && i === rows.length - 1 ? "today" : ""} ${opts.dim ? "out" : ""}">
+      <span class="lbl">${r[0]}</span>
+      <span class="bar" style="--v:${max ? r[1] / max : 0}"></span>
+      <span class="num">${r[1]}</span>
+      ${opts.pct ? `<span class="pct">${Math.round(r[1] / total * 100)}%</span>` : ""}
+    </li>`).join("") + `</ul>`;
+}
+
+function strip(seriesList, noLabels) {
+  /* one column per day; several series sit side by side inside the column */
+  const n = seriesList[0].values.length, w = 100 / n, gap = w * 0.22;
+  const max = Math.max.apply(null, seriesList.flatMap(s => s.values));
+  const inner = (w - gap) / seriesList.length;
+  let out = "";
+  for (let d = 0; d < n; d++) {
+    seriesList.forEach((s, si) => {
+      const h = max ? (s.values[d] / max) * 92 : 0;
+      const x = d * w + gap / 2 + si * inner;
+      out += `<rect class="${s.cls || ""}" x="${x.toFixed(2)}" y="${(100 - h).toFixed(2)}"
+        width="${(inner * 0.86).toFixed(2)}" height="${Math.max(h, 1.2).toFixed(2)}" rx="0.8"></rect>`;
+    });
+  }
+  const svg = `<svg class="strip" viewBox="0 0 100 100" preserveAspectRatio="none">${out}</svg>`;
+  if (noLabels) return svg;
+  return svg + `<div class="striplab">${DAYS.map((d, i) =>
+      `<span class="${i === DAYS.length - 1 ? "today" : ""}">${d}</span>`).join("")}</div>`;
+}
+
+function spark(lines, meanOf) {
+  const all = lines.flatMap(l => l.values);
+  const max = Math.max.apply(null, all), min = 0;
+  const path = vals => vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * 100;
+    const y = 100 - ((v - min) / (max - min)) * 92 - 4;
+    return `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(" ");
+  const meanY = 100 - ((avg(meanOf) - min) / (max - min)) * 92 - 4;
+  const first = lines[0].values;
+  return `<svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path class="area" d="${path(first)} L100 100 L0 100 Z"></path>
+      <line class="mean" x1="0" y1="${meanY.toFixed(2)}" x2="100" y2="${meanY.toFixed(2)}"></line>
+      ${lines.map(l => `<path class="line ${l.cls || ""}" d="${path(l.values)}"></path>`).join("")}
+    </svg>`;
+}
+
+function stack100(rows) {
+  const total = sum(rows.map(r => r[1]));
+  const n = rows.length;
+  return `<div class="stack100">${rows.map((r, i) =>
+      `<i style="width:${(r[1] / total * 100).toFixed(2)}%;opacity:${(1 - i / (n + 1)).toFixed(2)}"></i>`).join("")}</div>
+    <div class="legend">${rows.map((r, i) =>
+      `<span><i style="opacity:${(1 - i / (n + 1)).toFixed(2)}"></i><em>${r[0]}</em>
+       <b>${Math.round(r[1] / total * 100)}%</b></span>`).join("")}</div>`;
+}
+
+function hist(rows) {
+  const max = Math.max.apply(null, rows.map(r => r[1]));
+  return `<div class="hist">${rows.map(r => {
+    const n = Math.round(r[1] / max * 18);
+    return `<div><span class="lbl">${r[0].padEnd(5, " ")}</span>` +
+      `<span class="blocks">${"█".repeat(n) || "·"}</span>` +
+      `<span class="lbl"> ${r[1]}</span></div>`;
+  }).join("")}</div>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* The chrome: rail, title bar, key bar                                */
+/* ------------------------------------------------------------------ */
+const RAIL = `<nav>
+  <span class="addnew">+</span>
+  <div class="grp">Capture</div>
+  <a class="alert">Inbox<span class="badge navcount">4</span></a>
+  <div class="grp">Do</div>
+  <a>Today<span class="badge navcount">3</span></a>
+  <a>Next<span class="badge navcount">21</span></a>
+  <div class="grp">Committed</div>
+  <a>Projects<span class="badge navcount">7</span></a>
+  <a>Tasks<span class="badge navcount">14</span></a>
+  <a>Waiting<span class="badge navcount">5</span></a>
+  <a>Calendar<span class="badge navcount">2</span></a>
+  <div class="grp">Later</div>
+  <a>Someday<span class="badge navcount">31</span></a>
+  <a>Scheduler<span class="badge navcount">9</span></a>
+  <a>Review<span class="badge navcount">6</span></a>
+  <div class="grp">Records</div>
+  <a>Archive</a>
+  <a>Audit</a>
+  <a class="on">Dashboard</a>
+  <a>Settings</a>
+</nav>`;
+
+const TITLE = `<header id="titlebar"><span class="crumb">Dashboard</span></header>`;
+const KEYBAR = `<footer id="keybar"><b>g</b> go to a view <b>^v</b> panels <b>?</b> what this is</footer>`;
+
+function frame(main, withRail) {
+  return (withRail ? RAIL : "") +
+    `<div class="pane">${TITLE}<main>${main}</main>${KEYBAR}</div>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* The four dashboards                                                 */
+/* ------------------------------------------------------------------ */
+const weekRows   = DAYS.map((d, i) => [d, IN[i]]);
+const procRows   = DAYS.map((d, i) => [d, PROC[i]]);
+const doneRows   = DAYS.map((d, i) => [d, DONE[i]]);
+
+function panelA() {
+  return `
+  <div class="panel">
+    <h2>Inbound <span class="win">last 7 days</span></h2>
+    <p class="say"><span class="n">42</span> captured this week — <span class="n">6.0</span> a day,
+      against <span class="n">5.8</span> a day over the year.</p>
+    <p class="series">${DAYS.map((d, i) => `${d} <b>${IN[i]}</b>`).join(" &middot; ")}</p>
+  </div>
+  <div class="panel">
+    <h2>Outbound <span class="win">last 7 days</span></h2>
+    <p class="say"><span class="n">${sum(PROC)}</span> processed out of the inbox,
+      <span class="n">${sum(DONE)}</span> commitments completed.</p>
+    <p class="series">processed &nbsp;${DAYS.map((d, i) => `${d} <b>${PROC[i]}</b>`).join(" &middot; ")}</p>
+    <p class="series">completed ${DAYS.map((d, i) => `${d} <b>${DONE[i]}</b>`).join(" &middot; ")}</p>
+  </div>
+  <div class="panel">
+    <h2>What the inbox became <span class="win">last 90 days</span></h2>
+    <p class="series">${BECAME.map(r => `${r[0]} <b>${r[1]}</b>`).join(" &middot; ")}</p>
+  </div>
+  <div class="panel">
+    <h2>Where captures come from <span class="win">last 90 days</span></h2>
+    <p class="series">${SOURCES.map(r => `${r[0]} <b>${r[1]}</b>`).join(" &middot; ")}</p>
+  </div>
+  <div class="panel">
+    <h2>Ages <span class="win">now</span></h2>
+    <p class="say">An item sits in the inbox <span class="n">9 hours</span> on average before it is decided
+      about. A commitment takes <span class="n">6 days</span> from being written to being finished.</p>
+    <p class="series">open: inbox <b>a day</b> &middot; next <b>12 days</b> &middot; waiting <b>8 days</b>
+      &middot; someday <b>3 months</b></p>
+  </div>`;
+}
+
+function panelB() {
+  return `
+  <div class="grid2">
+    <div class="panel">
+      <h2>Inbound <span class="win">last 7 days</span></h2>
+      <div class="figure"><span class="big">42</span><span class="unit">captured</span>
+        <span class="vs">&middot; 6.0 a day, against 5.8 over the year</span></div>
+      ${barrows(weekRows, { markLast: true })}
+    </div>
+    <div class="panel">
+      <h2>Outbound <span class="win">last 7 days</span></h2>
+      <div class="figure"><span class="big">${sum(PROC)}</span><span class="unit">processed</span>
+        <span class="vs">&middot; ${sum(DONE)} commitments completed</span></div>
+      ${barrows(procRows, { markLast: true })}
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h2>What the inbox became <span class="win">last 90 days</span></h2>
+      ${barrows(BECAME, { pct: true })}
+    </div>
+    <div class="panel">
+      <h2>Where captures come from <span class="win">last 90 days</span></h2>
+      ${barrows(SOURCES, { pct: true })}
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Ages</h2>
+    ${barrows([["in the inbox", 9], ["to completion", 144], ["next, open", 288], ["waiting, open", 192]],
+      { max: 288 })}
+    <p class="series">hours &mdash; 9 hours, 6 days, 12 days, 8 days</p>
+  </div>`;
+}
+
+function panelC() {
+  return `
+  <div class="panel">
+    <h2>Inbound <span class="win">last 7 days, then the year</span></h2>
+    <div class="figure"><span class="big">42</span><span class="unit">captured &middot; 6.0 a day</span></div>
+    ${strip([{ values: IN }])}
+    ${spark([{ values: YEAR_IN }], YEAR_IN)}
+    <div class="sparklab"><span>52 weeks ago</span><span>the dotted line is 5.8 a day</span><span>this week</span></div>
+  </div>
+  <div class="panel">
+    <h2>Outbound <span class="win">last 7 days, then the year</span></h2>
+    <div class="figure"><span class="big">${sum(PROC)}</span><span class="unit">processed</span>
+      <span class="vs">&middot; ${sum(DONE)} completed</span></div>
+    ${strip([{ values: PROC }, { values: DONE, cls: "out" }])}
+    ${spark([{ values: YEAR_OUT }], YEAR_OUT)}
+    <div class="sparklab"><span>52 weeks ago</span><span>the dotted line is 5.1 a day</span><span>this week</span></div>
+  </div>
+  <div class="panel">
+    <h2>What the inbox became <span class="win">last 90 days</span></h2>
+    ${stack100(BECAME)}
+  </div>
+  <div class="panel">
+    <h2>Where captures come from <span class="win">last 90 days</span></h2>
+    ${stack100(SOURCES)}
+  </div>`;
+}
+
+function panelD() {
+  return `
+  <div class="panel">
+    <h2>Inbound <span class="win">last 7 days, then the year</span></h2>
+    <div class="figure"><span class="big">42</span><span class="unit">captured</span>
+      <span class="vs">&middot; 6.0 a day, against 5.8 a day over the year</span></div>
+    ${strip([{ values: IN }])}
+    ${spark([{ values: YEAR_IN }], YEAR_IN)}
+  </div>
+  <div class="panel">
+    <h2>Outbound <span class="win">last 7 days, then the year</span></h2>
+    <div class="figure"><span class="big">${sum(PROC)}</span><span class="unit">processed out of the inbox</span>
+      <span class="vs">&middot; ${sum(DONE)} commitments completed</span></div>
+    ${strip([{ values: PROC }, { values: DONE, cls: "out" }])}
+    ${spark([{ values: YEAR_IN }, { values: YEAR_OUT, cls: "out" }], YEAR_OUT)}
+    <div class="sparklab"><span>52 weeks ago</span><span>solid in, dashed out</span><span>this week</span></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h2>What the inbox became <span class="win">last 90 days</span></h2>
+      ${barrows(BECAME, { pct: true })}
+    </div>
+    <div class="panel">
+      <h2>Where captures come from <span class="win">last 90 days</span></h2>
+      ${barrows(SOURCES, { pct: true })}
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Ages <span class="win">the durations, and what is open now</span></h2>
+    <div class="figure"><span class="big">9 hours</span><span class="unit">in the inbox before it is decided
+      about</span></div>
+    <div class="figure"><span class="big">6 days</span><span class="unit">from written down to finished</span></div>
+    <ul class="list">
+      <li class="row"><span class="title muted">open now &mdash;</span>
+        <span class="badge">inbox a day</span><span class="badge">next 12 days</span>
+        <span class="badge">waiting 8 days</span><span class="badge">someday 3 months</span></li>
+    </ul>
+  </div>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Close-ups                                                           */
+/* ------------------------------------------------------------------ */
+function closeWeek() {
+  return `<main style="padding:1rem 1.25rem">
+    <div class="panel"><h2>A &mdash; said</h2>
+      <p class="series">${DAYS.map((d, i) => `${d} <b>${IN[i]}</b>`).join(" &middot; ")}</p></div>
+    <div class="panel"><h2>B &mdash; a row per day</h2>${barrows(weekRows, { markLast: true })}</div>
+    <div class="panel"><h2>C &mdash; a column strip</h2>${strip([{ values: IN }])}</div>
+    <div class="panel"><h2>&mdash; and the text histogram</h2>${hist(weekRows)}</div>
+  </main>`;
+}
+
+function closeDist() {
+  return `<main style="padding:1rem 1.25rem">
+    <div class="panel"><h2>A &mdash; said</h2>
+      <p class="series">${SOURCES.map(r => `${r[0]} <b>${r[1]}</b>`).join(" &middot; ")}</p></div>
+    <div class="panel"><h2>B &mdash; ranked rows</h2>${barrows(SOURCES, { pct: true })}</div>
+    <div class="panel"><h2>C &mdash; one stacked bar</h2>${stack100(SOURCES)}</div>
+  </main>`;
+}
+
+function closeExtras() {
+  return `<main style="padding:1rem 1.25rem">
+    <div class="panel">
+      <h2>The practice</h2>
+      <ul class="list">
+        <li class="row"><span class="title">The inbox was last empty</span><span class="age">yesterday</span></li>
+        <li class="row"><span class="title">The last weekly review finished</span><span class="age">9 days ago</span>
+          <span class="badge error">overdue</span></li>
+        <li class="row"><span class="title">Weeks reviewed in a row</span><span class="badge">6</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>The backlog <span class="win">open commitments, the year</span></h2>
+      <div class="figure"><span class="big">35</span><span class="unit">open</span>
+        <span class="vs">&middot; 4 more than a month ago</span></div>
+      ${spark([{ values: series(99, 33, 14) }], series(99, 33, 14))}
+    </div>
+    <div class="panel">
+      <h2>The oldest thing in each view</h2>
+      <ul class="list">
+        <li class="row"><span class="badge">inbox</span><a class="title">Ask Marju about the roof</a><span class="age">6 days ago</span></li>
+        <li class="row"><span class="badge">next</span><a class="title">Book the tyre change</a><span class="age">3 months ago</span></li>
+        <li class="row"><span class="badge">waiting</span><a class="title">Reply from the insurer</a><span class="age">6 weeks ago</span></li>
+        <li class="row"><span class="badge">projects</span><a class="title">Rebuild the garden bed</a><span class="age">5 months ago</span></li>
+        <li class="row"><span class="badge">someday</span><a class="title">Learn to solder properly</a><span class="age">a year ago</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>How much of Next is workable</h2>
+      <div class="figure"><span class="big">13</span><span class="unit">of 21 can be started now</span></div>
+      ${barrows([["workable", 13], ["waiting on someone", 5], ["snoozed", 2], ["blocked by a sibling", 1]],
+        { max: 21, pct: true })}
+    </div>
+    <div class="panel">
+      <h2>Stalled</h2>
+      <ul class="list">
+        <li class="row"><a class="title">Sell the old bicycle</a><span class="badge error">stalled</span>
+          <span class="age">17 days</span></li>
+        <li class="row"><a class="title">Rebuild the garden bed</a><span class="badge error">stalled</span>
+          <span class="age">4 days</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h2>Captures by hour <span class="win">not recommended</span></h2>
+      ${strip([{ values: [1, 2, 9, 14, 11, 6, 4] }], true)}
+      <div class="striplab"><span>07</span><span>10</span><span>13</span><span>16</span><span>19</span><span>22</span><span>01</span></div>
+    </div>
+    <div class="panel">
+      <h2>Tags, by what is open under each <span class="win">open</span></h2>
+      ${barrows([["#home", 11], ["#car", 7], ["#work", 6], ["#hobby", 4], ["#health", 1]], { max: 11 })}
+    </div>
+  </main>`;
+}
+
+/* ------------------------------------------------------------------ */
+document.querySelectorAll(".app[data-variant]").forEach(el => {
+  const body = { a: panelA, b: panelB, c: panelC, d: panelD }[el.dataset.variant]();
+  el.innerHTML = frame(body, !el.hasAttribute("data-norail"));
+});
+document.querySelectorAll(".app[data-closeup]").forEach(el => {
+  const body = { week: closeWeek, dist: closeDist, extras: closeExtras }[el.dataset.closeup]();
+  el.innerHTML = `<div class="pane">${body}</div>`;
+});
+</script>

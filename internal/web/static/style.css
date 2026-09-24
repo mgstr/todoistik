@@ -1148,3 +1148,53 @@ input.notverb { border: 2px solid var(--warn); }
    sixth of a second. */
 main { overflow-x: clip; }
 .pane.anim-running { overflow: clip; }
+
+/* The Dashboard. One new idea and no more: a proportion drawn as length,
+   inside the row shape every list in the app already uses. What was rejected
+   was a second shape for the time series — a column strip, which reads a week
+   better and cannot read a year at all without becoming a second kind of
+   picture on a screen that then has two. See research/dashboard-study.html
+   for the four variants and the arithmetic. */
+.panel { margin: 0 0 1.8rem; }
+.panel > h2 { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+/* the window a figure is counted over, said beside it rather than in a note:
+   a number whose definition is not on the screen is one that gets misread once
+   and distrusted afterwards (design.md, "Dashboard") */
+.panel .win, .panel h3 {
+  font: 400 .68rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.panel h3 { margin: .9rem 0 .15rem; }
+/* the headline, which is the number the panel is actually about. The bars
+   under it are the shape of that number and never the only statement of it. */
+.figure { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; margin: .15rem 0 .5rem; }
+.figure .big {
+  font-size: 1.7rem; font-weight: 600; line-height: 1.1; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.figure .unit { color: var(--muted); font-size: .85rem; }
+.figure .vs { color: var(--muted); font-size: .85rem; }
+
+.bars { margin: .15rem 0; }
+.barrow {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .13rem .5rem; border-radius: 6px;
+}
+.barrow:hover { background: var(--row-hover); }
+.barrow .lbl {
+  flex: 0 0 7.5rem; color: var(--muted); font-size: .82rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* the track is always drawn, so an empty day is a row with nothing in it
+   rather than a row that looks unrendered */
+.barrow .bar { flex: 1 1 auto; height: .55rem; border-radius: 3px; background: var(--badge-bg); }
+.barrow .bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); opacity: .8; }
+.barrow .num {
+  flex: 0 0 5.5rem; text-align: right; font-size: .85rem;
+  font-variant-numeric: tabular-nums;
+}
+.barrow .pct { flex: 0 0 2.6rem; text-align: right; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* today, and the month we are standing in: the one row on a time panel that is
+   still being written, which is why it is marked rather than left to be
+   counted to from the end */
+.barrow.now .lbl, .barrow.now .num { color: var(--fg); font-weight: 600; }

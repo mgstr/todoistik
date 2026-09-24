@@ -18,6 +18,7 @@ A **self-hosted web app**: one server process serving the UI, the capture API an
 - the views are queries by design (see design.md, "Views"), and SQL is the natural home for queries. Stalled, next, overdue — all derived at read time, never stored
 - the audit log is a table like any other. Recoverability means an audit entry carries a snapshot of the item as it was, not just the fact that something happened
 - **an instant is stored in UTC, a day is stored as a day, and neither is ever read as the other.** `ts()` writes RFC3339 in UTC; `counted_from`, `due` and every other date column is `YYYY-MM-DD` on the app's single clock (design.md, "Time fields"). So an instant being reduced to a day for comparison has to be moved into that zone first — `t.In(a.loc).Format(DateFormat)`, never `t.Format(DateFormat)`. East of UTC the difference is invisible for most of the day and wrong for exactly the hours the day boundary runs in: a day start a minute after local midnight is stamped on the previous UTC day, which is how `last_fired_at` once reported a schedule's freshly fired occurrence as unfired and fired it again the following night
+- **there is exactly one index, and it is on the audit log** — `idx_audit_item`, over `(item_type, item_id, event, at)`. Every screen but one queries what is open, which is bounded by how much you have going on, and SQLite's primary keys carry those perfectly well; the Dashboard queries the log, which is bounded by how long you have been using the app, and its duration panels pair each item's leaving with its own creation as a correlated subquery. Without the index that is rows-that-left x whole-log, and one year of moderate use already cost a quarter of a second — see "The Dashboard". It is in the `CREATE ... IF NOT EXISTS` schema like everything else, so an existing database gains it on the next start with no migration step
 - **tags are their own table, keyed by item type and id** (`item_tags`), not a column on each item. It was built that way for actions and projects, and it is why giving someday/maybe items tags (design.md, "Tags") needed no schema change at all: a new item type is a new string in a column that already exists. The one thing that does not come free is deletion — a row that outlives its item would keep a tag name in use forever, so every delete takes its tag rows with it
 
 ## Backups
@@ -1473,6 +1474,31 @@ a link is a link being followed, the way `a` and `p` already were.
   the collision does: the screens are disjoint, the bar names the key on both,
   and trashing is recoverable from the audit log by recapturing (design.md,
   "Audit entry"). Worth revisiting if it ever fires by accident
+- **each branch writes its own audit event**, and the ones that create
+  something write `became-a-task`, `became-an-action`, `became-a-project` and
+  `became-someday` rather than the `deleted` they shared
+  (`internal/app/types.go`, the `Ev…` constants; `internal/app/someday.go`, the
+  `consumeInboxItem` calls). The entry is written against the *inbox item's* id
+  and carries the capture as it arrived as its snapshot — which is what keeps
+  the channel countable after the item is gone (design.md, "Where it came
+  from"). `internal/app/app_test.go` pins all seven.
+  - **the Task branch writes two of them**, chosen on the `projectID` it was
+    given: nothing means a standalone action, which is a task, and a project
+    means an action inside one. It is the same split `Match.Kind` and
+    `Match.Noun` draw on the screen the branch is answered from (see "The match
+    list") — the item type is `action` either way, and the noun is where the
+    thing is found. One event for both would put one word on the two things
+    that screen had just been fixed to keep apart
+  - **the Audit view's Recapture button follows the event rather than a rule of
+    its own**, and it offers itself on `trashed`, `deleted` and
+    `sent-to-reference` (`audit.html`). The four new events are deliberately
+    not on that list: nothing was lost, so recapturing would put a second copy
+    of a live commitment in the inbox. Before the split those rows *did* carry
+    the button, because they said `deleted` — which is the clearest measure of
+    how wrong the shared word was
+  - **`deleted` still means deleted** everywhere else it is written — an action,
+    a project, a schedule — so the word did not have to be given up, only stopped
+    being borrowed
 - **there is no confirmation on `t`**, for the same reason there is none
   anywhere else — see design.md, "The protocol is followed, not enforced". The
   answer is recorded and recoverable, and a modal on the one screen worked
@@ -3660,7 +3686,7 @@ redundant — and unlike the map, it says something the bar cannot.
 
 ## Navigation
 
-The rail opens with the `+` capture control (see "Capture"), then lists all 13 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order, under five captions:
+The rail opens with the `+` capture control (see "Capture"), then lists all 14 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order, under five captions:
 
 | | |
 |---|---|
@@ -3668,11 +3694,11 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 13 v
 | Do | Today, Next actions |
 | Committed | Projects, Tasks, Waiting for, Calendar |
 | Later | Someday/Maybe, Scheduler, Review |
-| Records | Archive, Audit, Settings |
+| Records | Archive, Audit, Dashboard, Settings |
 
-- **the captions say what a row could only imply.** The order inside them is the order the bar had and nothing collapses or hides: the grouping is a claim about what *kind* of place each view is, not a way to show fewer of them. It costs the height of five captions, which a column has and a row did not — a bar could only put the thirteen in a line and leave adjacency to do the work. "Records" earns its keep twice over, being the same three views that carry no count, for the same reason: they are not open loops to work through
+- **the captions say what a row could only imply.** The order inside them is the order the bar had and nothing collapses or hides: the grouping is a claim about what *kind* of place each view is, not a way to show fewer of them. It costs the height of five captions, which a column has and a row did not — a bar could only put the thirteen in a line and leave adjacency to do the work. "Records" earns its keep twice over, being the same four views that carry no count, for the same reason: they are not open loops to work through
 
-- **item-count badges** sit at the right-hand end of a view's row, for every view except **Archive**, **Audit** and **Settings** — those three are not open loops to work through, so a running count adds nothing actionable. Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
+- **item-count badges** sit at the right-hand end of a view's row, for every view except **Archive**, **Audit**, **Dashboard** and **Settings** — those four are not open loops to work through, so a running count adds nothing actionable. Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
 - **the count sits on the row's right edge because the rail gives it one.** It used to hang off the label's top-right corner, and both halves of that reasoning were about a horizontal bar: an inline count there read as a second word in the view's *name*, and it shifted every label after it whenever the number changed. Rows one fixed width wide have neither problem, so the count can sit where a sidebar count belongs. The blanking rule went with it: the jump letters used to land in the same strip of space and had to be given it, and now they have a gutter of their own (see "Keyboard view-jump overlay")
 - **where a row is both the current view and the alert, the alert wins the badge.** Standing on the Inbox is not the same as having emptied it, so its count stays red-on-white rather than turning accent — the label already resolves this way, and a badge disagreeing with the label beside it would be saying two things at once
 - **a badge is omitted entirely when its count is 0**, never shown as a bare "0". A wall of empty badges is exactly the noise a badge exists to cut through
@@ -3694,7 +3720,7 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 13 v
 
 #### Keyboard view-jump overlay
 
-Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every nav row — a strip the rail keeps permanently empty for it, so nothing has to move or blank to make room, which is what the top bar had to do to its counts; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 13 views, the view's own first letter where it is free, otherwise a distinct fallback:
+Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every nav row — a strip the rail keeps permanently empty for it, so nothing has to move or blank to make room, which is what the top bar had to do to its counts; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 14 views, the view's own first letter where it is free, otherwise a distinct fallback:
 
 | View | Key | View | Key |
 |---|---|---|---|
@@ -3703,8 +3729,8 @@ Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every
 | Next actions | `N` | Review | `R` |
 | Projects | `P` | Archive | `A` |
 | Tasks | `K` | Audit | `U` |
-| Waiting for | `W` | Settings | `E` |
-| Calendar | `C` | | |
+| Waiting for | `W` | Dashboard | `D` |
+| Calendar | `C` | Settings | `E` |
 
 Three `g` sequences do not jump to a view:
 
@@ -3730,6 +3756,28 @@ Three `g` sequences do not jump to a view:
   bookmark`, and only while some slot is full: the same shape and the same
   rule as `^1…9`. A digit with nothing under it clears the pending `g` and
   does nothing else
+
+## The Dashboard
+
+Nine panels, one read, one template. `app.Dashboard()` in `internal/app/dashboard.go` returns the lot and `dashboardPage` renders it — the handler is a call and a render like every other one here.
+
+- **one call and not nine.** Every panel is a different question about the same record, and a screen that assembled itself from nine separately-timed reads could show two panels that disagree — an item counted as open in one and as completed in the next. One read is also what makes the cost legible: this screen is the heaviest in the app and it is heavy in exactly one place
+- **the row is the only shape**, and the app hands the template `[]Bar` for every panel: a label, the number written out, the bar's length as a fraction of the panel's biggest row, and a percentage where a total means anything. Choosing one shape over two is the decision `research/dashboard-study.html` was built to settle — see it for the column strip that was not taken and for the arithmetic under the choice
+- **the bar's width is the one style attribute on the screen, and it is a whole number.** `html/template` sanitises every style it writes and silently replaces what it will not vouch for with `ZgotmplZ` — which draws the bar at nothing and looks exactly like "there is no data", the worst thing a dashboard can look like by accident. The `pct` template function clamps to 0–100 and rounds to an integer, and `internal/web/dashboard_test.go` fails on the string `ZgotmplZ` appearing anywhere in the page
+- **the words a duration is written in are app's, not web's.** `app.HumanDuration` is the duration counterpart of `humanAge` in `internal/web/server.go` and lives in `internal/app` because what it words is a number that package computed. A span under a minute reads "under a minute" rather than "0 min": a figure that rounds to nothing beside a row that plainly has something in it reads as a bug
+- **the days are bucketed in Go, against the configured timezone.** SQLite stores every timestamp as UTC RFC3339, so grouping by day in SQL would group by UTC days and put a late-evening capture on tomorrow. The queries return bare timestamps and `flow()` buckets them through `a.loc`, which is the same rule `Today()` obeys and the only zone allowed to decide what day something was on
+- **a month's row is its average per day, not its total**, so a 28-day month is not drawn short for being short — and the month you are standing in counts only the days that have happened, or the current row would spend three weeks looking like a collapse
+- **the two durations are a pairing, the pairing rule is the subtle part, and it is what the database's one index is for.** Each leaving event is matched with the `created` entry for the same id *immediately before it*, as a correlated `MAX(at)` subquery. Ids are handed back out after a delete — design.md says so in "Inbox Zero", about completion requests — so matching on the id alone would pair a leaving with whichever creation happened to share it. An id is live at most once at a time, which is what makes "nearest preceding" exact. A leaving with no creation before it is dropped rather than counted as zero: an item created before the log kept that event has no measurable life, and guessing one would pull every median towards nothing
+- **the source panel reads `json_extract(snapshot,'$.source')`.** The channel is not carried onto whatever the item became (design.md, "Where it came from"), so the snapshot on the `created` entry is the only place a year of them exists. This is the first query in the app to read inside a snapshot, and it is the use design.md's own prose names
+- **"when the inbox was last empty" is replayed, not stored.** Every capture puts one in and every answer takes one out, so the running count over the log is the inbox as it was at each moment, and the last time it hit zero is the answer. Nothing records emptiness directly and nothing should: it is not a thing that happens, it is a thing that is true in between two things that happen
+- **the backlog is counted off the items and not replayed.** A month's figure is "created on or before the month's end and not completed by then", read straight from `actions` and `projects`. That makes the line "what I still have, seen month by month" rather than a reconstruction — something deleted since is missing from the months it was open in. Accepted, and said out loud in design.md: the line is read for its direction, and a deletion moves that the same way finishing it does
+- **`countBy` became variadic** rather than gaining a second copy: the remembered lists group without a window and these group with one, and what the helper does with the answer is the same either way
+
+### What is not built
+
+- **this is the first screen whose cost grows with history** rather than with what is open. Every other view queries what you have going on; this one queries the log, which only ever gets longer. That is why it is also the first thing in this database with an index on it (see "Storage"): measured against a year of moderate use — 4,000 entries — the screen took **255ms against 10-15ms for every other page**, and almost all of it was the two duration panels, whose correlated subquery is rows-that-left x whole-log without one. With the index it is 21ms. The plan had been to wait until it was slow; it was already slow the first time it was pointed at a year of data, which is the argument for measuring rather than reasoning about it
+- **the read API does not carry any of it.** design.md's "The read API" is "any view, with the caller's own filters", and the Dashboard is not a view in that sense — it has no items to answer with and no filters to take. So an agent asked "is my system keeping up?" still cannot answer it, which is a gap in the design principle about being AI friendly rather than an oversight here
+- **the panels are in one column, in one fixed order.** The screen is long enough to scroll on a laptop. Two columns were not tried: main caps at 62rem and a panel's row needs most of it once the label, the bar and the figure are on it, which is the same arithmetic that decided against two columns on an action's page (see `research/action-page-study.html`)
 
 ## Keeping an open page current
 

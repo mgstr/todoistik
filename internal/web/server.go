@@ -77,6 +77,22 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 		"linkLabel": linkLabel,
 		"itemlinks": itemLinks,
 		"qesc":      url.QueryEscape,
+		// A duration in words, the way an age is in words — the wording is
+		// app's, because what it words is a number app computed (see
+		// app.HumanDuration).
+		"dur": app.HumanDuration,
+		// A 0..1 share as a whole percent, for the width of a dashboard bar.
+		// Whole numbers because a bar is read as a length and not as a value,
+		// and because html/template's CSS filter is happier with one.
+		"pct": func(v float64) int {
+			if v < 0 {
+				return 0
+			}
+			if v > 1 {
+				return 100
+			}
+			return int(v*100 + 0.5)
+		},
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(pairs); i += 2 {
@@ -216,6 +232,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /archive", s.archivePage)
 	m.HandleFunc("GET /scheduler", s.schedulerPage)
 	m.HandleFunc("GET /audit", s.auditPage)
+	m.HandleFunc("GET /dashboard", s.dashboardPage)
 
 	// Inbox Zero / processing
 	m.HandleFunc("GET /process", s.processPage)

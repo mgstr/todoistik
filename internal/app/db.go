@@ -112,6 +112,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
 	snapshot TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
+-- The one index in this database, and the Dashboard is what earned it. Every
+-- other screen queries what is open, which is bounded by how much you have
+-- going on; the Dashboard queries the log, which is bounded by how long you
+-- have been using the app. Its two duration panels pair each leaving event
+-- with the item's own creation as a correlated subquery, so without this the
+-- work is rows-that-left x whole-log and the screen cost a quarter of a second
+-- on one year of moderate use — twenty times any other page. With it, one
+-- millisecond. The column order is the order the subquery narrows in.
+CREATE INDEX IF NOT EXISTS idx_audit_item ON audit_log(item_type, item_id, event, at);
 `
 
 func (a *App) migrate() error {

@@ -209,7 +209,14 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64) (*Action,
 	}
 	var act *Action
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeInboxItem(tx, id, EvDeleted); err != nil {
+		// which of the two this branch just made: a task standing on its own,
+		// or a step inside a project. The log says which, because they are
+		// read under different nouns everywhere else (see the Ev… constants)
+		became := EvBecameTask
+		if projectID != 0 {
+			became = EvBecameAction
+		}
+		if err := a.consumeInboxItem(tx, id, became); err != nil {
 			return err
 		}
 		now := a.now().UTC()
@@ -237,7 +244,7 @@ func (a *App) ProcessAction(id int64, f ActionFields, projectID int64) (*Action,
 // action required — the Inbox Zero project branch).
 func (a *App) ProcessProject(id int64, f ProjectFields, actions []ActionFields) (*Project, error) {
 	if err := a.tx(func(tx *sql.Tx) error {
-		return a.consumeInboxItem(tx, id, EvDeleted)
+		return a.consumeInboxItem(tx, id, EvBecameProject)
 	}); err != nil {
 		return nil, err
 	}
@@ -254,7 +261,7 @@ func (a *App) ProcessSomeday(id int64, f SomedayFields) (*SomedayItem, error) {
 	}
 	var it *SomedayItem
 	err := a.tx(func(tx *sql.Tx) error {
-		if err := a.consumeInboxItem(tx, id, EvDeleted); err != nil {
+		if err := a.consumeInboxItem(tx, id, EvBecameSomeday); err != nil {
 			return err
 		}
 		now := a.now().UTC()

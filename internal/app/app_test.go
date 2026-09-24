@@ -3,6 +3,7 @@ package app
 import (
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -1410,5 +1411,102 @@ func TestSomedayTagsAndReturnToInbox(t *testing.T) {
 	// the tag rows went with it, or the name could never be removed again
 	if err := a.RemoveTag("hobby"); err != nil {
 		t.Fatalf("the tag is still held by something: %v", err)
+	}
+}
+
+// Every Inbox Zero branch records which one it was. The three that create
+// something used to write EvDeleted between them, so the log said an item had
+// been deleted when it had become an action, and "what does this inbox turn
+// into" was unanswerable for the three commonest answers of a normal week
+// (design.md, "Audit entry"). One event per branch, and the entry is written
+// against the inbox item's own id, so the snapshot beside it is the capture as
+// it arrived — which is where the channel it came by is kept.
+func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
+	a, _ := newTestApp(t)
+
+	capture := func(text string) int64 {
+		t.Helper()
+		it, _, err := a.Capture(text, SourceApp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return it.ID
+	}
+
+	trashed := capture("A newsletter nobody reads")
+	referenced := capture("The boiler's model number")
+	instant := capture("Reply yes to Marju")
+	task := capture("Book the winter tyre change")
+	action := capture("Measure the bathroom wall")
+	project := capture("The bathroom")
+	someday := capture("Learn to solder properly")
+
+	// somewhere for the filed one to land
+	home, err := a.CreateProject(ProjectFields{Title: "Bathroom re-tiled", DOD: "tiles on"},
+		[]ActionFields{{Title: "Order the tiles"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.ProcessTrash(trashed); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.ProcessReference(referenced); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.ProcessTwoMinute(instant); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessAction(task, ActionFields{Title: "Book the winter tyre change"}, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessAction(action, ActionFields{Title: "Measure the bathroom wall"}, home.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessProject(project,
+		ProjectFields{Title: "Bathroom re-tiled", DOD: "tiles on, grout done"},
+		[]ActionFields{{Title: "Measure the wall"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.ProcessSomeday(someday, SomedayFields{Text: "Learn to solder properly"}); err != nil {
+		t.Fatal(err)
+	}
+
+	log, err := a.AuditLog(1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[int64]string{}
+	for _, e := range log {
+		if e.ItemType == "inbox" && e.Event != EvCreated {
+			got[e.ItemID] = e.Event
+		}
+	}
+	for _, want := range []struct {
+		id    int64
+		event string
+		what  string
+	}{
+		{trashed, EvTrashed, "trash"},
+		{referenced, EvReference, "reference material"},
+		{instant, EvTwoMinute, "the two minute rule"},
+		// the Task branch makes two different things and the log says which:
+		// a standalone action is a task, one filed into a project is an action
+		{task, EvBecameTask, "a task"},
+		{action, EvBecameAction, "an action in a project"},
+		{project, EvBecameProject, "a project"},
+		{someday, EvBecameSomeday, "someday/maybe"},
+	} {
+		if got[want.id] != want.event {
+			t.Errorf("%s: the log says %q, want %q", want.what, got[want.id], want.event)
+		}
+	}
+
+	// and the snapshot beside each one is the capture as it arrived, which is
+	// what makes the channel countable long after the item is gone
+	for _, e := range log {
+		if e.ItemType == "inbox" && e.Event == EvBecameTask && !strings.Contains(e.Snapshot, `"source":"`+SourceApp+`"`) {
+			t.Errorf("the leaving entry carries no source: %s", e.Snapshot)
+		}
 	}
 }
