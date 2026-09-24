@@ -6,76 +6,76 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 
 <!-- toc -->
 
-- [Platform](#platform)
-- [Storage](#storage)
-- [Backups](#backups)
-- [Stack](#stack)
-- [API authentication](#api-authentication)
-  - [A read is spelled as data or as text](#a-read-is-spelled-as-data-or-as-text)
-  - [Every view in one answer](#every-view-in-one-answer)
-- [Reminders, both ways](#reminders-both-ways)
-  - [move: a list into the inbox](#move-a-list-into-the-inbox)
-  - [sync: a view onto a list](#sync-a-view-onto-a-list)
-  - [The completion channel](#the-completion-channel)
-  - [loop: every direction, on a period](#loop-every-direction-on-a-period)
-- [Mail into the inbox](#mail-into-the-inbox)
-- [Telegram](#telegram)
-- [The app as an MCP server](#the-app-as-an-mcp-server)
-- [Keyboard](#keyboard)
-  - [Which key is which](#which-key-is-which)
-  - [Which layout the keyboard is in](#which-layout-the-keyboard-is-in)
-  - [Jumping to a control](#jumping-to-a-control)
-- [Capture](#capture)
-  - [Which way in a capture came by](#which-way-in-a-capture-came-by)
-- [Processing from the Inbox](#processing-from-the-inbox)
-- [The processing screen](#the-processing-screen)
-  - [The keys](#the-keys)
-  - [A completion request asks one question](#a-completion-request-asks-one-question)
-  - [The match list](#the-match-list)
-  - [Seeding a copy](#seeding-a-copy)
-- [Stage two](#stage-two)
-- [The someday item's page](#the-someday-items-page)
-- [The weekly review screens](#the-weekly-review-screens)
-- [Button labels](#button-labels)
-- [Create buttons](#create-buttons)
-  - [A refused post is never silent](#a-refused-post-is-never-silent)
-- [The remembered lists](#the-remembered-lists)
-- [Interface density](#interface-density)
-  - [The Next view's controls are a line, not a panel](#the-next-views-controls-are-a-line-not-a-panel)
-  - [The Next view drops snoozed actions in the query](#the-next-view-drops-snoozed-actions-in-the-query)
-  - [A field's name sits beside its box, not above it](#a-fields-name-sits-beside-its-box-not-above-it)
-  - [A box is as wide as the form, and as tall as what is in it](#a-box-is-as-wide-as-the-form-and-as-tall-as-what-is-in-it)
-- [Token boxes](#token-boxes)
-- [Item lines](#item-lines)
-  - [Ages are written out, not coded](#ages-are-written-out-not-coded)
-  - [Ages are hidden by default](#ages-are-hidden-by-default)
-  - [The year is the one field that is not cron](#the-year-is-the-one-field-that-is-not-cron)
-  - [A rule reads back as a phrase](#a-rule-reads-back-as-a-phrase)
-  - [A firing is what the inbox accepted, not what the loop attempted](#a-firing-is-what-the-inbox-accepted-not-what-the-loop-attempted)
-- [Links in item text](#links-in-item-text)
-  - [Following one from the keyboard](#following-one-from-the-keyboard)
-- [Doing](#doing)
-- [Settings file](#settings-file)
-- [A moment that shows itself](#a-moment-that-shows-itself)
-- [Screen layout](#screen-layout)
-- [Panels](#panels)
-  - [The key bar is the buttons](#the-key-bar-is-the-buttons)
-- [Theme](#theme)
-- [Bookmarked filters](#bookmarked-filters)
-- [View help](#view-help)
-- [Navigation](#navigation)
-- [The Dashboard](#the-dashboard)
-  - [What is not built](#what-is-not-built)
-- [Keeping an open page current](#keeping-an-open-page-current)
-- [The meta line](#the-meta-line)
-- [Writing an action](#writing-an-action)
-- [The verb a title opens with](#the-verb-a-title-opens-with)
-- [Reading a completed item](#reading-a-completed-item)
-- [Writing a project](#writing-a-project)
-- [Specified, not yet built](#specified-not-yet-built)
-- [Deferred, by decision](#deferred-by-decision)
-- [Schema changes](#schema-changes)
-- [Wanted, not specified](#wanted-not-specified)
+- [Platform](#platform) — one self-hosted process, single user, reachable from a phone
+- [Storage](#storage) — SQLite, one file, WAL; views are queries and never stored
+- [Backups](#backups) — one snapshot an hour, taken by the app itself, oldest first out
+- [Stack](#stack) — Go, server-rendered HTML with HTMX, and vanilla JS for the keyboard
+- [API authentication](#api-authentication) — one static bearer token, checked on every request
+  - [A read is spelled as data or as text](#a-read-is-spelled-as-data-or-as-text) — `?format=` answers as JSON or as plain text
+  - [Every view in one answer](#every-view-in-one-answer) — `GET /api/context`, every view through the one read path
+- [Reminders, both ways](#reminders-both-ways) — `cmd/remindersync`, between a macOS list and the app
+  - [move: a list into the inbox](#move-a-list-into-the-inbox) — one capture per reminder, and the reminder deleted
+  - [sync: a view onto a list](#sync-a-view-onto-a-list) — the list made to hold what a view and its filter hold
+  - [The completion channel](#the-completion-channel) — a ticked reminder is the one thing Reminders says back
+  - [loop: every direction, on a period](#loop-every-direction-on-a-period) — the other two directions, repeated on a period
+- [Mail into the inbox](#mail-into-the-inbox) — `cmd/mailsync`, a Gmail label emptied one capture per message
+- [Telegram](#telegram) — `cmd/telegrambot`, the app in one chat: capture in, views out
+- [The app as an MCP server](#the-app-as-an-mcp-server) — `cmd/todoistikmcp`, the same APIs over stdin and stdout
+- [Keyboard](#keyboard) — how the layer works; the map itself is in keys.md
+  - [Which key is which](#which-key-is-which) — a key is a place on the keyboard, not the character it types
+  - [Which layout the keyboard is in](#which-layout-the-keyboard-is-in) — the bar says Russian while the keyboard is Russian
+  - [Jumping to a control](#jumping-to-a-control) — `^m` marks the controls on the screen already open
+- [Capture](#capture) — a dialog summoned on demand, never a box in the chrome
+  - [Which way in a capture came by](#which-way-in-a-capture-came-by) — `inbox_items.source`, one word, written in one place
+- [Processing from the Inbox](#processing-from-the-inbox) — the Inbox is a list and two keys, and nothing else
+- [The processing screen](#the-processing-screen) — one capture and a menu of answers to “what is it?”
+  - [The keys](#the-keys) — six branches, one letter each, in the order the rows present them
+  - [A completion request asks one question](#a-completion-request-asks-one-question) — a line that says what it is replaces stage one
+  - [The match list](#the-match-list) — what the capture looks like, open items first, then finished
+  - [Seeding a copy](#seeding-a-copy) — `from=<id>` starts stage two from a finished item
+- [Stage two](#stage-two) — the form the Task, Project and Someday/Maybe branches open
+- [The someday item's page](#the-someday-items-page) — two fields and three buttons, the only screen acting on an idea
+- [The weekly review screens](#the-weekly-review-screens) — the running order, and one step of it
+- [Button labels](#button-labels) — one word per act, and the same word wherever the act appears
+- [Create buttons](#create-buttons) — unmet prerequisites disable a create button, never hide it
+  - [A refused post is never silent](#a-refused-post-is-never-silent) — htmx swallows a 4xx, so a refusal has to be rendered
+- [The remembered lists](#the-remembered-lists) — the Settings page, where a name is learned and unlearned
+- [Interface density](#interface-density) — progressive disclosure on the filter controls, never on the rows
+  - [The Next view's controls are a line, not a panel](#the-next-views-controls-are-a-line-not-a-panel) — the widest panel replaced by a typed line
+  - [The Next view drops snoozed actions in the query](#the-next-view-drops-snoozed-actions-in-the-query) — one function, so no count disagrees with its list
+  - [A field's name sits beside its box, not above it](#a-fields-name-sits-beside-its-box-not-above-it) — the label moves into a gutter and buys back height
+  - [A box is as wide as the form, and as tall as what is in it](#a-box-is-as-wide-as-the-form-and-as-tall-as-what-is-in-it) — 48rem, and a box that grows with its content
+- [Token boxes](#token-boxes) — the filter line and the three meta lines are one control
+- [Item lines](#item-lines) — one row template for every list, so this is one decision
+  - [Ages are written out, not coded](#ages-are-written-out-not-coded) — `3 weeks ago`, not `3w`, and the scale that produces it
+  - [Ages are hidden by default](#ages-are-hidden-by-default) — `^t` turns them on, one flag for the whole app
+  - [The year is the one field that is not cron](#the-year-is-the-one-field-that-is-not-cron) — a fourth calendar field, optional, meaning every year
+  - [A rule reads back as a phrase](#a-rule-reads-back-as-a-phrase) — the Scheduler says a cron rule in words
+  - [A firing is what the inbox accepted, not what the loop attempted](#a-firing-is-what-the-inbox-accepted-not-what-the-loop-attempted) — a collapsed duplicate is not a firing
+- [Links in item text](#links-in-item-text) — `internal/web/links.go`, and why it is not in internal/app
+  - [Following one from the keyboard](#following-one-from-the-keyboard) — `^o` takes the link belonging to whatever the cursor is on
+- [Doing](#doing) — the doing screen, its timer, and the keys that open and leave it
+- [Settings file](#settings-file) — `key = value`, read once at startup, for what deserves no screen
+- [A moment that shows itself](#a-moment-that-shows-itself) — the animation that proves a destructive press landed
+- [Screen layout](#screen-layout) — a rail, a title bar, a key bar, and the view scrolling between
+- [Panels](#panels) — the title bar, the key bar and the rail, each removable
+  - [The key bar is the buttons](#the-key-bar-is-the-buttons) — a row of buttons under a form was the bar drawn twice
+- [Theme](#theme) — `light-dark()`, and how being told which palette is remembered
+- [Bookmarked filters](#bookmarked-filters) — `internal/web/bookmarks.go`, the wiring under the nine digits
+- [View help](#view-help) — `?` opens one panel saying what this view is for
+- [Navigation](#navigation) — the rail, its five captions, its badges, and the jump overlay
+- [The Dashboard](#the-dashboard) — nine panels, one read, one template
+  - [What is not built](#what-is-not-built) — the first screen whose cost grows with history, and what that costs
+- [Keeping an open page current](#keeping-an-open-page-current) — what puts items in without the page asking again
+- [The meta line](#the-meta-line) — `internal/app/tokens.go`, the codec between the line and the columns
+- [Writing an action](#writing-an-action) — one form wherever an action is written, in one partial
+- [The verb a title opens with](#the-verb-a-title-opens-with) — a remembered list, a suffix rule, and no server-side refusal
+- [Reading a completed item](#reading-a-completed-item) — a frozen item's page reads and does not write
+- [Writing a project](#writing-a-project) — a project and its first actions are created in one submit
+- [Specified, not yet built](#specified-not-yet-built) — rules design.md states that the code does not yet apply
+- [Deferred, by decision](#deferred-by-decision) — rough edges looked at, understood, and left for now
+- [Schema changes](#schema-changes) — no migration files: a schema, then steps that are no-ops twice
+- [Wanted, not specified](#wanted-not-specified) — why `todo.md` is a third list, and unlike the two above
 
 <!-- /toc -->
 
@@ -926,8 +926,8 @@ a page load, and what the bar derives itself from.
 
 - `j` / `k` move through the current list, `Enter` opens the selected item.
   While a dialog is open its own rows are the current list — the answers in
-  the filter box's unknown-name dialog are moved through this way (see "The
-  filter box")
+  the filter box's unknown-name dialog are moved through this way (see "Token
+  boxes")
 - **the selection survives acting on the row.** A row key posts a form and the
   answer is a whole new page — boosted or not, the list is rebuilt and the
   class marking the selection goes with the old one, so pressing `t` used to
@@ -2238,8 +2238,8 @@ The panel of checkboxes and selects that this section is about was widest on
 the one screen the app is actually used from, and it sat between the nav and
 the list on every visit. What replaced it is a line you type, summoned by a
 key and gone otherwise — the progressive disclosure this section argues for,
-taken as far as it goes: not a collapsed panel but no panel at all. See "The
-filter box" for how it is built, and design.md, "The filter line" for why.
+taken as far as it goes: not a collapsed panel but no panel at all. See "Token
+boxes" for how it is built, and design.md, "The filter line" for why.
 
 - **the Archive was the last view with a panel**, open on every visit, and
   took the line the way the Scheduler did: `{{template "filterbar" .}}` in
@@ -2273,10 +2273,9 @@ filter box" for how it is built, and design.md, "The filter line" for why.
 - **the filter lives in `NextActions`, not in the handler or the template.**
   The view, the nav badge and the read API's `next` all read that one
   function, so filtering any further out would leave a count disagreeing with
-  the list it counts — which is the disagreement design.md's "there is no
-  separate what-can-I-do-now screen" argument exists to prevent. It tests with
-  `Action.IsSnoozed`, the same one the row styling uses, so "snoozed" keeps a
-  single definition
+  the list it counts — which is the disagreement design.md, "Next actions"
+  exists to prevent. It tests with `Action.IsSnoozed`, the same one the row
+  styling uses, so "snoozed" keeps a single definition
 - **the weekly review calls `NextActionsWithSnoozed` instead.** Step 5 has to
   walk the snoozed ones — their date is one of the claims being checked
   (design.md, "Weekly review") — and a step built on the view's query would
@@ -3799,17 +3798,23 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 14 v
 
 #### Keyboard view-jump overlay
 
-Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of every nav row — a strip the rail keeps permanently empty for it, so nothing has to move or blank to make room, which is what the top bar had to do to its counts; pressing that letter jumps to the view; `Esc` clears the overlay without navigating. Letters are unique across all 14 views, the view's own first letter where it is free, otherwise a distinct fallback:
+Vimium-style. Pressing `g` overlays a one-letter tag in the left gutter of
+every nav row — a strip the rail keeps permanently empty for it, so nothing has
+to move or blank to make room, which is what the top bar had to do to its
+counts; pressing that letter jumps to the view; `Esc` clears the overlay
+without navigating.
 
-| View | Key | View | Key |
-|---|---|---|---|
-| Inbox | `I` | Someday/Maybe | `S` |
-| Today | `T` | Scheduler | `H` |
-| Next actions | `N` | Review | `R` |
-| Projects | `P` | Archive | `A` |
-| Tasks | `K` | Audit | `U` |
-| Waiting for | `W` | Dashboard | `D` |
-| Calendar | `C` | Settings | `E` |
+**Which letter belongs to which view is in keys.md, "The map", and used to be
+here.** A letter spent on a view is spent exactly as hard as a letter spent on
+a button — `d` is the Dashboard and it is Done — and while the fourteen sat in
+this file, no single place held both halves of that, which is the split keys.md
+exists to prevent. What stays here is how the overlay is drawn and why the rail
+carries an empty gutter for it; the letters themselves are keys.
+
+The tag is drawn as an uppercase badge, which is styling rather than the key:
+`.ghint` sets `text-transform: uppercase` so that one letter reads as a marker
+and not as the first letter of a word. What is pressed is the lowercase letter
+keys.md writes down, and what the code holds in `jumps`.
 
 Three `g` sequences do not jump to a view:
 

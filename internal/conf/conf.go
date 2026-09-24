@@ -30,7 +30,7 @@ type Config struct {
 	// being asked. Named by the same slugs the title bar shows a trail of.
 	// Zen is still one keystroke away from being turned off again on any of
 	// them, and the panels come back on the way out (see implementation.md,
-	// "Zen mode").
+	// "Panels").
 	ZenViews []string
 	// BackupDays: how many days of hourly database snapshots to keep. The
 	// count of files is this times 24, and the oldest goes when a new one

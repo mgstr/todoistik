@@ -1440,7 +1440,7 @@ func (s *Server) promotePage(w http.ResponseWriter, r *http.Request) {
 		Action: act,
 		Back:   "/action/" + itoa(act.ID),
 		From:   s.parentView(r, homeOf(act)),
-		// title and description only: design.md, "Promoting an action" sends
+		// title and description only: design.md, "Promote" sends
 		// the tags to the project and leaves everything else with the action,
 		// since a context or a size describes doing something. It is the
 		// project's first action, so it lands in the open boxes and there are
@@ -1538,7 +1538,7 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 		err = s.app.ToggleTag("action", id, app.TodayTag)
 	case "promote":
 		// the same form the Project branch of processing reads, because it is
-		// the same form (design.md, "Promoting an action")
+		// the same form (design.md, "Promote")
 		pf, actions, todays, ferr := s.projectFromForm(r)
 		if err = ferr; err != nil {
 			break
@@ -1819,8 +1819,8 @@ func typedSchedule(r *http.Request) *app.Schedule {
 // boxes and, on a refusal, the reason above them. A refused schedule cannot
 // be a bare 400: When is the one field here you can get wrong by typing
 // something perfectly reasonable, and a 400 under hx-boost is not swapped, so
-// the screen would sit there looking untouched (implementation.md, "A refused
-// schedule comes back").
+// the screen would sit there looking untouched (implementation.md, "a form
+// that comes back is not an error page").
 func (s *Server) renderScheduleNew(w http.ResponseWriter, r *http.Request, sched *app.Schedule, note string) {
 	p := s.newPage("New schedule", "scheduler", r).step("New schedule", "")
 	p.When = true

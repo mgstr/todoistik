@@ -153,7 +153,7 @@ func move(list, base, token string, dry bool) (int, error) {
 // captureText writes a reminder as the capture todoistik takes. Everything the
 // reminder holds goes in, because the reminder is deleted straight after: a due
 // date or a note left out here is lost, and the inbox is raw text by design
-// (design.md, "Capture") with no field to put them in instead.
+// (design.md, "Inbox item") with no field to put them in instead.
 //
 // The title and the due date are the first line and the note is the rest. The
 // note used to be flattened onto that one line with them, because the inbox was

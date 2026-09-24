@@ -356,11 +356,59 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | --- | --- |
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
 | `↵` `o` | open the selected row |
-| `g` + letter | a view — see implementation.md, "Navigation". `g d` is the Dashboard |
+| `g` + letter | a view — the fourteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
 | `z` | Inbox Zero over the whole inbox |
 | `w` | the selected action, alone on the doing screen |
+
+**The fourteen jump letters live here, and lived in implementation.md until
+now.** A letter that opens a view is spent exactly as hard as a letter that
+presses a button — `t` is Today's jump and Today's mark, `d` is the Dashboard's
+jump and Done, `r` is Review's jump and the review mark, and not one of those
+collisions is visible from a file holding only one half of the pair. That is
+the argument this file was split out on ("Why this is its own file"): while the
+map was in two places, the same letter could be spent twice without either
+place being wrong. A map that stopped at the nav rail was the same mistake one
+level down. implementation.md keeps how the overlay is drawn and why the rail
+carries an empty gutter for it; which letter is which is a key, and a key is
+written down here.
+
+| View | Key | View | Key |
+| --- | --- | --- | --- |
+| Inbox | `i` | Someday/Maybe | `s` |
+| Today | `t` | Scheduler | `h` |
+| Next actions | `n` | Review | `r` |
+| Projects | `p` | Archive | `a` |
+| Tasks | `k` | Audit | `u` |
+| Waiting for | `w` | Dashboard | `d` |
+| Calendar | `c` | Settings | `e` |
+
+The letter is the view's own first where that was free and a distinct fallback
+where it was not, and the fourteen are unique among themselves. They are
+written lowercase here because lowercase is what is pressed; the overlay draws
+them as uppercase badges, which is a styling decision and is argued for in
+implementation.md, "Navigation".
+
+**A jump letter may collide with a button letter, and the prefix is what is
+supposed to make that safe.** Four of the fourteen are also buttons — `d` is
+Done and the Dashboard, `t` is the Today mark and the Today view, `r` is the
+review mark and the Review view, `w` is doing and Waiting for. The rule that
+allows it is that the two are never offered in the same breath: pressing `g`
+puts the keyboard in a state where only a jump can follow. Without the prefix
+these fourteen would have had to come out of the letters the buttons had not
+already taken, and there are not fourteen of those.
+
+**Those four do not yet behave that way, and writing the map down here is what
+showed it.** In `hybrid` and `command` modes the row commands are read before
+the pending `g` is, so with a row selected `g d` completes it instead of
+opening the Dashboard, and `g t`, `g r` and `g w` go the same way. In
+`modifier` mode the four are correct, because the buttons want ctrl there and a
+bare letter falls through to the jump. This is the collision the file was split
+out to catch — while half the map sat in implementation.md, no one place held
+both meanings of `d` at once — and it is a bug in the code rather than a
+decision to revisit: the rule above is what the app is supposed to do. It is
+listed again in "What is built".
 
 **Globals** — ctrl in every mode.
 
@@ -560,6 +608,15 @@ thing you meant.
 
 All of it. `keys.mode` defaults to `hybrid`, which is what the app did before
 any of this, so nothing about the trial is a one-way door.
+
+**Except the prefix guard on four letters.** `g d`, `g t`, `g r` and `g w` are
+claimed by the row commands before the pending `g` is looked at, so with a row
+selected they press the button instead of jumping — in `hybrid` and `command`
+modes, which includes the default. `rowCommand` is called ahead of the
+`gPending` branch in the key handler, and it has to be, because in `modifier`
+mode `d`, `t` and `b` arrive with ctrl held and the ctrl guard below would drop
+them. The fix is for the pending `g` to be answered first, not for either map
+to give up a letter — see "The map" for why the collision is allowed at all.
 
 Three mechanisms carry the whole map, and each one exists so that a key can
 never be advertised without working:
