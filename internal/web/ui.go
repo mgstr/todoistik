@@ -30,6 +30,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
 	"archive":   {"Archive", "finished commitments, newest first"},
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
+	"dashboard": {"Dashboard", "what the app counts about itself \u2014 how fast things arrive and leave, what they turn into, and what has been waiting longest. Every figure says the window it is counted over, because a number without one is a number that gets misread"},
 	"settings":  {"Settings", "the palette the app is painted in, and the remembered tags and contexts — a name has to be here before #car or @home means anything, which is what stops #car and #Car becoming two. The count is what carries it, and a name still carried cannot be removed. A parameter, @person(Marju), is its own name under its context. Filtering by #bike or @garage that matches nothing is how a name is created."},
 
 	// Reached only from the Inbox, so it has no nav entry — but it is a screen
@@ -161,6 +162,7 @@ var liveViews = map[string]bool{
 	"scheduler": true,
 	"archive":   true,
 	"audit":     true,
+	"dashboard": true,
 }
 
 func (s *Server) newPage(title, view string, r *http.Request) *page {
@@ -627,6 +629,22 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 	p := s.newPage("Audit log", "audit", r)
 	p.Data = rows
 	s.render(w, "audit.html", p)
+}
+
+// --- Dashboard -----------------------------------------------------------
+
+// The Dashboard is one read of internal/app and one template. Every number on
+// it is computed there, including the words a duration is written in, so the
+// handler stays what every other handler here is: a call and a render.
+func (s *Server) dashboardPage(w http.ResponseWriter, r *http.Request) {
+	d, err := s.app.Dashboard()
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Dashboard", "dashboard", r)
+	p.Data = d
+	s.render(w, "dashboard.html", p)
 }
 
 // --- Inbox Zero ----------------------------------------------------------

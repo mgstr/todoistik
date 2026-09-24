@@ -1,0 +1,112 @@
+{{template "top" .}}
+{{/* Every panel here is a list of rows, because that is the one shape the app
+     is made of and a second one would be a second thing to learn to read (see
+     research/dashboard-study.html, variant B). The row carries a name, a bar
+     whose length is the proportion, and the number written out — so nothing on
+     this screen can only be read by eye. */}}
+{{define "bars"}}
+<ul class="list bars">
+  {{range .rows}}
+  <li class="barrow{{if .Now}} now{{end}}">
+    <span class="lbl">{{.Label}}</span>
+    <span class="bar"><i style="width:{{.Share | pct}}%"></i></span>
+    <span class="num">{{.Value}}</span>
+    {{if $.pct}}<span class="pct">{{.Pct}}%</span>{{end}}
+  </li>
+  {{end}}
+</ul>
+{{end}}
+
+{{with .Data}}
+
+<section class="panel">
+  <h2>Inbound<span class="win">captures</span></h2>
+  <p class="figure"><span class="big">{{.Inbound.WeekTotal}}</span><span class="unit">this week</span>
+    <span class="vs">· {{printf "%.1f" .Inbound.WeekPerDay}} a day, against {{printf "%.1f" .Inbound.YearPerDay}} a day over the year</span></p>
+  {{template "bars" dict "rows" .Inbound.Days}}
+  <h3>the year, a month a row</h3>
+  {{template "bars" dict "rows" .Inbound.Months}}
+</section>
+
+<section class="panel">
+  <h2>Outbound<span class="win">actions and projects completed</span></h2>
+  <p class="figure"><span class="big">{{.Outbound.WeekTotal}}</span><span class="unit">this week</span>
+    <span class="vs">· {{printf "%.1f" .Outbound.WeekPerDay}} a day, against {{printf "%.1f" .Outbound.YearPerDay}} a day over the year</span></p>
+  {{template "bars" dict "rows" .Outbound.Days}}
+  <h3>the year, a month a row</h3>
+  {{template "bars" dict "rows" .Outbound.Months}}
+</section>
+
+<section class="panel">
+  <h2>What the inbox became<span class="win">last 3 months</span></h2>
+  {{if .Became.Rows}}
+    <p class="figure"><span class="big">{{.Became.Total}}</span><span class="unit">answered</span></p>
+    {{template "bars" dict "rows" .Became.Rows "pct" true}}
+  {{else}}<p class="muted">Nothing has been processed in this window.</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>Where captures come from<span class="win">last 3 months</span></h2>
+  {{if .Sources.Rows}}
+    <p class="figure"><span class="big">{{.Sources.Total}}</span><span class="unit">captures</span></p>
+    {{template "bars" dict "rows" .Sources.Rows "pct" true}}
+  {{else}}<p class="muted">Nothing has been captured in this window.</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>Ages<span class="win">medians</span></h2>
+  <p class="figure"><span class="big">{{.Ages.InInbox | dur}}</span>
+    <span class="unit">in the inbox before it is decided about</span>
+    <span class="vs">· over {{.Ages.InInboxN}}</span></p>
+  <p class="figure"><span class="big">{{.Ages.ToCompletion | dur}}</span>
+    <span class="unit">from written down to finished</span>
+    <span class="vs">· over {{.Ages.ToCompletionN}}</span></p>
+  <h3>and what is open now</h3>
+  {{template "bars" dict "rows" .Ages.Open}}
+</section>
+
+<section class="panel">
+  <h2>The practice</h2>
+  <ul class="list">
+    <li class="row"><span class="title">The inbox holds</span>
+      <span class="badge {{if .Practice.InboxOpen}}error{{end}}">{{.Practice.InboxOpen}}</span></li>
+    <li class="row"><span class="title">It was last empty</span>
+      {{if .Practice.InboxEverEmpty}}<span class="age">{{age .Practice.InboxEmptyAt}}</span>
+      {{else}}<span class="badge">never</span>{{end}}</li>
+    <li class="row"><span class="title">Something was last marked reviewed</span>
+      {{if .Practice.LastReviewedAt.IsZero}}<span class="badge">never</span>
+      {{else}}<span class="age">{{age .Practice.LastReviewedAt}}</span>{{end}}</li>
+    <li class="row"><a class="title" href="/review">The review still has</a>
+      <span class="badge">{{.Practice.ReviewOutstanding}}</span></li>
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>How much of Next is workable<span class="win">now</span></h2>
+  <p class="figure"><span class="big">{{(index .NextMix.Rows 0).Count}}</span>
+    <span class="unit">of {{.NextMix.Total}} can be started now</span></p>
+  {{template "bars" dict "rows" .NextMix.Rows "pct" true}}
+</section>
+
+<section class="panel">
+  <h2>The oldest thing in each view<span class="win">now</span></h2>
+  {{if .Oldest}}
+  <ul class="list">
+    {{range .Oldest}}
+    <li class="row">
+      <span class="badge">{{.View}}</span>
+      <a class="title" href="{{if eq .Type "inbox"}}/process?item={{.ID}}&one=1{{else if eq .Type "action"}}/action/{{.ID}}{{else if eq .Type "project"}}/project/{{.ID}}{{else}}/somedayitem/{{.ID}}{{end}}">{{.Title}}</a>
+      <span class="age">{{age .At}}</span>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}<p class="muted">Nothing is open anywhere.</p>{{end}}
+</section>
+
+<section class="panel">
+  <h2>The backlog<span class="win">open commitments, a month a row</span></h2>
+  {{template "bars" dict "rows" .Backlog}}
+</section>
+
+{{end}}
+{{template "bottom" .}}

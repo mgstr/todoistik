@@ -260,8 +260,11 @@ func (w nameWord) paramOf(ctx, value string) bool {
 	return strings.Contains(ctx, w.name) || strings.Contains(value, w.name)
 }
 
-func (a *App) countBy(query string) (map[string]int, error) {
-	rows, err := a.db.Query(query)
+// countBy reads a "name, count" grouping. Variadic because the dashboard's
+// groupings are windowed by time and the remembered lists' are not — one
+// helper either way, since what it does with the answer is the same.
+func (a *App) countBy(query string, args ...any) (map[string]int, error) {
+	rows, err := a.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

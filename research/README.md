@@ -390,7 +390,7 @@ Two consequences were settled off the page, both recorded in keys.md:
 
 ## dashboard-study.html — the Dashboard, and how much chart vocabulary the app owns
 
-**2026-09-24 — open. Nothing decided, nothing built.** The Dashboard was asked
+**2026-09-24 · decided: B, the bar is the row.** Not yet built. The Dashboard was asked
 for as a view between Audit and Settings, carrying five panels: inbound speed,
 outbound speed, what inbox items become, which channel they arrive by, and the
 average age of things in the system.
@@ -422,9 +422,9 @@ The second half is four whole dashboards, same data, both themes:
 | | Variant | Outcome |
 |---|---|---|
 | A | No chart at all — numbers and words | The position to beat, and it loses on one thing only: a sentence cannot say a direction, and the year graph is the panel that asks for one |
-| B | The bar is the row | Wins the distributions outright — ranked, named, self-sorting, and a long tail stays visible rather than becoming a sliver. Has no answer for fifty-two weeks |
+| **B** | **The bar is the row** | **Chosen.** Wins the distributions outright — ranked, named, self-sorting, and a long tail stays visible rather than becoming a sliver. Has no answer for fifty-two weeks |
 | C | Small inline-SVG charts | Wins time. Loses the distributions: seven shades of one hue and a legend under them is decoration above a table that already said it |
-| **D** | **The mix** | **Recommended.** Column strip where the x axis is time, bar-in-a-row where it is a list of names, and A's discipline throughout — every chart carries its number in words, so nothing can only be read by eye |
+| D | The mix | Recommended by the page: column strip where the x axis is time, bar-in-a-row where it is a list of names, and A's discipline throughout |
 
 The page also renders eight candidate extra panels so they can be kept or
 dropped by looking at them. Four are argued for: **the practice** (when the
@@ -432,3 +432,10 @@ inbox was last empty, when the last weekly review finished), **the backlog**
 (open commitments over the year), **the oldest thing in each view** — the only
 candidate that is something to go and fix rather than something to know — and
 **how much of Next is actually workable**.
+
+B as rendered had no answer for the year graph, and the decision settled one:
+**twelve monthly rows**, the bar being that month's average per day. Fifty-two
+weeks cannot be fifty-two rows and twelve can, and a month is the coarsest
+period that still shows a year's direction — which is all the long view was
+asked for. It costs the week-by-week resolution C's line had, and buys never
+having to read two kinds of picture on one screen.

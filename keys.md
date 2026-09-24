@@ -325,7 +325,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | --- | --- |
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
 | `↵` `o` | open the selected row |
-| `g` + letter | a view — see implementation.md, "Navigation" |
+| `g` + letter | a view — see implementation.md, "Navigation". `g d` is the Dashboard |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
 | `z` | Inbox Zero over the whole inbox |
@@ -591,6 +591,16 @@ never be advertised without working:
   bar's entry is derived from the page like every other entry and says the
   answer it lands on. Nothing in the key layer knows what a theme is
   (implementation.md, "Theme").
+
+- **the Dashboard is the first view with no keys of its own**, and that is
+  the answer rather than a gap. It holds no rows to move through — `j`/`k`
+  have nowhere to go — and nothing on it can be completed, picked or deleted,
+  because nothing on it is an item (design.md, "Dashboard"). So its key bar is
+  the globals and the steering entries and nothing else, which is the bar
+  doing exactly what it is supposed to: nothing advertises a key that does not
+  exist. The one thing on the screen that *is* pressable is a link — a row of
+  "the oldest thing in each view" — and it is reached the way every other link
+  on a screen with no cursor is reached, with `^m`.
 
 What is left, and deliberately:
 

@@ -8,7 +8,7 @@
   const jumps = {
     i: "/inbox", t: "/today", n: "/next", p: "/projects", k: "/tasks",
     w: "/waiting", c: "/calendar", s: "/someday", h: "/scheduler",
-    r: "/review", a: "/archive", u: "/audit", e: "/settings",
+    r: "/review", a: "/archive", u: "/audit", d: "/dashboard", e: "/settings",
     // not a view: g z is g i then z, which is the pair pressed most often
     z: "/process",
   };
