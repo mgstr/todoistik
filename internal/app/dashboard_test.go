@@ -34,23 +34,28 @@ func TestDashboardCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// --- inbound: four today, and today is the last of the seven rows
+	// --- inbound: four today, and today is the first of the seven rows
 	if len(d.Inbound.Days) != 7 {
 		t.Fatalf("the week has %d rows, want 7", len(d.Inbound.Days))
 	}
-	today := d.Inbound.Days[6]
+	today := d.Inbound.Days[0]
 	if !today.Now {
-		t.Error("the last row of the week is not marked as today")
+		t.Error("the first row of the week is not marked as today")
 	}
 	if today.Count != 4 {
 		t.Errorf("today captured %d, want 4", today.Count)
 	}
+	// and the week runs backwards from there: the last row is six days ago
+	sixBack := a.now().In(a.loc).AddDate(0, 0, -6).Format("Mon 2 Jan")
+	if d.Inbound.Days[6].Label != sixBack {
+		t.Errorf("the week's last row is %q, want %q", d.Inbound.Days[6].Label, sixBack)
+	}
 	if d.Inbound.WeekTotal != 4 {
 		t.Errorf("the week totals %d, want 4", d.Inbound.WeekTotal)
 	}
-	if len(d.Inbound.Months) != 12 || !d.Inbound.Months[11].Now {
-		t.Errorf("the year has %d rows and ends on %v, want 12 ending on this month",
-			len(d.Inbound.Months), d.Inbound.Months[len(d.Inbound.Months)-1].Now)
+	if len(d.Inbound.Months) != 12 || !d.Inbound.Months[0].Now {
+		t.Errorf("the year has %d rows and starts on %v, want 12 starting on this month",
+			len(d.Inbound.Months), d.Inbound.Months[0].Now)
 	}
 
 	// --- what the inbox became: one of each, and no row for what did not happen

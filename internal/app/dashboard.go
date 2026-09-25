@@ -151,12 +151,14 @@ func (a *App) flow(times []time.Time) Flow {
 	f := Flow{}
 	now := a.now().In(a.loc)
 
-	// the week: one row per day, oldest first, today last and marked
+	// the week: one row per day, today first and marked, then backwards. The
+	// row you came to read is the one at the top, and the eye does not have to
+	// find the end of a list to find now (implementation.md, "The Dashboard").
 	perDay := map[string]int{}
 	for _, t := range times {
 		perDay[t.In(a.loc).Format(DateFormat)]++
 	}
-	for i := 6; i >= 0; i-- {
+	for i := 0; i <= 6; i++ {
 		day := now.AddDate(0, 0, -i)
 		key := day.Format(DateFormat)
 		n := perDay[key]
@@ -170,8 +172,8 @@ func (a *App) flow(times []time.Time) Flow {
 	}
 	f.WeekPerDay = float64(f.WeekTotal) / 7
 
-	// the year: one row per month, the bar being that month's average per day
-	// so that a 28-day month is not drawn short for being short
+	// the year: one row per month, this month first, the bar being that month's
+	// average per day so that a 28-day month is not drawn short for being short
 	perMonth := map[string]int{}
 	for _, t := range times {
 		perMonth[t.In(a.loc).Format("2006-01")]++
@@ -179,7 +181,7 @@ func (a *App) flow(times []time.Time) Flow {
 	first := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, a.loc)
 	rates := make([]float64, 0, 12)
 	total := 0
-	for i := 11; i >= 0; i-- {
+	for i := 0; i <= 11; i++ {
 		m := first.AddDate(0, -i, 0)
 		n := perMonth[m.Format("2006-01")]
 		total += n
@@ -620,8 +622,9 @@ func (a *App) nextMix() (Dist, error) {
 
 // --- the backlog ---------------------------------------------------------
 
-// Open commitments at the end of each of the last twelve months, counted off
-// the items themselves rather than replayed from the log. That makes it "what
+// Open commitments at the end of each of the last twelve months, this month
+// first like every other dated panel, counted off the items themselves rather
+// than replayed from the log. That makes it "what
 // I still have, seen month by month" rather than a reconstruction: an item
 // deleted since is missing from the months it was open in, because it is no
 // longer there to count. The line is read for its direction, and a deletion
@@ -661,7 +664,7 @@ func (a *App) backlog() ([]Bar, error) {
 	first := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, a.loc)
 	var bars []Bar
 	counts := make([]int, 0, 12)
-	for i := 11; i >= 0; i-- {
+	for i := 0; i <= 11; i++ {
 		m := first.AddDate(0, -i, 0)
 		end := m.AddDate(0, 1, 0) // the moment the month is over
 		if i == 0 {
