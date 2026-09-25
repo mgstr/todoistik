@@ -591,6 +591,14 @@ actions are shown together in the "Tasks" view, which is simply where every
 parentless action is found. Tasks is a view and not a container: nothing is
 moved into it, an action is in it exactly as long as it has no project.
 
+**The two are told apart by name wherever one is being made or read.** A
+standalone action is a *task* and one inside a project is an *action*: those
+are the two answers processing offers (see "Inbox Zero"), the two words the
+match list badges a row with (see "Matches while processing"), and the two
+names the title bar gives the same screen depending on which it is holding.
+The item type is untouched by any of it - an action is still an action, and
+"task" is what one with no project is called.
+
 Every action is a next action of whatever it belongs to, standalone or not:
 `becameNextActionAt` is stamped when the action is created and never cleared. An
 action that cannot be started yet says so with a snooze, which names *why* - a
@@ -1120,13 +1128,13 @@ rather than one:
   by recapturing its text; an item that became a task is not lost and has
   nothing to recover. An entry that said *deleted* about both was offering to
   put a live commitment back in the inbox as a second copy of itself
-- **the Task branch records two answers, because it gives two.** What it makes
-  is a standalone action - a task, everywhere it is afterwards read - or an
-  action inside a project, and those are found in different views under
-  different nouns (see "Tasks" and "Projects"). One event for both would put the
-  same word on two things the rest of the app is careful to keep apart, which is
-  the thing that has already had to be fixed on the screen this branch is
-  answered from
+- **Task and Action record one answer each, because they are two answers.**
+  One makes a standalone action - a task, everywhere it is afterwards read -
+  and the other an action inside a project, and those are found in different
+  views under different nouns (see "Tasks" and "Projects"). One event for both
+  would put the same word on two things the rest of the app is careful to keep
+  apart, which is the thing the screen they are answered on was itself fixed
+  for
 
 Entries written before are not rewritten and keep the word they were written
 with. An old log therefore has one bucket where a new one has three, which is a
@@ -1246,6 +1254,16 @@ worth giving - a line asks one question, and you write only what is true. It is
 also the same gesture capture already is, so the two ends of the process are
 typed the same way.
 
+- **the project is shown and never chosen.** Where an action lives is settled
+  before the form is drawn, everywhere an action is written: by which branch
+  was pressed while processing, by the picker the Action branch opens, by the
+  project whose page the action is being added to, or by the action already
+  having one. So the box says which and cannot be changed. Moving an action
+  between projects afterwards is Detach and Attach, which is a different act
+  with its own consequences (see "Reshaping items"). There was a picker in the
+  form on one screen, and having it in only one place is what was wrong with
+  it: the same form asked a question on the screen where it was walked past and
+  did not ask it on the four where it had already been answered.
 - **the meta line and the description are two fields because they are read for
   two different reasons.** The description is read to remember what an action is
   about; the meta line is read to see what the app thinks it is. They shared one
@@ -1473,11 +1491,27 @@ answers a different question:
 
 - **the title bar** - *where am I*. The view's name, with the same count the
   navigation shows beside it, and then every step taken inside it: "Inbox /
-  Processing / Action / Create project". A screen reached from inside another
-  one is not a new place, it is a deeper one, and the trail is the only thing
-  that says which. It matters most on the screens that have no nav entry of
-  their own - processing, doing - which without it can only be told apart by
+  Processing / Create project / Create action". A screen reached from inside
+  another one is not a new place, it is a deeper one, and the trail is the only
+  thing that says which. It matters most on the screens that have no nav entry
+  of their own - processing, doing - which without it can only be told apart by
   what happens to be on them
+
+  **It is a path and not a label, and the way out walks it one step at a
+  time.** Every screen you passed through to get here is on it, so an action
+  opened from its project reads "Projects / Edit project / Edit action" and not
+  "Projects / Edit action" - the second said where the action *lives*, which
+  the page says anyway, and left out how you arrived, which is the question a
+  trail exists to answer. Back is then the step before the last one rather than
+  a jump to the view: leaving the form for an action written into a plan comes
+  back to the plan, and leaving that comes back to the list. The two are built
+  from the same address on purpose. A trail that named a screen the Back button
+  did not go to would be describing a different app, and nobody would notice
+  for months.
+
+  A root view has no step before it, so nothing is offered: Inbox, Next, Tasks
+  and the rest are where the path starts, and "back" from one of them would
+  have to invent a destination
 - **the navigation** - *where else could I be*, and how much is waiting there
 - **the key bar** - *what can I press here*, and the place you press it
 
@@ -2356,9 +2390,9 @@ which is the question being asked.
   would be inviting a wrong answer. What the two panels share is their shape,
   and nothing else
 - **What the inbox became** - every branch of Inbox Zero, by how often it was
-  the answer, over the last three months, with the Task branch's two answers on
-  their own rows: a task standing alone, and an action filed into a project (see
-  "Audit entry"). This is the panel that says whether most of what you write
+  the answer, over the last three months, with Task and Action on their own
+  rows: a task standing alone, and an action filed into a project (see "Audit
+  entry"). This is the panel that says whether most of what you write
   down is worth doing, and it can only be read off the audit log: by the time a
   capture is anything it has stopped being a capture (see "Where it came from").
   **Its rows are in a fixed order and not ranked** - what became a commitment
@@ -2548,7 +2582,8 @@ readable again.
 
 For each item the only question asked is: what is it? The answer is one of:
 
-The three branches that create something - Task, Project and Someday/Maybe -
+The four branches that create something - Task, Action, Project and
+Someday/Maybe -
 **read the captured item's first line as notation on the way into their form**:
 whatever that item's meta line can hold moves into it, and the words that are
 left become the title. An action's line holds all of it; a project's and a
@@ -2566,10 +2601,12 @@ body cannot reach the meta line at all, rather than being kept out of it by the
 remembered lists happening not to hold what it says (see "Contexts") - which is
 the difference between a rule and a piece of luck.
 
-**The rest of the text goes where that branch keeps material**, and each of the
-three has somewhere real to put it:
-- **Task**: the description, which is already where a link, a reference or
-  anything else worth having to hand while doing it belongs (see "Action")
+**The rest of the text goes where that branch keeps material**, and each of
+them has somewhere real to put it:
+- **Task and Action**: the description, which is already where a link, a
+  reference or anything else worth having to hand while doing it belongs (see
+  "Action"). One entry and not two, because the two branches write the same
+  item on the same form
 - **Project**: the description of the first action, which is the box open on the
   form under "Next action", and never the definition of done. A project has no
   description of its own on purpose, and material a project needs belongs to
@@ -2601,12 +2638,70 @@ and body and all, and that is what the audit entry keeps.
   action: the app itself stores no reference material. The branch exists so that
   such captures have a correct answer, instead of being trashed or parked in
   someday/maybe forever.
-- **Task**: it is done in a single step. The item is converted into an action
-  and is written in the form an action is written in - the title starts with a
-  verb and is self-descriptive; context and other optional fields may be filled
-  in. The verb is asked for and not required: a title that does not open with
-  one is marked and saved anyway (see "Verbs"). Two further things are settled
-  here, and neither is a branch of its own:
+- **Task**: it is done in a single step, and that step stands on its own. The
+  item is converted into a **standalone** action and is written in the form an
+  action is written in - the title starts with a verb and is self-descriptive;
+  context and other optional fields may be filled in. The verb is asked for and
+  not required: a title that does not open with one is marked and saved anyway
+  (see "Verbs"). `becameNextActionAt` is stamped immediately - deciding it is
+  worth doing is exactly what makes it a next action - and it appears in Tasks.
+- **Action**: it is done in a single step, and that step belongs to a plan
+  already under way. **Which plan is asked first**, on a screen of its own, and
+  the same form then opens with the project answered. The action is created
+  under that project, following the same default as adding an action from the
+  project itself: it becomes the project's next action, and whether it waits on
+  one of that project's other actions is settled afterwards, on its own page
+  (see "Editing items").
+  - **the picker offers the active projects, and nothing else.** A stalled or
+    snoozed project is a valid target: filing a next action into a stalled
+    project is exactly what resolves the stall, and a project's snooze is about
+    not being bugged, not about being closed to new next actions. A completed
+    project is not - it is finished, and reopening one is not a decision to be
+    made in passing while emptying the inbox.
+  - a project is **chosen, never typed**. Text that matches nothing is a typo
+    far more often than it is an intention, and a typo that silently becomes a
+    second project is the one mistake here that is expensive to undo - the
+    action is filed somewhere real, so nothing looks wrong until the outcome is
+    being tracked in two places.
+  - **a project that does not exist yet can be named here**, as an explicit
+    choice on the same screen rather than as what an unmatched name means. It
+    is created with this action as its first and therefore its next action, so
+    a definition of done is required exactly as it is in the Project branch.
+    Without this, a step whose outcome you have not started tracking has no
+    correct answer here: it would go in standalone and the outcome it belongs
+    to would go unrecorded, which is the thing projects exist to prevent.
+    Neither the project nor the action exists until the action is saved - both
+    are written at once, so an abandoned form leaves nothing behind.
+
+  **Task and Action are two answers to "what is it?" and not one answer with a
+  field on it.** They were one branch, called Task, with a project box inside
+  the form and `<standalone>` as its default. What was wrong with that is what
+  the branch list is *for*: this screen asks one question and the answers are
+  the shapes a captured thing can turn out to have, and "a step of a plan
+  already under way" is a different shape from "a small thing I will just do".
+  The old arrangement asked the second question after the first had been
+  answered, in a control most presses walked straight past - so the commonest
+  way to file something into a project was to notice a box that looked
+  already filled in. Two branches put both answers where the answers are, and
+  the one that asks a second question asks it before anything is written rather
+  than after.
+
+  It also makes the nouns line up. A standalone action is a **task** everywhere
+  it is afterwards read - the view it lands in, the navigation entry, the word
+  this file uses for it (see "Tasks", "Standalone actions") - and one inside a
+  project is an **action**. The item type is the same either way; what differs
+  is where it lives, and that is exactly what the two branches differ by. The
+  match list beside the question already said the two words (see "Matches while
+  processing"), and now the answers do too.
+
+  **Neither form asks where the action lives.** It has been answered - by which
+  button was pressed, and then by the picker - so the Project box shows it and
+  cannot be changed, which is what an action's own page has always done. Moving
+  an action between projects afterwards is what Detach and Attach are for (see
+  "Reshaping items").
+
+  Two further things are settled on both forms, and neither is a branch of its
+  own:
   - **who does it.** By default it is yours. Saying that someone else does it
     sets "assigned to", which is what puts the action in the "Waiting for" view;
     `becameNextActionAt` is stamped either way, and for a delegated action it is
@@ -2614,49 +2709,10 @@ and body and all, and that is what the audit entry keeps.
     answer to "what is it?" - the object created is the same one, holding the
     same title, the same context, the same home. An answer that differs from
     another by one field is that field.
-  - **where it lives.** By default it is created standalone, so
-    `becameNextActionAt` is stamped immediately - deciding it is worth doing is
-    exactly what makes it a next action - and it appears in Tasks. An active
-    project can be chosen instead - from the active projects, narrowed by the
-    same name matching the name filter uses (see "Filtering by name") - in which
-    case the action is created under that project, following the same default as
-    adding an action from the project itself: it becomes the project's next
-    action, and whether it waits on one of that project's other actions is
-    settled afterwards, on its own page (see "Editing items"). A stalled or
-    snoozed project is a valid target: filing a next action into a stalled
-    project is exactly what resolves the stall, and a project's snooze is about
-    not being bugged, not about being closed to new next actions. A completed
-    project is not: it is finished, and reopening one is not a decision to be
-    made in passing while emptying the inbox.
-  - a project is **chosen, never typed**. Text that matches nothing is a typo
-    far more often than it is an intention, and a typo that silently becomes a
-    second project is the one mistake here that is expensive to undo - the
-    action is filed somewhere real, so nothing looks wrong until the outcome is
-    being tracked in two places.
-  - **a project that does not exist yet can be created here**, as an explicit
-    choice rather than as what an unmatched name means. It is created with this
-    action as its first and therefore its next action, so a definition of done
-    is required exactly as it is in the Project branch. Without this, a step
-    whose outcome you have not started tracking has no correct answer here: it
-    would go in standalone and the outcome it belongs to would go unrecorded,
-    which is the thing projects exist to prevent. Neither the project nor the
-    action exists until the action is saved - both are written at once, so an
-    abandoned form leaves nothing behind.
-  - **the branch is called Task and not Action, and that is a claim about naming
-    rather than about behaviour.** What it makes by default is a standalone
-    action, and a standalone action is a *task* everywhere it is afterwards
-    read: the view it lands in, the navigation entry, the word this file uses
-    for it (see "Tasks", "Standalone actions"). Calling it Action here meant the
-    commonest answer in the app was written under one noun and found under
-    another, on the one screen whose whole job is naming what a thing is. The
-    item type is untouched - an action is still an action, and "task" is what
-    one with no project is called
-  - **choosing a project makes an action of it, and the label does not follow.**
-    A branch names the answer it is, and the answer is "this is one step and not
-    a plan"; where that step lives is the next question the same form asks, with
-    `<standalone>` as its default. The picker is the thing that says which noun
-    the created item ends up under, and it says it in the box, which is where it
-    was already being decided
+  - **when it can be started.** A snooze names a date, and inside a project it
+    may name the action this one comes after - which is a claim about the order
+    of a plan, and so is only ever a question the Action branch's form could
+    ask (see "Standalone actions").
 - **Two minute rule**: if it can be completed in under two minutes, it is done
   right now and marked as completed in the audit log, without being turned into
   a "proper" action first.
@@ -2698,7 +2754,7 @@ and body and all, and that is what the audit entry keeps.
 **A completion request is not asked what it is.** A captured line reporting an
 item finished somewhere else (see "Completion requests") is not a thing to do,
 to file or to throw away: it is a claim about an item that already exists, and
-none of the six answers above fits it. The item is looked up by the identity the
+none of the seven answers above fits it. The item is looked up by the identity the
 request carries, and what is asked instead is whether the claim is true.
 
 - **the item is there and open**: the screen shows what the request says - what
@@ -2805,13 +2861,14 @@ have to think to run, and the whole value here is that nobody thought to run it.
   project. The list is read to answer "have I written this before", and an
   answer given in a word that appears nowhere else is one you have to translate
   before you can use it: a row saying `action` about something that lives in
-  "Tasks" sends you to look for it where it is not. This is the same naming the
-  branch below is called by (see "Inbox Zero"), and the branch and the row are
-  the two halves of one screen
+  "Tasks" sends you to look for it where it is not. The three words are also
+  exactly the three branches below that make one (see "Inbox Zero"), so the
+  badge on a row is the answer a copy of it opens - the branch and the row are
+  the two halves of one screen, and they say the same word
 - **the open ones and the finished ones are two different answers, so they are
   shown apart.** An open match is a warning: the loop is already on a list and
   this capture is probably the same loop arriving twice, which is answered by
-  one of the six branches - usually Delete. A finished match is an offer: the
+  one of the seven branches - usually Delete. A finished match is an offer: the
   thing came back, and what it was last time is worth having (see "Copying a
   finished one")
 - **an open match is shown and cannot be copied.** Copying something already
@@ -2824,7 +2881,7 @@ have to think to run, and the whole value here is that nobody thought to run it.
   inbox is emptied whole and every item is opened, so knowing before you look
   buys nothing - the same argument that leaves a capture with a body unmarked
   and a completion request unmarked (see "Inbox item")
-- **it changes none of the six answers.** The list is something to have read
+- **it changes none of the seven answers.** The list is something to have read
   before giving one, and giving one is unchanged. Nothing is decided by it, in
   the same sense that reading a captured line as notation decides nothing
 
@@ -2868,11 +2925,13 @@ remember it, which is the thing the app exists not to require.
   context, the size, whether it needs quiet, and the areas it belongs to are all
   still true. The due date and the snooze were dates in a month that has passed,
   `#today` was one morning's pick, and who it was delegated to is answered by
-  the form being filled in now - it is one of the two things the Task branch
-  settles, and a copy is not a reason to stop settling it (see "Inbox Zero")
-- **it does not copy where the action lived.** A copy is created standalone like
-  every other action written here, and a project is chosen if one is wanted. The
-  finished action's project is finished too, and a completed project is not a
+  the form being filled in now - it is one of the things that form settles, and
+  a copy is not a reason to stop settling it (see "Inbox Zero")
+- **it does not copy where the action lived.** The branch the digit opens is
+  the word the row is badged with, so a finished task comes back as a task and
+  a finished action comes back through the picker, which asks which plan this
+  one belongs to now. It is never filed into the project it came out of without
+  being asked: that project is finished too, and a completed project is not a
   valid home for anything (see "Inbox Zero")
 - **a copied project brings its actions and its definition of done.** The plan
   is the thing being copied, and a project without its steps is a title. The DOD
@@ -2889,8 +2948,8 @@ remember it, which is the thing the app exists not to require.
   notation reading is careful about too
 - **nothing exists until the form is submitted**, and the submit is an ordinary
   answer to "what is it?" - the item leaves the inbox and the audit entry is the
-  one that branch always writes. A copy is not a seventh answer; it is the same
-  answer, arriving with the words already in it
+  one that branch always writes. A copy is not an eighth answer; it is one of
+  the seven, arriving with the words already in it
 - **the finished item is not touched.** It stays completed, in the "Archive",
   exactly as it was - what came back is a new commitment, and the old one is
   still a thing that was finished (see "A completed item is frozen")
@@ -3311,7 +3370,7 @@ it. A date snooze is untouched, being a claim about the calendar rather than
 about the project. Nothing leaves a project into limbo.
 
 **Attach** - the mirror of Detach: a standalone action joins an existing active
-project, picked by name the same way the Task branch of Inbox Zero picks one
+project, picked the same way the Action branch of Inbox Zero picks one
 (see "Inbox Zero"). It keeps its title, context, duration, tags, description and
 dates unchanged, including `becameNextActionAt` - a standalone action is always
 a next action, and it stays exactly as next as it already was, simply under a

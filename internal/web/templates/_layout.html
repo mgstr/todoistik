@@ -390,9 +390,12 @@
      five drifting copies of the same form is exactly how the meta line would
      end up on four of them.
 
-     The project control is the difference between them. Picker means
-     choose one; Fixed means it is already decided and says which; neither
-     means the screen has already answered it elsewhere.
+     The project control is the same on all of them now: Fixed says which
+     project this action belongs to and cannot be changed, and no Fixed at all
+     means the screen has answered it elsewhere. There was a picker here, on
+     the processing screen's form only — choosing where an action lives is a
+     question of its own now, and it is asked on a screen of its own before
+     any of these boxes exist (design.md, "Inbox Zero").
 
      Three parameters are about the form around the fields rather than about
      the action. Prefix goes in front of every name, because a project form
@@ -420,27 +423,7 @@
      (see implementation.md, "Create buttons"). */}}
 <label class="gutter"><span class="lb">Title</span> <input name="{{.Prefix}}title" value="{{.Title}}" {{if .Required}}required{{end}} data-verbcheck{{with .Form}} form="{{.}}"{{end}}{{with .Label}} data-label="{{.}}"{{end}}{{if .Focus}} autofocus{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
-{{if .Picker}}
-<label class="gutter"><span class="lb">Project</span>
-  <div class="picker" data-picker>
-    <input type="hidden" name="projectid" value="">
-    <input type="hidden" name="newproject" value="">
-    <input type="hidden" name="newdod" value="">
-    <input class="pickerbox" readonly autocomplete="off" spellcheck="false" value="&lt;standalone&gt;">
-    <ul class="pickerlist" hidden>
-      <li class="pickrow" data-pick="" data-title="standalone">&lt;standalone&gt;</li>
-      {{range .Picker}}
-      <li class="pickrow" data-pick="{{.ID}}" data-title="{{.Title}}">
-        <span class="title">{{.Title}}</span>
-        {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
-        {{if .Open}}<span class="badge">{{.Open}} open</span>{{end}}
-      </li>
-      {{end}}
-      <li class="pickrow pnew" data-pick="new" data-title="">+ new project…</li>
-    </ul>
-  </div>
-</label>
-{{else if .Fixed}}
+{{if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict
@@ -615,7 +598,12 @@
      Siblings is what a `snooze:` here may name — the project's own open
      actions on its page, and nothing at all on a project that does not exist
      yet, since there is no action for one row to wait on. */}}
-<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
+{{/* data-crumb: this dialog is a step and not a question, so the title bar
+     says so while it is up — "Projects / Edit project / Create action", and
+     "Edit action" when a row already in the list is opened in it. The heading
+     and the crumb move together, which is what openDraft sets both of
+     (implementation.md, "Panels"). */}}
+<dialog id="draft-dialog" aria-labelledby="draft-dialog-title" data-crumb="Create action">
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
     {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""

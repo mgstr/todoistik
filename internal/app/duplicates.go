@@ -63,27 +63,15 @@ func (m *Match) Title() string {
 	return m.Project.Title
 }
 
-// Kind is "action" or "project": which branch of processing a copy of this
-// match opens (design.md, "Copying a finished one"). It names the item that
-// would be created and not the word the row is badged with — those came apart
-// when the branch was renamed, and `Noun` is the other half.
+// Kind is what this match is: "task" for a standalone action, "action" for
+// one inside a project, "project" for a project. It is both the word the row
+// is badged with and the processing branch a copy of it opens, which is one
+// string again now that the branches are named after the three things they
+// make (design.md, "Inbox Zero"). It was two for as long as the branch that
+// made a task was the only way to make an action as well — the answer the
+// list points at has to be recognisable as the thing it would be found as
+// (design.md, "Tasks", "Matches while processing").
 func (m *Match) Kind() string {
-	if m.Action != nil {
-		return "action"
-	}
-	return "project"
-}
-
-// Noun is what the row calls this match: "task" for a standalone action,
-// "action" for one inside a project, "project" for a project. The same three
-// words every other view uses, because the question the list answers is "have
-// I written this before" and the answer has to be recognisable as the thing
-// it would be found as (design.md, "Tasks", "Matches while processing").
-//
-// Split from Kind rather than folded into it: Kind is a branch name on a URL
-// and this is a word on a screen, and the moment a standalone action stopped
-// being called an action they stopped being the same string.
-func (m *Match) Noun() string {
 	if m.Action == nil {
 		return "project"
 	}
@@ -214,7 +202,7 @@ func (a *App) Matches(text string, rule DupRule) (open, done []*Match, openTotal
 // describe the work and which described an occasion that has passed — and the
 // handler's job is to put the answer in boxes.
 type CopySeed struct {
-	Kind        string     // "action" or "project", which says which form this is
+	Kind        string     // "task", "action" or "project": which form this is
 	Title       string     //
 	Meta        string     // the branch's meta line, occasion fields dropped
 	DOD         string     // a project's definition of done, empty for an action
@@ -229,7 +217,7 @@ type CopySeed struct {
 // screen has nothing to say about one beyond carrying on with the capture.
 func (a *App) CopyOf(kind string, id int64) (*CopySeed, error) {
 	switch kind {
-	case "action":
+	case "task", "action":
 		act, err := a.Action(id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

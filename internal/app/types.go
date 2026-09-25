@@ -334,10 +334,10 @@ const (
 	// "Audit entry"). Entries already written stay as they are: the audit log
 	// is never rewritten (implementation.md, "Schema changes").
 	//
-	// The Task branch writes two of them, because it makes two different
-	// things: a standalone action, which is a task everywhere it is afterwards
-	// read, or an action inside a project. That is the same split Match.Kind
-	// and Match.Noun draw on the screen this branch is answered from
+	// Task and Action are two branches and two entries, because they make two
+	// different things: a standalone action, which is a task everywhere it is
+	// afterwards read, or an action inside a project. That is the same split
+	// Match.Kind draws on the screen they are answered from
 	// (implementation.md, "The match list") — the item type is `action` either
 	// way, and the noun is where the thing is found.
 	EvBecameTask    = "became-a-task"

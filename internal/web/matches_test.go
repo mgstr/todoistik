@@ -133,7 +133,9 @@ func TestCopyingAFinishedActionSeedsTheForm(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	body := getPage(t, s, "/process?item=1&one=1&as=action&from="+itoa(act.ID))
+	// a finished standalone action is a task, and the digit opens the branch
+	// that makes one — no picker in between, because there is nothing to pick
+	body := getPage(t, s, "/process?item=1&one=1&as=task&from="+itoa(act.ID))
 	if !strings.Contains(body, `name="title" value="Pay the rent for August"`) {
 		t.Error("the title did not come from the finished action")
 	}
@@ -208,7 +210,7 @@ func TestAStaleCopyFallsBackToTheCapture(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, from := range []string{itoa(open.ID), "999"} {
-		body := getPage(t, s, "/process?item=1&one=1&as=action&from="+from)
+		body := getPage(t, s, "/process?item=1&one=1&as=task&from="+from)
 		if !strings.Contains(body, `name="title" value="Book the tyre change"`) {
 			t.Errorf("from=%s: the form did not fall back to the capture", from)
 		}
@@ -242,9 +244,10 @@ func TestMatchingCanBeTurnedOff(t *testing.T) {
 	}
 }
 
-// A row is badged with the word the thing would be found under: a standalone
-// action is a task, one inside a project is an action, and the copy link still
-// names the branch that creates it (design.md, "Matches while processing").
+// A row is badged with the word the thing would be found under, and that word
+// is the branch a copy of it opens: a standalone action is a task, one inside
+// a project is an action (design.md, "Matches while processing"). The two came
+// apart while one branch made both and are one string again.
 func TestAMatchIsBadgedWithTheWordItIsFoundUnder(t *testing.T) {
 	s, a := matchServer(t)
 	finished(t, a, app.ActionFields{Title: "Change the tyres"})
@@ -265,9 +268,10 @@ func TestAMatchIsBadgedWithTheWordItIsFoundUnder(t *testing.T) {
 	if !strings.Contains(body, `<span class="badge">action</span>`) {
 		t.Error("the action inside a project is not badged an action")
 	}
-	// the badge changed and the branch did not: a copy still opens the form
-	// that creates an action
-	if !strings.Contains(body, "&amp;as=action&amp;from=") {
-		t.Error("the copy link no longer names the branch it opens")
+	// the badge is the branch: copying the finished task opens Task. The
+	// action inside the project is open, and an open match is shown and not
+	// pressable, so it has no link to check
+	if !strings.Contains(body, "&amp;as=task&amp;from=") {
+		t.Error("copying the finished task does not open the Task branch")
 	}
 }
