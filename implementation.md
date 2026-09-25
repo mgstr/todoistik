@@ -2438,10 +2438,21 @@ Two things the gutter left behind, and one it did not.
   written. The processing screen still clamps to its own 40rem column, which
   is sized for reading one captured sentence and is not this decision's to
   spend (see `research/process-subject-study.html`)
-- **the project picker lost a width of its own.** It carried `max-width: 34rem`
-  from before the gutter; inside a gutter label it is a flex item like every
-  other control, so the label sizes it and a cap of its own could only make one
-  box narrower than the rest
+- **every control in a gutter label is a flex item, and none carries a width of
+  its own.** `flex: 1 1 auto; min-width: 0` on the plain boxes, the textareas
+  and the meta line's wrapper: the label sizes them, so every field on a screen
+  is the same width and a cap on one box could only make that one narrower than
+  the rest. The project picker used to carry `max-width: 34rem` from before the
+  gutter, and lost it for exactly this reason.
+
+  That declaration then hung off `.picker` — the last selector of the list, and
+  the combobox the project box replaced. Deleting the picker deleted the width
+  with it, and the orphaned list ran on into the next rule, so Title,
+  Definition of done and every description box opened default-width in the
+  muted, smaller type meant for a completed item's read-only fields. The
+  declaration sits on `.fbox` now, which nothing is about to delete; the
+  lesson is that a shared rule must not hang off the one selector in its list
+  that names a control
 - **a note box opens at one line and grows as it is written in.** Every
   textarea opened at a fixed several rows, which is the wrong height twice: a
   hole under the many actions that carry no note, and still too small for the

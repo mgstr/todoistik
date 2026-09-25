@@ -553,11 +553,18 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 
 .stack label.gutter { flex-direction: row; align-items: baseline; gap: .6rem; }
 .stack label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
-/* every kind of control the two forms put in a label: the plain boxes, the
-   meta line's wrapper, and the project picker */
+/* every kind of control the two forms put in a label: the plain boxes and the
+   meta line's wrapper. The box takes whatever the name's gutter leaves, so
+   every field on the screen is one width and a form is one shape.
+
+   The last selector of this list used to be `.picker`, the combobox the
+   project box replaced, and it was the one carrying the declarations — taking
+   it out took them with it, and the list then ran on into the rule below,
+   which is how Title and Description came to be default-width boxes in muted
+   8pt type. */
 .stack label.gutter > input,
 .stack label.gutter > textarea,
-.stack label.gutter > .fbox,
+.stack label.gutter > .fbox { flex: 1 1 auto; min-width: 0; }
 /* the meta line is notation, so it is set in the face the notation is set in
    everywhere else — the ? panel's terms, the audit log. It also stops @home
    and #short from reading as words in a sentence, which is the whole reason
