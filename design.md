@@ -951,6 +951,19 @@ tag in every respect but one: it expires.
   for it to narrow
 - it is the one tag that is not an area of responsibility, and the only one that
   says *when* rather than *what about*
+- **it is set by the same mark wherever an action is written, including before
+  that action exists.** The dot on a project's Next action heading is a press
+  against an item already saved; on the screens that *make* an action - the
+  processing forms, the screen a project is created on, Create action, the
+  add-action dialog, and the empty boxes on a stalled project - there is
+  nothing yet to press against, so the mark writes the tag into the line being
+  typed and the Create makes an action that is already picked. The tag is the
+  only thing that carries it either way, so nothing new can drift: typing
+  `#today` in the line does exactly what pressing the dot does, and a draft
+  action waiting in a project's list wears the dot as a mark rather than a
+  button, having no id for a press to reach. Before this, picking a new action
+  for today was the one way of setting it that needed the notation to be
+  remembered
 
 ### Verbs
 An action's title is asked to open with a verb - see "Action" for why, and "The

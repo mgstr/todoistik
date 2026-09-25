@@ -139,7 +139,7 @@
          prevents a project from being stalled (design.md, "Stalled projects").
          Written in, it is the project's next action a moment later. */}}
     {{template "actionfields" (dict "Prefix" "a" "Form" "itemform" "Required" $editing "Label" "a next action"
-      "Focus" false "Siblings" $d.Siblings
+      "Focus" false "Pick" (not $editing) "Siblings" $d.Siblings
       "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
   </div>
 

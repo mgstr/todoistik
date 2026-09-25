@@ -364,7 +364,13 @@
     const np = document.getElementById("newproject-dialog");
     if (np && np.open) return { view: makeKeys(np).concat([["esc", "cancel"]]), global: [] };
     const dd = draftDialog();
-    if (dd && dd.open) return { view: makeKeys(dd).concat([["esc", "cancel"]]), global: [] };
+    // the keys the dialog itself declares come first, the way they do in the
+    // chooser and the links list: the row being written carries the today
+    // mark, and a key that works and is not in the bar is the one thing the
+    // bar promises never to be
+    if (dd && dd.open) {
+      return { view: declaredKeys("[data-key]").concat(makeKeys(dd), [["esc", "cancel"]]), global: [] };
+    }
     if (openSuggest()) {
       return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
     }
@@ -1456,6 +1462,13 @@
   // are ctrl keys too: the letter on the control is the same in all three
   // modes and only the chord changes.
   function rowCommand(e) {
+    // Not while a dialog is up. A dialog owns the keyboard — that is what
+    // keyLive says about every key a page declares — and these four were the
+    // one set outside the rule, pressing controls on the page behind the
+    // question: `t` in the add-action dialog picked the project's saved next
+    // action instead of the row being written, and the panel chooser's own `t`
+    // lost to it on every screen holding an action.
+    if (topDialog()) return false;
     const row = selected();
     if (e.key === "Backspace" || e.key === "Delete") return deleteHere();
     if (pressedIs("d", e)) return actOn("kb-complete");
@@ -1685,6 +1698,7 @@
     // the same pass: a control whose pressability is read off a box belongs
     // with the buttons whose pressability is read off a form
     syncMetaCopy();
+    syncToday();
     renderDirty();
     renderKeybar();
   }
@@ -1722,8 +1736,10 @@
     renderDirty();
     // a tag typed onto the project's line is one the mark can bring down, and
     // one deleted off it is one it cannot — so the mark is re-read with every
-    // keystroke, the way the gate is
+    // keystroke, the way the gate is. The dot beside the line is read back the
+    // same way: `#today` typed by hand sets it, and rubbed out unsets it
     syncMetaCopy();
+    syncToday();
     // the form this box belongs to, which is not always the one it sits
     // inside: `el.form` is the owner, `form` attribute included, and that is
     // the button this typing has to reach (see fieldsIn)
@@ -3677,9 +3693,11 @@
       if (t.charAt(0) === "@") { add("ctx", t); return; }
       if (t === "#short" || t === "#medium" || t === "#long") { add("", t.slice(1)); return; }
       if (t === "#focus") { add("focus", "★", "needs focus"); return; }
-      // the list rows leave #today out of the badges too: the dot says it,
-      // and here there is no dot to press yet
-      if (t === "#today") return;
+      // the dot, as the list's rows say it — and here it is a mark and not a
+      // button: the row is an action that does not exist yet, so there is
+      // nothing for a press to pick. It is set in the dialog this row is
+      // written in, on the mark beside the meta line
+      if (t === "#today") { add("today", "●", "picked for today"); return; }
       if (t.charAt(0) === "#") { add("tag", t); return; }
       const due = /^due:(.+)$/.exec(t);
       if (due) { add("due", "due " + due[1]); return; }
@@ -3902,6 +3920,68 @@
     if (!btn) return;
     e.preventDefault();
     copyMeta(btn);
+  });
+
+  // ● on a screen writing an action that does not exist yet. The mark on a
+  // project's Next action heading is a little form against an id; here there
+  // is none, so this flips the tag the dot stands for in the meta box beside
+  // it and the Create writes an action already picked. Nothing is posted, for
+  // the reason the tag copy posts nothing: the line is being written now, and
+  // a press you did not want costs a second press.
+  //
+  // The box is named by the button (`data-today-meta`) and found the way the
+  // tag copy finds its two: through `form.elements` where the fields belong to
+  // a form — the project page's next action sits outside the form it posts in
+  // — and through the surrounding `.stack` in the draft dialog, which has no
+  // form element at all.
+  const todayToken = "#today";
+
+  function todayBox(btn) {
+    const name = btn.dataset.todayMeta;
+    if (btn.form && btn.form.elements) return firstNamed(btn.form, name);
+    const scope = (btn.closest && btn.closest(".stack")) || document;
+    return scope.querySelector('[name="' + name + '"]');
+  }
+
+  function pickedForToday(box) { return tokensOf(box.value).includes(todayToken); }
+
+  function todayMark(btn) {
+    const box = todayBox(btn);
+    if (!box) return;
+    let have = tokensOf(box.value);
+    if (pickedForToday(box)) {
+      have = have.filter(function (t) { return t !== todayToken; });
+    } else {
+      have.push(todayToken);
+    }
+    box.value = have.join(" ");
+    // what an `input` event would have done, minus the completion list: see
+    // copyMeta, which writes into the same box for the same reason
+    paintBox(box);
+    renderDirty();
+    syncToday();
+    const scope = box.form || (box.closest && box.closest("form, dialog"));
+    if (scope) gate(scope);
+    renderKeybar();
+  }
+
+  // The dot says which way it is set and the bar's entry says which way the
+  // next press goes, the way the tag copy's does.
+  function syncToday() {
+    document.querySelectorAll("[data-today-meta]").forEach(function (btn) {
+      const box = todayBox(btn);
+      const on = !!box && pickedForToday(box);
+      btn.classList.toggle("picked", on);
+      btn.dataset.keyLabel = on ? "not today" : "today";
+      btn.title = on ? "take it off today (t)" : "pick for today (t)";
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest && e.target.closest("[data-today-meta]");
+    if (!btn) return;
+    e.preventDefault();
+    todayMark(btn);
   });
 
   // The new project is held, not created: until the action form is submitted

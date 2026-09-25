@@ -4782,6 +4782,20 @@ project").
   list, and nothing here is being typed. It calls the four things that do apply
   — repaint the box, disarm the discard marks, re-read the mark, re-gate the
   form — and leaves the suggest list shut
+- **the today dot is the same arrangement, on the screens that have no action
+  to post against.** `●` on this heading is a form against `/action/{id}/pick`;
+  on every screen that *writes* an action there is no id, so `actionfields`
+  draws a bare button carrying `data-today-meta` — the name of the meta box
+  beside it — and `todayMark` flips `#today` in that box, which is the whole of
+  what the tag is (design.md, "#today"). One parameter, `Pick`, says which kind
+  of screen this is, and it is off wherever the action exists, so the two marks
+  can never both claim `t`. The box is found through `form.elements` where the
+  fields belong to a form and through the surrounding `.stack` in the draft
+  dialog, which has no form element at all; `syncToday` rides along with
+  `syncMetaCopy` on every keystroke and every gate pass, so `#today` typed by
+  hand lights the dot and rubbing it out puts it back. A draft row in a
+  project's list wears it as a badge rather than a button — the row is an
+  action that does not exist yet, so there is nothing for a press to reach
 
 - **completing or deleting the project leaves the page**, to the `back` the
   form posts (design.md, "Editing items"). Both went to `/projects`

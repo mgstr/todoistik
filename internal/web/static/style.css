@@ -383,6 +383,10 @@ h2.stalled {
 .badge.ok { background: var(--ok); color: #fff; }
 .badge.wait { color: var(--accent); }
 .badge.focus { color: #c88a00; }
+/* A draft row's today mark. The gold of the dot it is, and no chip around it:
+   on a saved row this is a button and not a badge, so the one place it has to
+   be a badge must still read as the dot. */
+.badge.today { background: transparent; color: #c88a00; padding: .05rem .1rem; }
 
 .error-banner {
   background: var(--danger); color: #fff; padding: .5rem .75rem;

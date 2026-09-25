@@ -56,7 +56,7 @@
               title="put the project's tags on this action (#)">#↓</button>
     </h2>
     {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
-      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
+      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description "Pick" true)}}
 
     {{/* Everything after the first, which most projects do not have: one next
          action is enough to move a project forward, and the steps you already

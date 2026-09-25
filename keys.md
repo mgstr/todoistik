@@ -159,7 +159,7 @@ been.
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
 | `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
-| `t` | Today | every list row that carries the mark, an action's page, and a project's next action |
+| `t` | Today | every list row that carries the mark, an action's page, a project's next action, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote, the add-action dialog, and a stalled project's empty boxes, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
@@ -300,6 +300,15 @@ paragraphs on `t` being the collision that had to go: what had to go was `t`
 meaning *trash* here and *today* elsewhere, and what made that one expensive
 was that one of the two destroys. This is the same letter coming back to the
 same screen with the other half of the objection absent.
+
+**The two are now one press apart, and that is still not the collision.**
+Pressing `t` on the question means Task and lands you on the form it opens,
+where `t` means Today — two meanings a keystroke apart in time. What the rule
+forbids is two meanings a keystroke apart *on a screen*, where the hand has to
+know which one it is about to get; here the screen has changed underneath it,
+the bar says which of the two it is offering, and the second press is a tag on
+the very item the first press decided to make. Neither destroys anything, so
+the worst a slip costs is a dot you press again.
 
 **The alternative was `k`, and it is taken.** Tasks is `g k` in the navigation
 map, which is the same collision answered the other way — `g t` was already
