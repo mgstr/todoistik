@@ -53,11 +53,16 @@
        drawn one way however it was arrived at: see design.md, "Completing a
        next action". */}}
 
+  {{/* why a Save came back instead of being taken. The rows in the list live
+       in this form until that press, so a refusal redraws the screen with
+       everything still on it rather than throwing the page away. */}}
+  {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
+
   {{/* the same fields, in the same order, as the screen a project is created
        on — see the "projectfields" partial */}}
-  <form method="post" action="/project/{{$p.ID}}" id="itemform" class="stack" data-dirty-save>
+  <form method="post" action="/project/{{$p.ID}}" id="itemform" class="stack" data-drafts data-dirty-save>
     <input type="hidden" name="back" value="{{$d.Back}}">
-    {{template "projectfields" (dict "Title" $p.Title "DOD" $p.DOD "Meta" $p.Meta
+    {{template "projectfields" (dict "Title" $d.Fields.Title "DOD" $d.Fields.DOD "Meta" $d.Fields.Meta
       "Required" false "Focus" false)}}
     {{/* which action the boxes below are about. The form says it rather than
          the server deriving it again: between drawing this page and saving it
@@ -146,24 +151,14 @@
        The next action is not in it, because it is above with its boxes open,
        and the depths are the plan's own all the same: what waits on the next
        action is still one level in, hanging off the block directly above the
-       list. */}}
-  <h2>More actions</h2>
-  <ul class="list">
-  {{range $p.RestTree}}
-    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
-  {{end}}
-  </ul>
+       list.
 
-  {{/* A way to the form, not the form. Writing a second action is a screen of
-       its own (action_new.html) for the same reason opening one is: it is the
-       same four fields wherever it happens. The first action needs no button
-       at all now — it is the boxes above, which is where an action that a
-       project cannot be without belongs. What is left here is the list's own
-       control, under the list it adds to. */}}
-  <div class="actionsbar">
-    <a class="button" href="/project/{{$p.ID}}/addaction"
-       data-key="a" data-key-label="add" data-key-typing>Add</a>
-  </div>
+       Add writes into this list rather than leaving for a screen of its own.
+       Leaving was the one control on the page that threw away what was in the
+       boxes to reach a form, and it made adding an action a different act here
+       from what it is on the screen a project is created on — one plan, one
+       way of writing into it (implementation.md, "Writing a project"). */}}
+  {{template "projectactions" (dict "Rows" $p.RestTree "Drafts" $d.Drafts "Today" $.Today "Form" "itemform")}}
 
   {{/* the same row of buttons an action's page carries, in the same order:
        save, the state changes, delete, and the way out */}}
@@ -192,6 +187,10 @@
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>
+
+  {{/* the dialog the list's rows are written in, and the one definition of a
+       row it clones — the same pair the screens that create a project carry */}}
+  {{template "draftdialog" (dict "Siblings" $d.Siblings "Form" "itemform")}}
 
   {{end}}
 </div>

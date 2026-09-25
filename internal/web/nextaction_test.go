@@ -12,13 +12,19 @@ import (
 
 // refuse posts a form that is expected to be turned away, which postForm
 // cannot: it fails the test on anything but a redirect.
+// refuse posts a form that the handler must not take, and hands back the page
+// it answered with. A refusal is a redraw and not an error page: the actions
+// written into a project's list live in the form until the press is taken, so
+// throwing the page away would throw away work that was nowhere else. What is
+// checked here is that nothing was written — the callers check that, and that
+// the page says why.
 func refuse(t *testing.T, s *Server, path string, form url.Values) string {
 	t.Helper()
 	r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(form.Encode()))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rec := httptest.NewRecorder()
 	s.Handler().ServeHTTP(rec, r)
-	if rec.Code < 400 {
+	if rec.Code >= 300 && rec.Code < 400 {
 		t.Fatalf("POST %s was accepted: %d", path, rec.Code)
 	}
 	return rec.Body.String()
@@ -176,9 +182,15 @@ func TestTheNextActionBoxesBelongToTheProjectForm(t *testing.T) {
 			t.Errorf("missing %s: %s", want, body)
 		}
 	}
-	// three boxes and the Save button, which has always been outside the form
-	// and named it the same way
-	if n := strings.Count(body, `form="itemform"`); n != 4 {
+	// three boxes, the Save button — which has always been outside the form and
+	// named it the same way — and the three hidden fields a row in the plan's
+	// list carries. The <template> the key layer clones holds three more of
+	// those, and they are not on the page until a row is made from it.
+	live := body
+	if i := strings.Index(live, "<template"); i >= 0 {
+		live = live[:i]
+	}
+	if n := strings.Count(live, `form="itemform"`); n != 4 {
 		t.Errorf("%d things are joined to the project form, want the three boxes and Save", n)
 	}
 }
@@ -305,7 +317,9 @@ func TestAStaleNextActionIsRefused(t *testing.T) {
 		"nextid": {"1"}, "atitle": {"Buy the picture"}, "ameta": {""},
 		"adescription": {""}, "back": {"/projects"},
 	})
-	if !strings.Contains(body, "no longer this project's next action") {
+	// the page says so, in the words the handler used — HTML-escaped on the
+	// way in, which is why the apostrophe is not looked for here
+	if !strings.Contains(body, "no longer this project") {
 		t.Errorf("the refusal must say why: %s", body)
 	}
 }
@@ -318,7 +332,7 @@ func TestTheProjectBranchWritesItsFirstActionOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	body := getPage(t, s, "/process?item=1&as=project")
-	if !strings.Contains(body, "<h2>Next action</h2>") {
+	if !strings.Contains(body, `<h2 class="nexthead">`) {
 		t.Errorf("the project branch does not open its first action: %s", body)
 	}
 	// the capture's body goes to that action's description, where material a

@@ -1344,6 +1344,12 @@ read the same way, narrowed to what a project has:
   action is written in anywhere else, with the project already answered, and
   each carries its own meta line - which is how a delegated action is delegated
   here, with `@waitingFor(who)`, exactly as it would be anywhere else.
+- **an action added to the plan can be opened again and changed.** It is a row
+  in the list like any other, and opening it is the form it was written in,
+  filled in. An action you could write but not correct was the one place in the
+  app where a typo cost you the whole line and a retype, and it was so only
+  because the row had not been saved yet - which is a fact about the database
+  and not about what a plan is.
 - **the first of them is open on the form, under "Next action", and is not
   added.** A project cannot be made without one, so on this screen it is never a
   thing you *might* add: it is a thing you are writing, as much a required field
@@ -1353,10 +1359,16 @@ read the same way, narrowed to what a project has:
   because most projects have nothing there - one next action is enough to move a
   project forward, and the further steps are written when planning them now is
   worth it (see "Project").
-- **the same three screens write a project, and all three write the first action
-  open**: the Project branch of Inbox Zero, promoting an action, and the
-  project's own page (see "Editing items"). A project is written in one form
-  wherever it is written, and that includes where its next action sits in it.
+- **the same three screens write a project, and all three are the same
+  screen**: the Project branch of Inbox Zero, promoting an action, and the
+  project's own page (see "Editing items"). The same fields in the same order,
+  the first action open under the same heading, the rest of the plan in the
+  same list, and actions added to that list the same way. What differs is the
+  step the trail names and what is answered already - on a project's own page
+  the actions in the list are saved ones, with everything an action's own page
+  offers a press away. Two screens that were nearly the same were two screens
+  to learn and two to keep true, and the difference between them was never
+  about projects: it was about whether this one existed yet.
 - **an action written while the project is being made cannot wait on a
   sibling**, and this needs no rule of its own: `snooze:(...)` names one of the
   project's actions, and until the project is created there are none to name, so
@@ -3161,14 +3173,21 @@ the Someday/Maybe branch of Inbox Zero files it on, because an item is written
 in one form wherever it is written (see the rule below). It is also the only
 screen that acts on an idea: the list it sits in carries no controls at all.
 
-**Adding a further action to a project opens the action form as its own
-screen**, from a control under the project's action list. The project is already
-answered there, the way it is for an action opened from a list. It is a screen
-and not a box on the project's page because of the rule below: an action is
-written in one form wherever it is written, and a form that had to be unfolded
-first was that form in a shape it has nowhere else. What a project's page holds
-is the project, its next action and the list of the rest; writing a *second* one
-is a step away from it, and coming back is where the new action already is.
+**Adding a further action to a project writes it into the plan, without leaving
+the page.** A control under the action list opens the action form - the same
+form, with the project already answered - and what it makes is a row in that
+list, kept there until the page's one Save writes it with everything else. It
+is offered on a project's own page and on the two screens that create a project
+in exactly the same shape, because it is exactly the same act: a plan is
+written into wherever the plan is.
+
+It used to be a screen of its own, reached by leaving. That was defensible
+while a project's page held nothing you could lose by going - and it stopped
+being so the moment the page said out loud that it was holding unsaved work,
+because then the control under the list was the one thing on the screen whose
+job was to throw it away. It also meant the two screens that write a plan wrote
+into it differently, which is a difference about whether the project exists yet
+and never about what a plan is (see "Writing a project").
 
 This is a control for the actions after the first. The first needs none: it is
 the boxes already on the page, which is where the one action a project cannot be
@@ -3193,6 +3212,42 @@ saved, the way out is the same key that leaves any screen, and it costs nothing 
 an item sat with and left alone is exactly the state it was in. Saving is
 offered only when there is something to save, so a screen that has not been
 changed cannot be "saved" into an audit entry that records nothing.
+
+**A screen with unsaved work on it says so, and asks before it is left.** The
+saying-so is a mark on the screen itself: from the moment what is in the boxes
+differs from what was saved until the moment it does not, the screen is wearing
+it. The asking is a question with the two answers there are - keep it or lose
+it - and it is put whenever the screen would be left while that mark is up,
+however it is being left.
+
+This is the one place the app interrupts, and it is worth being clear that it
+does not contradict "The protocol is followed, not enforced". That rule is
+about the practice: the app never insists that you process, or review, or
+answer a question it has put. Nothing here insists on anything - leaving is one
+press away and still leaves, and the work is still discarded if that is what is
+wanted. What the question protects is not a rule of GTD but a paragraph you
+typed, and losing that to a key pressed on the way somewhere else is not
+discipline, it is an accident.
+
+- **dirty is a comparison, not a memory of typing.** A word typed and deleted
+  again leaves the screen exactly as it was saved, so the mark goes out and the
+  question is not asked. Anything else would have the app claiming there is
+  something to keep when there is nothing, which is the fastest way to teach a
+  person to press through the question without reading it.
+- **a screen that creates is unsaved from the moment it opens.** There is
+  nothing behind it to be the same as: everything on it would be lost. So the
+  mark is up from the start there, and leaving asks - with the create button as
+  the keeping answer, offered only once the screen holds enough to create
+  anything.
+- **the answer that keeps it goes on to where you were going.** The question
+  interrupts a press that was already aimed somewhere, and saving must not
+  quietly change the destination - clicking "Today" with unsaved work on a
+  project and choosing to keep it lands on "Today", with the project saved.
+- **the mark is on the title bar**, which is the one strip that is about the
+  screen rather than about anything on it. With the title bar off - which is
+  how the screens in the middle of one item open (see "Panels") - it rides the
+  edge of the pane instead: a panel being off takes the chrome away and must
+  never take a state with it.
 
 **Resolving an item leaves its page.** Completing it or deleting it (see
 "Completion") is the change that ends the reason the screen is open: an item is

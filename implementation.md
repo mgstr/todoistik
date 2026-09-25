@@ -39,6 +39,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [Button labels](#button-labels) — one word per act, and the same word wherever the act appears
 - [Create buttons](#create-buttons) — unmet prerequisites disable a create button, never hide it
   - [A refused post is never silent](#a-refused-post-is-never-silent) — htmx swallows a 4xx, so a refusal has to be rendered
+- [Unsaved work](#unsaved-work) — the title bar says so, and every way out asks first
 - [The remembered lists](#the-remembered-lists) — the Settings page, where a name is learned and unlearned
 - [Interface density](#interface-density) — progressive disclosure on the filter controls, never on the rows
   - [The Next view's controls are a line, not a panel](#the-next-views-controls-are-a-line-not-a-panel) — the widest panel replaced by a typed line
@@ -2135,6 +2136,76 @@ One rule, applied wherever something is made:
   design: a screen that refuses on purpose still owes the form back, because a
   banner over an unchanged screen says less than a form that came back with the
   reason written above it
+- **a project's page bounces too, and it has the most to lose by not.** The
+  actions written into its list live in the form until Save is taken, so an
+  error page would throw away work that was nowhere else. `projectUpdate`
+  answers a refusal with `bounceProject`: the project's page again, 200, the
+  reason in the same `.ask` paragraph the processing screen uses, every box
+  holding what was posted and every row still in the list. `projectPageData`
+  grew a `Fields` for it — the template reads the project's three boxes off
+  that and never off the saved project, so there is one path through the
+  template and the bounce is not a second rendering of the same screen
+
+## Unsaved work
+
+A screen that is being written on says so, and will not be left without the
+question being asked (design.md, "A screen with unsaved work on it says so, and
+asks before it is left."). Both halves read one fact, and it is computed and
+never stored.
+
+- **dirty is `formDirty`, and it compares values.** Every box against its own
+  `defaultValue`, which is what the server sent — the same comparison the Save
+  gate already made, now the whole answer rather than half of one. Nothing
+  records that a key was pressed, so a word typed and deleted again leaves the
+  screen clean
+- **a screen that creates says `data-dirty-new` and answers yes without
+  comparing.** There is nothing behind it to be the same as. `data-dirty-save`
+  is the other half and is what the editing screens already carried, so the two
+  attributes are also the list of forms the guard watches — a filter line being
+  typed into is not unsaved work and must not stop a press
+- **the plan's rows are compared as a list, not field by field.** Two reasons
+  the boxes' own comparison cannot answer for them. Their order is part of what
+  the form says, so a row moved or removed is a change no single field differs
+  over; and a hidden input's value *is* its default — the two are one attribute
+  in the browser — so a row the dialog wrote looks untouched to the field test
+  however much was typed into it. `draftShape` reads the list as text and
+  `rememberDrafts` keeps what the server drew, on every settle
+- **the mark is a class on `#titlebar`, and on `.pane` when there is no title
+  bar.** Processing opens in zen mode, so the screen a project is created on is
+  exactly the one with no chrome to wear this — and a panel is a thing shown,
+  never a thing state disappears with (see "Panels"). The title bar gets the
+  select wash with the accent down its leading edge; the pane gets the accent
+  as a line along its top and nothing else
+- **every way out goes through `goTo`.** The `b` key, a bar entry that is a
+  link, a row opened with `enter` or a double click, the `g` chords, and every
+  anchor on the page — the last caught in the capture phase, because hx-boost
+  is listening for the same click and would have the answer on its way before
+  the question could be put. One function, so there is no route out that
+  forgets to ask
+- **the question is `#leave-dialog`, in the layout.** Two buttons and no prose:
+  what is at stake is marked in the boxes behind it, which is where it would be
+  lost. The keeping button *is* the screen's own — it takes its words from
+  `makeButton(form)` and presses it — so it says Save, Create or Promote
+  without being told, and is disabled exactly when that button is, which is how
+  a create screen with an empty required box offers only the losing answer
+- **where the press was going is written into the form's `back` field** before
+  it is submitted, when the form has one. Saving on the way to Today lands on
+  Today; a form with no such field — the processing screens — goes where it
+  always goes, which is on with the run
+- **`leaving` stands the guard down** for the navigation the page itself
+  started, and is set by `goTo`, by both answers in the dialog and by any
+  submit. `beforeunload` reads it: a reload or a tab closing is the one way out
+  the app cannot draw a dialog over, so all it does there is let the browser
+  ask its own question
+- **`esc` is the third answer and needs no button.** Staying is what happens
+  when the question is declined, and the dialog owns the key outright so that
+  closing it cannot also leave the screen behind it
+- **this replaced the second `b`.** Leaving a dirty screen used to cost two
+  presses: the first marked the changed boxes and turned the bar's entry into
+  `b discard`, the second went. The marking survives — it is the dialog's
+  evidence now, put up when the question opens and taken down with it — and the
+  arming does not. One thing doing the job, and the thing it does is offer the
+  press you would otherwise have had to remember (keys.md, "Leaving a screen")
 
 ## The remembered lists
 
@@ -4121,27 +4192,33 @@ front of every name, because a project form already owns `title` and `meta`;
 `Required` says whether a title has to be there, which it does not for the
 empty next action of a stalled project.
 
-- **adding a *further* action to a project is a screen, not a fold on the
-  project's page.** The first is not added at all — it is the boxes the page
-  already carries under "Next action" (see "Writing a project"), so this
-  control and its key belong to the actions after it. Adding one used to be a
-  `<details>` under the action list, opened by its own
-  summary and opened for you when the project had no next action left — the
-  same four fields as everywhere else, in the one shape that had to be opened
-  before it could be written in, on the screen where actions are added most.
-  `action_new.html` is that form as a page — `GET /project/{id}/addaction`,
-  posting to the `addaction` verb that was already there and unchanged — and
-  what is left on the project's page is a button under the list it adds to,
-  carrying `^a`, the same key the project branch of processing gives the same
-  act. The project's page is down to one form and one Save with it, which is
-  what every other item page has
-- **the button is a link, and that is all it is.** The key layer's `press`
-  already follows an `href`, and the key bar advertises a control only if the
-  control is on the page, so nothing had to be added for `^a` to appear under
-  a project and nowhere else (see "Keyboard")
-- **the new screen's create button is gated like every other**, by the title
-  being required — so it opens dead and the bar offers `ctrl-enter` only once
-  there is something to create, with no rule of its own (see "Create buttons")
+- **adding a *further* action to a project is the dialog, on the page.** The
+  first is not added at all — it is the boxes the page already carries under
+  "Next action" (see "Writing a project"), so this control and its key belong
+  to the actions after it. It has been three things. A `<details>` under the
+  action list, which was the app's four fields in the one shape that had to be
+  unfolded before it could be written in. Then a screen of its own,
+  `action_new.html` at `GET /project/{id}/addaction` — the form as a page,
+  which is what the form is everywhere else. Now the same `draftdialog` the
+  screens that create a project use, writing a row the page's one Save commits.
+  What moved the second time was not the form but what the page around it
+  holds: once the project's page says out loud that it is carrying unsaved
+  work, a control under the list whose job is to navigate away is the one thing
+  on the screen that throws that work out
+- **the screen is still there and nothing links to it.** `GET
+  /project/{id}/addaction` and the `addaction` verb both answer as they did, so
+  a bookmark or an old link lands on a working form; the button under the list
+  no longer points at it. Kept rather than deleted because it costs one route
+  and one template, and a URL that used to work and now 404s is a worse answer
+  than a screen nobody opens
+- **the button carries `^a`**, the same key the project branch of processing
+  gives the same act, and it is a `<button type="button">` on all three screens
+  now rather than a link on one of them. The key bar advertises a control only
+  if the control is on the page, so nothing had to be added for the key to
+  appear under a project and nowhere else (see "Keyboard")
+- **the dialog's create button is gated like every other**, by the title being
+  required — so it opens dead and the bar offers `ctrl-enter` only once there
+  is something to create, with no rule of its own (see "Create buttons")
 - **the "no next action left" ask no longer opens anything** — and, since it
   stopped being a panel at all, no longer says anything either. It used to
   unfold the box; then it said a sentence over the same button, one press
@@ -4438,7 +4515,10 @@ own, and the rest as rows of hidden fields inside the form.
 - **the add-action dialog is the processing screen's own form**, with the
   project answered: `<this project>` in the same box the picker uses, read-only,
   because there is exactly one project it could belong to and a control that
-  cannot change anything should still say what the answer is
+  cannot change anything should still say what the answer is. It is the
+  `draftdialog` partial now, carried by all three screens that write a plan,
+  and it opens blank to add and filled to edit — one dialog, because writing an
+  action and correcting one are the same four fields
 - **the project's own fields are a partial too** (`projectfields`), used by
   this screen, by promoting an action and by the project's page, with one set
   of names — `title`, `dod`, `meta` — read by one function. They were `ptitle`
@@ -4465,8 +4545,23 @@ own, and the rest as rows of hidden fields inside the form.
   what separates finishing the form from opening the thing under the cursor. `u` is offered only
   when there is something above and `d` only when there is something below —
   the bar cannot advertise a key that would do nothing
-- **a draft row is dashed**: it reads as a list row because it is one, and the
-  dashes say that nothing about it is saved yet
+- **a draft row is the action row it is about to be.** `draftrow` draws the
+  same `li.row` with the same two marks' worth of gutter — both places kept and
+  left blank, since a row that cannot be picked or completed must not offer
+  either — and the same badges. It is dashed, and that is the only difference:
+  the dash says the one thing that is true of it and not of the rows beside it,
+  which is that none of it is written down
+- **the badges are painted by the keyboard layer, off the meta line.** There is
+  no action behind an unsaved row to ask for a `ContextLabel` or a
+  `SnoozeLabel`, so `paintDraft` reads the tokens and writes the same classes
+  with the same words `actionrow` writes. A token the notation does not know is
+  left out rather than shown: the box it was typed in has already marked it,
+  and a row is not where an unreadable line gets fixed. This is the one place
+  in the app where what a row looks like is answered twice, and it is worth
+  saying why the alternative is worse — the server could render these rows
+  through `actionrow` by parsing each line into an unsaved `Action`, but only
+  for the rows it drew, and the dialog writes rows without asking the server
+  anything
 - **the capture's body is rendered into the open description box** rather than
   seeded into the dialog when it first opens. It went in through a
   `data-draft-seed` attribute the keyboard layer read, which was the only way
@@ -4479,6 +4574,16 @@ project's fields, its next action open in `actionfields` the way the branch
 above has its first, the rest of the plan as a list, and the same row of
 buttons an action's page carries.
 
+Three pieces of it are literally the same, and are partials for that reason —
+`projectfields`, `projectactions` (the "More actions" list and its Add) and
+`draftdialog` (the dialog and the `<template>` a row is cloned from). What is
+left in each template is what that screen actually answers differently: the
+capture it is about on the processing screen, the marks on the heading here,
+the step the trail names. Two screens that were *nearly* the same were two to
+keep true, and every drift between them was a difference about whether the
+project existed yet rather than about what a project is (design.md, "Writing a
+project").
+
 - **which action is open is `Project.NextAction`** — the first open one in
   `ActionTree` order, nil when there is none. A domain question, so it is
   answered in internal/app: a project may have several next actions at once
@@ -4489,6 +4594,31 @@ buttons an action's page carries.
   stays one level in, because what it is indented under is directly above the
   list — re-rooting those rows would draw them as waiting on nothing, which is
   the one thing the shape exists to say
+- **the plan's list is one `<ul>` with both kinds of row in it.** The saved
+  ones are `actionrow`, drawn from `RestTree`; the unsaved ones follow as
+  `draftrow`. One list, because its order is the plan's order and a second list
+  would be a second plan — and appending is what the dialog does, so a new row
+  lands at the end of the plan, which is where a step you have just thought of
+  belongs. `moveDraft` refuses to shuffle a draft past a saved row: those are
+  the project's order and this Save does not write them
+- **the rows post as the same repeated fields the create screens post**, which
+  is what let the server keep one reader. `draftsFromForm` already returned the
+  open boxes first and the rows after; `newActions` is everything after the
+  first, parsed before anything is written so that one unreadable line refuses
+  the whole press. The order in `form.elements` is tree order, and the open
+  boxes sit above the list in the document, so the first of that list is the
+  next action on both screens without either having to say so
+- **the hidden fields carry `form="itemform"` on this page and nothing on the
+  others.** `draftrow` takes a `Form` for it, the way `actionfields` does: here
+  the list sits below the form element and is joined to it by name, and on the
+  screens that create a project the rows are nested inside the form and need no
+  attribute. Which is also why `draftForm()` asks the document for
+  `form[data-drafts]` rather than walking up from a row
+- **`firstNamed` is what reads a repeated name.** `form.elements.namedItem`
+  hands back a list once there is more than one `ameta` on the page, and a
+  list's own `.value` is the radio-group answer — `""` for boxes like these. The
+  `#↓` mark read the meta lines that way and would have quietly read nothing
+  the moment the plan had a row in it
 - **the boxes are joined to the project's form by `form="itemform"`, not
   nested in it.** The heading over them carries the action's own complete and
   pick forms — the two marks it had as a row — and a form cannot be nested in
@@ -4518,11 +4648,14 @@ buttons an action's page carries.
   while there is one, the project's once there is not — so `d` needs no rule to
   tell two of them apart and `screenForm`'s document order settles it anyway:
   the subject row comes before the button bar
-- **one Save, and `projectUpdate` writes both halves.** It reads the project's
-  fields and the action's before writing either, so a meta line the app cannot
-  read refuses the whole press rather than keeping the project and dropping the
-  action (design.md, "Writing an action"). `readActionNamed` is `readAction`
-  with the `a` prefix — one reader, because it is one form
+- **one Save, and `projectUpdate` writes all of it.** It reads the project's
+  fields, the open action's and every row's before writing any of them, so a
+  meta line the app cannot read refuses the whole press rather than keeping the
+  project and dropping an action (design.md, "Writing an action").
+  `readActionNamed` is `readAction` with the `a` prefix — one reader, because
+  it is one form — and `newActions` is the rows, parsed the same way. The
+  refusal goes back to the page with everything still on it (see "A refused
+  post is never silent")
 - **the form posts `nextid`, and the handler checks it against the project.**
   Not derived again on the way in: between the page being drawn and Save being
   pressed the action may have been completed in another tab, and a save that

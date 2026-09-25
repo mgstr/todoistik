@@ -200,6 +200,27 @@ h2.stalled {
    with the rail off, this is the only place left that can */
 #titlebar .badge.navcount { border: 1px solid var(--line); background: transparent; }
 #titlebar .badge.navcount.alert { background: var(--danger); border-color: var(--danger); color: #fff; }
+/* A screen with work on it that is not written down. The bar is the one strip
+   that is about the screen rather than about anything on it, which is exactly
+   what this is — and it is already in the eye's path between the column and
+   the keys (implementation.md, "Unsaved work").
+
+   The accent and not the danger colour, and a wash of it rather than a fill:
+   nothing here is wrong, it simply has not been kept — the same distinction
+   the dashed field mark and the dashed draft row already draw. The left edge
+   is the loud part, so the colour reads at a glance without the words in the
+   bar having to be read against a new ground. */
+#titlebar.dirty {
+  background: var(--select);
+  box-shadow: inset 3px 0 0 var(--accent);
+  border-bottom-color: var(--accent);
+}
+/* and with the title bar off — which is how processing opens, so it is how
+   the screen a project is written on opens — the pane wears it instead. A
+   line along the top edge and nothing else: there is no chrome on a zen
+   screen to tint, and the point of that screen is that there is nothing on it
+   but the item. */
+.pane.dirty { box-shadow: inset 0 3px 0 var(--accent); }
 
 /* The panels dialog: four answers, each one a form, each one closing the
    dialog by going back to the page. Laid out as a short list rather than a
@@ -617,15 +638,16 @@ h2.nexthead.stalled { display: inline-flex; }
 /* An action written before its project exists. It reads as a list row because
    it is one — j/k reach it and the row keys act on it — but it is dashed,
    because nothing about it is saved yet. */
-.drafts { margin: .25rem 0 .5rem; }
 .row.draft { border: 1px dashed var(--line); margin: .2rem 0; }
-.row.draft .draftmeta {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: .78rem; color: var(--muted);
-}
-/* the parts of a row that have nothing to say take no room, so an action with
-   no meta and no note is one clean line */
-.row.draft .draftmeta:empty, .row.draft .draftnote:empty { display: none; }
+/* the badges are the action row's own, painted from the meta line by the key
+   layer — so they sit in the row the way they sit in every other one, in a
+   wrapper that takes no room when the line says nothing */
+.row.draft .draftbadges { display: contents; }
+/* a draft can be neither picked nor completed, so both marks' places are kept
+   and left blank: the titles line up with the saved rows above, and no mark
+   is offered that would do nothing */
+.row .check.gap { visibility: hidden; }
+.row.draft.unsaved { border-color: var(--accent); }
 
 #draft-dialog {
   width: min(38rem, 92vw); padding: 1.1rem 1.35rem;
@@ -634,6 +656,21 @@ h2.nexthead.stalled { display: inline-flex; }
   box-shadow: 0 12px 48px rgba(0,0,0,.45);
 }
 #draft-dialog::backdrop { background: rgba(0,0,0,.45); }
+
+/* The question asked on the way out of a screen with unsaved work on it. Two
+   answers and no prose: what is at stake is marked in the boxes behind the
+   dialog, which say it in the place it would be lost (keys.md, "Leaving a
+   screen"). Narrow, because a dialog with two buttons in it should not be the
+   width of the form it is about. */
+#leave-dialog {
+  width: min(22rem, 92vw); padding: 1.1rem 1.35rem;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--fg);
+  box-shadow: 0 12px 48px rgba(0,0,0,.45);
+}
+#leave-dialog::backdrop { background: rgba(0,0,0,.45); }
+#leave-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+#leave-dialog .branches { margin: 0; }
 #draft-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
 /* the project is answered here, not asked: it reads as the box it is
    everywhere else, but nothing about it can be pressed or typed into */
@@ -1085,8 +1122,8 @@ button:disabled:hover { border-color: var(--line); }
 .cloud button.small.danger { border: none; background: transparent; padding: 0 .2rem; }
 .cloud button.small.danger:disabled { opacity: .3; }
 
-/* A field holding something that is not saved, marked when `b` refuses to
-   leave and the bar offers "b discard" (keys.md, "Leaving a screen"). Dashed
+/* A field holding something that is not saved, marked while the question on
+   the way out is on the screen (keys.md, "Leaving a screen"). Dashed
    and in the accent, the way a draft row is dashed: both say the same thing,
    that this is not written down yet. Deliberately not the danger colour —
    nothing here is wrong, it simply has not been kept. */
