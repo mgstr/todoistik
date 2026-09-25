@@ -2310,6 +2310,14 @@ put on a number that is written out anyway. Nothing on this screen can only be
 read by eye. See research/dashboard-study.html for the four treatments this was
 chosen from and why a second shape was not taken.
 
+**Every panel that is a list of dates reads newest first.** Today is the top row
+of the week, and the month we are standing in is the top row of the year and of
+the backlog. The row this screen is opened to read is nearly always the most
+recent one, and a list that put it at the bottom made you find the end of it
+before you could find now - which is the same argument that has the "Archive"
+newest first. The older rows run backwards under it, so a trend is read
+downwards into the past rather than upwards out of it.
+
 **The ages here are medians and say so.** A mean over ages is dragged by the one
 item that has sat there for a year, and that item is the one you already know
 about - it is at the top of its view and it is on this screen by name. The
@@ -2376,9 +2384,9 @@ which is the question being asked.
   waited longest, as a link. This is "Nothing dies silently" made into a screen:
   everything else here is something to know and this is something to go and fix
 - **The backlog** - open commitments at the end of each of the last twelve
-  months. It is read for its direction: a line climbing all year says you are
-  taking on more than you finish, which is a thing you feel long before you can
-  point at it. It is counted off the items that still exist rather than replayed
+  months, this month at the top. It is read for its direction: rows that shorten
+  as you read down the year say you are taking on more than you finish, which is
+  a thing you feel long before you can point at it. It is counted off the items that still exist rather than replayed
   from the log, so it is "what I still have, seen month by month" - something
   deleted since is missing from the months it was open in, and deletion moves
   the line the same way finishing it does
