@@ -25,7 +25,7 @@
       {{range $d.Open}}
       <li class="row">
         <span class="title">{{.Title}}</span>
-        <span class="badge">{{.Noun}}</span>
+        <span class="badge">{{.Kind}}</span>
         {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
         <span class="age">{{age .When}}</span>
       </li>
@@ -48,7 +48,7 @@
           <span class="check">☑</span>
           <span class="title">{{.Title}}</span>
         </a>
-        <span class="badge">{{.Noun}}</span>
+        <span class="badge">{{.Kind}}</span>
         {{if .Home}}<span class="badge">{{.Home}}</span>{{end}}
         <span class="age">{{age .When}}</span>
       </li>
@@ -82,13 +82,18 @@
   </div>
 
   <div class="branches">
-    {{/* Task and not Action: what this answer makes by default is a standalone
-         action, and a standalone action is called a task everywhere it is
-         read (design.md, "Tasks"). The noun it is written under on the one
-         screen that names it should be the noun it is found under later.
-         `t` is the letter, and it is the second one in the map spent twice —
-         see keys.md, "The processing branches". */}}
-    <a class="button" href="{{$d.AsAction}}" data-key="t" data-key-label="task">Task</a>
+    {{/* Three answers and not two, because a task and an action are two
+         different things to have decided: a task stands on its own and an
+         action is a step of a plan (design.md, "Tasks", "Standalone
+         actions"). They were one branch with a project box inside it, which
+         asked the second question after the first had been answered and put
+         the answer in a control most presses walked past.
+
+         `t` and `p` are the letters they have always had; `a` is Action,
+         which is the letter it wore before the branch was renamed — see
+         keys.md, "The processing branches". */}}
+    <a class="button" href="{{$d.AsTask}}" data-key="t" data-key-label="task">Task</a>
+    <a class="button" href="{{$d.AsAction}}" data-key="a" data-key-label="action">Action</a>
     <a class="button" href="{{$d.AsProject}}" data-key="p" data-key-label="project">Project</a>
   </div>
 </div>

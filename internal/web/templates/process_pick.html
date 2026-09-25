@@ -1,0 +1,54 @@
+{{template "top" .}}
+{{$d := .Data}}
+{{/* The Action branch's one question: which plan is this a step of. It is a
+     screen and not a box on the form below it, because it is the thing that
+     makes this answer different from Task — an action belongs to a project,
+     and being asked before anything is written is what stops the question
+     from being walked past (design.md, "Inbox Zero").
+
+     A list of rows, like every other list in the app, so the keys that move
+     through one already work here and nothing new has to be learnt to give
+     the commonest answer on the screen. */}}
+<div class="process" data-cancel="{{$d.Back}}">
+  <div class="subject">
+    <h1 class="capture-text">{{linkify $d.Line}}</h1>
+    {{if $d.Body}}<p class="capture-body">{{linkify $d.Body}}</p>{{end}}
+  </div>
+
+  {{/* The active projects and nothing else. Standalone is the other branch,
+       and a finished project is not a target: reopening one is not a decision
+       made in passing while emptying the inbox (design.md, "Inbox Zero"). */}}
+  <ul class="list">
+    {{range $d.Picker}}
+    <li class="row" data-kb-row data-href="{{.Href}}">
+      <a class="title" href="{{.Href}}">{{.Title}}</a>
+      {{if .Stalled}}<span class="badge error">stalled</span>{{end}}
+      {{if .Open}}<span class="badge">{{.Open}} open</span>{{end}}
+    </li>
+    {{end}}
+    {{/* A project that does not exist yet is an answer here and not a typo:
+         without it, a step whose outcome you have not started tracking would
+         go in standalone and the outcome would go unrecorded. It is held and
+         not created until the action is written, because a project without an
+         action is a thing design.md will not make. */}}
+    <li class="row pnew" data-kb-row data-newproject>+ new project…</li>
+  </ul>
+</div>
+
+{{/* data-crumb: this dialog is a step and not a question, so the title bar
+     says so while it is up (implementation.md, "Panels"). data-np-next is
+     where Create goes, with the project's two fields written onto it. */}}
+<dialog id="newproject-dialog" aria-labelledby="np-title-label"
+  data-crumb="Create project" data-np-next="{{$d.AsAction}}{{if $d.From}}&from={{$d.From}}{{end}}">
+  <h2 id="np-title-label">New project</h2>
+  <div class="stack">
+    <label class="gutter"><span class="lb">Title</span> <input id="np-title" required autocomplete="off"></label>
+    <label class="gutter"><span class="lb">Definition of done</span> <textarea id="np-dod" rows="1" data-grow required
+      placeholder="How you will know it is done"></textarea></label>
+    <div class="branches">
+      <button type="button" id="np-ok" class="primary">Create</button>
+      <button type="button" id="np-cancel">Cancel</button>
+    </div>
+  </div>
+</dialog>
+{{template "bottom" .}}

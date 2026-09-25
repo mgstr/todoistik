@@ -16,13 +16,28 @@
 
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
+  {{/* One form for both branches, because what they write is one item: Task
+       posts no project, Action posts the one that was picked, and a project
+       that does not exist yet rides along as its title and its definition of
+       done until the Create that makes both (design.md, "Inbox Zero").
+
+       The three are hidden and not a control. Where this action lives was
+       answered on the way in — by which button was pressed, and then by the
+       picker — so the form shows the answer and does not ask it again, which
+       is what an action's own page has always done. `as` says which branch
+       this is, and it has to be on the form rather than on the address
+       because one address writes both. */}}
   <form method="post" action="/process/{{$d.ID}}/action{{$d.Q}}" class="stack">
+    <input type="hidden" name="as" value="{{$d.As}}">
+    <input type="hidden" name="projectid" value="{{if $d.ProjectID}}{{$d.ProjectID}}{{end}}">
+    <input type="hidden" name="newproject" value="{{$d.NewProject}}">
+    <input type="hidden" name="newdod" value="{{$d.NewDOD}}">
     {{template "actionfields" (dict
       "Prefix" "" "Required" true
       "Title" ($d.Vals.Get "title")
       "Meta" ($d.Vals.Get "meta")
       "Description" ($d.Vals.Get "description")
-      "Picker" $d.Picker "Focus" true)}}
+      "Fixed" $d.ProjectName "Focus" true)}}
 
     <div class="branches">
       <button class="primary" data-key="c" data-key-label="create" data-key-typing>Create</button>
@@ -30,21 +45,4 @@
     </div>
   </form>
 </div>
-
-{{/* data-crumb: this dialog is a step and not a question, so the title bar
-     says so while it is up — "… / Action / Create project" (implementation.md,
-     "Panels"). */}}
-<dialog id="newproject-dialog" aria-labelledby="np-title-label" data-crumb="Create project">
-  <h2 id="np-title-label">New project</h2>
-  <div class="stack">
-    <label class="gutter"><span class="lb">Title</span> <input id="np-title" required autocomplete="off"></label>
-    <label class="gutter"><span class="lb">Definition of done</span> <textarea id="np-dod" rows="1" data-grow required
-      placeholder="How you will know it is done"></textarea></label>
-    <p class="muted">It is created together with this action, which becomes its first.</p>
-    <div class="branches">
-      <button type="button" id="np-ok" class="primary">Create</button>
-      <button type="button" id="np-cancel">Cancel</button>
-    </div>
-  </div>
-</dialog>
 {{template "bottom" .}}

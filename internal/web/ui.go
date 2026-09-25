@@ -82,6 +82,64 @@ type crumb struct {
 	Alert bool
 }
 
+// under names a screen between the view and here: one you passed through to
+// get to this one. The title bar is a path from the view to where you are, so
+// every screen on the way is a step of it - "Projects / Edit project / Edit
+// action" and not "Projects / Edit action", which said where the action lives
+// and not how you got to it (see implementation.md, "Panels").
+//
+// It is what the Back button presses, one step at a time, which is why the
+// caller hands the name rather than the address: the address is the screen's
+// own Back, and naming it here off that same value is what keeps the two from
+// drifting.
+func (p *page) under(name string) *page {
+	p.Trail = append(p.Trail, crumb{Name: name})
+	return p
+}
+
+// openedFrom is under() with the name read off the path this screen was
+// opened from. A path that is a view's own address adds nothing: newPage has
+// already put the view at the head of the trail.
+func (p *page) openedFrom(back string) *page {
+	if name := screenName(back); name != "" {
+		return p.under(name)
+	}
+	return p
+}
+
+// screenName names the screen a local path is, for the steps of the trail
+// that are neither the view nor the screen you are on. One table, because a
+// screen's name in somebody else's trail has to be the name it wears in its
+// own - "Edit project" is what the project's page calls itself, and a second
+// list of names for the same screens is a second thing to keep in step.
+//
+// An action is named "Edit action" here and not "Edit task": which of the two
+// it is depends on whether it has a project, and that is a question about the
+// item rather than about the address. The one screen that sits under an
+// action is Promote, which only a standalone one has, and that screen names
+// its parent itself.
+func screenName(path string) string {
+	seg := strings.TrimPrefix(path, "/")
+	if i := strings.IndexAny(seg, "/?"); i >= 0 {
+		seg = seg[:i]
+	}
+	switch seg {
+	case "project":
+		return "Edit project"
+	case "action":
+		return "Edit action"
+	case "somedayitem":
+		return "Edit someday"
+	case "schedule":
+		return "Edit scheduler"
+	case "process":
+		return "Processing"
+	case "doing":
+		return "Doing"
+	}
+	return ""
+}
+
 // step adds one level to the title bar's trail: where you now are inside the
 // view you are in. A step that is a screen of its own gives its slug, so that
 // zen.views can name it; a step that is an item's own title gives none.
@@ -660,7 +718,10 @@ type processData struct {
 	One       bool // processing one named item, not working down the inbox
 
 	// stage two: the branch has been chosen and the form for it is up.
-	// Empty As is stage one, the question itself.
+	// Empty As is stage one, the question itself. "task", "project" and
+	// "someday" go straight to a form; "action" asks which project first, and
+	// is the one branch with a screen between the question and the form
+	// (design.md, "Inbox Zero").
 	As      string
 	Vals    url.Values   // what the fields show — seeded on the way in, echoed back on a bounce
 	NeedDOD bool         // the name matched none, so the project would be a new one
@@ -672,11 +733,25 @@ type processData struct {
 	// as rows (see implementation.md, "Writing a project")
 	Next      draftAction
 	Drafts    []draftAction
-	Back      string // stage one for this item — where "back" and esc go
+	Back      string // the step before this one — where "back" and esc go
+	Stage1    string // the question itself, which is what the branches hang off
+	AsTask    string
 	AsAction  string
 	AsProject string
 	AsSomeday string
 	Q         string // "?one=1" when a single picked item, to be carried by the form
+
+	// which project the action being written belongs to. It is answered
+	// before the form is drawn on both branches that write one — Task answers
+	// it with "none", Action answers it on the picker — so the form shows it
+	// and does not ask it, exactly as an action's own page does (design.md,
+	// "Inbox Zero").
+	Picked      bool   // the answer is in, so the form rather than the picker
+	ProjectID   int64  // the project it goes under, 0 for a task
+	ProjectName string // what the form's Project box reads
+	NewProject  string // a project that does not exist yet, held until Create
+	NewDOD      string // its definition of done, held with it
+	From        int64  // the finished match being copied, carried past the picker
 
 	Contexts []string
 	Tags     []string
@@ -729,7 +804,7 @@ func (s *Server) matches(d *processData) error {
 		d.Done = append(d.Done, matchRow{
 			Match: m,
 			Key:   itoa(int64(i + 1)),
-			Href:  d.Back + "&as=" + m.Kind() + "&from=" + itoa(m.ID()),
+			Href:  d.Stage1 + "&as=" + m.Kind() + "&from=" + itoa(m.ID()),
 		})
 	}
 	d.OpenMore, d.DoneMore = openTotal-len(open), doneTotal-len(done)
@@ -834,17 +909,29 @@ func (d *processData) links() {
 		d.Q = "?one=1"
 	}
 	base := fmt.Sprintf("/process?item=%d", d.ID)
-	d.Back = base + one
+	d.Stage1 = base + one
+	d.AsTask = base + "&as=task" + one
 	d.AsAction = base + "&as=action" + one
 	d.AsProject = base + "&as=project" + one
 	d.AsSomeday = base + "&as=someday" + one
+	// Back is one step of the trail and not a jump to the beginning: from the
+	// action form that is the picker it was chosen on, and from everything
+	// else it is the question itself (implementation.md, "Panels")
+	d.Back = d.Stage1
+	if d.As == "action" && d.Picked {
+		d.Back = d.AsAction
+	}
 }
 
+// pickerData is one row of the project picker. The tags it carried are gone
+// with the combobox that was drawn from a JSON attribute: the rows are
+// rendered by the server now, so nothing here is ever marshalled.
 type pickerData struct {
-	ID      int64  `json:"id"`
-	Title   string `json:"title"`
-	Stalled bool   `json:"stalled,omitempty"`
-	Open    int    `json:"open,omitempty"`
+	ID      int64
+	Title   string
+	Stalled bool
+	Open    int
+	Href    string // the form this row opens, with the project answered
 }
 
 func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
@@ -864,6 +951,8 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d.One = q.Get("one") != ""
 	d.As = q.Get("as")
+	d.From = int64Query(r, "from")
+	s.settleProject(d, q)
 	d.links()
 	d.Vals = url.Values{}
 	// a request is read before the branches are: the six answers are answers
@@ -899,14 +988,19 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	// one sentence the form exists to force out of you, and a body pre-filled
 	// there would satisfy the check that makes a project a project
 	switch d.As {
-	case "action", "project", "someday":
+	case "task", "action", "project", "someday":
+		// the picker is not a form and has nothing to seed: the question it
+		// asks is answered before any of the boxes below exist
+		if d.As == "action" && !d.Picked {
+			break
+		}
 		// a digit on the match list opens the same form seeded from the
 		// finished item instead, since what that answer says is "this again"
 		// (design.md, "Copying a finished one"). A `from` that names nothing
 		// finished falls back to the capture rather than erroring: it can only
 		// be a stale link, and the capture is what the screen is about
-		if from := int64Query(r, "from"); from != 0 {
-			if err := s.copyFrom(d, from); err != nil {
+		if d.From != 0 {
+			if err := s.copyFrom(d, d.From); err != nil {
 				httpError(w, err)
 				return
 			}
@@ -923,7 +1017,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 			// goes to the first action, which is the one this screen shows
 			// open, because material a project needs belongs to whichever of
 			// its actions needs it (design.md, "Inbox Zero")
-			if d.As == "action" {
+			if d.As == "task" || d.As == "action" {
 				d.Vals.Set("description", seed.Description)
 			} else if d.As == "project" {
 				d.Next.Description = seed.Description
@@ -940,6 +1034,50 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	s.renderProcess(w, r, d)
 }
 
+// settleProject answers "which project does this action belong to" before the
+// form that writes it is drawn. It is the whole of what the Task and Action
+// branches differ by: Task answers "none" by being pressed, and Action is
+// answered on the picker and arrives back here on the URL (design.md, "Inbox
+// Zero").
+//
+// An id that names nothing, or a project that is finished, leaves the answer
+// unsettled and the picker is drawn instead of the form. Not an error: the
+// only way to ask either is a stale link or a hand-edited URL, and the picker
+// is the screen that press was going to land on anyway. A finished project is
+// not a target for the same reason it is not on the picker's list — reopening
+// one is not a decision made in passing while emptying the inbox.
+func (s *Server) settleProject(d *processData, q url.Values) {
+	switch d.As {
+	case "task":
+		d.ProjectName = standaloneName
+		d.Picked = true
+	case "action":
+		d.NewProject = strings.TrimSpace(q.Get("newproject"))
+		d.NewDOD = strings.TrimSpace(q.Get("newdod"))
+		if d.NewProject != "" {
+			// held, not created: until the form is submitted there is no
+			// action to be the project's first, and design.md will not make a
+			// project without one
+			d.ProjectName, d.Picked = "+ "+d.NewProject, true
+			return
+		}
+		pid := parseID(strings.TrimSpace(q.Get("project")))
+		if pid == 0 {
+			return
+		}
+		proj, err := s.app.Project(pid)
+		if err != nil || proj.CompletedAt != nil {
+			return
+		}
+		d.ProjectID, d.ProjectName, d.Picked = proj.ID, proj.Title, true
+	}
+}
+
+// standaloneName is what the Project box reads on an action that belongs to
+// none. The angle brackets say it is not a project's name, which is the same
+// thing an action's own page says with the same string.
+const standaloneName = "<standalone>"
+
 // renderProcess picks the template the stage calls for and fills in the two
 // lists stage two needs. One place, so a form that bounces back comes up
 // identical to the one that was submitted.
@@ -948,11 +1086,18 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		d.Contexts, _ = s.app.Contexts()
 		d.Tags, _ = s.app.Tags()
 	}
-	if d.As == "action" {
+	// the picker's own rows, each one the form it opens with the project
+	// already answered. The list is the active projects and nothing else:
+	// standalone is the other branch, and a finished project is not a target
+	if d.As == "action" && !d.Picked {
 		cands, _, _ := s.app.ProjectCandidates("", 0)
 		d.Picker = make([]pickerData, 0, len(cands))
 		for _, c := range cands {
-			d.Picker = append(d.Picker, pickerData{c.ID, c.Title, c.Stalled, c.OpenCount})
+			href := d.AsAction + "&project=" + itoa(c.ID)
+			if d.From != 0 {
+				href += "&from=" + itoa(d.From)
+			}
+			d.Picker = append(d.Picker, pickerData{c.ID, c.Title, c.Stalled, c.OpenCount, href})
 		}
 	}
 	tmpl := "process.html"
@@ -960,21 +1105,34 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		tmpl = "process_completion.html"
 	}
 	switch d.As {
+	case "task":
+		tmpl = "process_action.html"
 	case "action":
 		tmpl = "process_action.html"
+		if !d.Picked {
+			tmpl = "process_pick.html"
+		}
 	case "project":
 		tmpl = "process_project.html"
 	case "someday":
 		tmpl = "process_someday.html"
 	}
 	p := s.newPage("Processing", "inbox", r).help("processing").step("Processing", "processing")
+	// the trail is the path taken: the Action branch went through the picker
+	// to get here, so the picker is a step of it and not a screen that was
+	// passed through invisibly (implementation.md, "Panels")
 	switch d.As {
+	case "task":
+		p.step("Create task", "").notation(s)
 	case "action":
-		p.step("Task", "").notation(s)
+		p.step("Pick project", "")
+		if d.Picked {
+			p.step("Create action", "").notation(s)
+		}
 	case "project":
-		p.step("Project", "")
+		p.step("Create project", "")
 	case "someday":
-		p.step("Someday/Maybe", "")
+		p.step("Create someday", "")
 	}
 	p.Processing = true
 	p.Data = d
@@ -1226,6 +1384,17 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, id int64, as, no
 	}
 	d.One = r.URL.Query().Get("one") != ""
 	d.As, d.Note, d.NeedDOD = as, note, needDOD
+	// a bounce only ever comes from a form, so the project question is behind
+	// us on both branches that ask it: it is read back off what was posted
+	// rather than asked again, which would throw the answer away along with
+	// the words
+	if as == "task" || as == "action" {
+		d.Picked = true
+		d.ProjectID = parseID(strings.TrimSpace(r.FormValue("projectid")))
+		d.NewProject = strings.TrimSpace(r.FormValue("newproject"))
+		d.NewDOD = strings.TrimSpace(r.FormValue("newdod"))
+		d.ProjectName = s.projectName(d)
+	}
 	d.Vals = r.Form
 	// the posted actions come back in the two places the screen keeps them:
 	// the first in the open boxes, the rest as rows
@@ -1234,6 +1403,22 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, id int64, as, no
 	}
 	d.links()
 	s.renderProcess(w, r, d)
+}
+
+// projectName is what the action form's Project box reads, given an answer
+// already settled: a pending project, a real one, or none at all. One reader,
+// so the box says the same thing whether the form was just opened or handed
+// back with a reason on it.
+func (s *Server) projectName(d *processData) string {
+	if d.NewProject != "" {
+		return "+ " + d.NewProject
+	}
+	if d.ProjectID != 0 {
+		if proj, err := s.app.Project(d.ProjectID); err == nil {
+			return proj.Title
+		}
+	}
+	return standaloneName
 }
 
 func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
@@ -1282,17 +1467,25 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/process", http.StatusSeeOther)
 }
 
-// processActionBranch turns the action form into the thing it describes. The
-// project is chosen, not typed, so there is nothing left to resolve: an id
-// files it there, a pending new project is created with this action as its
-// first, and neither means standalone. It reports whether the branch was
-// settled — false means the form has already been sent back.
+// processActionBranch turns the action form into the thing it describes. Both
+// branches that write one land here, because what they make is the same item
+// and they differ only in an answer already given: Task posts no project,
+// Action posts the one that was picked, and a pending new project is created
+// with this action as its first. It reports whether the branch was settled —
+// false means the form has already been sent back.
+//
+// Which of the two it was rides on the form, so that a refusal comes back as
+// the screen it was refused on: the URL cannot say, since one path writes both.
 func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id int64) bool {
+	as := "action"
+	if r.FormValue("as") == "task" {
+		as = "task"
+	}
 	pid := parseID(strings.TrimSpace(r.FormValue("projectid")))
 	newProject := strings.TrimSpace(r.FormValue("newproject"))
 	wa, err := s.readAction(r, pid, 0)
 	if err != nil {
-		s.bounce(w, r, id, "action", err.Error(), false)
+		s.bounce(w, r, id, as, err.Error(), false)
 		return false
 	}
 	f := wa.Fields
@@ -1305,7 +1498,7 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id 
 			app.ProjectFields{Title: newProject, DOD: strings.TrimSpace(r.FormValue("newdod"))},
 			[]app.ActionFields{f})
 		if err != nil {
-			s.bounce(w, r, id, "action", err.Error(), false)
+			s.bounce(w, r, id, as, err.Error(), false)
 			return false
 		}
 		if len(p.Actions) == 1 {
@@ -1316,7 +1509,7 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id 
 
 	act, err := s.app.ProcessAction(id, f, pid)
 	if err != nil {
-		s.bounce(w, r, id, "action", err.Error(), false)
+		s.bounce(w, r, id, as, err.Error(), false)
 		return false
 	}
 	return s.finishAction(w, act.ID, wa.Today)
@@ -1403,15 +1596,23 @@ func (s *Server) actionPage(w http.ResponseWriter, r *http.Request) {
 	// the title bar says which screen this is, not which item is on it: the
 	// item's name is the biggest thing on the page already, and the trail is
 	// the one place that answers "where am I" (design.md, "Panels")
-	p := s.newPage(act.Title, viewOf(d.Back), r).help("action")
+	p := s.newPage(act.Title, viewOf(d.Back), r).help("action").openedFrom(d.Back)
+	// task or action, which is the same distinction the rest of the app makes
+	// about the same item: one with no project is a task everywhere it is
+	// read, and the trail is where this screen says which of the two it is
+	// holding (design.md, "Tasks", "Standalone actions")
+	noun := "action"
+	if act.ProjectID == 0 {
+		noun = "task"
+	}
 	if act.CompletedAt != nil {
 		// a completed action is frozen and this screen only reads it
 		// (design.md, "Completion"), so the crumb says so — and the notation
 		// panel, which explains how a meta line is typed, is left off: there
 		// is no line to type here
-		p = p.step("Completed action", "")
+		p = p.step("Completed "+noun, "")
 	} else {
-		p = p.step("Edit action", "").notation(s)
+		p = p.step("Edit "+noun, "").notation(s)
 	}
 	p.Data = d
 	s.render(w, "action.html", p)
@@ -1446,8 +1647,11 @@ func (s *Server) promotePage(w http.ResponseWriter, r *http.Request) {
 		// no rows under it
 		Next: draftAction{Title: act.Title, Description: act.Description},
 	}
-	p := s.newPage("Promote", viewOf(d.From), r).
-		help("action").step("Promote action to project", "").notation(s)
+	// only a standalone action can be promoted, so the screen above this one
+	// is always an action's page wearing the other noun — which is why the
+	// step is named here rather than read off the address (see screenName)
+	p := s.newPage("Promote", viewOf(d.From), r).help("action").
+		under("Edit task").step("Promote task to project", "").notation(s)
 	p.Data = d
 	s.render(w, "promote.html", p)
 }
@@ -1653,7 +1857,7 @@ func (s *Server) renderProject(w http.ResponseWriter, r *http.Request, d *projec
 	if d.Project.CompletedAt != nil {
 		step = "Completed project"
 	}
-	p := s.newPage(d.Project.Title, viewOf(d.Back), r).step(step, "")
+	p := s.newPage(d.Project.Title, viewOf(d.Back), r).openedFrom(d.Back).step(step, "")
 	p.Data = d
 	s.render(w, "project.html", p)
 }
@@ -1718,10 +1922,11 @@ func (s *Server) projectAddAction(w http.ResponseWriter, r *http.Request) {
 		// every open action of the project is one it may be filed behind
 		Siblings: siblingsJSON(sibs, 0),
 	}
-	// the trail reads Projects / Add an action, the same shape promoting has:
-	// the item this is about is named by the form's own project box, not twice
-	p := s.newPage(proj.Title, viewOf(d.Back), r).
-		help("action").step("Add an action", "").notation(s)
+	// the trail reads Projects / Edit project / Create action: the screen this
+	// was opened from is a step of the path like any other, and the item it is
+	// about is named by the form's own project box, not twice
+	p := s.newPage(proj.Title, viewOf(d.Back), r).help("action").
+		openedFrom(d.Back).step("Create action", "").notation(s)
 	p.Data = d
 	s.render(w, "action_new.html", p)
 }
@@ -1933,7 +2138,7 @@ func typedSchedule(r *http.Request) *app.Schedule {
 // the screen would sit there looking untouched (implementation.md, "a form
 // that comes back is not an error page").
 func (s *Server) renderScheduleNew(w http.ResponseWriter, r *http.Request, sched *app.Schedule, note string) {
-	p := s.newPage("New schedule", "scheduler", r).step("New schedule", "")
+	p := s.newPage("New schedule", "scheduler", r).step("Create scheduler", "")
 	p.When = true
 	if note != "" {
 		p.Error = note
@@ -1957,7 +2162,7 @@ func (s *Server) scheduleCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) renderSchedule(w http.ResponseWriter, r *http.Request, sched *app.Schedule, note string) {
-	p := s.newPage("Schedule", "scheduler", r).step(sched.Text, "")
+	p := s.newPage("Schedule", "scheduler", r).step("Edit scheduler", "")
 	p.When = true
 	if note != "" {
 		p.Error = note
@@ -2009,7 +2214,7 @@ func (s *Server) somedayItemPage(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err)
 		return
 	}
-	p := s.newPage("Someday/Maybe", "someday", r).step(it.Text, "")
+	p := s.newPage("Someday/Maybe", "someday", r).step("Edit someday", "")
 	p.Data = it
 	s.render(w, "somedayitem.html", p)
 }

@@ -155,7 +155,7 @@ been.
 | --- | --- | --- |
 | `s` | Save | action, project, someday item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
-| `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen |
+| `a` | Add, and Action | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen. On the processing question it is the Action branch, which is the same noun doing the same thing — see "The processing branches" |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
 | `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
@@ -168,10 +168,10 @@ been.
 | `h` | Theme | the Settings screen's theme row |
 | `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
 
-**`r` is one of the two letters in the map that are spent twice, and it is
-worth saying why rather than pretending otherwise** — `t` is the other, and it
-is argued for in "The processing branches" below, by this same paragraph's
-test. It is the processing screen's
+**`r` is one of the three letters in the map that are spent twice, and it is
+worth saying why rather than pretending otherwise** — `t` and `a` are the
+others, and both are argued for in "The processing branches" below, by this
+same paragraph's test. It is the processing screen's
 *reference material* branch and it is the review step's *mark* — two nouns, not
 one, which is exactly what the rule above forbids. What buys the exception is
 what the rule is actually protecting against: `t` was trash on one screen and
@@ -264,10 +264,10 @@ processing screen, and both mean "make this a project"; `i` is Inbox, and the
 Recapture button on the audit means the same thing — send this to the inbox.
 Neither pair is ever on one screen. `n`, `x` and `u` were free.
 
-**The processing branches** are six answers to one question rather than six
-controls on a screen — see implementation.md, "The processing screen". They
-obey the same rule as everything else here; three of them had to move to do
-it.
+**The processing branches** are seven answers to one question rather than
+seven controls on a screen — see implementation.md, "The processing screen".
+They obey the same rule as everything else here; three of them had to move to
+do it.
 
 | Key | Answer |
 | --- | --- |
@@ -276,15 +276,20 @@ it.
 | `d` | the two-minute rule |
 | `y` | someday/maybe |
 | `t` | make it a task |
+| `a` | make it an action |
 | `p` | make it a project |
 
-**The task branch is `t`, and it was `a` while it was called Action.** The
-letter moved because the noun did: this answer makes a standalone action, and
-a standalone action is a *task* everywhere it is afterwards read — the view it
-lands in, the nav entry, the word design.md uses for it (design.md, "Tasks").
-The screen that names the thing was the one place still calling it the other
-word, which meant the commonest answer in the app was written under one noun
-and found under another.
+**`t` is Task and `a` is Action, and they are two answers because they make
+two different things** — a standalone action and a step of a plan (design.md,
+"Inbox Zero"). They were one branch, `t`, with a project box inside its form;
+`a` had been that branch's letter while it was called Action, and it comes
+back to the same screen now that there is an Action to press again.
+
+The letters follow the nouns, which is the whole of the rule: a standalone
+action is a *task* everywhere it is afterwards read — the view it lands in, the
+nav entry, the word design.md uses for it (design.md, "Tasks") — and one inside
+a project is an *action*. Both are the first letter of their own word, on the
+one screen whose job is naming what a thing is.
 
 `t` is the second letter in the map spent twice, and it passes the test the
 `r` paragraph sets: Today and Task are never on a screen together — stage one
@@ -304,8 +309,13 @@ the cursor, always bare in every mode, and stage one has a match list to move
 through, so `k` is not free. Consistency between the two maps would have cost
 the guessable letter in the one place a letter is guessed at.
 
-`a` is now Add and nothing else, which is a small simplification and is not
-what the move was for.
+**`a` is the third letter in the map spent twice, and it is the cheapest of
+the three.** It is Add on a project form and Action on the processing
+question, and unlike `r` and `t` the two are barely two nouns: both make an
+action, one into a plan that exists and one into a plan being chosen. They are
+never on a screen together — stage one carries no form to add a row to — and
+neither destroys anything. The test the `r` paragraph sets is passed on every
+clause at once, which is what "one letter, one *noun*" was written to allow.
 
 **`d` is the two-minute rule, and it was `2`.** The number was the rule's own
 number and the argument for it was that `d` is Done app-wide, so the two would
@@ -355,7 +365,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | Key | Goes to |
 | --- | --- |
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
-| `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have |
+| `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
 | `g` + letter | a view — the fourteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |

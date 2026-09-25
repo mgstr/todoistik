@@ -757,7 +757,10 @@ type CaptureSeed struct {
 func SeedCapture(branch, text string, v *Vocabulary) CaptureSeed {
 	line, body := SplitCapture(text)
 	switch branch {
-	case "action":
+	// Task and Action are two branches and one form: what they write is the
+	// same item, and they differ only in the project it belongs to, which is
+	// answered before any of this is read (design.md, "Inbox Zero")
+	case "task", "action":
 		meta, title := MetaFromText(line, v)
 		return CaptureSeed{Meta: meta, Title: title, Description: body}
 	case "project":

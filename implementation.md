@@ -29,11 +29,12 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Which way in a capture came by](#which-way-in-a-capture-came-by) — `inbox_items.source`, one word, written in one place
 - [Processing from the Inbox](#processing-from-the-inbox) — the Inbox is a list and two keys, and nothing else
 - [The processing screen](#the-processing-screen) — one capture and a menu of answers to “what is it?”
-  - [The keys](#the-keys) — six branches, one letter each, in the order the rows present them
+  - [The keys](#the-keys) — seven branches, one letter each, in the order the rows present them
   - [A completion request asks one question](#a-completion-request-asks-one-question) — a line that says what it is replaces stage one
   - [The match list](#the-match-list) — what the capture looks like, open items first, then finished
   - [Seeding a copy](#seeding-a-copy) — `from=<id>` starts stage two from a finished item
-- [Stage two](#stage-two) — the form the Task, Project and Someday/Maybe branches open
+  - [The project picker](#the-project-picker) — the Action branch asks which plan, on a screen between the question and the form
+- [Stage two](#stage-two) — the form the Task, Action, Project and Someday/Maybe branches open
 - [The someday item's page](#the-someday-items-page) — two fields and three buttons, the only screen acting on an idea
 - [The weekly review screens](#the-weekly-review-screens) — the running order, and one step of it
 - [Button labels](#button-labels) — one word per act, and the same word wherever the act appears
@@ -1010,10 +1011,11 @@ a page load, and what the bar derives itself from.
   a box adds `data-key-typing`, which only hybrid reads: that is a fact about
   where the control sits, and it is on the control rather than on the letter
   because two buttons may share a letter without sharing a form to be typed
-  into — the pair that made the point was `a`, Add inside a project form and
-  the Task branch on a boxless screen while that branch was still `a`. The
-  branch is `t` now and the pair has come apart, which changes nothing about
-  where the fact belongs; keys.md, "The three modes" says why
+  into — the pair that makes the point is `a`, Add inside a project form and
+  the Action branch on a boxless screen. It came apart for a while, when that
+  branch was `t` and called Task, and it is back; either way the fact belongs
+  on the control, which is what the arrangement was chosen for. keys.md, "The
+  three modes" says why
 - `ctrl-m` then a letter moves the focus to a control on the screen already
   open — see "Jumping to a control" below
 - `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
@@ -1482,23 +1484,23 @@ and all eight branches on screen at once — three buttons and five forms in
     grouping is about what becomes of the item, not about what the answer costs
     to give, and what becomes of it here is that it moves and stays
     unclarified
-  - **it is actionable** — Task and Project, the only two answers in this row
-    and the only two that create a commitment (see "Stage two"). They carried
-    *"— a step"* and *"— an outcome"* while the row was new; the gloss was
-    removed once it had been read, on the same argument as the rest of the
+  - **it is actionable** — Task, Action and Project, the three answers in this
+    row and the only three that create a commitment (see "Stage two"). They
+    carried *"— a step"* and *"— an outcome"* while the row was new; the gloss
+    was removed once it had been read, on the same argument as the rest of the
     screen's prose. The distinction they name is in the `?` panel, which is
     where a thing that has to be explained belongs (see "View help")
 
-  A link wearing `.button` is a button and looks like one to the pixel: two of
-  these six answers navigate rather than post, and that is an implementation
-  detail no one should be able to see. The class carries the same fill, hover
-  and metrics as the element
+  A link wearing `.button` is a button and looks like one to the pixel: three
+  of these seven answers navigate rather than post, and that is an
+  implementation detail no one should be able to see. The class carries the
+  same fill, hover and metrics as the element
 - **where those rows are drawn depends on the key bar.** Every control a
   screen carries is drawn in the bar now (see "The key bar is the buttons"),
   and the rows above are what the screen falls back to when there is no bar to
   draw them in. That fallback is this screen's ordinary case rather than its
   exception, because `zen.views` names processing: arriving here the usual way
-  you get the six answers in three rows, exactly as described, and arriving
+  you get the seven answers in three rows, exactly as described, and arriving
   with zen turned off by hand you get them along the bottom in the same order.
   So the grouping still earns its keep, and so does the accent rule over it —
   both are arguments about a screen that is showing its own menu
@@ -1530,20 +1532,20 @@ and all eight branches on screen at once — three buttons and five forms in
 
 ### The keys
 
-Six, one per answer, listed in the bar in the order the rows present them:
-`t` trash, `r` reference, `d` two-minute, `s` someday, `a` action, `p` project,
-then `esc`. Three of those move — trash to `⌫`, someday to `y`, and `p` to the
-project branch once the inbox row's alias goes — and `esc` stops leaving the
-screen. keys.md, "The map" owns those letters and gives the derivation; its
-"What is built" says where the code still stands. Each is the branch's own first letter except someday/maybe, which
-took the one letter of its name still free, and the two-minute rule, which is
-`d` — the branch records something finished, which is what Done means
-everywhere else, and one noun with one meaning is the rule this map is built
-on. It was `2`, the rule's own number, until the match list needed the digits
-(see "The match list"); keys.md, "The map" gives the whole derivation. Three of the six now open a stage rather
-than posting an answer: the someday branch went from a form's submit to a link the moment
-Someday/Maybe grew a stage two, and the key layer never noticed — `data-key` on
-a link is a link being followed, the way `a` and `p` already were.
+Seven, one per answer, listed in the bar in the order the rows present them:
+`⌫` delete, `r` reference, `d` two-minute, `y` someday, `t` task, `a` action,
+`p` project, then `esc`. keys.md, "The map" owns those letters and gives the
+derivation; its "What is built" says where the code stands. Each is the
+branch's own first letter except someday/maybe, which took the one letter of
+its name still free, and the two-minute rule, which is `d` — the branch records
+something finished, which is what Done means everywhere else, and one noun with
+one meaning is the rule this map is built on. It was `2`, the rule's own
+number, until the match list needed the digits (see "The match list").
+
+Four of the seven open a stage rather than posting an answer: the someday
+branch went from a form's submit to a link the moment Someday/Maybe grew a
+stage two, and the key layer never noticed — `data-key` on a link is a link
+being followed, the way `t`, `a` and `p` already are.
 
 - **`t` is trash here and "pick for today" on the list views that offer the
   mark** (every one but "Out of time" — see "Item lines"), and that was
@@ -1560,13 +1562,14 @@ a link is a link being followed, the way `a` and `p` already were.
   and carries the capture as it arrived as its snapshot — which is what keeps
   the channel countable after the item is gone (design.md, "Where it came
   from"). `internal/app/app_test.go` pins all seven.
-  - **the Task branch writes two of them**, chosen on the `projectID` it was
-    given: nothing means a standalone action, which is a task, and a project
-    means an action inside one. It is the same split `Match.Kind` and
-    `Match.Noun` draw on the screen the branch is answered from (see "The match
-    list") — the item type is `action` either way, and the noun is where the
-    thing is found. One event for both would put one word on the two things
-    that screen had just been fixed to keep apart
+  - **Task and Action write one each**, chosen on the `projectID` the form
+    posted: nothing means a standalone action, which is a task, and a project
+    means an action inside one. It is the same split `Match.Kind` draws on the
+    screen they are answered from (see "The match list") — the item type is
+    `action` either way, and the noun is where the thing is found. One event
+    for both would put one word on the two things the screen is now built to
+    keep apart. The two branches share a handler and a POST path for the same
+    reason they share a form; what they do not share is the word the log keeps
   - **the Audit view's Recapture button follows the event rather than a rule of
     its own**, and it offers itself on `trashed`, `deleted` and
     `sent-to-reference` (`audit.html`). The four new events are deliberately
@@ -1606,9 +1609,9 @@ a link is a link being followed, the way `a` and `p` already were.
 ### A completion request asks one question
 
 A captured line that is a completion request (design.md, "Completion requests")
-**replaces** stage one rather than adding a seventh button to it.
+**replaces** stage one rather than adding an eighth button to it.
 
-- **the six branches are not shown at all.** They answer "what is it?", and
+- **the seven branches are not shown at all.** They answer "what is it?", and
   this line already says what it is. A screen offering both questions would be
   asking the reader to work out which question they are answering
 - **the grammar of the line is `internal/request`, and what a line *means* is
@@ -1690,14 +1693,15 @@ the screen draws two short lists: what is still open, then what is finished.
   exceptions (see "Ages are hidden by default"); the ordering already puts the
   most recent of equals first, so the date is confirmation rather than the way
   the list is read
-- **the badge is `Match.Noun`, and `Match.Kind` is a different question.**
-  Kind is the branch a copy of the row opens - it goes on the URL as `as=` and
-  names the item that would be created, which for an action is still `action`.
-  Noun is the word the row is badged with, and a standalone action is badged
-  `task` (design.md, "Matches while processing"). The two were one string
-  until the branch was renamed and they stopped agreeing; splitting them is
-  cheaper than a badge that has to be translated or a URL that has to be
-  mapped, and each now has exactly one caller
+- **the badge and the branch are one string, `Match.Kind`.** It answers
+  `task` for a standalone action, `action` for one inside a project and
+  `project` for a project — the word the row is badged with, and the `as=` on
+  the copy link that row is (design.md, "Matches while processing"). They came
+  apart into `Kind` and `Noun` for as long as one branch made both kinds of
+  action, since the badge said `task` where the URL had to say `action`; with
+  Task and Action two branches there is nothing left to translate, and the
+  second method went. A badge that names the answer it opens is worth more
+  than either of them was
 - **the open rows are not links.** The keys on this screen cannot reach one —
   there is no row cursor at stage one — and a row only a pointer can open is a
   control the bar cannot name, which is the rule the whole bar is built on
@@ -1775,16 +1779,73 @@ handler below it cannot tell the difference.
   control has three shapes already (pick one, fixed, absent) and a fourth
   would be carried by every screen that writes an action to serve one of them
 
+### The project picker
+
+The Action branch's one question, on a screen of its own at
+`/process?item=&as=action`, between the question and the form (design.md,
+"Inbox Zero"). Answering it puts the project on the URL and the ordinary
+action form opens.
+
+- **it is a list of rows, not a control.** The rows are the app's own
+  `data-kb-row` rows, so `j`/`k` move and `↵` opens, and nothing about this
+  screen has to be learnt: the keys that work on the Inbox work here. The
+  combobox this replaced had a keyboard of its own — letters filtered, the
+  arrows moved, `ctrl-j` and `ctrl-k` moved as well because `j` and `k` were
+  being typed into it — which is a second set of rules for one control on one
+  screen, and it cost the filtering to have them. What is lost with it is
+  type-to-filter. What is bought is that the commonest answer is one press of
+  a key that already meant that
+- **each row is a link, built on the server.** `pickerData.Href` carries the
+  branch, the item, the run marker and the project, so the row and the key
+  press go to the same place and the template derives nothing. A `from=<id>`
+  being copied rides along too, or the digit's answer would be lost on the way
+  through (see "Seeding a copy")
+- **the list is the active projects, newest activity first**, from
+  `ProjectCandidates` with no query — the same order and the same `stalled`
+  marker and open count the combobox drew. Standalone is not on it, because
+  standalone is the other branch; a completed project is not on it, because it
+  is not a valid home (design.md, "Inbox Zero")
+- **`+ new project…` is the last row and opens the dialog.** It carries
+  `data-newproject` and no `data-href`, so the row keys offer `↵ new project`
+  instead of `↵ open` — a row that opens a dialog rather than going somewhere,
+  which the draft rows on a project form already are (keys.md, "The map")
+- **the new project is held, not created.** The dialog writes nothing: it puts
+  its two fields on the next URL and the form carries them as hidden values,
+  and the project and its first action are written together when the action is
+  created. Anything else would need a project with no actions, which
+  `CreateProject` refuses and design.md argues against — and it means an
+  abandoned form leaves nothing behind
+- **the dialog's Create is disabled until it can be acted on**, and stays where
+  it is. It first *hid* the button, which was wrong twice over: the screen
+  jumps as it appears, and while it is gone nothing says that creating is what
+  happens here at all. Disabled promises nothing false — it says "not yet" —
+  and the key bar names what is still blank. `↵` while incomplete moves to the
+  empty field rather than doing nothing, so the key is never a dead end
+- **the dialog stops both of its keys.** `esc` reaching the screen would close
+  the dialog and leave the screen in one press; this was a real bug, found by
+  pressing it
+- **it is `data-crumb="Create project"`**, so the title bar says where you are
+  while it is up: "Inbox / Processing / Pick project / Create project" (see
+  "Panels")
+- **an id that names nothing, or a finished project, comes back here.**
+  `settleProject` leaves the answer unsettled and the picker is drawn instead
+  of the form. Not an error: the only way to ask either is a stale link or a
+  hand-edited URL, and this is the screen that press was going to land on
+  anyway
+
 ## Stage two
 
-Answering Task, Project or Someday/Maybe opens a form on the same screen, at
-`/process?item=&as=action|project|someday`. The task branch keeps `as=action`
-and posts to `/process/{id}/action`, because the URL names the item that is
-created and that is still an action — the branch was renamed, the item type
-was not (design.md, "Inbox Zero"). Renaming the route to match the button
-would have put the view's name on the one path that also makes actions inside
-a project. Server-rendered as its own
-page rather than revealed in place: the second stage has to survive a reload
+Answering Task, Action, Project or Someday/Maybe opens a form on the same
+screen, at `/process?item=&as=task|action|project|someday`. Action stops at
+the picker on the way (see "The project picker") and arrives here as
+`&as=action&project=<id>`; the other three go straight to a form.
+
+Task and Action share the form and the POST path, `/process/{id}/action`,
+because what they write is one item: the branch names the answer and the route
+names the thing created, and that is an action either way (design.md, "Inbox
+Zero"). Which branch it was rides on the form as a hidden `as`, because the
+route cannot say and a refusal has to come back as the screen it was refused
+on. Server-rendered as its own page rather than revealed in place: the second stage has to survive a reload
 and a back button — it is where the typing happens — and a URL that names the
 stage is what gives it that for free. It also keeps the rule that the server is the single
 source of truth (see "Stack"), which a stage that only exists in the DOM would
@@ -1849,71 +1910,33 @@ quietly break.
   `@waitingFor(who)`, on the action it belongs to, in the same notation
   everywhere. The project form was the last screen carrying one — its first
   action's owner is now that action's own line, like every other action's
-- **the project is chosen from a picker, and the picker is the whole control.**
-  Closed it shows the choice — `<standalone>` until you make one. `↓` opens the
-  list of active projects, newest activity first; the rows carry the same
-  `stalled` marker and open count they always did. It is built from the page
-  rather than fetched, so filtering is instant and there is no endpoint behind
-  it: a hundred projects is a couple of KB, and the htmx fragment this replaced
-  was a round trip per keystroke to do less
-- **letters filter, and the arrows move.** `j`/`k` cannot do both — they are
-  letters, and project names start with them — so movement takes the form vim
-  itself uses when the letters are spoken for: `↑`/`↓` and `ctrl-j`/`ctrl-k`.
-  Filtering uses the app's own rule, every whitespace-separated word a
-  substring in any order, so `winter car` finds *Winter-proof the car*
-- **and the filtering is on the screen, not only in the keys.** A row it drops
-  gets the `hidden` attribute, which the browser's own sheet answers with
-  `display: none` — the weakest rule there is, and `.pickrow` is a flex row, so
-  for a long time the rows stayed put while `↑`/`↓` moved through the matches
-  alone: the list said one thing and the keys did another, which is the quiet
-  untrustworthy filtering design.md, "Views" exists to forbid. The sheet now
-  states `[hidden]` once, at the top, as `!important` — a class saying
-  `display: flex` is saying what a thing looks like when it is drawn, never
-  whether it is drawn, and the second question is answered in one place for
-  every screen. `.filterbar` had been answering it for itself
-- **`esc` unwinds one step at a time** — the filter, then the choice — and then
-  stops being the picker's key at all. Once the list is closed and nothing is
-  chosen, the press is let through to the screen, or the form could not be left
-  from that field
-- **`c` opens the new-project dialog, and so does `enter` on `<standalone>`.**
-  These are the only ways to create one from here, which is deliberate: text
-  that matches nothing is a typo far more often than an intention, and the
-  version this replaced turned a typo plus a definition of done into a
-  duplicate project. `c` is a command only while the list is shut — an open
-  list is being filtered, and every letter there belongs to the filter
-- **the dialog's Create is disabled until it can be acted on**, and stays where
-  it is. It first *hid* the button, which was wrong twice over: the screen
-  jumps as it appears, and while it is gone nothing says that creating is what
-  happens here at all. Disabled promises nothing false — it says "not yet" —
-  and the key bar names what is still blank. `enter` while incomplete moves to
-  the empty field rather than doing nothing, so the key is never a dead end
-- **the new project is held, not created.** The dialog fills two hidden fields;
-  the project and its first action are written together when the action form is
-  submitted. Anything else would need a project with no actions, which
-  `CreateProject` refuses and design.md argues against — and it means an
-  abandoned form leaves nothing behind. Verified: cancelling the dialog and
-  abandoning the form leave no empty project
-- **the dialog stops both of its keys.** `esc` reaching the screen would close
-  the dialog and leave the form in one press; this was a real bug, found by
-  pressing it
+- **neither form asks which project, because both arrive knowing.** Task
+  answers it by being pressed and Action answers it on the picker, so the
+  Project box is the same read-only box an action's own page draws, and the
+  answer travels as hidden `projectid`, `newproject` and `newdod` fields
+  (`process_action.html`). There was a combobox here — the one control on the
+  screen that asked a question after the question had been answered — and the
+  whole of it, markup, CSS and some hundred and thirty lines of `app.js`, went
+  with the branch split. `actionfields` now has one project control instead of
+  two, which is one fewer thing for the five screens that write an action to
+  differ by (see "Writing an action")
 - **there is nothing left to resolve on submit.** What is posted is an id, or a
-  pending new project, or neither. The bounce that used to ask *which project
-  did you mean* is gone with the text box that made the question possible
+  pending new project, or neither. `processActionBranch` reads the three
+  fields and writes the project and its first action together when there is a
+  pending one
 - **a form that comes back is not an error page.** It carries every value that
   was typed, the reason at the top, and the item still sitting in the inbox.
   This is the same non-answer as leaving the screen: the app asked a question it
-  could not answer for you, and nothing was decided in the meantime
-- **matching is on the project title only**, though the name filter over the
-  Projects view also matches action titles. Right when searching for a project,
-  wrong when naming the one an action should join — a stray hit on some action's
-  wording would file it under a project you never named. `MatchProjects` says so
-  where it is defined
-- **waiting on a sibling is not a control here, and cannot be.** The project
-  being filed into is chosen on this screen, so at the moment the meta line is
-  read the siblings are known — but what the action waits on is a choice among
-  them, and a picker for it would be a second project picker underneath the
-  first. It is written on the action's own page afterwards, where the plan it
-  is joining is on the screen to be read (see "The meta line")
+  could not answer for you, and nothing was decided in the meantime. The
+  project comes back with it — `bounce` reads it off what was posted rather
+  than sending you through the picker again, which would throw away an answer
+  given two screens ago along with the words
+- **waiting on a sibling is not offered here, and cannot be.** The project is
+  known by the time the meta line is read, so the siblings are known too — but
+  what the action waits on is a choice among them, and offering it would be a
+  second picker asked on the screen after the first. It is written on the
+  action's own page afterwards, where the plan it is joining is on the screen
+  to be read (see "The meta line")
 
 ## The someday item's page
 
@@ -2817,7 +2840,7 @@ one flag for the whole app.
   inside a sentence, and giving the prose the chip's padding and background
   would put a badge in the middle of a line
 - **only the ages go, not the line they sit in.** `.agetext` wraps the dates
-  and nothing else, so the crumb still says `Someday/Maybe`, a schedule still
+  and nothing else, so the crumb still says `Edit someday`, a schedule still
   says `never fired` and `next 2026-09-09`, and a completed action still says
   `completed`. A rule that has never fired is not an age, and the date it fires
   next is the one thing on that line worth coming for
@@ -3504,22 +3527,53 @@ the screen, and one answer that takes all three. This is how they are built.
   shows, read from `NavCounts.For` so the two numbers cannot come to differ —
   then whatever is being done inside it. `newPage` writes the first step from
   the view slug and a handler adds the rest with `step()`, which is why the
-  processing screens read "Inbox / Processing / Task"
+  processing screens read "Inbox / Processing / Create task"
+- **the trail is a path, so the screens on the way are steps of it too.** A
+  handler adds them with `under()`, ahead of its own `step()`: an action opened
+  from its project reads "Projects / Edit project / Edit action". `openedFrom()`
+  is `under()` with the name read off the address the screen was opened from —
+  `screenName` is that table, six entries, and the name a screen wears in
+  somebody else's trail is the name it wears in its own, because a second list
+  of names for the same screens is a second thing to keep in step. An action is
+  "Edit action" there and never "Edit task": which of the two depends on the
+  item and not on the address, and the one screen that sits under an action is
+  Promote, which names its parent itself
+- **the trail and the Back button are built from the same address.** The step
+  before the last one is the screen's own `Back` — `parentView` for a detail
+  page, the picker for the action form, stage one for the other processing
+  forms — and `under()` takes the name off exactly that value rather than
+  deriving it some other way. A trail that named a screen the way out did not
+  go to would look right, work wrong and go unnoticed for months, which is the
+  failure worth spending a rule on (design.md, "Panels"). A root view has one
+  crumb and no Back button; `internal/web/trail_test.go` pins both halves
+- **a screen says which of two things it is holding, not which item.** An
+  action's page is "Edit action" or "Edit task" on whether it has a project,
+  and "Completed action" or "Completed task" once it is finished — the same
+  distinction the match list badges and the processing branches make (design.md,
+  "Tasks"). What it never says is the item's own title: that is the biggest
+  thing on the page already, and the crumb answers "where am I". A schedule
+  and a someday item used to put their text in the crumb and now read "Edit
+  scheduler" and "Edit someday", which is the same rule finally applied to the
+  two screens that were left out of it
 - **the inbox count is red here too.** It is the one count design.md asks the
   app to say loudly, and the rail was the only place saying it — which stops
   being enough the moment the rail is a thing you can turn off. Every other
   crumb count is the outlined badge the nav uses (see "Navigation")
-- **a step that is a screen carries its slug; a step that is an item does
-  not.** The slug is what `zen.views` names, so "processing" is a name the
-  settings file can use and the project title in "Projects / Winter-proof the
-  car" is not. It also means the stages of processing inherit the answer given
-  for the run: zen is decided by *any* step of the trail matching, and a screen
-  reached from inside a zen screen is the middle of the same one thing
+- **a step that is a screen you can be sent to carries its slug; every other
+  step does not.** The slug is what `zen.views` names, so "processing" and
+  "doing" are names the settings file can use and "Create task" is not — the
+  stages of a screen are not places the file may open in zen, they are the
+  middle of the one that is. It also means those stages inherit the answer
+  given for the run: zen is decided by *any* step of the trail matching, and a
+  screen reached from inside a zen screen is the middle of the same one thing
 - **the separators are drawn by CSS**, not written into the markup, so a step
   the browser adds is punctuated like the ones the server wrote. A dialog that
   is a step rather than a question says so with `data-crumb` and the key layer
-  appends it while it is open — that is where "Inbox / Processing / Task /
-  Create project" comes from, and adding another one is an attribute
+  appends it while it is open — that is where "Inbox / Processing / Pick
+  project / Create project" comes from, and adding another one is an attribute.
+  The draft dialog on a project form sets its own as it opens, `Create action`
+  or `Edit action` on whether it was opened over a row, which is the same
+  distinction its heading already made (see "Writing a project")
 - **the screen only gets its say on arrival.** `zen.views` is applied when the
   trail's screen is not the one already recorded as open, so turning zen off by
   hand on a screen the settings file names stays off — through stage two, a
@@ -4180,9 +4234,12 @@ fields live in the `actionfields` partial and every screen that writes one
 uses it — the processing screen, the add-action dialog on a project being
 made, the next action open inside a project form, the screen a project that
 already exists adds one on, and the action's own page. The project control is
-the only difference between them, and it says which of the three answers this
-screen has: choose one (`Picker`), it is already decided and here is which
-(`Fixed`), or the screen has answered it elsewhere.
+now the same on all of them: `Fixed` says which project this action belongs to
+and cannot be changed, and no `Fixed` at all means the screen has answered it
+elsewhere. There was a third answer, `Picker`, on the processing screen's form
+alone — where an action lives is a question of its own now, asked before any
+of these boxes exist (design.md, "Inbox Zero"), so the partial has one project
+control instead of two and the screens differ by one thing fewer.
 
 Three of the partial's parameters are about the form around the fields rather
 than about the action, and all three exist so that a project form can hold one
@@ -4314,7 +4371,10 @@ empty next action of a stalled project.
   actions / Edit action", not the action's title: the title is the biggest
   thing on the page already, and the crumb answers "where am I". The item's
   own name is still the browser tab's title, which is where a name belongs
-  when the app is not the thing on screen
+  when the app is not the thing on screen. Which of the two nouns it uses —
+  "Edit action" or "Edit task" — is read off the action's project, and the
+  screen above it, when the action was opened from one, is a step of the same
+  trail (see "Panels")
 - **the dates sit under the form, over the buttons.** `created … · next for …`
   opened the page for a long time, which put the one line on the screen that
   cannot be edited where the eye lands first and pushed the Title field down
@@ -4450,9 +4510,11 @@ second shape.
   item open and editable, so the redirect falls through to the Referer and
   leaves you on the page you pressed it on — which has just become the form.
   The view it was opened from no longer holds it anyway
-- **the crumb says "Completed action" / "Completed project"** rather than
-  "Edit …", because the second crumb has always said what this screen is, and
-  the `?` panel's notation section is left off with the meta box it explains
+- **the crumb says "Completed task" / "Completed action" / "Completed
+  project"** rather than "Edit …", because the crumb has always said what this
+  screen is, and the `?` panel's notation section is left off with the meta box
+  it explains. The task/action half is the same question an open action's crumb
+  asks — whether it has a project (see "Panels")
 - **a completed action's row is marks, not controls.** The `actionrow` partial
   renders `☑` as a span where the checkbox form would be — the same span the
   Archive's own rows have always used — because that form posts `/complete`,
