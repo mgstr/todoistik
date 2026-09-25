@@ -92,3 +92,24 @@ func TestTheDashboardSitsBetweenAuditAndSettings(t *testing.T) {
 		t.Error("the Dashboard's row does not carry its own jump letter while standing on it")
 	}
 }
+
+// The Dashboard is the one screen with no rows and several windows of height,
+// so `j` and `k` move it by section instead of by row (keys.md, "The map").
+// The key layer knows nothing about panels — it moves through whatever the
+// page marked — so the marking is the whole of the contract between the two,
+// and a heading that lost its mark is a screenful `j` can no longer stop at.
+func TestEveryHeadingOnTheDashboardIsASection(t *testing.T) {
+	s, _ := newTestServer(t)
+	body := getDashboard(t, s)
+	// `main` is what the key layer looks in, and the page carries headings
+	// outside it — the `?` panel has one — that are nobody's section
+	main := body[strings.Index(body, "<main>"):strings.Index(body, "</main>")]
+	if n := strings.Count(main, "data-kb-section"); n != 12 {
+		t.Errorf("the Dashboard marks %d sections, want 12 — one per heading", n)
+	}
+	for _, tag := range []string{"<h2>", "<h3>"} {
+		if strings.Contains(main, tag) {
+			t.Errorf("a %s on the Dashboard carries no data-kb-section", tag)
+		}
+	}
+}

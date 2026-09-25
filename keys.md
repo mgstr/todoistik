@@ -373,7 +373,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 
 | Key | Goes to |
 | --- | --- |
-| `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
+| `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful |
 | `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
 | `g` + letter | a view — the fourteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
@@ -762,14 +762,24 @@ never be advertised without working:
   (implementation.md, "Theme").
 
 - **the Dashboard is the first view with no keys of its own**, and that is
-  the answer rather than a gap. It holds no rows to move through — `j`/`k`
-  have nowhere to go — and nothing on it can be completed, picked or deleted,
-  because nothing on it is an item (design.md, "Dashboard"). So its key bar is
-  the globals and the steering entries and nothing else, which is the bar
-  doing exactly what it is supposed to: nothing advertises a key that does not
-  exist. The one thing on the screen that *is* pressable is a link — a row of
-  "the oldest thing in each view" — and it is reached the way every other link
-  on a screen with no cursor is reached, with `^m`.
+  the answer rather than a gap. Nothing on it can be completed, picked or
+  deleted, because nothing on it is an item (design.md, "Dashboard"). So its
+  key bar is the globals, the steering entries and nothing else, which is the
+  bar doing exactly what it is supposed to: nothing advertises a key that does
+  not exist. The one thing on the screen that *is* pressable is a link — a row
+  of "the oldest thing in each view" — and it is reached the way every other
+  link on a screen with no cursor is reached, with `^m`.
+- **`j`/`k` on it move by section, not by row**, which is a key it does have
+  and the one correction to the bullet above. It was written as "no rows to
+  move through, so `j`/`k` have nowhere to go", and that was half an answer:
+  there is no cursor here and there should not be, but the screen is several
+  windows tall and reading past its first panel meant reaching for the mouse
+  — on the one screen in the app that is only ever read (design.md, "A screen
+  taller than the window is read from the keyboard too"). So the two keys keep
+  their meaning, "the next thing down", and what the next thing is is a
+  heading rather than a row. Nothing else about them changes: where there are
+  rows the rows win, so no screen has to choose, and the bar says which of the
+  two it is offering — `j k by section` rather than `j k move`.
 
 - **`b` no longer arms, it asks.** `leave()` hands every way out to one
   function, and that function puts the question when the screen has unsaved

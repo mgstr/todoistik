@@ -433,6 +433,9 @@
     if (!zero) pushRowKeys(view, row);
     if (!row) pushScreenKeys(view);
     if (rows().length) view.push(["j k", "move"]);
+    // a screen with no rows but with sections moves by section instead, and
+    // the bar says which of the two it is offering (keys.md, "The map")
+    else if (sections().length) view.push(["j k", "by section"]);
     if (zero) pushRowKeys(view, row);
     if (createForm()) view.push(["^↵", "create", function () { press(createForm()); }]);
     branchKeys().forEach(function (k) { view.push(k); });
@@ -3001,9 +3004,63 @@
     renderKeybar();
   }
 
+  // A screen that marks its own sections lets j/k move the window through
+  // them, and the Dashboard is the one that does. `main` is the scrollport
+  // (see implementation.md, "Screen layout"), so the move is the pane's own
+  // offset and not the window's.
+  //
+  // A dialog owns the keyboard while it is open, and j/k in one are about its
+  // answers — never about the page scrolling behind it.
+  function sections() {
+    if (topDialog()) return [];
+    return Array.from(document.querySelectorAll("main [data-kb-section]"));
+  }
+
+  // Where a section sits once it is the top of the screen: its own offset down
+  // the pane, so the heading lands flush against the edge with none of the
+  // panel above it left bleeding over the top — which is the whole of what
+  // "the next section is at the top" means.
+  //
+  // The top of the page is the first section's place, and is given as that
+  // rather than measured. It rests a little lower than flush, by the pane's
+  // top padding and the heading's own margin, and measuring it honestly would
+  // have `j` on a page at rest spend its first press scrolling that gap away
+  // instead of moving a section. Nothing sits above the first heading, so the
+  // top of the page is where it is.
+  function sectionTop(el, pane, first) {
+    if (el === first) return 0;
+    return el.getBoundingClientRect().top - pane.getBoundingClientRect().top +
+      pane.scrollTop;
+  }
+
+  // Read off where the window actually is rather than off a remembered index:
+  // this screen is scrolled with the mouse as well, and `j` after a drag has
+  // to carry on from what is on screen instead of from wherever a key last
+  // left off. So the next section is simply the first one below the top edge,
+  // and there is no state here to fall out of step with the scrollbar.
+  function moveSection(delta) {
+    const pane = document.querySelector("main");
+    const all = sections();
+    if (!pane || !all.length) return;
+    // a section already at the top edge is where you are, not where you are
+    // going; the slack is the fractional pixel a scrolled pane leaves behind
+    const slack = 2;
+    const here = pane.scrollTop;
+    let target = null;
+    for (let i = 0; i < all.length; i++) {
+      const at = sectionTop(all[i], pane, all[0]);
+      if (delta > 0) {
+        if (at > here + slack) { target = all[i]; break; }
+      } else if (at < here - slack) target = all[i];
+    }
+    // past the last section there is nothing below to go to, so the screen
+    // holds still rather than drifting on to the end of the page
+    if (target) pane.scrollTop = sectionTop(target, pane, all[0]);
+  }
+
   function move(delta) {
     const all = rows();
-    if (!all.length) return;
+    if (!all.length) { moveSection(delta); return; }
     const cur = selected();
     let i = cur ? all.indexOf(cur) + delta : (delta > 0 ? 0 : all.length - 1);
     i = Math.max(0, Math.min(all.length - 1, i));

@@ -930,6 +930,31 @@ a page load, and what the bar derives itself from.
   While a dialog is open its own rows are the current list — the answers in
   the filter box's unknown-name dialog are moved through this way (see "Token
   boxes")
+- **with no list to move through, they move the window by section instead**
+  (design.md, "A screen taller than the window is read from the keyboard
+  too"). `move()` is the one place that decides: no rows, and it falls through
+  to `moveSection()`, so the two are the same key and not a second one to
+  learn. A section is `data-kb-section` on the page, exactly as a row is
+  `data-kb-row` — the key layer knows nothing about panels or headings, only
+  about what the page marked, and the Dashboard is the only screen marking
+  anything today (see "The Dashboard"). Where a screen has both, the rows win
+  and the sections are never reached, which is why no screen has to choose
+- **which section you are on is read off the scrollbar, not remembered.** The
+  screen is scrolled with the mouse as well, so an index kept between presses
+  would be an index the wheel could silently invalidate — `j` after a drag
+  would jump back to wherever a key last left off. Instead each section's
+  offset down the pane is measured on the press and the next one is simply the
+  first below the top edge. There is no state here to fall out of step with
+  anything, and the two ways of moving the screen compose for free
+- **the heading lands flush with the top edge, and the top of the page is the
+  first section's place.** Flush, because a section that arrived with the
+  previous panel's last rows still hanging over the top edge does not read as
+  "this section is now at the top". And the first one is *given* the top of
+  the page rather than measured, because it rests slightly lower than flush —
+  `main`'s own top padding, plus the heading's margin — so measuring it
+  honestly made `j` on a page at rest spend its first press scrolling that gap
+  away instead of moving a section. Nothing sits above the first heading, so
+  the top of the page is where it is
 - **the selection survives acting on the row.** A row key posts a form and the
   answer is a whole new page — boosted or not, the list is rebuilt and the
   class marking the selection goes with the old one, so pressing `t` used to
@@ -4042,12 +4067,13 @@ Nine panels, one read, one template. `app.Dashboard()` in `internal/app/dashboar
 - **"when the inbox was last empty" is replayed, not stored.** Every capture puts one in and every answer takes one out, so the running count over the log is the inbox as it was at each moment, and the last time it hit zero is the answer. Nothing records emptiness directly and nothing should: it is not a thing that happens, it is a thing that is true in between two things that happen
 - **the backlog is counted off the items and not replayed.** A month's figure is "created on or before the month's end and not completed by then", read straight from `actions` and `projects`. That makes the line "what I still have, seen month by month" rather than a reconstruction — something deleted since is missing from the months it was open in. Accepted, and said out loud in design.md: the line is read for its direction, and a deletion moves that the same way finishing it does
 - **`countBy` became variadic** rather than gaining a second copy: the remembered lists group without a window and these group with one, and what the helper does with the answer is the same either way
+- **every heading in the template is a section, and carries `data-kb-section`.** This is the screen `j`/`k` move by section on (see "Keyboard"), and marking the headings rather than the `<section>` elements is what makes a panel's sub-heading a stop of its own — "the year, a month a row" is a screenful in its own right, and a `j` that skipped from Inbound straight to Outbound would step over the half of each time panel that answers the slower question (design.md, "Dashboard"). Twelve marks for nine panels, and `internal/web/dashboard_test.go` counts them and fails on any heading that lost one: an unmarked heading is a screenful the key can no longer stop at, and nothing else on the page would look wrong
 
 ### What is not built
 
 - **this is the first screen whose cost grows with history** rather than with what is open. Every other view queries what you have going on; this one queries the log, which only ever gets longer. That is why it is also the first thing in this database with an index on it (see "Storage"): measured against a year of moderate use — 4,000 entries — the screen took **255ms against 10-15ms for every other page**, and almost all of it was the two duration panels, whose correlated subquery is rows-that-left x whole-log without one. With the index it is 21ms. The plan had been to wait until it was slow; it was already slow the first time it was pointed at a year of data, which is the argument for measuring rather than reasoning about it
 - **the read API does not carry any of it.** design.md's "The read API" is "any view, with the caller's own filters", and the Dashboard is not a view in that sense — it has no items to answer with and no filters to take. So an agent asked "is my system keeping up?" still cannot answer it, which is a gap in the design principle about being AI friendly rather than an oversight here
-- **the panels are in one column, in one fixed order.** The screen is long enough to scroll on a laptop. Two columns were not tried: main caps at 62rem and a panel's row needs most of it once the label, the bar and the figure are on it, which is the same arithmetic that decided against two columns on an action's page (see `research/action-page-study.html`)
+- **the panels are in one column, in one fixed order.** The screen is long enough to scroll on a laptop, which is what `j`/`k` by section is the answer to rather than a narrower layout. Two columns were not tried: main caps at 62rem and a panel's row needs most of it once the label, the bar and the figure are on it, which is the same arithmetic that decided against two columns on an action's page (see `research/action-page-study.html`)
 
 ## Keeping an open page current
 
