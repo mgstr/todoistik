@@ -322,6 +322,18 @@
   // something. A mode fills the view group and empties the global one:
   // while a dialog or an overlay is up, none of the global keys are live.
   function keybarGroups() {
+    const lv = leaveDialog();
+    // The question is asked over whatever else is on the screen and owns the
+    // keyboard while it is up, so it comes first and the bar is its two
+    // answers — the keeping one named by the button, which is the screen's
+    // own and says Save or Create or Promote accordingly.
+    if (lv && lv.open) {
+      const keep = lv.querySelector("[data-leave-save]");
+      const keys = [];
+      if (keep && !keep.disabled) keys.push(["↵", keep.textContent.trim().toLowerCase()]);
+      keys.push(["esc", "discard"]);
+      return { view: keys, global: [] };
+    }
     const pd = panelsDialog();
     // the panel chooser is a list of keys and nothing else, so the bar is that
     // list — read off the dialog's own controls, like every other declared key
@@ -1192,22 +1204,45 @@
       dlg.close();
       submitScope(form);
     };
-    dlg.querySelector("[data-leave-discard]").onclick = function () {
+    const discard = dlg.querySelector("[data-leave-discard]");
+    discard.onclick = function () {
       leaving = true;
       dlg.close();
       withMotion("back", function () { window.location.href = to; });
     };
     dlg.onclose = function () { clearUnsaved(); renderKeybar(); };
-    // The dialog owns both keys outright, the way the draft one does: esc
-    // closes the question and leaves the screen where it is — which is the
-    // third answer, and the one that needs no button, because staying is
-    // what happens when you decline to answer. Enter presses the one the
-    // page was going to lose.
+    // The dialog owns both keys outright, the way the draft one does, and in
+    // here they are the two buttons and nothing else: enter presses the
+    // answer that keeps the work, esc the one that loses it. Both go on to
+    // where the interrupted press was aimed, which is what makes the
+    // question a question and not a detour — it is answered, and the move it
+    // interrupted finishes rather than having to be made a second time.
     dlg.onkeydown = function (e) {
-      if (e.key === "Escape") { e.stopPropagation(); return; }
+      if (e.key === "Escape") {
+        // preventDefault first: a dialog's own cancel would close it under
+        // us and leave the screen standing, which is an answer this question
+        // no longer offers.
+        e.preventDefault(); e.stopPropagation();
+        discard.onclick();
+        return;
+      }
       if (e.key !== "Enter") return;
       e.preventDefault(); e.stopPropagation();
       if (!save.disabled) save.onclick();
+    };
+    // Staying lost its key to discarding, so it gets the backdrop: a click
+    // outside the dialog closes the question and leaves the screen where it
+    // is. A modal whose only two answers both navigate is a trap, and this is
+    // the answer that needs no button — the same argument esc used to carry,
+    // moved to the one gesture that is hard to make by accident.
+    dlg.onclick = function (e) {
+      if (e.target !== dlg) return;
+      // the dialog's padding answers to the dialog too, so the box itself is
+      // the test rather than the element the click landed on
+      const box = dlg.getBoundingClientRect();
+      if (e.clientX >= box.left && e.clientX <= box.right &&
+          e.clientY >= box.top && e.clientY <= box.bottom) return;
+      dlg.close();
     };
     dlg.showModal();
     renderKeybar();

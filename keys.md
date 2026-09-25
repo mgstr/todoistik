@@ -580,6 +580,14 @@ press in the app and one extra tap abandoned a half-written action. The
 unwinding half was already the documented rule for the project picker and the
 filter box; this only finishes applying it.
 
+The unsaved-work question below is the one exception, and it is worth naming
+as one: there `esc` discards and goes. It is not really a second meaning —
+that dialog exists *because* a press was already on its way out, so closing
+the question and letting the press through is still one step of unwinding.
+But it is the one place where `esc` ends on a different screen, and the one
+place where it can cost something, so it is written down here rather than
+left to be discovered.
+
 **`b` leaves.** Back rather than Cancel, because that is what the thing does
 and what the code has always called it — `data-cancel` holds a URL, the
 template variable is `Back`, the handler is `back()`. On an action's page or a
@@ -591,8 +599,25 @@ given up, which is the screens that create.
 leave: a dialog comes up with the two answers there are — keep it, or lose it
 and go. Keeping presses the screen's own button, so the answer reads Save,
 Create or Promote depending on what screen you are on, and is offered only
-when that button could be pressed. `esc` is the third answer and needs no
-button of its own: staying is what happens when the question is declined.
+when that button could be pressed.
+
+**Both answers are a key, and they are the two obvious ones.** `↵` keeps,
+`esc` discards — the same pairing every dialog in the app already has, where
+enter takes the primary button and esc takes the way out. The question had
+been the exception: its buttons were reachable by mouse or by tab and nothing
+else, which in a keyboard app means the one interruption there is was also the
+one place the keyboard stopped working. Both keys leave the screen, because
+both are answers to a press that was already aimed somewhere; the question
+resolves and the movement finishes.
+
+Staying has no key any more. That is what giving `esc` to discarding costs,
+and it is the right trade: the question is only ever asked on the way out, so
+its answers are about the work and not about whether to move. But a modal
+whose every answer navigates is a trap, so staying keeps the gesture that
+needs no button — a click on the backdrop closes the question and leaves the
+screen standing, boxes untouched. It is deliberately the slow way to answer:
+the two presses are for the two decisions that were actually being made, and
+changing your mind about leaving at all is the rare one.
 
 It is the same question however the screen was being left — `b`, a link in the
 rail, a row opened with `enter`, a `g` chord. Only one of those is a key, but
