@@ -2,7 +2,6 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -1591,27 +1590,36 @@ func itoa(id int64) string {
 
 // --- projects ------------------------------------------------------------
 
+// projectForm is a project's three written fields as the screen shows them.
+// They come off the saved project on the way in and off the request when a
+// Save was refused, and the template reads only this — so the boxes hand back
+// what was typed rather than what is stored, the way the Project branch of
+// processing already does (see implementation.md, "Writing a project").
+type projectForm struct{ Title, DOD, Meta string }
+
 type projectPageData struct {
 	Project *app.Project
+	Fields  projectForm // what the project's own boxes show
 	// the action at the head of the plan, which the page shows open in its own
 	// boxes rather than as a row to be pressed (design.md, "Projects"). Nil
 	// when the project has none, and then the boxes are empty and make one
 	NextAction *app.Action
-	Next       draftAction // what those boxes show — the same triple a project form writes anywhere
-	Siblings   string      // what the next action's `snooze:` may name, as JSON
+	Next       draftAction   // what those boxes show — the same triple a project form writes anywhere
+	Drafts     []draftAction // actions written here and not saved yet, under the plan
+	Note       string        // why a Save came back instead of being taken
+	Siblings   string        // what the next action's `snooze:` may name, as JSON
 	Contexts   []string
 	Tags       []string
 	Back       string // the view this was opened from, for Back and esc
 }
 
-func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
-	proj, err := s.app.Project(idParam(r))
-	if err != nil {
-		httpError(w, err)
-		return
-	}
+// projectData is the project's page as the project itself says it. The boxes
+// are the saved values; a refused Save overwrites them with what was posted
+// before rendering (see bounceProject).
+func (s *Server) projectData(proj *app.Project, r *http.Request) *projectPageData {
 	d := &projectPageData{
 		Project: proj,
+		Fields:  projectForm{Title: proj.Title, DOD: proj.DOD, Meta: proj.Meta()},
 		Back:    s.parentView(r, "/projects"),
 	}
 	// A completed project is read and does not write (design.md,
@@ -1635,21 +1643,59 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 	}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
+	return d
+}
+
+func (s *Server) renderProject(w http.ResponseWriter, r *http.Request, d *projectPageData) {
 	// the trail says which screen this is, the way the action page does —
 	// including that a completed project is only read
 	step := "Edit project"
-	if proj.CompletedAt != nil {
+	if d.Project.CompletedAt != nil {
 		step = "Completed project"
 	}
-	p := s.newPage(proj.Title, viewOf(d.Back), r).step(step, "")
+	p := s.newPage(d.Project.Title, viewOf(d.Back), r).step(step, "")
 	p.Data = d
 	s.render(w, "project.html", p)
+}
+
+func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
+	proj, err := s.app.Project(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	s.renderProject(w, r, s.projectData(proj, r))
+}
+
+// bounceProject sends a refused Save back to the project's page with
+// everything that was typed still on it, which is what the Project branch of
+// processing has always done. It matters more here than it did there: the
+// actions written into the list live in the form until the press is taken, so
+// an error page would throw away work that was never anywhere else
+// (see implementation.md, "Writing a project").
+func (s *Server) bounceProject(w http.ResponseWriter, r *http.Request, proj *app.Project, note string) {
+	d := s.projectData(proj, r)
+	d.Note = note
+	d.Fields = projectForm{
+		Title: r.FormValue("title"), DOD: r.FormValue("dod"), Meta: r.FormValue("meta"),
+	}
+	// the open boxes are the first of the repeated action fields and the rows
+	// are the rest, which is the one reading of that list everywhere
+	if all := draftsFromForm(r); len(all) > 0 {
+		d.Next, d.Drafts = all[0], written(all[1:])
+	}
+	s.renderProject(w, r, d)
 }
 
 // projectAddAction is the screen an action is written on for a project that
 // already exists. It is the same form the processing screen and an action's
 // own page use, with the project answered — see the template for why it is a
 // screen and no longer a fold on the project's page.
+//
+// It is reached by address only now. The project's page writes an action the
+// way the screens that create a project do — in the dialog, as a row the one
+// Save commits — so nothing links here; what is left is a working URL for a
+// bookmark or a stale link, which lands on the form it always did.
 func (s *Server) projectAddAction(w http.ResponseWriter, r *http.Request) {
 	proj, err := s.app.Project(idParam(r))
 	if err != nil {
@@ -1687,20 +1733,27 @@ type addActionPageData struct {
 	Siblings     string // the actions `snooze:` may name here, as JSON
 }
 
-// projectUpdate saves the project's page, which is the project and the action
-// at the head of its plan — one screen, one Save. The two are written together
-// because the page reads as one thing: a project is what it is aimed at and
-// what is being done about it next, and two Saves would ask which half you
-// meant every time you changed a word in either.
+// projectUpdate saves the project's page, which is the project, the action at
+// the head of its plan, and any action written into the list beneath it — one
+// screen, one Save. They are written together because the page reads as one
+// thing: a project is what it is aimed at and what is being done about it
+// next, and two Saves would ask which half you meant every time you changed a
+// word in either.
 //
-// Both are read before either is written, so a meta line the app cannot read
-// refuses the whole press rather than keeping the project and dropping the
-// action (design.md, "Writing an action").
+// All of it is read before any of it is written, so a meta line the app cannot
+// read refuses the whole press rather than keeping the project and dropping an
+// action (design.md, "Writing an action"). A refusal goes back to the page
+// with everything still typed on it, because the rows are nowhere else.
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	id := idParam(r)
-	f, err := s.projectMetaFromForm(r)
+	proj, err := s.app.Project(id)
 	if err != nil {
 		httpError(w, err)
+		return
+	}
+	f, err := s.projectMetaFromForm(r)
+	if err != nil {
+		s.bounceProject(w, r, proj, err.Error())
 		return
 	}
 	// which action the boxes were about, as the form says. It is checked
@@ -1709,24 +1762,28 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	// anywhere else must not reach an action this project does not own
 	nextID := parseID(strings.TrimSpace(r.FormValue("nextid")))
 	if nextID != 0 {
-		proj, perr := s.app.Project(id)
-		if perr != nil {
-			httpError(w, perr)
-			return
-		}
 		next := proj.NextAction()
 		if next == nil || next.ID != nextID {
-			httpError(w, errors.New("that is no longer this project's next action — open the project again"))
+			s.bounceProject(w, r, proj, "that is no longer this project's next action — open the project again")
 			return
 		}
 	}
 	wa, err := s.readActionNamed(r, "a", id, nextID)
 	if err != nil {
-		httpError(w, err)
+		s.bounceProject(w, r, proj, err.Error())
+		return
+	}
+	// the rows under the open boxes: actions written in the dialog and held in
+	// the form until this press, the same three repeated fields the screens
+	// that create a project post. The open boxes are the first of that list,
+	// so the rows are everything after it
+	made, err := s.newActions(r, id)
+	if err != nil {
+		s.bounceProject(w, r, proj, err.Error())
 		return
 	}
 	if err := s.app.UpdateProject(id, f); err != nil {
-		httpError(w, err)
+		s.bounceProject(w, r, proj, err.Error())
 		return
 	}
 	// an empty box on a project with no next action is left alone: the app
@@ -1753,7 +1810,61 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// the rows, in the order they sit on the screen, which is the order the
+	// plan puts them in
+	for _, n := range made {
+		act, cerr := s.app.CreateAction(id, n.Fields)
+		if cerr != nil {
+			httpError(w, cerr)
+			return
+		}
+		if err := s.applyToday(act.ID, n.Today); err != nil {
+			httpError(w, err)
+			return
+		}
+	}
 	back(w, r)
+}
+
+// newActions reads the rows a project's page posted under its open boxes: the
+// actions written there and not saved yet. Every meta line is parsed before
+// any of them is written, so one unreadable line refuses the whole Save and
+// the page comes back with all of them still on it.
+func (s *Server) newActions(r *http.Request, projectID int64) ([]writtenAction, error) {
+	all := draftsFromForm(r)
+	if len(all) < 2 {
+		return nil, nil
+	}
+	// an action written here may wait on one the project already has; it
+	// cannot wait on another row, which has no id to be named by
+	v, err := s.app.VocabularyIn(projectID, 0)
+	if err != nil {
+		return nil, err
+	}
+	var out []writtenAction
+	for _, d := range written(all[1:]) {
+		m, perr := app.ParseMeta(d.Meta, v)
+		if perr != nil {
+			return nil, fmt.Errorf("%s: %w", d.Title, perr)
+		}
+		out = append(out, writtenAction{
+			Today: m.Today,
+			Fields: app.ActionFields{
+				Title:          d.Title,
+				Description:    d.Description,
+				Context:        m.Context,
+				ContextParam:   m.ContextParam,
+				Duration:       m.Duration,
+				NeedsFocus:     m.NeedsFocus,
+				AssignedTo:     m.AssignedTo,
+				DueDate:        m.DueDate,
+				SnoozeUntil:    m.SnoozeUntil,
+				SnoozeActionID: m.SnoozeActionID,
+				Tags:           m.Tags,
+			},
+		})
+	}
+	return out, nil
 }
 
 // projectGone is where a project's page goes once the project it is about is

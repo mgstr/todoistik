@@ -20,7 +20,8 @@
        belong to. So the actions are held here as rows carrying hidden fields,
        and an action is written in the same form it is written in everywhere
        else — see the add-action dialog below. */}}
-  <form method="post" action="/process/{{$d.ID}}/project{{$d.Q}}" class="stack" data-drafts>
+  <form method="post" action="/process/{{$d.ID}}/project{{$d.Q}}" id="itemform" class="stack"
+        data-drafts data-dirty-new>
     {{template "projectfields" (dict
       "Title" ($d.Vals.Get "title") "DOD" ($d.Vals.Get "dod") "Meta" ($d.Vals.Get "meta")
       "Required" true "Focus" true)}}
@@ -43,49 +44,35 @@
          it posts as the first of the same repeated fields the rows below carry,
          so the server reads one list of actions and the plan's order is the
          order they are on the screen. */}}
-    <h2>Next action</h2>
+    {{/* The heading the project's own page gives this action, with the marks
+         that mean anything before there is an action to mark: `#↓` writes a
+         box and posts nothing, so it works on a project that does not exist
+         yet, and the pick and complete marks are forms against an id there
+         is none of. One heading, drawn with what it can carry. */}}
+    <h2 class="nexthead">
+      <span class="what">Next action</span>
+      <button type="button" class="metacopy" data-copy-meta="itemform"
+              data-key="#" data-key-label="project tags" disabled
+              title="put the project's tags on this action (#)">#↓</button>
+    </h2>
     {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
       "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
 
     {{/* Everything after the first, which most projects do not have: one next
          action is enough to move a project forward, and the steps you already
          know about are written here when planning them now is worth it
-         (design.md, "Project"). The button is under the list it adds to, the
-         way it is on the project's own page — the list no longer has to draw
-         the eye on an empty project, because the action that matters is above
-         it with its boxes open. */}}
-    <h2>More actions</h2>
-    <ul class="list drafts" data-draft-list>
-      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
-    </ul>
+         (design.md, "Project"). The list and its Add are the project page's,
+         because writing into a plan is one act wherever the plan is. */}}
+    {{template "projectactions" (dict "Rows" nil "Drafts" $d.Drafts "Today" $.Today "Form" "")}}
 
     <div class="actionsbar">
-      <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
-    </div>
-
-    <div class="branches">
       <button class="primary" data-key="c" data-key-label="create" data-key-typing>Create</button>
       <a class="button" href="{{$d.Back}}">Cancel</a>
     </div>
   </form>
 </div>
 
-{{/* The same fields the processing screen writes an action in, with the
-     project answered: there is only one it could belong to, so the control
-     says which and cannot be changed. */}}
-<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
-  <h2 id="draft-dialog-title">Add an action</h2>
-  <div class="stack">
-    {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Required" true "Focus" false)}}
-    <div class="branches">
-      <button type="button" class="primary" data-draft-ok>Create</button>
-      <button type="button" data-draft-cancel>Cancel</button>
-    </div>
-  </div>
-</dialog>
-
-{{/* one definition of a row, cloned by the keyboard layer when an action is
-     added and rendered by the server when a refused form comes back */}}
-<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "")}}</template>
+{{/* the dialog the list's rows are written in. No siblings: a `snooze:` here
+     could only name another row, and a row has no id to be named by. */}}
+{{template "draftdialog" (dict "Siblings" "" "Form" "")}}
 {{template "bottom" .}}

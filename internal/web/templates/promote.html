@@ -7,7 +7,8 @@
      action, and its tags on the project. */}}
 <div class="item" data-cancel="{{$d.Back}}"
   {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}>
-  <form method="post" action="/action/{{$a.ID}}/promote" class="stack" data-drafts>
+  <form method="post" action="/action/{{$a.ID}}/promote" id="itemform" class="stack"
+        data-drafts data-dirty-new>
     <input type="hidden" name="from" value="{{$d.From}}">
     {{template "projectfields" (dict "Title" $a.Title "DOD" "" "Meta" $a.PromotedMeta
       "Required" true "Focus" true)}}
@@ -16,18 +17,16 @@
          has it open: it is the one action a project cannot be without, and
          here it is the action being promoted, so this is where its words are
          read back before the project is made */}}
-    <h2>Next action</h2>
+    <h2 class="nexthead">
+      <span class="what">Next action</span>
+      <button type="button" class="metacopy" data-copy-meta="itemform"
+              data-key="#" data-key-label="project tags" disabled
+              title="put the project's tags on this action (#)">#↓</button>
+    </h2>
     {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
       "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
 
-    <h2>More actions</h2>
-    <ul class="list drafts" data-draft-list>
-      {{range $d.Drafts}}{{template "draftrow" .}}{{end}}
-    </ul>
-
-    <div class="actionsbar">
-      <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
-    </div>
+    {{template "projectactions" (dict "Rows" nil "Drafts" $d.Drafts "Today" $.Today "Form" "")}}
 
     <div class="actionsbar">
       <button class="primary" data-key="c" data-key-label="promote" data-key-typing>Promote</button>
@@ -37,16 +36,5 @@
 </div>
 
 {{/* the same dialog the Project branch writes its actions in */}}
-<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
-  <h2 id="draft-dialog-title">Add an action</h2>
-  <div class="stack">
-    {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Required" true "Focus" false)}}
-    <div class="branches">
-      <button type="button" class="primary" data-draft-ok>Create</button>
-      <button type="button" data-draft-cancel>Cancel</button>
-    </div>
-  </div>
-</dialog>
-<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "")}}</template>
+{{template "draftdialog" (dict "Siblings" "" "Form" "")}}
 {{template "bottom" .}}

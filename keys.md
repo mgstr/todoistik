@@ -155,7 +155,7 @@ been.
 | --- | --- | --- |
 | `s` | Save | action, project, someday item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
-| `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added |
+| `a` | Add | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
 | `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
@@ -355,7 +355,7 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | Key | Goes to |
 | --- | --- |
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line |
-| `↵` `o` | open the selected row |
+| `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have |
 | `g` + letter | a view — the fourteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
@@ -568,21 +568,39 @@ project's page nothing is being abandoned; you are returning to the view you
 came from. Cancel stays the right word only where something is genuinely being
 given up, which is the screens that create.
 
-**A form with unsaved work costs a second `b`.** The first press does not
-leave: the fields that differ from what was saved are marked, and the bar
-reads `s save · b discard`. The second press leaves and discards. No dialog
-and no confirmation, for the reason there is none anywhere else — design.md,
-"The protocol is followed, not enforced" — and no third state to learn: the
-same key, pressed again, still means leave.
+**A form with unsaved work asks before it is left.** The press does not
+leave: a dialog comes up with the two answers there are — keep it, or lose it
+and go. Keeping presses the screen's own button, so the answer reads Save,
+Create or Promote depending on what screen you are on, and is offered only
+when that button could be pressed. `esc` is the third answer and needs no
+button of its own: staying is what happens when the question is declined.
 
-The marking borrows the dashed border a draft row already wears, because that
-is the app's existing way of saying "this is not saved yet", and it must not
-borrow the error styling: nothing is wrong, it simply is not written down.
+It is the same question however the screen was being left — `b`, a link in the
+rail, a row opened with `enter`, a `g` chord. Only one of those is a key, but
+the rule is a key's business all the same, because `b` is the way out the map
+names and the question is now part of what pressing it does.
 
-Only screens that edit something get the marks. A screen that *creates* is
-unsaved wholesale — everything typed into it would be lost — so marking every
-filled box there would mark the form and say nothing. Those screens still cost
-the second `b`.
+The fields that differ from what was saved are marked while the question is
+up, and the marking borrows the dashed border a draft row already wears,
+because that is the app's existing way of saying "this is not saved yet". It
+must not borrow the error styling: nothing is wrong, it simply is not written
+down. A screen that *creates* gets no marks — it is unsaved wholesale, so
+marking every filled box would mark the form and say nothing — and asks all
+the same, because there it is everything typed that would be lost.
+
+This replaced a second `b`: the first press used to mark the boxes and turn
+the bar's entry into `b discard`, and the second went. Two presses of one key
+were cheap to learn and quiet, which is why they were chosen — and they were
+wrong about which of the two answers is the expensive one. Discarding is the
+press that cannot be taken back, and it was the one the arming made easier;
+keeping the work still meant noticing the bar had changed, going back to the
+boxes and pressing Save. What the dialog costs is an interruption. What it
+buys is that both answers are in front of you and the one that destroys
+something is the one you have to reach for.
+
+None of this is the app enforcing anything — see design.md, "A screen with
+unsaved work on it says so, and asks before it is left." for why that is a
+different question from "The protocol is followed, not enforced".
 
 ## A key that does nothing, on purpose, for a sixth of a second
 
@@ -708,6 +726,13 @@ never be advertised without working:
   exist. The one thing on the screen that *is* pressable is a link — a row of
   "the oldest thing in each view" — and it is reached the way every other link
   on a screen with no cursor is reached, with `^m`.
+
+- **`b` no longer arms, it asks.** `leave()` hands every way out to one
+  function, and that function puts the question when the screen has unsaved
+  work on it — so the key, a link in the rail, `↵` on a row and a `g` chord
+  all stop at the same place, and there is no route out that forgets to ask.
+  The bar's entry reads `b back` in both states now: there is no armed state
+  left for it to say (see "Leaving a screen").
 
 What is left, and deliberately:
 

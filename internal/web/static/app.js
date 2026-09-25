@@ -438,7 +438,7 @@
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) {
       view.push([renderKey("b"),
-        discardArmed ? "discard" : (cancel.dataset.cancelLabel || "back"),
+        cancel.dataset.cancelLabel || "back",
         function () { leave(); }]);
     }
     const bar = filterBar();
@@ -748,7 +748,9 @@
     // window.location here would be the app replacing itself with the
     // reference, which is the one thing design.md, "Following a link" forbids
     if (href && el.target === "_blank") { el.click(); return; }
-    if (href) window.location.href = href;
+    // every way out of a screen goes through goTo, so that the question about
+    // unsaved work has one place to be asked from
+    if (href) goTo(href, false);
   }
 
   // ---- Following a link (^o) -------------------------------------------
@@ -891,8 +893,11 @@
       // Moving the row itself is the movement keys with shift held: `u` and
       // `d` were spent on Undone and Done, and a draft is a row like any
       // other, so the delete key removes it the way the delete key removes anything.
-      if (row.previousElementSibling) into.push(["K", "up", function () { moveDraft(row, -1); }]);
-      if (row.nextElementSibling) into.push(["J", "down", function () { moveDraft(row, 1); }]);
+      // Only past another draft: the saved rows above it are the project's
+      // order and this form does not write them (see moveDraft).
+      const up = row.previousElementSibling, down = row.nextElementSibling;
+      if (up && up.hasAttribute("data-draft")) into.push(["K", "up", function () { moveDraft(row, -1); }]);
+      if (down && down.hasAttribute("data-draft")) into.push(["J", "down", function () { moveDraft(row, 1); }]);
       into.push(["⌫", "remove", deleteHere, "danger"]);
       return;
     }
@@ -931,7 +936,7 @@
   // what the bar's entry for it must do — one path, so that the key and the
   // pointer cannot drift apart.
   function openRow(row) {
-    if (row && row.dataset.href) window.location.href = row.dataset.href;
+    if (row && row.dataset.href) goTo(row.dataset.href, false);
   }
 
   // Inbox Zero is the list's own link, followed. One path for the key and the
@@ -1051,23 +1056,85 @@
     return renderKey(decl) === (e.ctrlKey ? "^" : "") + keyOf(e);
   }
 
-  // `b` leaves, and a form with unsaved work costs a second press: the first
-  // marks what would be lost and lets the bar say so, the second goes. No
-  // dialog and no confirmation, for the reason there is none anywhere else —
-  // design.md, "The protocol is followed, not enforced" — and no third state
-  // to learn, since the same key pressed again still means leave.
-  let discardArmed = false;
+  // ---- Unsaved work -------------------------------------------------------
+  //
+  // A screen that is being written on says so in the title bar, and will not
+  // be left without the question being asked. Both halves read the same one
+  // fact: whether what is on the screen differs from what the server sent.
+  //
+  // It is a comparison of values and never a record of typing. A word typed
+  // and deleted again leaves the form exactly as it was, and a screen that
+  // called that unsaved would be colouring its title bar and stopping a press
+  // over nothing (design.md, "A screen with unsaved work on it says so, and
+  // asks before it is left."). Each field's own defaultValue
+  // is what it is compared against, so nothing has to be remembered in here —
+  // the same trick the filter box's Apply and the Save gate already use.
+  //
+  // Only the forms that ask are watched: `data-dirty-save` on a screen that
+  // edits something, `data-dirty-new` on one that creates. A create screen is
+  // dirty from the moment it opens and answers without being compared —
+  // there is nothing behind it to be the same as, so everything on it is work
+  // that would be lost.
 
-  function dirtyForms() {
-    return Array.from(document.querySelectorAll("form")).filter(function (f) {
-      return keyLive(f) && changed(f);
-    });
+  // Whether the guard is standing down because we are the ones leaving.
+  let leaving = false;
+
+  function guardedForms() {
+    return Array.from(document.querySelectorAll("form[data-dirty-save], form[data-dirty-new]"));
   }
 
-  // Only a screen that edits something gets the marks. One that creates is
-  // unsaved wholesale, so marking every filled box would mark the form and
-  // say nothing — it still costs the second press (keys.md, "Leaving a
-  // screen").
+  // The plan's rows, as the one value they are. Two things the boxes' own
+  // comparison cannot answer for. The order is part of what the form says, so
+  // a row moved or removed is a change no single field differs over; and a
+  // hidden input's value *is* its default — the two are one attribute in the
+  // browser — so a row the dialog wrote looks untouched to the field-by-field
+  // test however much was typed into it. So the list as the server drew it is
+  // remembered here, and what is on the screen is compared against that.
+  function draftShape() {
+    return Array.from(document.querySelectorAll("[data-draft-list] [data-draft]"))
+      .map(function (row) {
+        const v = draftValues(row);
+        return v.title + "␟" + v.meta + "␟" + v.description;
+      });
+  }
+  let draftsAsDrawn = [];
+  function rememberDrafts() { draftsAsDrawn = draftShape(); }
+
+  function draftsChanged() {
+    return draftShape().join("␞") !== draftsAsDrawn.join("␞");
+  }
+
+  function formDirty(f) {
+    if (f.hasAttribute("data-dirty-new")) return true;
+    return changed(f) || draftsChanged();
+  }
+
+  function dirtyForms() {
+    return guardedForms().filter(function (f) { return keyLive(f) && formDirty(f); });
+  }
+
+  // The title bar wears it. It is the one strip on the screen that is about
+  // the screen rather than about anything on it, which is what a page with
+  // unwritten work on it needs said — and it is already in the eye's path on
+  // the way to the keys. Nothing is coloured on a create screen's first paint
+  // any differently than later: it is unsaved the whole time it is up.
+  //
+  // With the title bar off it falls to the pane, and it has to: processing
+  // opens in zen mode by default, so the screen a project is written on is
+  // exactly the one with no chrome to wear this. A panel is a thing shown and
+  // never a thing hidden state goes away with — the same rule that keeps the
+  // controls on a barless screen (implementation.md, "Panels").
+  function renderDirty() {
+    const on = dirtyForms().length > 0;
+    const bar = document.getElementById("titlebar");
+    const pane = document.querySelector(".pane");
+    if (bar) bar.classList.toggle("dirty", on);
+    if (pane) pane.classList.toggle("dirty", on && !bar);
+  }
+
+  // What would be lost, marked in the boxes it is in, while the question is
+  // on the screen. Not while it is merely being typed: the marks are the
+  // dialog's evidence and they go when it does.
   function markUnsaved(forms) {
     forms.forEach(function (f) {
       if (!f.hasAttribute("data-dirty-save")) return;
@@ -1080,29 +1147,124 @@
         if (diff) el.classList.add("unsaved");
       });
     });
+    // a row is marked when it is not one the server drew — the same
+    // comparison, against the list as it was sent
+    const drawn = draftsAsDrawn.slice();
+    document.querySelectorAll("[data-draft-list] [data-draft]").forEach(function (row) {
+      const v = draftValues(row);
+      const i = drawn.indexOf(v.title + "␟" + v.meta + "␟" + v.description);
+      if (i < 0) row.classList.add("unsaved");
+      else drawn.splice(i, 1);
+    });
   }
 
-  function disarmDiscard() {
-    if (!discardArmed) return;
-    discardArmed = false;
+  function clearUnsaved() {
     document.querySelectorAll(".unsaved").forEach(function (el) { el.classList.remove("unsaved"); });
+  }
+
+  function leaveDialog() { return document.getElementById("leave-dialog"); }
+
+  // Leaving a screen with unsaved work on it asks, and the question has the
+  // two answers there are: keep it or lose it. This is the app's one
+  // interruption, and it is not a confirmation — nothing here asks whether
+  // you are sure, it offers the press you would otherwise have had to
+  // remember to make first (keys.md, "Leaving a screen").
+  function askBeforeLeaving(to, form) {
+    const dlg = leaveDialog();
+    if (!dlg) { leaving = true; window.location.href = to; return; }
+    markUnsaved([form]);
+    const save = dlg.querySelector("[data-leave-save]");
+    const btn = makeButton(form);
+    // Save says what the screen's own button says — Save, Create, Promote —
+    // because it is that button, pressed from here. It is offered only when
+    // that button could be pressed: a create screen with a required box still
+    // empty has nothing it is allowed to keep, and then the only way on is to
+    // lose it or to close the question and fill the box in.
+    save.disabled = !btn || btn.disabled;
+    save.textContent = btn ? btn.textContent.trim() : "Save";
+    save.onclick = function () {
+      // where the press was going goes with it, on a form that takes an
+      // answer to that question — so saving on the way to Today lands on
+      // Today rather than wherever the form would have gone by itself
+      const back = form.elements && firstNamed(form, "back");
+      if (back && to) back.value = to;
+      leaving = true;
+      dlg.close();
+      submitScope(form);
+    };
+    dlg.querySelector("[data-leave-discard]").onclick = function () {
+      leaving = true;
+      dlg.close();
+      withMotion("back", function () { window.location.href = to; });
+    };
+    dlg.onclose = function () { clearUnsaved(); renderKeybar(); };
+    // The dialog owns both keys outright, the way the draft one does: esc
+    // closes the question and leaves the screen where it is — which is the
+    // third answer, and the one that needs no button, because staying is
+    // what happens when you decline to answer. Enter presses the one the
+    // page was going to lose.
+    dlg.onkeydown = function (e) {
+      if (e.key === "Escape") { e.stopPropagation(); return; }
+      if (e.key !== "Enter") return;
+      e.preventDefault(); e.stopPropagation();
+      if (!save.disabled) save.onclick();
+    };
+    dlg.showModal();
+    renderKeybar();
+  }
+
+  // Every way out of a screen goes through here, so that there is one place
+  // the question is asked from and no route out that forgets to ask.
+  function goTo(to, motion) {
+    if (!to) return false;
+    const dirty = dirtyForms();
+    if (dirty.length && !leaving) { askBeforeLeaving(to, dirty[0]); return true; }
+    leaving = true;
+    if (!motion) { window.location.href = to; return true; }
+    return withMotion("back", function () { window.location.href = to; });
   }
 
   function leave() {
     if (deaf()) return true;
     const cancel = document.querySelector("[data-cancel]");
     if (!cancel) return false;
-    const dirty = dirtyForms();
-    if (dirty.length && !discardArmed) {
-      discardArmed = true;
-      markUnsaved(dirty);
-      renderKeybar();
-      return true;
-    }
-    return withMotion("back", function () {
-      window.location.href = cancel.dataset.cancel;
-    });
+    return goTo(cancel.dataset.cancel, true);
   }
+
+  // The mouse's way out, and every link on the page is one: the rail, the
+  // trail, Back, a row's title. Caught in the capture phase, because hx-boost
+  // is listening for the same click and would have the next page on its way
+  // before the question could be asked. A link that opens somewhere of its
+  // own is left alone — it does not leave this screen (design.md, "Following
+  // a link").
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a || (a.target && a.target !== "_self")) return;
+    const href = a.getAttribute("href");
+    if (!href || href.charAt(0) === "#") return;
+    if (leaving || !dirtyForms().length) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // the path, not the href: it is handed to the form as where to go after
+    // saving, and the server keeps a destination only while it is one of its
+    // own (see localPath)
+    goTo(a.pathname + a.search, false);
+  }, true);
+
+  // The one way out the app does not draw: a reload, the tab closing, an
+  // address typed over this one. There is no dialog to offer there — the
+  // browser asks its own question, in its own words — so all this does is
+  // tell it there is something to ask about. Pressing a button on the page is
+  // not that: a submit is the work being written down, and `leaving` is
+  // already set by every route in here that goes somewhere on purpose.
+  document.addEventListener("submit", function () { leaving = true; }, true);
+  window.addEventListener("beforeunload", function (e) {
+    if (leaving || !dirtyForms().length) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
 
   // ---- A moment that shows itself ----------------------------------------
   //
@@ -1505,13 +1667,15 @@
     const dirty = scope.hasAttribute && scope.hasAttribute("data-dirty-save");
     if (!needs && !dirty) return;
     btn.hidden = false;
-    btn.disabled = (needs && missing(scope).length > 0) || (dirty && !changed(scope));
+    btn.disabled = (needs && missing(scope).length > 0) || (dirty && !formDirty(scope));
   }
 
   // A form that says data-dirty-save has a button meaning "keep this", and
   // there is nothing to keep until something differs from what the server
-  // sent. Each field's own defaultValue is that very thing, so nothing has to
-  // be remembered in here — the same trick the filter box's Apply uses.
+  // sent — see formDirty, which answers that for a whole form, the plan's
+  // rows included. Each field's own defaultValue is what a box is compared
+  // against, so nothing about the boxes has to be remembered in here — the
+  // same trick the filter box's Apply uses.
   function changed(scope) {
     return fieldsIn(scope).some(function (el) {
       if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
@@ -1527,6 +1691,7 @@
     // the same pass: a control whose pressability is read off a box belongs
     // with the buttons whose pressability is read off a form
     syncMetaCopy();
+    renderDirty();
     renderKeybar();
   }
   // Moving into or out of a box changes which keys are live, so the bar is
@@ -1558,7 +1723,9 @@
     // the title's mark follows the typing, so that fixing the word takes the
     // yellow off in the same keystroke that earned it
     if (e.target.matches && e.target.matches("[data-verbcheck]")) markVerb(e.target);
-    disarmDiscard();
+    // the title bar follows the typing: a word put back is a screen that is
+    // saved again, and nothing about the colour is a memory of having typed
+    renderDirty();
     // a tag typed onto the project's line is one the mark can bring down, and
     // one deleted off it is one it cannot — so the mark is re-read with every
     // keystroke, the way the gate is
@@ -3078,7 +3245,7 @@
       const dest = jumps[to];
       if (dest) {
         e.preventDefault();
-        window.location.href = dest;
+        goTo(dest, false);
       }
       return;
     }
@@ -3353,7 +3520,7 @@
         if (row && row.hasAttribute("data-draft")) { e.preventDefault(); openDraft(row); break; }
         const radio = row && row.querySelector("input[type=radio]");
         if (radio) { e.preventDefault(); radio.checked = true; renderKeybar(); break; }
-        if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
+        if (row && row.dataset.href) { e.preventDefault(); goTo(row.dataset.href, false); }
         break;
       }
       case "z": {
@@ -3375,7 +3542,6 @@
         // with nothing left to close, follow data-cancel — two meanings on
         // one key, which is tolerable until the keyboard is modal and leaving
         // a box is the commonest press in the app.
-        disarmDiscard();
         select(null);
         // with the filter line up, leaving the list goes back to the line: the
         // way back from ctrl-j, and the same one step out that esc in the box
@@ -3468,7 +3634,7 @@
   // item, everywhere else it is opening it — the same data-href either way
   document.addEventListener("dblclick", function (e) {
     const row = rowFromEvent(e);
-    if (row && row.dataset.href) { e.preventDefault(); window.location.href = row.dataset.href; }
+    if (row && row.dataset.href) { e.preventDefault(); goTo(row.dataset.href, false); }
   });
 
   // Actions written before their project exists (the project branch of
@@ -3480,6 +3646,13 @@
   // kept in here — see implementation.md, "Writing a project".
   function draftDialog() { return document.getElementById("draft-dialog"); }
 
+  // The form a draft row belongs to. Not `row.closest("form")` any more: on a
+  // project's own page the form element holds the project's fields and the
+  // list sits below it, joined by name — the same arrangement the open next
+  // action's boxes use. One form per screen that writes a plan, so asking the
+  // document is asking the right thing.
+  function draftForm() { return document.querySelector("form[data-drafts]"); }
+
   function draftValues(row) {
     return {
       title: row.querySelector("[name=atitle]").value,
@@ -3488,13 +3661,50 @@
     };
   }
 
-  function writeDraft(row, v) {
+  // What a draft's meta line says, drawn as the badges an action row wears.
+  // `actionrow` stays the one definition of what a row of this list looks
+  // like: this paints the same classes with the same words, off a line that
+  // has not been saved and so has no action behind it to ask. A token the
+  // notation does not know is left out rather than shown — the box it was
+  // typed in has already marked it, and a row is not where it gets fixed.
+  function paintDraft(row) {
+    const into = row.querySelector(".draftbadges");
+    if (!into) return;
+    const v = draftValues(row);
     row.querySelector(".title").textContent = v.title;
-    row.querySelector(".draftmeta").textContent = v.meta;
-    row.querySelector(".draftnote").textContent = v.description ? "note" : "";
+    into.textContent = "";
+    const add = function (cls, text, title) {
+      const b = document.createElement("span");
+      b.className = cls ? "badge " + cls : "badge";
+      b.textContent = text;
+      if (title) b.title = title;
+      into.appendChild(b);
+    };
+    tokensOf(v.meta.trim()).forEach(function (t) {
+      const wait = /^@waitingFor\((.+)\)$/.exec(t);
+      if (wait) { add("wait", "→ " + wait[1]); return; }
+      if (t.charAt(0) === "@") { add("ctx", t); return; }
+      if (t === "#short" || t === "#medium" || t === "#long") { add("", t.slice(1)); return; }
+      if (t === "#focus") { add("focus", "★", "needs focus"); return; }
+      // the list rows leave #today out of the badges too: the dot says it,
+      // and here there is no dot to press yet
+      if (t === "#today") return;
+      if (t.charAt(0) === "#") { add("tag", t); return; }
+      const due = /^due:(.+)$/.exec(t);
+      if (due) { add("due", "due " + due[1]); return; }
+      const zzz = /^snooze:\(?(.+?)\)?$/.exec(t);
+      if (zzz) { add("", "zzz until " + zzz[1]); return; }
+    });
+    // the one thing about a draft the badges cannot say, because an action
+    // row has nothing to say it with either: that there is a description
+    if (v.description.trim()) add("", "note");
+  }
+
+  function writeDraft(row, v) {
     row.querySelector("[name=atitle]").value = v.title;
     row.querySelector("[name=ameta]").value = v.meta;
     row.querySelector("[name=adescription]").value = v.description;
+    paintDraft(row);
   }
 
   // Adding or removing a row changes nothing the gate reads — the action a
@@ -3504,21 +3714,28 @@
   // bar offers depend on what is in the list.
   function syncDrafts(form) {
     if (!form) return;
+    document.querySelectorAll("[data-draft-list] [data-draft]").forEach(paintDraft);
     gate(form);
+    renderDirty();
     renderKeybar();
   }
 
+  // A draft moves among the drafts and no further. On a project's own page
+  // the list holds the plan's saved rows as well, and those are the project's
+  // order rather than this form's — a row that could be shuffled past them
+  // would be claiming to reorder something this Save does not write.
   function moveDraft(row, delta) {
     const other = delta < 0 ? row.previousElementSibling : row.nextElementSibling;
-    if (!other) return;
+    if (!other || !other.hasAttribute("data-draft")) return;
     if (delta < 0) row.parentNode.insertBefore(row, other);
     else row.parentNode.insertBefore(other, row);
     row.scrollIntoView({ block: "nearest" });
+    renderDirty();
     renderKeybar();
   }
 
   function removeDraft(row) {
-    const form = row.closest("form");
+    const form = draftForm();
     const next = row.nextElementSibling || row.previousElementSibling;
     row.remove();
     select(next || null);
@@ -3532,7 +3749,7 @@
     const list = document.querySelector("[data-draft-list]");
     const tpl = document.getElementById("draftrow-template");
     if (!dlg || !list || !tpl) return;
-    const form = list.closest("form");
+    const form = draftForm();
     const title = dlg.querySelector("[name=title]");
     const meta = dlg.querySelector("[name=meta]");
     const desc = dlg.querySelector("[name=description]");
@@ -3600,11 +3817,23 @@
   // than looked up by shape, and the boxes are read off `form.elements`: the
   // action's line sits outside the form element and belongs to it by its own
   // `form` attribute (see fieldsIn).
+  // The first field of a name, which is what a repeated name means here: the
+  // plan's rows carry `ameta` too, and the open boxes are the first of that
+  // list everywhere — in the browser's submission order and in the reader on
+  // the server. `namedItem` hands back a list once there is more than one,
+  // and a list's own `.value` is the radio-group answer, which is "" for
+  // boxes like these — so asking it directly would quietly read nothing.
+  function firstNamed(form, name) {
+    const got = form.elements.namedItem(name);
+    if (!got) return null;
+    return got.tagName === undefined && got.length !== undefined ? got[0] : got;
+  }
+
   function metaBoxes(btn) {
     const form = document.getElementById(btn.dataset.copyMeta);
     if (!form || !form.elements) return null;
-    const from = form.elements.namedItem("meta");
-    const into = form.elements.namedItem("ameta");
+    const from = firstNamed(form, "meta");
+    const into = firstNamed(form, "ameta");
     return from && into ? { form: form, from: from, into: into } : null;
   }
 
@@ -3652,7 +3881,7 @@
     // so appending is all this has to get right (design.md, "Writing an
     // action").
     paintBox(b.into);
-    disarmDiscard();
+    renderDirty();
     syncMetaCopy();
     gate(b.form);
     renderKeybar();
@@ -3888,7 +4117,12 @@
 
   function setupPickers() {
     document.querySelectorAll("[data-picker]").forEach(setupPicker);
+    // the list as the server drew it, which is what "unsaved" is measured
+    // against — remembered before anything in here touches it
+    rememberDrafts();
+    leaving = false;
     document.querySelectorAll("[data-drafts]").forEach(syncDrafts);
+    renderDirty();
   }
   setupPickers();
   gateAll();
@@ -3999,6 +4233,11 @@
     // have to come back, on the screen that is still here
     try { sessionStorage.removeItem(ARRIVAL); } catch (err) { /* nothing to undo */ }
     motionOver();
+    // nothing arrived, so the screen that was being left is still here and
+    // still holds whatever was typed into it — the guard has to come back up.
+    // A swap puts it back on settle; a refusal that swaps nothing would leave
+    // it down for the rest of the page's life
+    leaving = false;
     const pane = document.querySelector(".pane");
     if (!pane) return;
     const xhr = e.detail && e.detail.xhr;

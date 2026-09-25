@@ -248,6 +248,7 @@
     <textarea name="text" rows="1" data-grow autocomplete="off"></textarea>
   </form>
 </dialog>
+{{template "leavedialog"}}
 {{if .HelpText}}<div id="help" hidden>
 <h2>{{.HelpName}}</h2>
 <p>{{.HelpText}}</p>
@@ -543,21 +544,110 @@
 {{end}}
 
 {{define "draftrow"}}
-{{/* An action written before its project exists. It is a row like any other so
-     that j/k reach it, and three hidden fields so that the form carries it:
-     the project and its actions are created in one submit, because until that
-     submit there is no project for an action to belong to. */}}
+{{/* An action written into a project's plan and not saved yet — on the screens
+     that create a project, where there is nothing to save it to until the one
+     submit, and on the project's own page, where the one Save commits it with
+     everything else on the screen (implementation.md, "Writing a project").
+
+     It is drawn as the action row it is about to be: the same two marks'
+     worth of gutter, so the titles line up with the saved rows above it, and
+     the same badges, which the keyboard layer paints from the meta line —
+     `actionrow` says what a row of this list looks like and this must not be
+     a second answer. What is its own is the dash, which says the one thing
+     that is true of it and not of them: none of this is written down.
+
+     Three hidden fields carry it, rather than state held in the keyboard
+     layer, because that is what makes a refused form able to hand it back. */}}
 <li class="row draft" data-kb-row data-draft>
+  {{/* both marks' places kept and left blank: a draft cannot be picked or
+       completed, and a mark that did nothing would be offering both */}}
+  <span class="pick gap">●</span>
+  <span class="check gap">☐</span>
   <span class="title">{{.Title}}</span>
   {{/* always emitted, empty when there is nothing to say: the keyboard layer
        clones this row and fills it in, and a row it had to build out of parts
        would be a second definition of what a row is */}}
-  <span class="draftmeta">{{.Meta}}</span>
-  <span class="badge draftnote">{{if .Description}}note{{end}}</span>
-  <input type="hidden" name="atitle" value="{{.Title}}">
-  <input type="hidden" name="ameta" value="{{.Meta}}">
-  <input type="hidden" name="adescription" value="{{.Description}}">
+  <span class="draftbadges"></span>
+  {{/* Form names the form these belong to when the row does not sit inside it,
+       which is the project's own page: there the form element holds the
+       project's fields and everything below it is joined by name, the same
+       arrangement the open next action's boxes already use. */}}
+  <input type="hidden" name="atitle" value="{{.Title}}"{{with .Form}} form="{{.}}"{{end}}>
+  <input type="hidden" name="ameta" value="{{.Meta}}"{{with .Form}} form="{{.}}"{{end}}>
+  <input type="hidden" name="adescription" value="{{.Description}}"{{with .Form}} form="{{.}}"{{end}}>
 </li>
+{{end}}
+
+{{define "projectactions"}}
+{{/* The rest of the plan, under the one action that is open in its own boxes,
+     and the way to add to it. One definition, used by the project's own page
+     and by both screens that create a project: writing an action into a plan
+     is the same act wherever the plan is, and the two screens differ only in
+     whether some of the rows are saved already (implementation.md, "Writing a
+     project").
+
+     Rows is what the list already holds — an existing project's, drawn by
+     `actionrow` — and Drafts is what has been written and not saved. Both sit
+     in the one `<ul>`, because the order of that list is the plan's order and
+     a second list would be a second plan. */}}
+<h2>More actions</h2>
+<ul class="list" data-draft-list>
+  {{range .Rows}}
+    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
+  {{end}}
+  {{range .Drafts}}{{template "draftrow" (dict "Title" .Title "Meta" .Meta "Description" .Description "Form" $.Form)}}{{end}}
+</ul>
+
+{{/* the button is under the list it adds to. The first action needs none — it
+     is the boxes above, which is where an action a project cannot be without
+     belongs */}}
+<div class="actionsbar">
+  <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
+</div>
+{{end}}
+
+{{define "draftdialog"}}
+{{/* The fields an action is written in, with the project answered: there is
+     only one it could belong to, so the control says which and cannot be
+     changed. Opened blank to add and filled to edit, which is how an action
+     already in the list is changed without leaving the form it belongs to.
+
+     Siblings is what a `snooze:` here may name — the project's own open
+     actions on its page, and nothing at all on a project that does not exist
+     yet, since there is no action for one row to wait on. */}}
+<dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
+  <h2 id="draft-dialog-title">Add an action</h2>
+  <div class="stack">
+    {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
+      "Fixed" "<this project>" "Required" true "Focus" false "Siblings" .Siblings)}}
+    <div class="branches">
+      <button type="button" class="primary" data-draft-ok>Create</button>
+      <button type="button" data-draft-cancel>Cancel</button>
+    </div>
+  </div>
+</dialog>
+{{/* one definition of a row, cloned by the keyboard layer when an action is
+     added and rendered by the server when a refused form comes back */}}
+<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form)}}</template>
+{{end}}
+
+{{define "leavedialog"}}
+{{/* Leaving a screen that has unsaved work asks, and the question has the two
+     answers there are: keep it or lose it. It is the app's one confirmation,
+     and it is not a confirmation — nothing here asks "are you sure", it
+     offers the press you would otherwise have to remember to make first (see
+     keys.md, "Leaving a screen").
+
+     Drawn on every page, because what it guards is a form and the forms are
+     everywhere; it has nothing to say until something is dirty, and a dialog
+     that is not open is not on the screen. */}}
+<dialog id="leave-dialog" aria-labelledby="leave-dialog-title">
+  <h2 id="leave-dialog-title">Unsaved changes</h2>
+  <div class="branches">
+    <button type="button" class="primary" data-leave-save>Save</button>
+    <button type="button" class="danger" data-leave-discard>Discard</button>
+  </div>
+</dialog>
 {{end}}
 
 
