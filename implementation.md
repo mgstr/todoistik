@@ -3528,6 +3528,19 @@ the screen, and one answer that takes all three. This is how they are built.
   then whatever is being done inside it. `newPage` writes the first step from
   the view slug and a handler adds the rest with `step()`, which is why the
   processing screens read "Inbox / Processing / Create task"
+- **the app leads the path, and the window draws the same one.** `page.Crumbs`
+  is the trail with a crumb for the app in front of it, and `page.DocTitle`
+  joins those same names with the same `/` the bar draws between them — so
+  `<title>` reads "todoistik / Inbox / Processing" rather than the old
+  "Processing · todoistik", which named the innermost thing first and repeated
+  an app name the window already carries (design.md, "Panels"). The app is
+  prepended at drawing time and not stored in `Trail`, because everything else
+  reading the trail counts steps *inside* a view: `data-step`, `zenScreen` and
+  the Back button would each have had to learn to skip a crumb that is not a
+  screen. `page.Title` is nothing's caption any more — it is only the name
+  `newPage` falls back to for a view the nav has none for. `trail_test.go`
+  renders the window and the bar together and fails if they ever say different
+  things
 - **the trail is a path, so the screens on the way are steps of it too.** A
   handler adds them with `under()`, ahead of its own `step()`: an action opened
   from its project reads "Projects / Edit project / Edit action". `openedFrom()`
@@ -4037,8 +4050,8 @@ thing a count in the corner of the screen must never do.
   arrived. A focused *button* is pointedly not busy — it is where the last
   click left the focus, and counting it would switch the refresh off for the
   rest of the page's life
-- **the title bar rides on the rail's poll, out of band.** Its leading crumb
-  carries the same unfiltered count the badge does (see "Panels", and
+- **the title bar rides on the rail's poll, out of band.** Its view crumb —
+  the one after the app's — carries the same unfiltered count the badge does (see "Panels", and
   design.md, "Panels"), and it sits outside both `<nav>` and `<main>` — a
   refresh that left it alone would have the two panels disagreeing about one
   fact, which is a worse state than the staleness this exists to fix
