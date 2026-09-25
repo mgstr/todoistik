@@ -18,27 +18,33 @@
 {{end}}
 
 {{with .Data}}
+{{/* Every heading here is a section, and a section is what j and k move
+     through on a screen with no rows: the heading goes to the top of the
+     window and you read down from it. The screen is four windows tall and
+     was reachable by mouse alone until this (keys.md, "The map"). Marked in
+     the template, the way a row is, so nothing in the key layer knows what a
+     panel is. */}}
 
 <section class="panel">
-  <h2>Inbound<span class="win">captures</span></h2>
+  <h2 data-kb-section>Inbound<span class="win">captures</span></h2>
   <p class="figure"><span class="big">{{.Inbound.WeekTotal}}</span><span class="unit">this week</span>
     <span class="vs">· {{printf "%.1f" .Inbound.WeekPerDay}} a day, against {{printf "%.1f" .Inbound.YearPerDay}} a day over the year</span></p>
   {{template "bars" dict "rows" .Inbound.Days}}
-  <h3>the year, a month a row</h3>
+  <h3 data-kb-section>the year, a month a row</h3>
   {{template "bars" dict "rows" .Inbound.Months}}
 </section>
 
 <section class="panel">
-  <h2>Outbound<span class="win">actions and projects completed</span></h2>
+  <h2 data-kb-section>Outbound<span class="win">actions and projects completed</span></h2>
   <p class="figure"><span class="big">{{.Outbound.WeekTotal}}</span><span class="unit">this week</span>
     <span class="vs">· {{printf "%.1f" .Outbound.WeekPerDay}} a day, against {{printf "%.1f" .Outbound.YearPerDay}} a day over the year</span></p>
   {{template "bars" dict "rows" .Outbound.Days}}
-  <h3>the year, a month a row</h3>
+  <h3 data-kb-section>the year, a month a row</h3>
   {{template "bars" dict "rows" .Outbound.Months}}
 </section>
 
 <section class="panel">
-  <h2>What the inbox became<span class="win">last 3 months</span></h2>
+  <h2 data-kb-section>What the inbox became<span class="win">last 3 months</span></h2>
   {{if .Became.Rows}}
     <p class="figure"><span class="big">{{.Became.Total}}</span><span class="unit">answered</span></p>
     {{template "bars" dict "rows" .Became.Rows "pct" true}}
@@ -46,7 +52,7 @@
 </section>
 
 <section class="panel">
-  <h2>Where captures come from<span class="win">last 3 months</span></h2>
+  <h2 data-kb-section>Where captures come from<span class="win">last 3 months</span></h2>
   {{if .Sources.Rows}}
     <p class="figure"><span class="big">{{.Sources.Total}}</span><span class="unit">captures</span></p>
     {{template "bars" dict "rows" .Sources.Rows "pct" true}}
@@ -54,19 +60,19 @@
 </section>
 
 <section class="panel">
-  <h2>Ages<span class="win">medians</span></h2>
+  <h2 data-kb-section>Ages<span class="win">medians</span></h2>
   <p class="figure"><span class="big">{{.Ages.InInbox | dur}}</span>
     <span class="unit">in the inbox before it is decided about</span>
     <span class="vs">· over {{.Ages.InInboxN}}</span></p>
   <p class="figure"><span class="big">{{.Ages.ToCompletion | dur}}</span>
     <span class="unit">from written down to finished</span>
     <span class="vs">· over {{.Ages.ToCompletionN}}</span></p>
-  <h3>and what is open now</h3>
+  <h3 data-kb-section>and what is open now</h3>
   {{template "bars" dict "rows" .Ages.Open}}
 </section>
 
 <section class="panel">
-  <h2>The practice</h2>
+  <h2 data-kb-section>The practice</h2>
   <ul class="list">
     <li class="row"><span class="title">The inbox holds</span>
       <span class="badge {{if .Practice.InboxOpen}}error{{end}}">{{.Practice.InboxOpen}}</span></li>
@@ -82,14 +88,14 @@
 </section>
 
 <section class="panel">
-  <h2>How much of Next is workable<span class="win">now</span></h2>
+  <h2 data-kb-section>How much of Next is workable<span class="win">now</span></h2>
   <p class="figure"><span class="big">{{(index .NextMix.Rows 0).Count}}</span>
     <span class="unit">of {{.NextMix.Total}} can be started now</span></p>
   {{template "bars" dict "rows" .NextMix.Rows "pct" true}}
 </section>
 
 <section class="panel">
-  <h2>The oldest thing in each view<span class="win">now</span></h2>
+  <h2 data-kb-section>The oldest thing in each view<span class="win">now</span></h2>
   {{if .Oldest}}
   <ul class="list">
     {{range .Oldest}}
@@ -104,7 +110,7 @@
 </section>
 
 <section class="panel">
-  <h2>The backlog<span class="win">open commitments, a month a row</span></h2>
+  <h2 data-kb-section>The backlog<span class="win">open commitments, a month a row</span></h2>
   {{template "bars" dict "rows" .Backlog}}
 </section>
 

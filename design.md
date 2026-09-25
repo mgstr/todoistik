@@ -1588,6 +1588,18 @@ drawn is a setting, because it is a question about a week of use.
 of the same rule and it did not change: every control has a key. What changed is
 that it no longer has a button on the form as well.
 
+**A screen taller than the window is read from the keyboard too**, which is the
+same promise one step out from the controls. On a list it was never a gap: the
+keys that move between rows move the window with them, so working down the list
+and scrolling it are the same act. A screen that is not a list had no such key -
+the "Dashboard" is several windows tall, holds no row, and the only way past its
+first panel was the mouse, on the one screen in the app that exists to be read
+rather than worked. So a screen with no rows moves by **section** instead, a
+heading at a time, the section arrived at landing at the top of the window
+because the top is where reading starts. Which key does that is keys.md's, like
+every other key; that it is the same key as the one that moves between rows is
+the point, since both are "show me the next thing down".
+
 **A key is a place on the keyboard, not a letter.** The keys are the same keys
 whatever language the keyboard is typing in: on a Cyrillic layout `d` is still
 the key `в` is printed on, and pressing it still means what `d` means. Anything
