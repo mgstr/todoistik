@@ -2220,9 +2220,25 @@ never stored.
   submit. `beforeunload` reads it: a reload or a tab closing is the one way out
   the app cannot draw a dialog over, so all it does there is let the browser
   ask its own question
-- **`esc` is the third answer and needs no button.** Staying is what happens
-  when the question is declined, and the dialog owns the key outright so that
-  closing it cannot also leave the screen behind it
+- **both buttons are a key, and the dialog owns both outright.** `↵` presses
+  the keeping one when it is pressable, `esc` the discarding one; `onkeydown`
+  stops each from reaching the page underneath, and the `esc` branch calls
+  `preventDefault` as well, because a dialog's own cancel would otherwise
+  close it before the handler could decide what closing means. Without this
+  the app's one interruption was also the one place the keyboard stopped:
+  reachable by mouse or by tab and by nothing else
+- **the backdrop is how you stay.** `esc` used to be that answer and is now
+  the other one, so a click that lands outside the box closes the question and
+  leaves the screen standing. The test is the dialog's own rectangle rather
+  than the element clicked, since `#leave-dialog` has padding and a click on
+  it answers to the dialog. A modal whose every answer navigates is a trap;
+  this is the one route back that costs nothing to leave unadvertised, because
+  wanting it is the rare case (keys.md, "Leaving a screen")
+- **the bar says the two answers while the question is up.** `keybarGroups`
+  answers for `#leave-dialog` before anything else, since it is asked over
+  whatever else is on the screen; the keeping entry reads its words off the
+  button, so the bar says `↵ create` on a create screen and `↵ save` on one
+  that saves, from the same place the button gets them
 - **this replaced the second `b`.** Leaving a dirty screen used to cost two
   presses: the first marked the changed boxes and turned the bar's entry into
   `b discard`, the second went. The marking survives — it is the dialog's
