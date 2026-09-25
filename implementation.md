@@ -2438,10 +2438,21 @@ Two things the gutter left behind, and one it did not.
   written. The processing screen still clamps to its own 40rem column, which
   is sized for reading one captured sentence and is not this decision's to
   spend (see `research/process-subject-study.html`)
-- **the project picker lost a width of its own.** It carried `max-width: 34rem`
-  from before the gutter; inside a gutter label it is a flex item like every
-  other control, so the label sizes it and a cap of its own could only make one
-  box narrower than the rest
+- **every control in a gutter label is a flex item, and none carries a width of
+  its own.** `flex: 1 1 auto; min-width: 0` on the plain boxes, the textareas
+  and the meta line's wrapper: the label sizes them, so every field on a screen
+  is the same width and a cap on one box could only make that one narrower than
+  the rest. The project picker used to carry `max-width: 34rem` from before the
+  gutter, and lost it for exactly this reason.
+
+  That declaration then hung off `.picker` — the last selector of the list, and
+  the combobox the project box replaced. Deleting the picker deleted the width
+  with it, and the orphaned list ran on into the next rule, so Title,
+  Definition of done and every description box opened default-width in the
+  muted, smaller type meant for a completed item's read-only fields. The
+  declaration sits on `.fbox` now, which nothing is about to delete; the
+  lesson is that a shared rule must not hang off the one selector in its list
+  that names a control
 - **a note box opens at one line and grows as it is written in.** Every
   textarea opened at a fixed several rows, which is the wrong height twice: a
   hole under the many actions that carry no note, and still too small for the
@@ -3528,6 +3539,19 @@ the screen, and one answer that takes all three. This is how they are built.
   then whatever is being done inside it. `newPage` writes the first step from
   the view slug and a handler adds the rest with `step()`, which is why the
   processing screens read "Inbox / Processing / Create task"
+- **the app leads the path, and the window draws the same one.** `page.Crumbs`
+  is the trail with a crumb for the app in front of it, and `page.DocTitle`
+  joins those same names with the same `/` the bar draws between them — so
+  `<title>` reads "todoistik / Inbox / Processing" rather than the old
+  "Processing · todoistik", which named the innermost thing first and repeated
+  an app name the window already carries (design.md, "Panels"). The app is
+  prepended at drawing time and not stored in `Trail`, because everything else
+  reading the trail counts steps *inside* a view: `data-step`, `zenScreen` and
+  the Back button would each have had to learn to skip a crumb that is not a
+  screen. `page.Title` is nothing's caption any more — it is only the name
+  `newPage` falls back to for a view the nav has none for. `trail_test.go`
+  renders the window and the bar together and fails if they ever say different
+  things
 - **the trail is a path, so the screens on the way are steps of it too.** A
   handler adds them with `under()`, ahead of its own `step()`: an action opened
   from its project reads "Projects / Edit project / Edit action". `openedFrom()`
@@ -4037,8 +4061,8 @@ thing a count in the corner of the screen must never do.
   arrived. A focused *button* is pointedly not busy — it is where the last
   click left the focus, and counting it would switch the refresh off for the
   rest of the page's life
-- **the title bar rides on the rail's poll, out of band.** Its leading crumb
-  carries the same unfiltered count the badge does (see "Panels", and
+- **the title bar rides on the rail's poll, out of band.** Its view crumb —
+  the one after the app's — carries the same unfiltered count the badge does (see "Panels", and
   design.md, "Panels"), and it sits outside both `<nav>` and `<main>` — a
   refresh that left it alone would have the two panels disagreeing about one
   fact, which is a worse state than the staleness this exists to fix
@@ -4758,6 +4782,20 @@ project").
   list, and nothing here is being typed. It calls the four things that do apply
   — repaint the box, disarm the discard marks, re-read the mark, re-gate the
   form — and leaves the suggest list shut
+- **the today dot is the same arrangement, on the screens that have no action
+  to post against.** `●` on this heading is a form against `/action/{id}/pick`;
+  on every screen that *writes* an action there is no id, so `actionfields`
+  draws a bare button carrying `data-today-meta` — the name of the meta box
+  beside it — and `todayMark` flips `#today` in that box, which is the whole of
+  what the tag is (design.md, "#today"). One parameter, `Pick`, says which kind
+  of screen this is, and it is off wherever the action exists, so the two marks
+  can never both claim `t`. The box is found through `form.elements` where the
+  fields belong to a form and through the surrounding `.stack` in the draft
+  dialog, which has no form element at all; `syncToday` rides along with
+  `syncMetaCopy` on every keystroke and every gate pass, so `#today` typed by
+  hand lights the dot and rubbing it out puts it back. A draft row in a
+  project's list wears it as a badge rather than a button — the row is an
+  action that does not exist yet, so there is nothing for a press to reach
 
 - **completing or deleting the project leaves the page**, to the `back` the
   form posts (design.md, "Editing items"). Both went to `/projects`

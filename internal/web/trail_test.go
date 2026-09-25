@@ -55,12 +55,49 @@ func pageFrom(t *testing.T, s *Server, path, from string) string {
 	return rec.Body.String()
 }
 
+// want compares the bar against the steps a case names. The app leads every
+// path and is added here rather than written into every case: that it is there
+// at all is one rule, pinned once by TestThePathStartsAtTheApp.
 func want(t *testing.T, got []string, steps ...string) {
 	t.Helper()
+	steps = append([]string{"todoistik"}, steps...)
 	if strings.Join(got, " / ") != strings.Join(steps, " / ") {
 		t.Errorf("the title bar reads %q, want %q",
 			strings.Join(got, " / "), strings.Join(steps, " / "))
 	}
+}
+
+// The window and the bar say the same thing: one path, outside in, starting at
+// the app. They are drawn from one value, and this is what says the value is
+// the one both were meant to have.
+func TestThePathStartsAtTheApp(t *testing.T) {
+	s, a := newTestServer(t)
+	if _, _, err := a.Capture("Book the tyre change", app.SourceApp); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ path, want string }{
+		{"/someday", "todoistik / Someday/Maybe"},
+		{"/process?item=1&one=1", "todoistik / Inbox / Processing"},
+	} {
+		body := getPage(t, s, c.path)
+		if got := docTitle(t, body); got != c.want {
+			t.Errorf("GET %s: the window says %q, want %q", c.path, got, c.want)
+		}
+		if got := strings.Join(trail(t, body), " / "); got != c.want {
+			t.Errorf("GET %s: the title bar says %q, want %q", c.path, got, c.want)
+		}
+	}
+}
+
+// docTitle is what the window shows, as the page rendered it.
+func docTitle(t *testing.T, body string) string {
+	t.Helper()
+	i := strings.Index(body, "<title>")
+	j := strings.Index(body, "</title>")
+	if i < 0 || j < i {
+		t.Fatal("the page has no title")
+	}
+	return body[i+len("<title>") : j]
 }
 
 // An action opened from its project is two screens deep, and the trail says

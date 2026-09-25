@@ -24,7 +24,7 @@
               title="put the project's tags on this action (#)">#↓</button>
     </h2>
     {{template "actionfields" (dict "Prefix" "a" "Required" true "Label" "a next action" "Focus" false
-      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
+      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description "Pick" true)}}
 
     {{template "projectactions" (dict "Rows" nil "Drafts" $d.Drafts "Today" $.Today "Form" "")}}
 

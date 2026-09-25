@@ -67,6 +67,12 @@ func (p *page) help(key string) *page {
 	return p
 }
 
+// appName leads every path: the title bar's and the window's. The app is the
+// first step of where you are the way a host is the first step of a URL — you
+// are in todoistik, then in a view, then in a screen of it — and it is written
+// once here because the bar and the <title> are now one value drawn twice.
+const appName = "todoistik"
+
 // crumb is one step of the title bar's trail: the view, then whatever is
 // being done inside it. Slug is the screen's own name where the step is a
 // screen — that is what zen.views names (see "Panels") — and empty where the
@@ -154,8 +160,35 @@ func (p *page) step(name, slug string) *page {
 	return p
 }
 
+// Crumbs is the whole path, the app included: what the title bar draws. The
+// trail itself starts at the view, because that is the part the screens build
+// up between them; the app is prepended here rather than stored, so that
+// step-counting, zen's screen names and the tests that pin the path all keep
+// reading the trail they were written against.
+func (p *page) Crumbs() []crumb {
+	return append([]crumb{{Name: appName}}, p.Trail...)
+}
+
+// DocTitle is what the window says. It is the same path, in the same order,
+// joined the way the bar joins it: the window is read when the app is not the
+// thing being looked at — in a tab strip, a switcher, a dock — and a title
+// that named only the screen left out the half that says which app is asking.
+// Outside in, because that is the direction every other path in the world is
+// read, and one string behind both panels, because a window and a bar that
+// disagreed about where you are would be a bug nobody would think to check.
+func (p *page) DocTitle() string {
+	names := make([]string, 0, len(p.Trail)+1)
+	for _, c := range p.Crumbs() {
+		names = append(names, c.Name)
+	}
+	return strings.Join(names, " / ")
+}
+
 // page is the data every template gets.
 type page struct {
+	// Title is the name a screen gives itself. Nothing draws it: the window
+	// and the bar both read the path (see DocTitle), and this is what newPage
+	// makes the first crumb out of when the nav has no name for the view.
 	Title       string
 	View        string // active nav entry
 	Trail       []crumb

@@ -9,7 +9,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}} · todoistik</title>
+{{/* The window says the same path the title bar says, from the app inwards —
+     see implementation.md, "Panels". One value behind both, so a tab that
+     named a different place than the bar under it cannot happen. */}}
+<title>{{.DocTitle}}</title>
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/htmx.min.js" defer></script>
 <script src="/static/app.js" defer></script>
@@ -77,11 +80,11 @@
   data-anim-ms="{{.Conf.AnimMS}}"
   data-theme="{{.Theme}}">
 {{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
-{{/* The title bar: where you are, and how deep in. The view leads, carrying
-     the same count the nav badge carries, and every step inside it follows —
-     see implementation.md, "Panels". */}}
+{{/* The title bar: where you are, and how deep in. The app leads, then the
+     view carrying the same count the nav badge carries, then every step
+     inside it — see implementation.md, "Panels". */}}
 {{if .Panels.Title}}
-<header id="titlebar">{{range .Trail}}<span class="crumb">{{.Name}}{{if .Count}}<span class="badge navcount {{if .Alert}}alert{{end}}">{{.Count}}</span>{{end}}</span>{{end}}</header>
+<header id="titlebar">{{range .Crumbs}}<span class="crumb">{{.Name}}{{if .Count}}<span class="badge navcount {{if .Alert}}alert{{end}}">{{.Count}}</span>{{end}}</span>{{end}}</header>
 {{end}}
 <main>
 {{end}}
@@ -138,8 +141,8 @@
 {{/* The rail, always: a badge is a number in a corner, and replacing it can
      interrupt nothing.
 
-     The title bar rides along, out of band. Its leading crumb carries the
-     same unfiltered count the badge does — design.md, "Views" asks for one
+     The title bar rides along, out of band. Its view crumb — the one after
+     the app's — carries the same unfiltered count the badge does — design.md, "Views" asks for one
      number and "Panels" says why both panels must read it the same way — and
      it sits outside both <nav> and <main>, so a refresh that left it alone
      would have the two panels disagreeing about the same fact. That is a
@@ -426,8 +429,20 @@
 {{if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
+{{/* Pick is the ● the project's page wears on its Next action heading, drawn
+     here on the screens where the action does not exist yet. There the mark is
+     a little form against an action's id; here there is no id, so it writes
+     the tag the dot stands for into the line beside it and the Create that
+     makes the action makes it picked. It sits on the Meta row because that is
+     the box it writes, and it posts nothing for the reason `#↓` posts nothing:
+     the line is being written right now (design.md, "#today").
+
+     Never where the action already exists — there the real mark is on the
+     heading and `t` is already spent on it. */}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict
-  "Name" (printf "%smeta" .Prefix) "Value" .Meta "Mode" "action" "Siblings" .Siblings "Form" .Form)}}</label>
+  "Name" (printf "%smeta" .Prefix) "Value" .Meta "Mode" "action" "Siblings" .Siblings "Form" .Form)}}{{if .Pick}} <button
+  type="button" class="pick" data-today-meta="{{.Prefix}}meta" data-key="t" data-key-label="today"
+  {{- with .Form}} form="{{.}}"{{end}} title="pick for today (t)">●</button>{{end}}</label>
 <label class="gutter"><span class="lb">Description</span> <textarea name="{{.Prefix}}description" rows="1" data-grow spellcheck="false"{{with .Form}} form="{{.}}"{{end}}>{{.Description}}</textarea></label>
 {{template "extlinks" .Description}}
 {{end}}
@@ -607,7 +622,7 @@
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
     {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Required" true "Focus" false "Siblings" .Siblings)}}
+      "Fixed" "<this project>" "Required" true "Focus" false "Siblings" .Siblings "Pick" true)}}
     <div class="branches">
       <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>

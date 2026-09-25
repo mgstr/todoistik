@@ -383,6 +383,10 @@ h2.stalled {
 .badge.ok { background: var(--ok); color: #fff; }
 .badge.wait { color: var(--accent); }
 .badge.focus { color: #c88a00; }
+/* A draft row's today mark. The gold of the dot it is, and no chip around it:
+   on a saved row this is a button and not a badge, so the one place it has to
+   be a badge must still read as the dot. */
+.badge.today { background: transparent; color: #c88a00; padding: .05rem .1rem; }
 
 .error-banner {
   background: var(--danger); color: #fff; padding: .5rem .75rem;
@@ -553,11 +557,18 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
 
 .stack label.gutter { flex-direction: row; align-items: baseline; gap: .6rem; }
 .stack label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; }
-/* every kind of control the two forms put in a label: the plain boxes, the
-   meta line's wrapper, and the project picker */
+/* every kind of control the two forms put in a label: the plain boxes and the
+   meta line's wrapper. The box takes whatever the name's gutter leaves, so
+   every field on the screen is one width and a form is one shape.
+
+   The last selector of this list used to be `.picker`, the combobox the
+   project box replaced, and it was the one carrying the declarations — taking
+   it out took them with it, and the list then ran on into the rule below,
+   which is how Title and Description came to be default-width boxes in muted
+   8pt type. */
 .stack label.gutter > input,
 .stack label.gutter > textarea,
-.stack label.gutter > .fbox,
+.stack label.gutter > .fbox { flex: 1 1 auto; min-width: 0; }
 /* the meta line is notation, so it is set in the face the notation is set in
    everywhere else — the ? panel's terms, the audit log. It also stops @home
    and #short from reading as words in a sentence, which is the whole reason

@@ -951,6 +951,19 @@ tag in every respect but one: it expires.
   for it to narrow
 - it is the one tag that is not an area of responsibility, and the only one that
   says *when* rather than *what about*
+- **it is set by the same mark wherever an action is written, including before
+  that action exists.** The dot on a project's Next action heading is a press
+  against an item already saved; on the screens that *make* an action - the
+  processing forms, the screen a project is created on, Create action, the
+  add-action dialog, and the empty boxes on a stalled project - there is
+  nothing yet to press against, so the mark writes the tag into the line being
+  typed and the Create makes an action that is already picked. The tag is the
+  only thing that carries it either way, so nothing new can drift: typing
+  `#today` in the line does exactly what pressing the dot does, and a draft
+  action waiting in a project's list wears the dot as a mark rather than a
+  button, having no id for a press to reach. Before this, picking a new action
+  for today was the one way of setting it that needed the notation to be
+  remembered
 
 ### Verbs
 An action's title is asked to open with a verb - see "Action" for why, and "The
@@ -1489,13 +1502,28 @@ up where it stands.
 Around every view sit three pieces of the app's own furniture, and each one
 answers a different question:
 
-- **the title bar** - *where am I*. The view's name, with the same count the
-  navigation shows beside it, and then every step taken inside it: "Inbox /
-  Processing / Create project / Create action". A screen reached from inside
-  another one is not a new place, it is a deeper one, and the trail is the only
-  thing that says which. It matters most on the screens that have no nav entry
-  of their own - processing, doing - which without it can only be told apart by
-  what happens to be on them
+- **the title bar** - *where am I*. The app's name, then the view's with the
+  same count the navigation shows beside it, and then every step taken inside
+  it: "todoistik / Inbox / Processing / Create project / Create action". A
+  screen reached from inside another one is not a new place, it is a deeper
+  one, and the trail is the only thing that says which. It matters most on the
+  screens that have no nav entry of their own - processing, doing - which
+  without it can only be told apart by what happens to be on them
+
+  **The path starts at the app, and the window says the same path.** A path is
+  read from the outside in, and the outermost step is the one thing the window
+  is left holding when the app is not what is being looked at: in a tab strip,
+  a switcher, a dock, "Create action" on its own names nothing and an app name
+  on its own names every screen alike. So the window's title is that same path
+  in that same order - "todoistik / Inbox / Processing" - rather than the
+  screen with the app's name tacked on the end, which read inside out and said
+  the app twice in a window already wearing it. One value behind both, because
+  a window and a bar that disagreed about where you are would be a bug nobody
+  would think to look for.
+
+  The app's crumb is a name and not a step. It is where everything is, so
+  there is nothing under it to walk back to, and the Back button starts
+  counting at the view.
 
   **It is a path and not a label, and the way out walks it one step at a
   time.** Every screen you passed through to get here is on it, so an action
