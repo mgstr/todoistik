@@ -1,0 +1,27 @@
+{{template "top" .}}
+{{$d := .Data}}
+<div class="process" data-cancel="{{$d.Back}}"
+  {{with itemlinks $d.Line $d.Body}}data-links="{{.}}"{{end}}>
+  <div class="subject">
+    <h1 class="capture-text">{{linkify $d.Line}}</h1>
+    {{if $d.Body}}<p class="capture-body">{{linkify $d.Body}}</p>{{end}}
+    <p class="cap">captured {{age $d.CreatedAt}}</p>
+  </div>
+
+  {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
+
+  {{/* The same two fields the item's own page shows, in the same partial:
+       what is written here is what will be read the day this is wanted, and
+       the screen it is read on is that page. */}}
+  <form method="post" action="/process/{{$d.ID}}/reference{{$d.Q}}" class="stack">
+    {{template "referencefields" (dict
+      "Text" ($d.Vals.Get "text")
+      "Meta" ($d.Vals.Get "meta") "Focus" true)}}
+
+    <div class="branches">
+      <button class="primary" data-key="c" data-key-label="create" data-key-typing>Reference material</button>
+      <a class="button" href="{{$d.Back}}">Cancel</a>
+    </div>
+  </form>
+</div>
+{{template "bottom" .}}

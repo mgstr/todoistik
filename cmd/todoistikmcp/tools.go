@@ -38,7 +38,7 @@ const source = "mcp"
 // navigation rail has them.
 var views = []string{
 	"inbox", "today", "next", "projects", "tasks",
-	"waiting", "calendar", "someday", "scheduler", "review", "archive",
+	"waiting", "calendar", "someday", "reference", "scheduler", "review", "archive",
 }
 
 type contextArgs struct {
@@ -61,7 +61,8 @@ func newServer(c *apiclient.Client) *mcp.Server {
 		Name: "todoistik_context",
 		Description: "Read the whole GTD situation from todoistik: every view at once — " +
 			"inbox, today, next actions, projects, standalone tasks, what is waiting on " +
-			"somebody, the calendar, someday/maybe, schedules, the weekly review's counts, " +
+			"somebody, the calendar, someday/maybe, kept reference material, schedules, " +
+			"the weekly review's counts, " +
 			"and the recent archive. Use this to find out what is going on before answering " +
 			"anything about the user's commitments. Items are named ::41 and can be referred " +
 			"to by that.",

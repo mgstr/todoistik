@@ -74,7 +74,7 @@ func (s *Server) apiCapture(w http.ResponseWriter, r *http.Request) {
 // added to the app and quietly left out of the bundle.
 var apiViews = []string{
 	"inbox", "today", "next", "projects", "tasks",
-	"waiting", "calendar", "someday", "scheduler", "review", "archive",
+	"waiting", "calendar", "someday", "reference", "scheduler", "review", "archive",
 }
 
 // apiAnswer is one view's answer: what was asked, what was actually applied,
@@ -116,6 +116,8 @@ func (s *Server) readView(name string, f app.Filters) (data any, err error, know
 		data, err = s.app.Inbox()
 	case "someday":
 		data, err = s.app.SomedayItems(f)
+	case "reference":
+		data, err = s.app.ReferenceItems(f)
 	case "projects":
 		data, err = s.app.ProjectList(f)
 	case "tasks":

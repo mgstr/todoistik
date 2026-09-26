@@ -26,6 +26,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"waiting":   {"Waiting for", "the ball is not in your court; age is the delegation date"},
 	"calendar":  {"Calendar", "real deadlines, soonest first; overdue is shown whatever the filter says"},
 	"someday":   {"Someday/Maybe", "raw ideas, worth revisiting some time — not now"},
+	"reference": {"Reference", "what is kept and not done: a manual, an account number, an article to come back to. Nothing here is a commitment, so nothing here is reviewed — the line narrows the pile, and ⌫ takes a row out of it"},
 	"scheduler": {"Scheduler", "what is going to arrive — nothing here is a commitment yet"},
 	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
 	"archive":   {"Archive", "finished commitments, newest first"},
@@ -136,6 +137,8 @@ func screenName(path string) string {
 		return "Edit action"
 	case "somedayitem":
 		return "Edit someday"
+	case "referenceitem":
+		return "Edit reference"
 	case "schedule":
 		return "Edit scheduler"
 	case "process":
@@ -255,6 +258,7 @@ var liveViews = map[string]bool{
 	"waiting":   true,
 	"calendar":  true,
 	"someday":   true,
+	"reference": true,
 	"scheduler": true,
 	"archive":   true,
 	"audit":     true,
@@ -564,6 +568,33 @@ func (s *Server) somedayPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, "someday.html", p)
 }
 
+// referencePage is the pile of material, newest first. The one view whose
+// whole answer to "what can I do here" is the filter line: material is found by
+// narrowing, and the only other thing to do to a row is take it out
+// (design.md, "Reference").
+func (s *Server) referencePage(w http.ResponseWriter, r *http.Request) {
+	f := s.viewFilters("reference", r)
+	items, err := s.app.ReferenceItems(f)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Reference", "reference", r)
+	p.Filters, p.FilterQuery = f, filterQuery(f)
+	if f.Active() {
+		if all, err := s.app.ReferenceItems(app.Filters{}); err == nil {
+			p.Hidden = len(all) - len(items)
+		}
+	}
+	// material carries the area it is about and nothing else, so its line asks
+	// about tags and words (design.md, "Reference")
+	p.FilterMode = "filter-tags"
+	p.Shown, p.Total = len(items), len(items)+p.Hidden
+	p.Query = f.Query()
+	p.Data = items
+	s.render(w, "reference.html", p)
+}
+
 func (s *Server) projectsPage(w http.ResponseWriter, r *http.Request) {
 	f := s.viewFilters("projects", r)
 	projects, err := s.app.ProjectList(f)
@@ -757,10 +788,10 @@ type processData struct {
 	One       bool // processing one named item, not working down the inbox
 
 	// stage two: the branch has been chosen and the form for it is up.
-	// Empty As is stage one, the question itself. "task", "project" and
-	// "someday" go straight to a form; "action" asks which project first, and
-	// is the one branch with a screen between the question and the form
-	// (design.md, "Inbox Zero").
+	// Empty As is stage one, the question itself. "task", "project",
+	// "someday" and "reference" go straight to a form; "action" asks which
+	// project first, and is the one branch with a screen between the question
+	// and the form (design.md, "Inbox Zero").
 	As      string
 	Vals    url.Values   // what the fields show — seeded on the way in, echoed back on a bounce
 	NeedDOD bool         // the name matched none, so the project would be a new one
@@ -770,15 +801,16 @@ type processData struct {
 	// the first, which that screen shows open in its own boxes because a
 	// project cannot be made without one; Drafts is everything after it, held
 	// as rows (see implementation.md, "Writing a project")
-	Next      draftAction
-	Drafts    []draftAction
-	Back      string // the step before this one — where "back" and esc go
-	Stage1    string // the question itself, which is what the branches hang off
-	AsTask    string
-	AsAction  string
-	AsProject string
-	AsSomeday string
-	Q         string // "?one=1" when a single picked item, to be carried by the form
+	Next        draftAction
+	Drafts      []draftAction
+	Back        string // the step before this one — where "back" and esc go
+	Stage1      string // the question itself, which is what the branches hang off
+	AsTask      string
+	AsAction    string
+	AsProject   string
+	AsSomeday   string
+	AsReference string
+	Q           string // "?one=1" when a single picked item, to be carried by the form
 
 	// which project the action being written belongs to. It is answered
 	// before the form is drawn on both branches that write one — Task answers
@@ -953,6 +985,7 @@ func (d *processData) links() {
 	d.AsAction = base + "&as=action" + one
 	d.AsProject = base + "&as=project" + one
 	d.AsSomeday = base + "&as=someday" + one
+	d.AsReference = base + "&as=reference" + one
 	// Back is one step of the trail and not a jump to the beginning: from the
 	// action form that is the picker it was chosen on, and from everything
 	// else it is the question itself (implementation.md, "Panels")
@@ -1014,7 +1047,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	// branch's meta line can hold goes there, and the words that are left are
 	// the title it starts from (design.md, "Inbox Zero"). A branch that
 	// creates nothing never gets here, which is the whole of why the notation
-	// means nothing to Trash, Reference material and the two-minute rule
+	// means nothing to Delete and the two-minute rule
 	v, verr := s.app.Vocabulary()
 	if verr != nil {
 		httpError(w, verr)
@@ -1027,7 +1060,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 	// one sentence the form exists to force out of you, and a body pre-filled
 	// there would satisfy the check that makes a project a project
 	switch d.As {
-	case "task", "action", "project", "someday":
+	case "task", "action", "project", "someday", "reference":
 		// the picker is not a form and has nothing to seed: the question it
 		// asks is answered before any of the boxes below exist
 		if d.As == "action" && !d.Picked {
@@ -1047,7 +1080,7 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 		if d.Copied == nil {
 			seed := app.SeedCapture(d.As, d.Text, v)
 			d.Vals.Set("meta", seed.Meta)
-			if d.As == "someday" {
+			if d.As == "someday" || d.As == "reference" {
 				d.Vals.Set("text", seed.Title)
 			} else {
 				d.Vals.Set("title", seed.Title)
@@ -1152,6 +1185,8 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		tmpl = "process_project.html"
 	case "someday":
 		tmpl = "process_someday.html"
+	case "reference":
+		tmpl = "process_reference.html"
 	}
 	p := s.newPage("Processing", "inbox", r).help("processing").step("Processing", "processing")
 	// the trail is the path taken: the Action branch went through the picker
@@ -1169,6 +1204,8 @@ func (s *Server) renderProcess(w http.ResponseWriter, r *http.Request, d *proces
 		p.step("Create project", "")
 	case "someday":
 		p.step("Create someday", "")
+	case "reference":
+		p.step("Create reference", "")
 	}
 	p.Processing = true
 	p.Data = d
@@ -1465,7 +1502,12 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 	case "trash":
 		err = s.app.ProcessTrash(id)
 	case "reference":
-		err = s.app.ProcessReference(id)
+		f, ferr := s.readReference(r)
+		if ferr != nil {
+			s.bounce(w, r, id, "reference", ferr.Error(), false)
+			return
+		}
+		_, err = s.app.ProcessReference(id, f)
 	case "twominute":
 		err = s.app.ProcessTwoMinute(id)
 	case "confirm":
@@ -2306,6 +2348,56 @@ func (s *Server) somedayItemToInbox(w http.ResponseWriter, r *http.Request) {
 	// the item is a capture again, and the inbox is where it now has to be
 	// answered — so that is where the screen goes
 	http.Redirect(w, r, "/inbox", http.StatusSeeOther)
+}
+
+// --- reference items -----------------------------------------------------
+
+func (s *Server) referenceItemPage(w http.ResponseWriter, r *http.Request) {
+	it, err := s.app.ReferenceItem(idParam(r))
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	p := s.newPage("Reference", "reference", r).step("Edit reference", "")
+	p.Data = it
+	s.render(w, "referenceitem.html", p)
+}
+
+func (s *Server) referenceItemUpdate(w http.ResponseWriter, r *http.Request) {
+	f, err := s.readReference(r)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	if err := s.app.EditReference(idParam(r), f); err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/reference", http.StatusSeeOther)
+}
+
+// readReference reads the two fields reference material is written in,
+// wherever it is being written: the material, and the tags on its meta line
+// (design.md, "Reference item").
+func (s *Server) readReference(r *http.Request) (app.ReferenceFields, error) {
+	f := app.ReferenceFields{Text: strings.TrimSpace(r.FormValue("text"))}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		return f, err
+	}
+	f.Tags, err = app.ParseReferenceMeta(r.FormValue("meta"), v)
+	return f, err
+}
+
+// referenceItemDelete is the one way out of the pile. The audit entry keeps the
+// snapshot, so the press is recoverable from the log like every other delete —
+// which is what makes it safe to have on the row (design.md, "Reference").
+func (s *Server) referenceItemDelete(w http.ResponseWriter, r *http.Request) {
+	if err := s.app.DeleteReference(idParam(r)); err != nil {
+		httpError(w, err)
+		return
+	}
+	http.Redirect(w, r, "/reference", http.StatusSeeOther)
 }
 
 // --- weekly review -------------------------------------------------------

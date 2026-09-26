@@ -39,6 +39,18 @@ type SomedayItem struct {
 	LastReviewedAt time.Time `json:"lastReviewedAt"`
 }
 
+// ReferenceItem is material worth keeping and not worth doing: a manual, an
+// account number, an article to come back to. It is the same unclarified
+// capture a someday/maybe item is, carrying the area it belongs to and nothing
+// more — and unlike one it has no lastReviewedAt, because there is no
+// commitment here to have gone stale (design.md, "Reference item").
+type ReferenceItem struct {
+	ID        int64     `json:"id"`
+	Text      string    `json:"text"`
+	Tags      []string  `json:"tags,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type Duration string
 
 // Three buckets, and deliberately no unit in any of them. Naming minutes made
@@ -343,14 +355,21 @@ type AuditEntry struct {
 
 // Audit event names.
 const (
-	EvCreated         = "created"
-	EvEdited          = "edited"
-	EvCompleted       = "completed"
-	EvUncompleted     = "uncompleted"
-	EvTrashed         = "trashed"
-	EvDeleted         = "deleted"
-	EvDetached        = "detached"
-	EvPromoted        = "promoted"
+	EvCreated     = "created"
+	EvEdited      = "edited"
+	EvCompleted   = "completed"
+	EvUncompleted = "uncompleted"
+	EvTrashed     = "trashed"
+	EvDeleted     = "deleted"
+	EvDetached    = "detached"
+	EvPromoted    = "promoted"
+	// The reference branch's old event, from when the material left the app
+	// and the app kept none of it. Nothing writes it any more — the branch
+	// makes a reference item now and says so, as EvBecameReference — but an
+	// entry already written keeps the word it was written with, and the two
+	// mean different things about recovery: an item that was sent out is
+	// recovered by recapturing its text, and one that became a reference item
+	// is not lost at all (design.md, "Audit entry").
 	EvReference       = "sent-to-reference"
 	EvReturned        = "returned-to-inbox"
 	EvTwoMinute       = "two-minute-rule"
@@ -379,6 +398,9 @@ const (
 	EvBecameAction  = "became-an-action"
 	EvBecameProject = "became-a-project"
 	EvBecameSomeday = "became-someday"
+	// Reference material is kept now, so this branch creates something like
+	// the four above it and records what it made.
+	EvBecameReference = "became-reference"
 )
 
 // TodayTag is the built-in pick-for-the-day tag. It is not on the editable

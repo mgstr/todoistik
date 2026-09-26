@@ -603,10 +603,10 @@ func ParseProjectMeta(text string, v *Vocabulary) (ProjectMeta, error) {
 }
 
 // nonTagField names the first thing on a parsed line that only an action
-// carries, and "" when there is none. Two lines are narrower than an action's
-// — a project's and a someday/maybe item's — and both narrow to the same set,
-// so they ask the same question here and each says its own sentence about the
-// answer. Writing an action's field on either is a mistake about where the
+// carries, and "" when there is none. Three lines are narrower than an
+// action's — a project's, a someday/maybe item's and a reference item's — and
+// all three narrow to the same set, so they ask the same question here and
+// each says its own sentence about the answer. Writing an action's field on either is a mistake about where the
 // thing belongs, and dropping it silently would leave that mistake believed.
 func nonTagField(f MetaFields) string {
 	switch {
@@ -707,6 +707,38 @@ func WriteSomedayMeta(it *SomedayItem) string {
 // Meta is WriteSomedayMeta as a method, so a template can ask the item.
 func (it *SomedayItem) Meta() string { return WriteSomedayMeta(it) }
 
+// ParseReferenceMeta reads a reference item's meta line, which carries tags
+// and nothing else — the same line a someday/maybe item's is, refused in its
+// own words. Material is *about* something, which is the whole of what makes a
+// growing pile findable; every other field an action has describes doing
+// something, and this is the answer given when there is nothing to do
+// (design.md, "Reference item").
+func ParseReferenceMeta(text string, v *Vocabulary) ([]string, error) {
+	f, left, err := parseTokens(text, v)
+	if err != nil {
+		return nil, err
+	}
+	if left != "" {
+		return nil, fmt.Errorf("%q is not notation — an unknown #tag, or words that belong in the material itself", left)
+	}
+	if f.SnoozeUntil != "" {
+		return nil, fmt.Errorf("reference material has no snooze; it is not waiting for anything")
+	}
+	if what := nonTagField(f); what != "" {
+		return nil, fmt.Errorf("reference material has no %s; it is something you keep, not something you do", what)
+	}
+	return f.Tags, nil
+}
+
+// WriteReferenceMeta is the other direction, through the same writer for the
+// reason WriteSomedayMeta goes through it: one notation, not a third dialect.
+func WriteReferenceMeta(it *ReferenceItem) string {
+	return MetaFields{Tags: it.Tags}.String()
+}
+
+// Meta is WriteReferenceMeta as a method, so a template can ask the item.
+func (it *ReferenceItem) Meta() string { return WriteReferenceMeta(it) }
+
 // WriteProjectMeta is the other direction, and it goes through the same
 // writer, so a project's line cannot drift into a second dialect of the same
 // notation.
@@ -753,11 +785,12 @@ func MetaFromText(text string, v *Vocabulary) (meta, rest string) {
 	return f.String(), left
 }
 
-// TagsFromText is the same reading narrowed to tags, for the two lines that
-// hold nothing else: a project's and a someday/maybe item's. Everything else
-// stays in the text where it was typed — a context, a size or a deadline
-// describes doing something, and neither of those two is something you do
-// (design.md, "Writing a project", "Someday/maybe item").
+// TagsFromText is the same reading narrowed to tags, for the three lines that
+// hold nothing else: a project's, a someday/maybe item's and a reference
+// item's. Everything else stays in the text where it was typed — a context, a
+// size or a deadline describes doing something, and none of those three is
+// something you do (design.md, "Writing a project", "Someday/maybe item",
+// "Reference item").
 func TagsFromText(text string, v *Vocabulary) (meta, rest string) {
 	var tags []string
 	rest = tokenRe.ReplaceAllStringFunc(text, func(m string) string {
@@ -772,8 +805,8 @@ func TagsFromText(text string, v *Vocabulary) (meta, rest string) {
 	return MetaFields{Tags: tags}.String(), strings.TrimSpace(collapseBlankLines(rest))
 }
 
-// CaptureSeed is what one of the three creating branches of Inbox Zero starts
-// its form from, read out of the captured item.
+// CaptureSeed is what one of the creating branches of Inbox Zero starts its
+// form from, read out of the captured item.
 //
 // There is no DOD field here, and that is the point: a definition of done is
 // the one sentence the project form exists to force out of you, and a body
@@ -782,7 +815,7 @@ func TagsFromText(text string, v *Vocabulary) (meta, rest string) {
 // review from then on (design.md, "Inbox Zero").
 type CaptureSeed struct {
 	Meta        string // the branch's meta line, read from the first line only
-	Title       string // the words left on that line — the Idea box, for someday
+	Title       string // the words left on that line — the one box, on the two one-box forms
 	Description string // the body, where the branch has somewhere to keep it
 }
 
@@ -810,7 +843,10 @@ func SeedCapture(branch, text string, v *Vocabulary) CaptureSeed {
 	case "project":
 		meta, title := TagsFromText(line, v)
 		return CaptureSeed{Meta: meta, Title: title, Description: body}
-	case "someday":
+	// Someday/maybe and Reference are one form each and the same shape: one
+	// free-form box, which takes the whole capture — line and body — because
+	// there is nothing to split an unclarified text into
+	case "someday", "reference":
 		meta, text := TagsFromText(line, v)
 		if body != "" {
 			text = strings.TrimSpace(text + "\n" + body)

@@ -34,8 +34,9 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [The match list](#the-match-list) — what the capture looks like, open items first, then finished
   - [Seeding a copy](#seeding-a-copy) — `from=<id>` starts stage two from a finished item
   - [The project picker](#the-project-picker) — the Action branch asks which plan, on a screen between the question and the form
-- [Stage two](#stage-two) — the form the Task, Action, Project and Someday/Maybe branches open
+- [Stage two](#stage-two) — the form the Task, Action, Project, Someday/Maybe and Reference branches open
 - [The someday item's page](#the-someday-items-page) — two fields and three buttons, the only screen acting on an idea
+- [The reference item's page](#the-reference-items-page) — the someday item's page with Delete where Inbox stands
 - [The weekly review screens](#the-weekly-review-screens) — the running order, and one step of it
 - [Button labels](#button-labels) — one word per act, and the same word wherever the act appears
 - [Create buttons](#create-buttons) — unmet prerequisites disable a create button, never hide it
@@ -99,7 +100,8 @@ A **self-hosted web app**: one server process serving the UI, the capture API an
 - the audit log is a table like any other. Recoverability means an audit entry carries a snapshot of the item as it was, not just the fact that something happened
 - **an instant is stored in UTC, a day is stored as a day, and neither is ever read as the other.** `ts()` writes RFC3339 in UTC; `counted_from`, `due` and every other date column is `YYYY-MM-DD` on the app's single clock (design.md, "Time fields"). So an instant being reduced to a day for comparison has to be moved into that zone first — `t.In(a.loc).Format(DateFormat)`, never `t.Format(DateFormat)`. East of UTC the difference is invisible for most of the day and wrong for exactly the hours the day boundary runs in: a day start a minute after local midnight is stamped on the previous UTC day, which is how `last_fired_at` once reported a schedule's freshly fired occurrence as unfired and fired it again the following night
 - **there is exactly one index, and it is on the audit log** — `idx_audit_item`, over `(item_type, item_id, event, at)`. Every screen but one queries what is open, which is bounded by how much you have going on, and SQLite's primary keys carry those perfectly well; the Dashboard queries the log, which is bounded by how long you have been using the app, and its duration panels pair each item's leaving with its own creation as a correlated subquery. Without the index that is rows-that-left x whole-log, and one year of moderate use already cost a quarter of a second — see "The Dashboard". It is in the `CREATE ... IF NOT EXISTS` schema like everything else, so an existing database gains it on the next start with no migration step
-- **tags are their own table, keyed by item type and id** (`item_tags`), not a column on each item. It was built that way for actions and projects, and it is why giving someday/maybe items tags (design.md, "Tags") needed no schema change at all: a new item type is a new string in a column that already exists. The one thing that does not come free is deletion — a row that outlives its item would keep a tag name in use forever, so every delete takes its tag rows with it
+- **tags are their own table, keyed by item type and id** (`item_tags`), not a column on each item. It was built that way for actions and projects, and it is why giving someday/maybe items tags (design.md, "Tags") needed no schema change at all: a new item type is a new string in a column that already exists. Reference material arrived the same way and cost the same nothing — `item_type='reference'`, and the Settings screen's usage counts picked it up without being told, since they count `item_tags` rather than asking each table. The one thing that does not come free is deletion — a row that outlives its item would keep a tag name in use forever, so every delete takes its tag rows with it
+- **reference material is its own table, and it is the shortest one** — `reference_items(id, text, created_at)`. It is `someday_items` without `last_reviewed_at`, and that missing column is the design rather than an omission: material is never walked, so there is nothing for a review cadence to compare against (design.md, "Reference item"). A `kind` column on `someday_items` would have been the other shape and the wrong one — every query in the app would then have had to remember which kind it meant, and the two are different nouns in every sentence design.md writes about them
 
 ## Backups
 
@@ -313,7 +315,7 @@ view holds.
   nothing in it to notice
 - **the bundle validates the window itself rather than going through
   `apiFilters`.** `apiFilters` narrows one named view and collects problems for
-  it; a bundle reads eleven views and would have to say which of them each
+  it; a bundle reads twelve views and would have to say which of them each
   problem belonged to. Since the bundle takes no filters but this one, the one
   check is written where it applies
 
@@ -832,7 +834,8 @@ outside it, and neither of those can decide anything.
   in the inbox is an item nobody meant, found at the desk. `/start`, which
   Telegram sends on the first open of a chat, and `/help` list the commands
 - **one command per view** — `/inbox /today /next /tasks /projects /waiting
-  /calendar /someday /scheduler /archive` — set as the bot's command menu at
+  /calendar /someday /reference /scheduler /archive` — set as the bot's command
+  menu at
   every start, so a view is picked from the list `/` opens instead of spelled on
   a phone keyboard. `/view next` would be one more word on every read. The
   weekly review has no command: it answers with counts, and it is done at the
@@ -903,16 +906,16 @@ Telegram bot polls rather than being called.
   version handshake got subtly wrong fails as "the server does not appear", not
   as a test going red
 - **three tools: `todoistik_context`, `todoistik_read_view`,
-  `todoistik_capture`.** Not one per view. Eleven tools would put "a view
+  `todoistik_capture`.** Not one per view. Twelve tools would put "a view
   answers only by its own filters" into the schemas themselves, which is worth
-  something — but it would also put eleven near-identical schemas into every
+  something — but it would also put twelve near-identical schemas into every
   session that ever loads this server, in order to buy a refusal the app
   already gives in words the caller can read (`@home is not a filter this view
   has`). The three cost a fraction of that and are refused just as clearly
 - **the `view` parameter is an enum, and its list is the app's own.** That is
   the one constraint worth spending schema on, because it is the one a model
   cannot recover from by reading the answer: a wrong view name is refused by
-  the client before the app is asked, naming the eleven. `TestTheViewEnumIsThe
+  the client before the app is asked, naming the twelve. `TestTheViewEnumIsThe
   AppsViewList` walks the enum and reads each view, so a name here that the app
   does not answer fails rather than waiting to be found in a session
 - **the tools answer in the text format, not in JSON.** `?format=text` exists
@@ -1526,15 +1529,18 @@ and all eight branches on screen at once — three buttons and five forms in
 - **the branches are grouped into rows by what the answer costs**, one row per
   group, and the grouping is the only structure the screen has left now that
   the prose is gone:
-  - **nothing changes but the audit log** — Delete, Reference material,
-    Two-minute rule. The item leaves and no new object is created; the record
-    that it existed is the audit entry
-  - **it moves to a list, still unclarified** — Someday/Maybe, alone in its row
-    since Keep incubating went with the someday snooze (design.md,
-    "Someday/maybe item"). It opens a stage two of its own (see below); the
-    grouping is about what becomes of the item, not about what the answer costs
-    to give, and what becomes of it here is that it moves and stays
-    unclarified
+  - **nothing changes but the audit log** — Delete and the Two-minute rule.
+    The item leaves and no new object is created; the record that it existed is
+    the audit entry. Reference material was the third of them and is not any
+    more: it keeps what it is given now (design.md, "Reference item"), which is
+    the row it left rather than a row it never belonged in
+  - **it moves to a list, still unclarified** — Someday/Maybe and Reference
+    material. Both open a stage two of their own (see below), and both are
+    still the same free-form text they were captured as, filed with the area
+    they belong to. The grouping is about what becomes of the item, not about
+    what the answer costs to give, and what becomes of it in both is that it
+    moves and stays unclarified. Keep incubating used to be in this row and
+    went with the someday snooze (design.md, "Someday/maybe item")
   - **it is actionable** — Task, Action and Project, the three answers in this
     row and the only three that create a commitment (see "Stage two"). They
     carried *"— a step"* and *"— an outcome"* while the row was new; the gloss
@@ -1542,7 +1548,7 @@ and all eight branches on screen at once — three buttons and five forms in
     screen's prose. The distinction they name is in the `?` panel, which is
     where a thing that has to be explained belongs (see "View help")
 
-  A link wearing `.button` is a button and looks like one to the pixel: three
+  A link wearing `.button` is a button and looks like one to the pixel: five
   of these seven answers navigate rather than post, and that is an
   implementation detail no one should be able to see. The class carries the
   same fill, hover and metrics as the element
@@ -1572,6 +1578,18 @@ and all eight branches on screen at once — three buttons and five forms in
   `Enter`, exactly as the one-click version did — what the step adds is the
   chance to say the area while the thought is still in your hand, never the
   obligation to have one
+- **Reference material opens a stage two for the same reason, and it arrived at
+  it from the other direction.** That branch had no form because it had nothing
+  to write to: it posted, the item left the app and only the audit entry
+  remained. Now that the material is kept (design.md, "Reference item") it has
+  the same two questions the someday form has — the words, which are usually
+  the capture as it stands, and the area, which is what makes a pile that only
+  grows findable at all. So it is the same shape of screen: `referencefields`,
+  the same partial `/referenceitem/{id}` draws, one box focused and one meta
+  line, and `c` creates. The two forms are separate partials rather than one
+  parameterised by a noun, because the boxes are labelled for what is in them
+  — "Idea" against "Material" — and a label is the one thing on those screens
+  that says which of the two answers you gave
 - **the screen has one source now.** It processed a someday/maybe item too,
   which is where "Keep incubating" and the `src` in every one of these URLs
   came from. Both are gone: an idea that has become worth deciding about goes
@@ -1593,10 +1611,12 @@ something finished, which is what Done means everywhere else, and one noun with
 one meaning is the rule this map is built on. It was `2`, the rule's own
 number, until the match list needed the digits (see "The match list").
 
-Four of the seven open a stage rather than posting an answer: the someday
+Five of the seven open a stage rather than posting an answer: the someday
 branch went from a form's submit to a link the moment Someday/Maybe grew a
-stage two, and the key layer never noticed — `data-key` on a link is a link
-being followed, the way `t`, `a` and `p` already are.
+stage two, and the reference branch went the same way when it started keeping
+what it was given. The key layer never noticed either time — `data-key` on a
+link is a link being followed, the way `t`, `a` and `p` already are. What is
+left posting directly is `⌫` and `d`, the two answers that create nothing.
 
 - **`t` is trash here and "pick for today" on the list views that offer the
   mark** (every one but "Out of time" — see "Item lines"), and that was
@@ -1606,8 +1626,9 @@ being followed, the way `t`, `a` and `p` already are.
   and trashing is recoverable from the audit log by recapturing (design.md,
   "Audit entry"). Worth revisiting if it ever fires by accident
 - **each branch writes its own audit event**, and the ones that create
-  something write `became-a-task`, `became-an-action`, `became-a-project` and
-  `became-someday` rather than the `deleted` they shared
+  something write `became-a-task`, `became-an-action`, `became-a-project`,
+  `became-someday` and `became-reference` rather than the `deleted` they
+  shared
   (`internal/app/types.go`, the `Ev…` constants; `internal/app/someday.go`, the
   `consumeInboxItem` calls). The entry is written against the *inbox item's* id
   and carries the capture as it arrived as its snapshot — which is what keeps
@@ -1623,11 +1644,18 @@ being followed, the way `t`, `a` and `p` already are.
     reason they share a form; what they do not share is the word the log keeps
   - **the Audit view's Recapture button follows the event rather than a rule of
     its own**, and it offers itself on `trashed`, `deleted` and
-    `sent-to-reference` (`audit.html`). The four new events are deliberately
-    not on that list: nothing was lost, so recapturing would put a second copy
-    of a live commitment in the inbox. Before the split those rows *did* carry
-    the button, because they said `deleted` — which is the clearest measure of
-    how wrong the shared word was
+    `sent-to-reference` (`audit.html`). The five `became-…` events are
+    deliberately not on that list: nothing was lost, so recapturing would put a
+    second copy of a live commitment in the inbox. Before the split those rows
+    *did* carry the button, because they said `deleted` — which is the clearest
+    measure of how wrong the shared word was
+  - **`sent-to-reference` stays on that list and stays off `became-reference`**,
+    which is the same distinction one layer down. Nothing writes the old event
+    any more, but the entries carrying it are captures that really did leave the
+    app and are recovered the only way anything outside it can be: by
+    recapturing the text (design.md, "Audit entry"). The new entries name an
+    item that is sitting in the Reference view, so the button would be offering
+    to file a second copy of something not lost
   - **`deleted` still means deleted** everywhere else it is written — an action,
     a project, a schedule — so the word did not have to be given up, only stopped
     being borrowed
@@ -1886,10 +1914,11 @@ action form opens.
 
 ## Stage two
 
-Answering Task, Action, Project or Someday/Maybe opens a form on the same
-screen, at `/process?item=&as=task|action|project|someday`. Action stops at
-the picker on the way (see "The project picker") and arrives here as
-`&as=action&project=<id>`; the other three go straight to a form.
+Answering Task, Action, Project, Someday/Maybe or Reference material opens a
+form on the same screen, at
+`/process?item=&as=task|action|project|someday|reference`. Action stops at the
+picker on the way (see "The project picker") and arrives here as
+`&as=action&project=<id>`; the other four go straight to a form.
 
 Task and Action share the form and the POST path, `/process/{id}/action`,
 because what they write is one item: the branch names the answer and the route
@@ -1907,7 +1936,7 @@ quietly break.
   parameter and no second form, see "Seeding a copy". Everything below
   describes the ordinary case, which is the one with no `from`
 - **the form starts from the captured line, read as notation.** `MetaFromText`
-  for the action form and `TagsFromText` for the other two (`tokens.go`),
+  for the action form and `TagsFromText` for the other three (`tokens.go`),
   called where the fields are seeded and nowhere else — a stage that bounces
   echoes what was typed instead, since by then the reading has been corrected
   by hand. The same `Vocabulary` the meta line is parsed with does the reading,
@@ -1922,8 +1951,12 @@ quietly break.
 - **the body seeds a description, and which one depends on the branch**: the
   action's own on the action form; the first draft action's on the project
   form, pre-filled in the dialog that writes it and empty in every dialog
-  after; and none on the someday form, which takes the whole capture into its
-  one box. The project form's DOD is left empty and stays `required` —
+  after; and none on the two one-box forms, someday and reference, which take
+  the whole capture — line and body — into the box they have. On the reference
+  form that is the branch's own argument rather than a shared convenience: a
+  mail capture's link and a reminder's note are usually the material being
+  filed, so keeping only the first line would keep the label and drop the
+  thing. The project form's DOD is left empty and stays `required` —
   `projectFromForm` refuses a blank one, and that refusal is the only thing
   standing between a captured body and a project whose definition of done
   defines nothing (design.md, "Inbox Zero"). It is the same seeding
@@ -1940,17 +1973,20 @@ quietly break.
   right answer as well as the cheap one: what a new action waits on is decided
   on the form, with the project it is being filed into already chosen (see
   "The meta line")
-- **the narrow forms take the tags and leave the rest in the title.** A project
-  and a someday/maybe item hold nothing else, so `@garage` on such a capture
-  stays in the words — it is not dropped, and it is not moved into a box that
-  would refuse it. Both titles are edited by hand at this point anyway: one has
-  to become a reference to an outcome, the other is being reworded or left
-- **the Someday/Maybe form is the small one**, and it is a stage for one
-  reason: the meta line. Its two fields are `somedayfields` in `_layout.html`,
-  shared with `/somedayitem/{id}` so that filing an idea and editing it a month
-  later are the same two boxes in the same order (design.md, "Editing items").
-  The idea box takes the focus, the way the title box does on the other two
-  forms — it is the one field that arrives pre-filled and might be retyped
+- **the narrow forms take the tags and leave the rest in the title.** A
+  project, a someday/maybe item and a reference item hold nothing else, so
+  `@garage` on such a capture stays in the words — it is not dropped, and it is
+  not moved into a box that would refuse it. All three are edited by hand at
+  this point anyway: one has to become a reference to an outcome, and the other
+  two are being reworded or left
+- **the Someday/Maybe and Reference forms are the small ones**, and each is a
+  stage for one reason: the meta line. Their two fields are `somedayfields` and
+  `referencefields` in `_layout.html`, each shared with the item's own page —
+  `/somedayitem/{id}` and `/referenceitem/{id}` — so that filing a thing and
+  editing it a month later are the same two boxes in the same order (design.md,
+  "Editing items"). The one box takes the focus, the way the title box does on
+  the other forms: it is the field that arrives pre-filled and might be
+  retyped
 - **`esc` and "back" both go to stage one**, not out of the screen. Leaving is
   still one press away from there, so abandoning costs at most two — and each
   press undoes exactly the last decision, which is what a stage-two `esc`
@@ -2041,6 +2077,33 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   item is not on the someday list any more, and the honest answer to "then
   what?" is the place it went — which is also the place that now has one more
   thing to answer
+
+## The reference item's page
+
+`/referenceitem/{id}` — the someday item's page with one button changed, and
+that button is the whole difference between the two piles.
+
+- **it is the same screen with a different way out.** The form is
+  `referencefields` (see "Stage two"), the buttons are one `.actionsbar` row
+  under it, Save is `data-dirty-save`, the capture age sits over the buttons in
+  a `.stamps` line and `data-cancel="/reference"` answers `esc`. Every one of
+  those is argued for one section up and none of the arguments changes here, so
+  they are not made twice
+- **Delete stands where Inbox stands on the other page.** A someday item goes
+  back to the inbox because there is a decision left to make about it; material
+  has none — it is either worth keeping or it is not (design.md, "Reference").
+  So this is the one item page in the app whose destructive control is also its
+  only way out, and it wears the danger styling that says so
+- **there is no Inbox button, and that is not a gap.** Material that turns out
+  to need doing is a new capture written as the action it now is, which the
+  capture dialog already does from anywhere (`g g`). A button here would have
+  been the same keystroke dressed as a conversion, and it would have taken the
+  material away in order to make an action out of it — losing the thing that
+  was worth keeping in the act of noticing it matters
+- **the row's delete and this one post to the same path**,
+  `/referenceitem/{id}/delete`, so the pile can be pruned while it is read and
+  the item can be dropped while it is open, without two handlers to keep in
+  step (see "Navigation")
 
 ## The weekly review screens
 
@@ -2511,7 +2574,8 @@ measured against, and for the ledger of where the height actually goes.
   wanted. **The someday item joined**, and it joined because it stopped being a
   form of its own: its fields are a partial now, shared with a processing stage
   that sits beside the action and project forms, and three screens read one
-  after another cannot each indent their boxes differently
+  after another cannot each indent their boxes differently. **The reference item
+  was built into it**, having never been a form of its own at all
 - **nothing about the fields moved** — not which they are, not their order, not
   their validation, not what they mean. This is presentation, so design.md says
   nothing new about it
@@ -2566,7 +2630,10 @@ Two things the gutter left behind, and one it did not.
   the gutter drew — which was the wrong height twice for the same reason every
   other fixed box was: a hole under the one-line ideas, too small for the few
   that run long. `rows="1"` with `data-grow` is the honest starting size, and
-  it is what the shared partial gives both screens that write an idea
+  it is what the shared partial gives both screens that write an idea — and
+  what `referencefields` gives the two that write material, where a long box is
+  the ordinary case rather than the rare one: material is what a capture's body
+  usually was
 
 ## Token boxes
 
@@ -3116,9 +3183,11 @@ Which screens get which:
 | an inbox row's first line | inline (the row is not a link; the whole row opens the item) |
 | description, definition of done, idea — under the box | chips |
 | a Someday/Maybe row | chips (its title already links to the item's page) |
+| a Reference row | chips, for the same reason — and it is the row where they are pressed most, an article to come back to being a link and nothing else |
 
-The three field strips are one `{{template "extlinks"}}` inside `actionfields`,
-`somedayfields` and `projectfields`, so every screen those partials serve —
+The four field strips are one `{{template "extlinks"}}` inside `actionfields`,
+`somedayfields`, `referencefields` and `projectfields`, so every screen those
+partials serve —
 the item's own page, the processing branches, promoting, adding an action to a
 project — gets it from the one definition, for the reason the partials exist.
 
@@ -4019,7 +4088,11 @@ rule, it is the same code or the same selector rather than a second copy of it.
   is filled in from what the server stored
 - **the dialog is rendered on every page**, like the bookmarks', and which of
   the two `ctrl-0` opens is the key layer's answer: `metaBox()` is non-null
-  here, so it is the snippets. That function is also the whole of design.md's
+  here, so it is the snippets. `META_MODES` is the list it asks against, and a
+  reference item's line is in it: material is written on a meta line like
+  anything else, and what a snippet holds that the line has no room for is
+  dropped exactly as it is on a project's (design.md, "Snippets") — so the
+  tags land and the rest does not arrive. That function is also the whole of design.md's
   rule about a screen with two meta lines — the focused box if the caret is in
   one, the first in document order otherwise, which on both project screens is
   the project's — and it is scoped to the open dialog where there is one, so
@@ -4112,7 +4185,7 @@ redundant — and unlike the map, it says something the bar cannot.
 
 ## Navigation
 
-The rail opens with the `+` capture control (see "Capture"), then lists all 14 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order, under five captions:
+The rail opens with the `+` capture control (see "Capture"), then lists all 15 views (design.md's "Views", plus the two implementation-level screens Audit and Settings) in one fixed order, under five captions:
 
 | | |
 |---|---|
@@ -4120,16 +4193,18 @@ The rail opens with the `+` capture control (see "Capture"), then lists all 14 v
 | Do | Today, Next actions |
 | Committed | Projects, Tasks, Waiting for, Calendar |
 | Later | Someday/Maybe, Scheduler, Review |
-| Records | Archive, Audit, Dashboard, Settings |
+| Records | Reference, Archive, Audit, Dashboard, Settings |
 
-- **the captions say what a row could only imply.** The order inside them is the order the bar had and nothing collapses or hides: the grouping is a claim about what *kind* of place each view is, not a way to show fewer of them. It costs the height of five captions, which a column has and a row did not — a bar could only put the thirteen in a line and leave adjacency to do the work. "Records" earns its keep twice over, being the same four views that carry no count, for the same reason: they are not open loops to work through
+- **the captions say what a row could only imply.** The order inside them is the order the bar had and nothing collapses or hides: the grouping is a claim about what *kind* of place each view is, not a way to show fewer of them. It costs the height of five captions, which a column has and a row did not — a bar could only put the fourteen in a line and leave adjacency to do the work. "Records" earns its keep twice over, being the same five views that carry no count, for the same reason: they are not open loops to work through
 
-- **item-count badges** sit at the right-hand end of a view's row, for every view except **Archive**, **Audit**, **Dashboard** and **Settings** — those four are not open loops to work through, so a running count adds nothing actionable. Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
+- **Reference is a record and not a "Later".** "Later" is the group of things waiting to be decided or done at some point — a parked idea, a rule that has not fired, a walk that is due. Nothing in the reference pile is waiting for anything (design.md, "Reference"), and filing it under "Later" would have put a permanent pile among three temporary ones and quietly promised that it too would eventually be worked through. It sits first in "Records" because it is the one of those five that is read to find something rather than to look back at what happened
+
+- **item-count badges** sit at the right-hand end of a view's row, for every view except **Reference**, **Archive**, **Audit**, **Dashboard** and **Settings** — those five are not open loops to work through, so a running count adds nothing actionable. The reference pile is the sharpest case of the rule: its number only ever goes up, and a number that only goes up reads as a backlog (design.md, "Reference"). Outlined in the badge palette rather than filled with a colour: the nav already spends red on "the inbox needs emptying" and the accent on "this is the view you are on", and ten filled badges would spend both on something else — see `research/nav-badge-study.html` for the variants this was chosen from
 - **the count sits on the row's right edge because the rail gives it one.** It used to hang off the label's top-right corner, and both halves of that reasoning were about a horizontal bar: an inline count there read as a second word in the view's *name*, and it shifted every label after it whenever the number changed. Rows one fixed width wide have neither problem, so the count can sit where a sidebar count belongs. The blanking rule went with it: the jump letters used to land in the same strip of space and had to be given it, and now they have a gutter of their own (see "Keyboard view-jump overlay")
 - **where a row is both the current view and the alert, the alert wins the badge.** Standing on the Inbox is not the same as having emptied it, so its count stays red-on-white rather than turning accent — the label already resolves this way, and a badge disagreeing with the label beside it would be saying two things at once
 - **a badge is omitted entirely when its count is 0**, never shown as a bare "0". A wall of empty badges is exactly the noise a badge exists to cut through
 - **Inbox is the one exception to how the signal is carried**: when its count is non-zero, the nav *label itself* changes color, not just its badge. Design.md treats a non-empty inbox as the one state with a non-negotiable response ("Inbox Zero" run "regularly, and always as part of the weekly review"), so it gets a stronger signal than a small badge can give it
-- **while the processing screen is up, the Inbox slot reads "Processing…"** — for an Inbox Zero run or for a single picked item (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fourteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I". Someday/Maybe borrowed the same label for a while, for items processed from that list; it stopped needing it when the inbox became the only source
+- **while the processing screen is up, the Inbox slot reads "Processing…"** — for an Inbox Zero run or for a single picked item (design.md, "Inbox Zero"). The screen has no nav entry of its own and gets none: it is reached only from a list, and a fifteenth permanent entry for a mode you are either in or not would be furniture that is wrong most of the time. Saying nothing was worse though — the nav marked you as being *on* the Inbox while no inbox was on screen. A label the mode borrows costs no space and puts the phase in the one place that already answers "where am I". Someday/Maybe borrowed the same label for a while, for items processed from that list; it stopped needing it when the inbox became the only source
 - **that slot drops its badge and its red for as long as it reads "Processing…"**. The count means the inbox needs emptying and the red says it loudly (see the exception above); both are answered by the fact that you are emptying it at that moment, and an alarm about the thing you are currently doing is noise. Nothing else carries the number at the moment either: the line that read *"Inbox Zero · N left"* was removed with the rest of the screen's prose (see "The processing screen"), so a run currently counts down invisibly. Whether it comes back, and where, is the open question in `research/process-subject-study.html` — and "nowhere" is a live answer, because a count you cannot see is also a count you cannot be discouraged by. The slot stays a link with its `g i` intact: `esc` is the way out (see "Processing from the Inbox") and the nav must not be the one route that quietly stops working
 
 - **doing does not borrow the slot; it highlights the view it was opened
@@ -4154,7 +4229,7 @@ without navigating.
 
 **Which letter belongs to which view is in keys.md, "The map", and used to be
 here.** A letter spent on a view is spent exactly as hard as a letter spent on
-a button — `d` is the Dashboard and it is Done — and while the fourteen sat in
+a button — `d` is the Dashboard and it is Done — and while the fifteen sat in
 this file, no single place held both halves of that, which is the split keys.md
 exists to prevent. What stays here is how the overlay is drawn and why the rail
 carries an empty gutter for it; the letters themselves are keys.
@@ -4166,7 +4241,7 @@ keys.md writes down, and what the code holds in `jumps`.
 
 - **the pending `g` is answered before every other key on the page**, beside
   the `^m` jump and for the same reason (see "Jumping to a control"). Four of
-  the fourteen letters are also buttons, and the prefix is the whole of what
+  the fifteen letters are also buttons, and the prefix is the whole of what
   makes that safe — which it can only be from in front of the keys it is
   protecting. It was read after them until now, so with a row under the cursor
   `g d` completed the row and went nowhere. There was no single line to slip it
@@ -4200,9 +4275,9 @@ Three `g` sequences do not jump to a view:
   with nothing to do. That state is read off the nav's own alert, which is on
   every page
 - **`g 1`…`g 9` go to a bookmark**, which names its own view and so is a
-  destination like the thirteen (design.md, "Bookmarked filters"). A digit is
+  destination like the fourteen (design.md, "Bookmarked filters"). A digit is
   free after `g` for the reason it is free on the match list: the jumps are
-  letters, one per view, and there is no fourteenth view wanting a number. It
+  letters, one per view, and there is no view left wanting a number. It
   gets no tag of its own either — the nine are drawn in a dialog that is shut
   while the overlay is up — so **the bar carries them as a range**, `1…9 a
   bookmark`, and only while some slot is full: the same shape and the same

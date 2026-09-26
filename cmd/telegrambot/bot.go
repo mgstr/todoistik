@@ -38,6 +38,10 @@ var views = []view{
 	{"waiting", "Waiting for", true},
 	{"calendar", "Calendar", true},
 	{"someday", "Someday/Maybe", true},
+	// the one view read away from the desk for its own sake: the account number
+	// while standing at the boiler is exactly what the pile is kept for
+	// (design.md, "Reference")
+	{"reference", "Reference", true},
 	{"scheduler", "Scheduler", true},
 	{"archive", "Archive", true},
 }

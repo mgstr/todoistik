@@ -324,6 +324,13 @@ h2.stalled {
 .row .title { color: var(--fg); flex-shrink: 1; }
 .row.done .title { text-decoration: line-through; color: var(--muted); }
 .row.snoozed { opacity: .55; }
+/* The one list whose rows carry a delete is Reference (design.md,
+   "Reference"), and it sits at the row's right edge rather than after the last
+   badge. Two reasons, both about being the row's destructive control: beside
+   the words it is a click away from the link that opens the item, and packed
+   with the badges it moves along the row whenever ^t takes the ages away. */
+.row > form.kb-delete { margin-left: auto; }
+.row > form.kb-delete button.small.danger { border: none; background: transparent; padding: 0 .25rem; }
 /* An action waiting on a sibling is drawn under it, one step in per level.
    Padding rather than a margin, so the whole row — its hover, its selected
    ring — still reaches the full width of the list: the row is indented, not

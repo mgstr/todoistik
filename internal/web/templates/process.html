@@ -63,9 +63,6 @@
     <form method="post" action="/process/{{$d.ID}}/trash{{$q}}" class="inline kb-delete">
       <button>Delete</button>
     </form>
-    <form method="post" action="/process/{{$d.ID}}/reference{{$q}}" class="inline" data-key="r" data-key-label="reference">
-      <button title="not actionable, kept outside the app">Reference material</button>
-    </form>
     {{/* `d` and not `2`: the digits are the match list's now, and this branch
          is Done — the same noun the key means everywhere else (keys.md, "The
          map"). */}}
@@ -75,10 +72,16 @@
   </div>
 
   <div class="branches">
-    {{/* the idea is filed with the area it belongs to, which is the thinking
-         this answer was already doing (design.md, "Inbox Zero") */}}
+    {{/* The two answers that keep something without committing to it, and both
+         are forms now: the idea is filed with the area it belongs to, and so
+         is the material, which is the thinking each answer was already doing
+         (design.md, "Inbox Zero"). Reference used to be a press that took the
+         item out of the app and kept nothing — the one answer here that
+         answered by losing what it was given. */}}
     <a class="button" href="{{$d.AsSomeday}}" data-key="y" data-key-label="someday"
        title="worth looking at some time, but not now">Someday/Maybe</a>
+    <a class="button" href="{{$d.AsReference}}" data-key="r" data-key-label="reference"
+       title="not actionable, but worth keeping">Reference material</a>
   </div>
 
   <div class="branches">

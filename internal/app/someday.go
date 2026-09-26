@@ -172,12 +172,6 @@ func (a *App) ProcessTrash(id int64) error {
 	return a.tx(func(tx *sql.Tx) error { return a.consumeInboxItem(tx, id, EvTrashed) })
 }
 
-// ProcessReference: sent out of the app to wherever reference material is
-// kept; the app stores none. The audit entry is the record it existed.
-func (a *App) ProcessReference(id int64) error {
-	return a.tx(func(tx *sql.Tx) error { return a.consumeInboxItem(tx, id, EvReference) })
-}
-
 // ProcessTwoMinute: done right now, under two minutes — completed in the
 // audit log without ever becoming an action.
 func (a *App) ProcessTwoMinute(id int64) error {

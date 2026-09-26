@@ -1,0 +1,31 @@
+{{template "top" .}}
+{{template "filterbar" .}}
+{{if not .Data}}<p class="empty">Nothing kept.</p>{{end}}
+<ul class="list">
+{{range .Data}}
+  {{/* the row carries the material, what it is about and how long it has been
+       kept — and one control, which is the delete: this pile is read by
+       narrowing it and pruned by taking rows out, and everything else is on
+       the item's own page one Enter away (implementation.md, "The reference
+       item's page") */}}
+  <li class="row" data-kb-row data-href="/referenceitem/{{.ID}}"
+      {{with itemlinks .Text}}data-links="{{.}}"{{end}}>
+    <a href="/referenceitem/{{.ID}}" class="title">{{.Text}}</a>
+    {{/* chips and not a live word inside the title, which is already a link to
+         the item's own page: a link cannot sit inside a link, and the two
+         would mean different places anyway. Material is the one pile kept for
+         its links, so this is the row where they earn the most */}}
+    {{range links .Text}}<a class="badge ext" href="{{.}}"
+      target="_blank" rel="noopener noreferrer" title="{{.}}">{{linkLabel .}}</a>{{end}}
+    {{range .Tags}}<span class="badge tag">#{{.}}</span>{{end}}
+    <span class="age" title="how long it has been kept">{{age .CreatedAt}}</span>
+    {{/* the row's own delete, which is what ⌫ presses here. Recoverable from
+         the audit log like every other delete, which is what makes it safe to
+         have on a row (design.md, "Reference") */}}
+    <form method="post" action="/referenceitem/{{.ID}}/delete" class="inline kb-delete">
+      <button class="small danger" title="delete">×</button>
+    </form>
+  </li>
+{{end}}
+</ul>
+{{template "bottom" .}}

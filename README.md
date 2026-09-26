@@ -102,8 +102,8 @@ curl -H "Authorization: Bearer $TOK" "http://host:8390/api/view/next?format=text
 curl -H "Authorization: Bearer $TOK" "http://host:8390/api/context?format=text"
 ```
 
-Views: `inbox someday projects tasks next today waiting calendar archive
-scheduler review`.
+Views: `inbox someday reference projects tasks next today waiting calendar
+archive scheduler review`.
 Filter parameters (each view accepts the ones its screen offers): `name`,
 `tag` (repeatable), `context` (repeatable), `duration` (repeatable), `focus`
 (`exclude`/`only`), `due` (`today`/`tomorrow`/`thisweek`/`nextweek`),
@@ -152,7 +152,7 @@ the kind `not-in-view`. Each view answers by the same subset its screen does.
 
 ### Every view at once
 
-`/api/context` answers all eleven views in one read, in the order the
+`/api/context` answers all twelve views in one read, in the order the
 navigation rail has them, each labelled with the view and the filter that
 produced it. It is a stapler and not a query: every section is exactly what
 asking for that view alone would give, so one can be cut out of a paste and
@@ -495,7 +495,7 @@ In Claude Code, `~/.claude.json` or a project's `.mcp.json`:
 - `todoistik_context` — every view at once, the whole situation. `archive` says
   how far back the archive section reaches
 - `todoistik_read_view` — one view, optionally filtered. `view` is one of the
-  eleven, as an enum, so a name the app does not have is refused by the client
+  twelve, as an enum, so a name the app does not have is refused by the client
   before the app is asked; `q` is the filter line as it is typed on screen
 - `todoistik_capture` — text into the inbox
 
@@ -564,6 +564,7 @@ internal/app/             the domain — everything design.md describes, indepen
   actions.go              action CRUD, tags, detach, snooze (date or sibling)
   projects.go             project CRUD, completion rules, Promote
   someday.go              someday/maybe items, and every Inbox Zero branch (ProcessTrash, ProcessAction, ...)
+  reference.go            reference material: what is kept and not done, and the branch that keeps it
   schedules.go            schedule CRUD, firing, DayStart (the lazy day boundary: #today clearing + firing)
   review.go               weekly review counts and MarkReviewed
   views.go                the read-side queries: NextActions, Tasks, WaitingFor, Calendar, Archive, Projects, plus the shared filter/sort helpers

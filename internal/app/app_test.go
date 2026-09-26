@@ -1651,7 +1651,7 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 	if err := a.ProcessTrash(trashed); err != nil {
 		t.Fatal(err)
 	}
-	if err := a.ProcessReference(referenced); err != nil {
+	if _, err := a.ProcessReference(referenced, ReferenceFields{Text: "The boiler's model number"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := a.ProcessTwoMinute(instant); err != nil {
@@ -1688,7 +1688,7 @@ func TestEveryBranchSaysWhichOneItWas(t *testing.T) {
 		what  string
 	}{
 		{trashed, EvTrashed, "trash"},
-		{referenced, EvReference, "reference material"},
+		{referenced, EvBecameReference, "reference material"},
 		{instant, EvTwoMinute, "the two minute rule"},
 		// the Task branch makes two different things and the log says which:
 		// a standalone action is a task, one filed into a project is an action
