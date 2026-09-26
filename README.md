@@ -375,6 +375,7 @@ MAILSYNC_PASSWORD=$(cat ~/.mailsync-app-password) \
 | `-account`       |                     | `0`                     | which signed-in Google account the links open in (`/mail/u/N/`) |
 | `-url`           | `TODOISTIK_URL`     | `http://127.0.0.1:8390` | the running app                                     |
 | `-token`         | `TODOISTIK_TOKEN`   | *(empty)*               | bearer token; empty for a server started without one |
+| `-period`        |                     | `5`                     | minutes between passes, counted from the end of one to the start of the next; `0` runs one pass and exits |
 | `-dry-run`       |                     | *(off)*                 | print what would be captured; change nothing on either side |
 
 **The password is an app password, never your Google password**, and it is
@@ -395,8 +396,20 @@ label too, since the identical capture is already in the inbox. A run that
 fails part way leaves the label on, and the next run captures it again, is told
 it is a duplicate, and takes the label off then.
 
-It prints a line per message and exits non-zero if it had to leave anything
-behind. See implementation.md, "Mail into the inbox".
+**It keeps going.** The run above empties the label every five minutes until
+it is stopped, so a labelled mail reaches the inbox without anything being
+started by hand — the same shape as `remindersync loop`, without a config file,
+because there is one label and one account to empty. The wait starts when a
+pass ends, so two passes can never overlap. A pass that moved nothing prints
+nothing; a pass that moved something is stamped with the time, once, however
+many mails it carried. A failure is the pass's own and never the loop's: an
+app that cannot be reached now is usually one that can in five minutes, and
+the mail keeps its label until a pass gets through.
+
+`-period 0` is one pass and out, for a `launchd` or `cron` entry that does the
+repeating itself. A single pass prints a line per message and exits non-zero if
+it had to leave anything behind; `-dry-run` is always a single pass. See
+implementation.md, "Mail into the inbox".
 
 ## Telegram
 

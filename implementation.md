@@ -737,10 +737,35 @@ wrong shape.
   mail again, is told it is a duplicate, and takes the label off then. As in
   `move`, **duplicate counts as delivered**: the identical capture is already
   in the inbox, so the mail has nothing left to carry
-- **there is no `loop`.** Reminders needed one because osascript costs five
-  seconds a visit and answers one caller at a time, so two runs at once queue
-  behind each other. IMAP has neither problem, and mail is not a medium worth
-  polling faster than a `launchd` interval
+- **it loops by itself, on `-period` minutes, and five is the default.** This
+  was once the opposite decision — IMAP has neither of the problems that made
+  `remindersync` need a loop, so a `launchd` interval was left to do the
+  repeating. What that argument missed is that a program which only runs when
+  something else remembers to run it is a program that needs a plist written
+  before it works at all, and the label is a queue nobody watches: a mail
+  labelled on the phone should be in the inbox by the time you are back at the
+  desk, not when the next thing you set up fires. `-period 0` is the single
+  pass that argument was about, kept for the plist that does exist
+- **the wait starts when a pass ends**, not when it began, so however long a
+  pass takes two of them can never overlap. Overlapping passes are the one way
+  the same mail gets captured twice — the second pass reading the label while
+  the first is still between its capture and its unlabel
+- **a failure belongs to the pass, never to the loop.** A refused login or an
+  unreachable app is said on stderr and the next pass tries again, because both
+  are usually true for a minute and not for an hour, and the mail is safe
+  meanwhile: it keeps its label until a pass gets all the way through. A
+  process that exited on the first failure would need something else watching
+  it to come back, which is the thing the loop is here to not need
+- **a dry run is one pass whatever the period says.** It changes nothing, so
+  every pass after the first could only print the same mail again — and it is
+  read at a prompt, where a command that does not come back is the wrong answer
+  to "show me what this would do"
+- **what a pass prints is stamped once, and only if it printed.** Stdout gets a
+  `=== <time>` heading the first time a pass writes a line, so the months of
+  passes that moved nothing are silent and the log keeps the property that
+  every line in it is a mail that moved. A failure carries the time inline
+  instead of under a heading, because a failure is read on its own, out of a
+  much longer file, and stdout and stderr are often two different files
 - **the connection is the one seam a test replaces**, a package-level
   `dialTLS`. A real account cannot be reached from a test, so the run is driven
   against go-imap's own in-memory server instead — with a `LIST` of its own,
