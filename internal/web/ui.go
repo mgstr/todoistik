@@ -781,7 +781,7 @@ type processData struct {
 	// "Inbox Zero").
 	Picked      bool   // the answer is in, so the form rather than the picker
 	ProjectID   int64  // the project it goes under, 0 for a task
-	ProjectName string // what the form's Project box reads
+	ProjectName string // what the form's Project box reads, empty on a task
 	NewProject  string // a project that does not exist yet, held until Create
 	NewDOD      string // its definition of done, held with it
 	From        int64  // the finished match being copied, carried past the picker
@@ -1082,7 +1082,9 @@ func (s *Server) processPage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) settleProject(d *processData, q url.Values) {
 	switch d.As {
 	case "task":
-		d.ProjectName = standaloneName
+		// and no name for the box to read: a task is a standalone action, so
+		// the answer is in the word Task and the box is left out entirely
+		// (see "Writing an action")
 		d.Picked = true
 	case "action":
 		d.NewProject = strings.TrimSpace(q.Get("newproject"))
@@ -1105,11 +1107,6 @@ func (s *Server) settleProject(d *processData, q url.Values) {
 		d.ProjectID, d.ProjectName, d.Picked = proj.ID, proj.Title, true
 	}
 }
-
-// standaloneName is what the Project box reads on an action that belongs to
-// none. The angle brackets say it is not a project's name, which is the same
-// thing an action's own page says with the same string.
-const standaloneName = "<standalone>"
 
 // renderProcess picks the template the stage calls for and fills in the two
 // lists stage two needs. One place, so a form that bounces back comes up
@@ -1439,9 +1436,10 @@ func (s *Server) bounce(w http.ResponseWriter, r *http.Request, id int64, as, no
 }
 
 // projectName is what the action form's Project box reads, given an answer
-// already settled: a pending project, a real one, or none at all. One reader,
-// so the box says the same thing whether the form was just opened or handed
-// back with a reason on it.
+// already settled: a pending project, a real one, or — for a task — nothing,
+// which is how the box is left off the form. One reader, so the box says the
+// same thing whether the form was just opened or handed back with a reason on
+// it.
 func (s *Server) projectName(d *processData) string {
 	if d.NewProject != "" {
 		return "+ " + d.NewProject
@@ -1451,7 +1449,7 @@ func (s *Server) projectName(d *processData) string {
 			return proj.Title
 		}
 	}
-	return standaloneName
+	return ""
 }
 
 func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {

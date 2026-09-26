@@ -395,7 +395,11 @@
 
      The project control is the same on all of them now: Fixed says which
      project this action belongs to and cannot be changed, and no Fixed at all
-     means the screen has answered it elsewhere. There was a picker here, on
+     leaves the row off — either because the screen has answered it elsewhere,
+     or because there is no project name worth reading. A task's page and the
+     Task branch pass nothing, and so does the dialog that adds an action to
+     the project being written: a row reading "this project" says only where
+     you already are (design.md, "Tasks"). There was a picker here, on
      the processing screen's form only — choosing where an action lives is a
      question of its own now, and it is asked on a screen of its own before
      any of these boxes exist (design.md, "Inbox Zero").
@@ -464,7 +468,7 @@
      because there is no box (design.md, "Following a link"). */}}
 <div class="stack read">
   <p class="gutter"><span class="lb">Title</span> <span class="val">{{.Title}}</span></p>
-  <p class="gutter"><span class="lb">Project</span> <span class="val muted">{{.Fixed}}</span></p>
+  {{if .Fixed}}<p class="gutter"><span class="lb">Project</span> <span class="val muted">{{.Fixed}}</span></p>{{end}}
   {{if .Meta}}<p class="gutter"><span class="lb">Meta</span> <span class="val notation">{{.Meta}}</span></p>{{end}}
   {{if .Description}}<p class="gutter"><span class="lb">Description</span> <span class="val prose">{{linkify .Description}}</span></p>{{end}}
 </div>
@@ -513,9 +517,15 @@
      with no definition of done cannot be created, but one that has lost its
      DOD is in the error state design.md gives it and still has to be saveable
      (see "Error state"). */}}
+{{/* data-dodcheck is what draws the red border on an empty DOD, and it is the
+     other half of that same difference: it goes on where the box is not
+     `required`, which is the project's own page — the one screen where an empty
+     DOD is a project in error rather than a box not filled in yet, and the one
+     screen where the banner above it is already saying so (see "Error state"
+     in design.md, and "Writing a project"). */}}
 <label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="A reference to the outcome, not what to do"></label>
-<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{end}}
+<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{else}}data-dodcheck{{end}}
   placeholder="How you will know it is done">{{.DOD}}</textarea></label>
 {{template "extlinks" .DOD}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>
@@ -605,10 +615,11 @@
 {{end}}
 
 {{define "draftdialog"}}
-{{/* The fields an action is written in, with the project answered: there is
-     only one it could belong to, so the control says which and cannot be
-     changed. Opened blank to add and filled to edit, which is how an action
-     already in the list is changed without leaving the form it belongs to.
+{{/* The fields an action is written in, with no project row on them: there is
+     only one project it could belong to, and it is the one whose form this
+     dialog is open on top of. Opened blank to add and filled to edit, which is
+     how an action already in the list is changed without leaving the form it
+     belongs to.
 
      Siblings is what a `snooze:` here may name — the project's own open
      actions on its page, and nothing at all on a project that does not exist
@@ -622,7 +633,7 @@
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
     {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
-      "Fixed" "<this project>" "Required" true "Focus" false "Siblings" .Siblings "Pick" true)}}
+      "Required" true "Focus" false "Siblings" .Siblings "Pick" true)}}
     <div class="branches">
       <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>

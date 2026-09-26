@@ -187,8 +187,9 @@ func TestBackFromTheActionFormIsThePicker(t *testing.T) {
 }
 
 // Task and Action are two answers, and the difference between them is settled
-// before either form is drawn: the Project box shows the answer and is not a
-// control (design.md, "Inbox Zero").
+// before either form is drawn: the Action form's Project box shows the answer
+// and is not a control, and the Task form has no such box, because a task has
+// no project to name (design.md, "Inbox Zero").
 func TestTaskAndActionSettleTheProjectBeforeTheForm(t *testing.T) {
 	s, a := newTestServer(t)
 	p, err := a.CreateProject(
@@ -210,8 +211,8 @@ func TestTaskAndActionSettleTheProjectBeforeTheForm(t *testing.T) {
 	}
 
 	task := getPage(t, s, "/process?item=1&one=1&as=task")
-	if !strings.Contains(task, `value="&lt;standalone&gt;"`) {
-		t.Error("the Task form does not say the action stands on its own")
+	if strings.Contains(task, "pickerbox") {
+		t.Error("the Task form still has a Project row, which a task has nothing to put in")
 	}
 	if strings.Contains(task, "pickerlist") {
 		t.Error("the Task form still asks which project, after the answer was given")

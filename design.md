@@ -1097,6 +1097,15 @@ The known cases:
   from being stalled: being unable to say what done means is information worth
   showing, not a reason to refuse the edit. Such a project can not be completed
   until it has one again - see "Completion".
+  - **and the empty box itself is marked, not only the screen.** The banner over
+    the form says what is wrong; the box says where it is fixed, which is the
+    same division the stalled mark follows on the heading over an empty next
+    action. A banner alone names a field and then leaves the eye to find it,
+    and on a form of three boxes that is a sentence doing the work a border
+    does. The mark is on the box only where the project exists: on the screens
+    that *create* one the DOD is required and the create button is simply dead
+    until it is there, so a form that opened already marked would be shouting
+    about the state every new project starts in.
 - "assigned to" set while `becameNextActionAt` is empty. A waiting for action
   that is not a next action would appear in no view and silently disappear. The
   normal flows cannot produce this - setting "assigned to" restamps
@@ -2735,10 +2744,12 @@ and body and all, and that is what the audit entry keeps.
   processing"), and now the answers do too.
 
   **Neither form asks where the action lives.** It has been answered - by which
-  button was pressed, and then by the picker - so the Project box shows it and
-  cannot be changed, which is what an action's own page has always done. Moving
-  an action between projects afterwards is what Detach and Attach are for (see
-  "Reshaping items").
+  button was pressed, and then by the picker - so the Action form's Project box
+  shows the answer and cannot be changed, which is what an action's own page has
+  always done. Moving an action between projects afterwards is what Detach and
+  Attach are for (see "Reshaping items"). The Task form shows nothing there at
+  all: its answer is "no project", and a box reading a word for none is a field
+  restating the branch that was pressed (see "Editing items").
 
   Two further things are settled on both forms, and neither is a branch of its
   own:
@@ -3305,6 +3316,18 @@ an action opened from a list shows its project without offering to change it,
 because moving an action between projects is Detach and Attach and not an edit
 (see "Reshaping items"). A form that looked different in each place would be
 four forms to keep true, and the fourth would be the one missing a field.
+
+- **and the project is shown only where it names one.** The field is read and
+  never written, so a row whose whole content is the screen it is on is a line
+  spent saying nothing. Two of them were exactly that. A task has no project,
+  and the row used to read `<standalone>` - a word for "none" sat where a name
+  goes, on the one screen whose own trail already says *task*, which is the
+  noun that means standalone (see "Tasks"). An action added to a project while
+  that project's form is open used to read `<this project>` - a field answering
+  a question the screen behind it is the answer to. Both rows are gone, and the
+  one case the row exists for is untouched: an action opened from a list, where
+  which project it belongs to is the thing about it the screen does not
+  otherwise say.
 
 **Leaving without saving is always offered.** Nothing is written until it is
 saved, the way out is the same key that leaves any screen, and it costs nothing -

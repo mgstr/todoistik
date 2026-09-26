@@ -1936,15 +1936,22 @@ quietly break.
   everywhere. The project form was the last screen carrying one — its first
   action's owner is now that action's own line, like every other action's
 - **neither form asks which project, because both arrive knowing.** Task
-  answers it by being pressed and Action answers it on the picker, so the
-  Project box is the same read-only box an action's own page draws, and the
-  answer travels as hidden `projectid`, `newproject` and `newdod` fields
+  answers it by being pressed and Action answers it on the picker, so the Action
+  form's Project box is the same read-only box an action's own page draws, and
+  the answer travels as hidden `projectid`, `newproject` and `newdod` fields
   (`process_action.html`). There was a combobox here — the one control on the
   screen that asked a question after the question had been answered — and the
   whole of it, markup, CSS and some hundred and thirty lines of `app.js`, went
   with the branch split. `actionfields` now has one project control instead of
   two, which is one fewer thing for the five screens that write an action to
   differ by (see "Writing an action")
+- **and the Task form has no Project box**, because `settleProject` leaves
+  `ProjectName` empty on that branch and an empty `Fixed` draws no row. There
+  was a `standaloneName` constant holding `<standalone>` for it, read in two
+  places — the branch and the bounce that hands a refused form back — and the
+  whole of it went with the row: "no project" is already `ProjectID == 0`, and a
+  second spelling of it that only the box could read is a value the rest of the
+  code had to be careful not to believe (design.md, "Editing items")
 - **there is nothing left to resolve on submit.** What is posted is an id, or a
   pending new project, or neither. `processActionBranch` reads the three
   fields and writes the project and its first action together when there is a
@@ -4363,10 +4370,20 @@ empty next action of a stalled project.
   The partial is where the `.gutter` label and its `.lb` span are written, so no
   screen that writes an action can drift out of the alignment
 - **an action opened from a list shows its project and cannot change it.**
-  `Fixed` with the project's title, or `<standalone>`. It is not a missing
-  control: moving an action between projects is Detach and Attach (design.md,
-  "Reshaping items"), and a picker here would be a second way to do it that
-  skips the rules those two carry
+  `Fixed` with the project's title. It is not a missing control: moving an
+  action between projects is Detach and Attach (design.md, "Reshaping items"),
+  and a picker here would be a second way to do it that skips the rules those
+  two carry
+- **`Fixed` empty draws no row at all**, and that is how a task's page has no
+  Project line: the template passes `ProjectTitle` straight through, so the
+  field is there exactly when there is a name for it and the branch is the
+  absence of one rather than a test for a placeholder (design.md, "Editing
+  items"). It used to be `or $a.ProjectTitle "<standalone>"` on both halves of
+  the page, which is how "none" came to be spelled as a value — a string
+  invented in the template and then needed again in `ui.go` for the Task
+  branch, so that a word for nothing existed twice and looked like data. The
+  read-only half now drops the row for being empty, the way it already drops an
+  empty Meta and an empty Description
 - **Save stands in the same row as Complete and Delete**, though each of those
   is a form of its own and Save belongs to the form above them. HTML's `form`
   attribute is what allows it: a button outside a form can name the form it
@@ -4622,6 +4639,20 @@ own, and the rest as rows of hidden fields inside the form.
   every other form uses — including "Definition of done", which is the longest
   name in the app and so the one that sets the gutter's width (see "A field's
   name sits beside its box, not above it")
+- **an empty DOD on an existing project draws a red border on the box**, from
+  `data-dodcheck` and a `.nodod` class, both built exactly like the verb mark:
+  the whole of it is a border colour, so it lives in `app.js` and the server
+  only owes the attribute (see "The verb a title opens with"). Two pixels solid
+  like `.notverb`, in `--danger` rather than `--warn`, because this is the error
+  state design.md names and not a wording the app would prefer — and `.nodod`
+  beats `.unsaved` on specificity, so a DOD just cleared reads as wrong rather
+  than as unsaved, which is the more useful of the two things it is
+- **the attribute is the `Required` branch read the other way.** `projectfields`
+  puts `required` on the box where a project is being created and `data-dodcheck`
+  where one is being edited, from the same parameter — so the two can never both
+  be on, and no screen can acquire the mark by being added later without saying
+  which kind of screen it is. On a create form the gate is what speaks, and it
+  already does (see "Create buttons")
 - **an action written here is a row, not a saved thing.** Three hidden fields —
   `atitle`, `ameta`, `adescription` — zipped by index on the server. Plain form
   fields rather than state held in the keyboard layer, because that is what
@@ -4640,13 +4671,19 @@ own, and the rest as rows of hidden fields inside the form.
   stand-in that existed only because the action had nothing to be missing
   *from*. The box carries `data-label="a next action"`, because there are two
   required titles on this form now and "needs title" would not say which
-- **the add-action dialog is the processing screen's own form**, with the
-  project answered: `<this project>` in the same box the picker uses, read-only,
-  because there is exactly one project it could belong to and a control that
-  cannot change anything should still say what the answer is. It is the
-  `draftdialog` partial now, carried by all three screens that write a plan,
-  and it opens blank to add and filled to edit — one dialog, because writing an
-  action and correcting one are the same four fields
+- **the add-action dialog is the processing screen's own form**, with no Project
+  row on it: it passes no `Fixed`, so the dialog is the four fields and nothing
+  else. It read `<this project>` in the same box the picker uses, on the
+  argument that a control which cannot change anything should still say what the
+  answer is — and the answer it said was the form it is open on top of, which is
+  the one thing the screen cannot be confused about (design.md, "Editing
+  items"). Dropping it also lines the dialog up with the next action open on the
+  same screen, which has never had a Project row, so an action added to a plan
+  and the first one of it are now written in the same four boxes. The
+  `#draft-dialog .pickerbox[readonly]` rule went with it, having nothing left to
+  style. It is the `draftdialog` partial, carried by all three screens that
+  write a plan, and it opens blank to add and filled to edit — one dialog,
+  because writing an action and correcting one are the same four fields
 - **the project's own fields are a partial too** (`projectfields`), used by
   this screen, by promoting an action and by the project's page, with one set
   of names — `title`, `dod`, `meta` — read by one function. They were `ptitle`
