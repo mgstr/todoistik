@@ -212,8 +212,13 @@ type page struct {
 	// Bookmarks is the nine filter lines, for the ctrl-0 dialog. On every
 	// page because the dialog is in the layout, like the panel chooser.
 	Bookmarks []bookmark
-	Today     string
-	Ages      bool // the ages on rows are shown rather than hidden
+	// Snippets is the nine runs of notation, for the ctrl-0 dialog of an edit
+	// screen. On every page for the reason the bookmarks are: the dialog is in
+	// the layout, and which of the two ctrl-0 opens is the key layer's answer
+	// rather than the server's (implementation.md, "Snippets").
+	Snippets []snippet
+	Today    string
+	Ages     bool // the ages on rows are shown rather than hidden
 	// Theme is which palette this page is painted in: one of conf.Themes,
 	// resolved from what the Settings screen was last told and falling back to
 	// the settings file. On every page because the answer is worn by the whole
@@ -273,6 +278,7 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 		p.Nav = &app.NavCounts{}
 	}
 	p.Bookmarks = s.bookmarks().rows()
+	p.Snippets = s.snippets().rows()
 	// the trail starts at the view, with the same count the nav badge shows —
 	// one number, one rule, whichever panel you are reading it off. A screen
 	// under no view starts at its own title instead, which is all it has.

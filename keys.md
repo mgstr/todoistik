@@ -473,8 +473,8 @@ reach a key is not an answer at all and leaves the overlay standing.
 | `^o` | follow a link in the item under the cursor |
 | `^m` | jump to a control on the screen already open |
 | `^f` | the filter line, and a second press takes it and every filter away |
-| `^1`…`^9` | the nine bookmarks: keep the filter on the screen, or go to the one kept |
-| `^0` | the nine of them, on the screen |
+| `^1`…`^9` | the nine under the digits: bookmarks where there is a filter line, snippets where there is a meta line |
+| `^0` | the nine of them, on the screen — whichever nine this screen's digits mean |
 | `^v` | the panel chooser; a second `^v` presses zen |
 | `^↵` | submit the form being typed in |
 | `?` | the view's own help |
@@ -526,6 +526,41 @@ they mean outside: keep this filter here, or go to what is here. `j` `k` move,
 closes. All nine are shown whatever is in them — design.md, "Bookmarked
 filters" says why the empty ones are part of the answer — and a full row reads
 as the view it opens and then the line it opens it with.
+
+**On a screen where a meta line is being written, the digits are the
+snippets.** `^3` writes the run of names kept under 3 onto the line in front
+of you, and `^0` is the nine of them (design.md, "Snippets"). That is not a
+third meaning for the digit: it is the same idea the bookmarks state, applied
+to the other line the app has. A filter line asks a question and a meta line
+writes something down, both are typed daily, and both have half a dozen
+answers that come round again and again.
+
+Which of the two a digit means is decided by the screen and never by a mode.
+No screen carries both lines — an edit screen has no filter bar and a list
+view has no meta box — so there is nothing to disambiguate and nothing to
+remember: the digits do the thing the screen you are standing on is for. The
+bar says which, because it says every key by reading the page.
+
+Nothing is lost on either side of that. The half of a bookmark that would be
+wanted on an edit screen is *going to* one, and that half has never been the
+chord: it is `g 1`…`g 9`, and it works from everywhere including here. The
+half that is the chord — keeping the filter that is up — needs a filter line
+to keep, and there is none on an edit screen. So the digits were free there,
+in the same way they were free after `g`.
+
+**A snippet is written in the `^0` list, and the digits inside it are bare.**
+`j` `k` move, `↵` opens the row under the cursor into a box — or its own digit
+does, from wherever the cursor is — `⌫` empties a slot, and `esc` closes:
+first the box, then the dialog. One row is open at a time, which is what
+leaves the digits in here meaning what they mean outside, the slot's own
+address. All nine are shown whatever is in them, for the reason the bookmarks
+are (design.md, "Snippets").
+
+Inside an open row the box is the app's own token box and keeps its own keys:
+`↓` `↑` through the completions, `↵` to take one. `↵` with no list up is done
+with the row, and `esc` is the same — nothing is thrown away by either, since
+a slot is written the moment the row is left. A name the app does not know
+stops the row from closing and asks about it, exactly as the filter line does.
 
 `^e` is *elapsed*, which is the one word that covers both halves of what the
 key means: an age is elapsed time and a timer counts it. It has to cover both,

@@ -282,6 +282,10 @@ func (s *Server) routes() {
 	// ctrl-0 dialog is where they are read and cleared
 	m.HandleFunc("POST /bookmark", s.bookmarkSave)
 
+	// the other nine under the same digits: the runs of notation a meta line
+	// is stamped with, written in the ctrl-0 dialog of an edit screen
+	m.HandleFunc("POST /snippet", s.snippetSave)
+
 	// settings: tag / context list management
 	m.HandleFunc("GET /settings", s.settingsPage)
 	m.HandleFunc("POST /settings/create", s.settingsCreate)

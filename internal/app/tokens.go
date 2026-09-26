@@ -654,6 +654,50 @@ func ParseSomedayMeta(text string, v *Vocabulary) ([]string, error) {
 	return f.Tags, nil
 }
 
+// ParseSnippet reads a snippet — one of the nine runs of notation kept under
+// the digits and stamped onto a meta line by one press (design.md,
+// "Snippets"). It is the widest of the narrowed lines: everything an action's
+// meta line carries by name, since the whole point of a snippet is to write
+// the names you write over and over, and a size or a context is as much one of
+// those as a tag is. What is dropped on the way into a narrower line is the
+// pressing screen's business, not the slot's (see "Snippets" again).
+//
+// What it refuses is the dates. A snippet is a label you stamp on many items,
+// and a deadline belongs to exactly one commitment: `due:2026-09-20` kept
+// under a digit is wrong the day after it was written, and `snooze:friday`
+// stamped on six actions hides six unrelated things on one day. The snooze
+// that names a sibling cannot be kept at all, since the action it waits on
+// exists in one project and a slot is the app's.
+func ParseSnippet(text string, v *Vocabulary) (MetaFields, error) {
+	f, left, err := parseTokens(text, v)
+	if err != nil {
+		return MetaFields{}, err
+	}
+	if left != "" {
+		return MetaFields{}, fmt.Errorf("%q is not notation — an unknown @context or #tag", left)
+	}
+	if what := dateField(f); what != "" {
+		return MetaFields{}, fmt.Errorf("a snippet has no %s; it is a label you stamp on many items, and a date belongs to one", what)
+	}
+	return f, nil
+}
+
+// dateField names the first thing on a parsed line that is a moment rather
+// than a name, and "" when there is none. It is nonTagField's opposite half:
+// that one names what only an action carries, this one names what only one
+// item can mean.
+func dateField(f MetaFields) string {
+	switch {
+	case f.DueDate != "":
+		return "due date"
+	case f.SnoozeUntil != "":
+		return "snooze"
+	case f.SnoozeActionID != 0:
+		return "snooze on an action"
+	}
+	return ""
+}
+
 // WriteSomedayMeta is the other direction, through the same writer for the
 // reason WriteProjectMeta goes through it: one notation, not a third dialect.
 func WriteSomedayMeta(it *SomedayItem) string {
