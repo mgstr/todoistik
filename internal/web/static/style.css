@@ -1138,6 +1138,15 @@ button:disabled:hover { border-color: var(--line); }
    because a one-pixel border in a colour is a border a screen away from being
    the same border. */
 input.notverb { border: 2px solid var(--warn); }
+/* A project with no definition of done, marked on the box that fixes it
+   (design.md, "Error state"). Two pixels solid like the verb mark, for the same
+   reason — but in the danger colour and not the warning one: a title that opens
+   with a noun is a wording the app would rather you changed, while a project
+   that cannot say what done means is the error state design.md names, and the
+   banner over the form is already red about it. Wins over `.unsaved` on
+   specificity, which is the right way round: clearing the DOD leaves a box that
+   is both unsaved and wrong, and wrong is the one worth the border. */
+textarea.nodod { border: 2px solid var(--danger); }
 /* The same thing said on a review row, where there is no box to draw a border
    on (design.md, "Weekly review"). Outlined rather than filled, unlike
    `error`: a filled badge is the row's loudest thing, and this is

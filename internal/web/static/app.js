@@ -1769,6 +1769,9 @@
     // the title's mark follows the typing, so that fixing the word takes the
     // yellow off in the same keystroke that earned it
     if (e.target.matches && e.target.matches("[data-verbcheck]")) markVerb(e.target);
+    // and the DOD's, for the same reason: a definition of done typed back takes
+    // the red off, and one rubbed out puts it on
+    if (e.target.matches && e.target.matches("[data-dodcheck]")) markDOD(e.target);
     // the title bar follows the typing: a word put back is a screen that is
     // saved again, and nothing about the colour is a memory of having typed
     renderDirty();
@@ -2287,6 +2290,28 @@
     (scope || document).querySelectorAll("[data-verbcheck]").forEach(markVerb);
   }
 
+  // A project with no definition of done is in design.md's error state, and the
+  // box is where that is fixed — so the box wears it, the way the stalled ring
+  // is on the heading over the empty next action rather than at the top of the
+  // screen. The banner above says what is wrong; this says where.
+  //
+  // Only on a project that exists: `data-dodcheck` is set where the DOD is not
+  // `required`, which is the project's own page and nowhere else. On the two
+  // screens that create a project the DOD is a required box that has not been
+  // filled in yet, and the gate already speaks for it — a form that opened with
+  // a red box before anything had been typed would be shouting about the state
+  // every new project starts in.
+  //
+  // Read off the box and not off what was saved, so it clears on the first
+  // character typed and comes back the moment the box is emptied again.
+  function markDOD(el) {
+    el.classList.toggle("nodod", el.value.trim() === "");
+  }
+
+  function markDODs(scope) {
+    (scope || document).querySelectorAll("[data-dodcheck]").forEach(markDOD);
+  }
+
   // ---- The filter line follows the typing ------------------------------
   //
   // There is no Apply. What the list shows is the line as far as the app can
@@ -2365,7 +2390,7 @@
         if (window.htmx) window.htmx.process(el);
       });
       if (window.htmx) window.htmx.process(main);
-      paintAll(); setupForms(); gateAll(); growAll(); markVerbs();
+      paintAll(); setupForms(); gateAll(); growAll(); markVerbs(); markDODs();
       renderKeybar();
     }).catch(function () { delete bar.dataset.sent; });
   }
@@ -4156,6 +4181,7 @@
   gateAll();
   growAll();
   markVerbs();
+  markDODs();
 
   // Whether a background refresh may replace the list under you. The poll in
   // the layout is filtered on this, and it is deliberately generous about
@@ -4234,7 +4260,7 @@
     wearTheme();
     restoreFilter();
     paintAll();
-    renderKeybar(); setupForms(); gateAll(); markVerbs();
+    renderKeybar(); setupForms(); gateAll(); markVerbs(); markDODs();
     growAll();
     // the place before the cursor: a row claimed onto a screen that is already
     // scrolled where it was is in view, and `scrollIntoView({block:"nearest"})`

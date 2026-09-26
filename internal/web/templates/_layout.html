@@ -517,9 +517,15 @@
      with no definition of done cannot be created, but one that has lost its
      DOD is in the error state design.md gives it and still has to be saveable
      (see "Error state"). */}}
+{{/* data-dodcheck is what draws the red border on an empty DOD, and it is the
+     other half of that same difference: it goes on where the box is not
+     `required`, which is the project's own page — the one screen where an empty
+     DOD is a project in error rather than a box not filled in yet, and the one
+     screen where the banner above it is already saying so (see "Error state"
+     in design.md, and "Writing a project"). */}}
 <label class="gutter"><span class="lb">Title</span> <input name="title" value="{{.Title}}" required {{if .Focus}}autofocus{{end}}
   placeholder="A reference to the outcome, not what to do"></label>
-<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{end}}
+<label class="gutter"><span class="lb">Definition of done</span> <textarea name="dod" rows="1" data-grow {{if .Required}}required{{else}}data-dodcheck{{end}}
   placeholder="How you will know it is done">{{.DOD}}</textarea></label>
 {{template "extlinks" .DOD}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "project")}}</label>

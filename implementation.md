@@ -4639,6 +4639,20 @@ own, and the rest as rows of hidden fields inside the form.
   every other form uses — including "Definition of done", which is the longest
   name in the app and so the one that sets the gutter's width (see "A field's
   name sits beside its box, not above it")
+- **an empty DOD on an existing project draws a red border on the box**, from
+  `data-dodcheck` and a `.nodod` class, both built exactly like the verb mark:
+  the whole of it is a border colour, so it lives in `app.js` and the server
+  only owes the attribute (see "The verb a title opens with"). Two pixels solid
+  like `.notverb`, in `--danger` rather than `--warn`, because this is the error
+  state design.md names and not a wording the app would prefer — and `.nodod`
+  beats `.unsaved` on specificity, so a DOD just cleared reads as wrong rather
+  than as unsaved, which is the more useful of the two things it is
+- **the attribute is the `Required` branch read the other way.** `projectfields`
+  puts `required` on the box where a project is being created and `data-dodcheck`
+  where one is being edited, from the same parameter — so the two can never both
+  be on, and no screen can acquire the mark by being added later without saying
+  which kind of screen it is. On a create form the gate is what speaks, and it
+  already does (see "Create buttons")
 - **an action written here is a row, not a saved thing.** Three hidden fields —
   `atitle`, `ameta`, `adescription` — zipped by index on the server. Plain form
   fields rather than state held in the keyboard layer, because that is what

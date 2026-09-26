@@ -1097,6 +1097,15 @@ The known cases:
   from being stalled: being unable to say what done means is information worth
   showing, not a reason to refuse the edit. Such a project can not be completed
   until it has one again - see "Completion".
+  - **and the empty box itself is marked, not only the screen.** The banner over
+    the form says what is wrong; the box says where it is fixed, which is the
+    same division the stalled mark follows on the heading over an empty next
+    action. A banner alone names a field and then leaves the eye to find it,
+    and on a form of three boxes that is a sentence doing the work a border
+    does. The mark is on the box only where the project exists: on the screens
+    that *create* one the DOD is required and the create button is simply dead
+    until it is there, so a form that opened already marked would be shouting
+    about the state every new project starts in.
 - "assigned to" set while `becameNextActionAt` is empty. A waiting for action
   that is not a next action would appear in no view and silently disappear. The
   normal flows cannot produce this - setting "assigned to" restamps
