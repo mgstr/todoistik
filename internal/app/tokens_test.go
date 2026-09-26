@@ -441,6 +441,68 @@ func TestParseSomedayMeta(t *testing.T) {
 	}
 }
 
+// A snippet is the widest of the narrowed lines: everything an action's meta
+// line carries by name, and none of the moments. See design.md, "Snippets" —
+// a slot is stamped on many items and a date belongs to one.
+func TestParseSnippet(t *testing.T) {
+	v := vocab([]string{"home", "calls"}, []string{"car", "house"})
+
+	f, err := ParseSnippet("@home #short #car #today #focus", v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Context != "home" {
+		t.Fatalf("context: %q", f.Context)
+	}
+	if f.Duration != DurShort {
+		t.Fatalf("duration: %q", f.Duration)
+	}
+	if !f.Today || !f.NeedsFocus {
+		t.Fatalf("today %v, focus %v", f.Today, f.NeedsFocus)
+	}
+	if !reflect.DeepEqual(f.Tags, []string{"car"}) {
+		t.Fatalf("tags: %v", f.Tags)
+	}
+	// and it writes back through the one writer, so a slot reads in the same
+	// order whatever order it was typed in — the codec rule the meta line and
+	// the bookmarks both follow
+	if line := f.String(); line != "@home #short #focus #today #car" {
+		t.Fatalf("line: %q", line)
+	}
+
+	// delegation is a context like any other, and is worth a slot: "waiting
+	// on Marju" goes onto action after action
+	if f, err := ParseSnippet("@waitingFor(Marju)", v); err != nil {
+		t.Fatal(err)
+	} else if f.AssignedTo != "Marju" {
+		t.Fatalf("assigned: %q", f.AssignedTo)
+	}
+
+	for _, c := range []struct{ text, wants string }{
+		{"due:2026-10-01", "no due date"},
+		{"due:friday", "no due date"},
+		{"snooze:2026-10-01", "no snooze"},
+		{"snooze:tomorrow", "no snooze"},
+		{"#nosuchtag", "is not notation"},
+		{"@nosuchcontext", "is not notation"},
+		{"a house in the country", "is not notation"},
+	} {
+		if _, err := ParseSnippet(c.text, v); err == nil {
+			t.Fatalf("%q should have been refused", c.text)
+		} else if !strings.Contains(err.Error(), c.wants) {
+			t.Fatalf("%q: error should say %q: %v", c.text, c.wants, err)
+		}
+	}
+
+	// the sibling snooze is refused for a second reason as well as the first:
+	// the action it waits on lives in one project, and a slot is the app's
+	sib := vocab(nil, nil)
+	sib.Siblings = []Sibling{{ID: 1, Title: "Measure the wall"}}
+	if _, err := ParseSnippet("snooze:(measure the wall)", sib); err == nil {
+		t.Fatal("a snippet cannot wait on an action")
+	}
+}
+
 func TestWriteSomedayMetaRoundTrips(t *testing.T) {
 	v := vocab(nil, []string{"car", "house"})
 	it := &SomedayItem{Tags: []string{"house", "car"}}

@@ -39,6 +39,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [A moment that shows itself](#a-moment-that-shows-itself) — the animation that proves a destructive press landed
   - [The filter line](#the-filter-line) — one typed line, absent until a key asks for it
   - [Bookmarked filters](#bookmarked-filters) — `internal/web/bookmarks.go`, the wiring under the nine digits
+  - [Snippets](#snippets) — nine runs of notation under the same digits, stamped onto a meta line
   - [Filtering by name](#filtering-by-name) — the same name filter on every view that can grow long
   - [Filtering by tag](#filtering-by-tag) — `#car` in the line, as many tags as you like
   - [Filtering by context](#filtering-by-context) — Next actions only, and one context at a time
@@ -1945,6 +1946,78 @@ about it to remember. A tenth key shows the nine.
 - **they outlive the browser.** A bookmark that went with the tab it was made in
   would not be a bookmark; they are the app's, like the remembered filter set of
   each view
+
+The keys are in keys.md.
+
+### Snippets
+The same handful of names goes onto item after item. `@home #short` on
+everything that can be done at the kitchen table, `@calls #car` on everything
+about the garage, the tag of whatever is taking up this month. Each of them is
+typed out again every time, into a line that already refuses anything it has
+not been told before - so the typing is not even the slow part, being asked
+about `#cra` is. **Nine runs of notation are kept, one under each digit**, and
+pressing a digit writes that run onto the meta line in front of you.
+
+This is the argument "Bookmarked filters" makes, applied to the other line the
+app has. The two lines are the same notation asked in opposite directions - one
+asks a question about items, one writes something down on one - and both have
+half a dozen answers that come round every day. A line worth typing daily is a
+line worth keeping.
+
+- **which of the two the digits mean is the screen's answer, not a mode.** A
+  screen that has a filter line has bookmarks on its digits; a screen where a
+  meta line is being written has snippets. No screen has both, so there is
+  nothing to disambiguate and nothing to remember: the digits do the thing the
+  screen you are on is for. Going to a bookmark is still reachable from an edit
+  screen, because that half has never been the chord - it is `g 3`, and it works
+  from everywhere (see "Bookmarked filters")
+- **what the line has no room for is dropped, and nothing is said about it.** A
+  project has no context, an idea has neither a context nor a size, and an
+  action that already names one context cannot name a second. A snippet written
+  onto any of those lands as whatever fits, and the rest simply does not arrive.
+  The alternative is a refusal, and a refusal here would be the app telling you
+  something you were not asking: pressing a snippet is a shorthand for typing,
+  and nobody typing `@home` onto a project would have got a message either -
+  the box would have marked it and they would have stopped. What gets dropped
+  is never *information*, only a name that has no field on this item to be
+  written into
+- **pressing one twice writes it once.** A name the line already carries is not
+  added again. A snippet is a set of names and a meta line is a set of names,
+  so pressing one is the union of the two - and the second press of a digit is
+  something that happens constantly, because "did that land?" is answered by
+  pressing again rather than by reading
+- **a snippet can hold only names the app already knows.** Contexts and tags
+  are never typed fresh into an item (see "Contexts" and "Tags") - they are
+  made deliberately, on the Settings screen or by answering the box's question
+  - and a snippet is not a way round that. What a slot may hold is what the
+  line it is going onto would have accepted; a slot holding `#cra` would put
+  an underlined mistake into a form days after the typo, with nothing on the
+  screen saying where it came from
+- **a snippet holds no date.** `due:` and `snooze:` are the two things a meta
+  line carries that are a moment rather than a name, and a moment belongs to
+  exactly one commitment. `due:2026-09-20` kept under a digit is wrong the day
+  after it was written; `snooze:friday` stamped on six actions hides six
+  unrelated things on one day, which is the opposite of what a snooze is for
+  (see "Time fields"). Everything else an action's line carries by name is fair
+  game, the sizes and `#today` included: those are exactly the things typed
+  over and over
+- **a screen with two meta lines writes the one you are in, and the project's
+  otherwise.** A project and its next action are written on one screen, twice -
+  on the project's own page and on the one it is created on. With the caret in
+  neither line, a snippet goes onto the project's, because a screen is read
+  down and the project is what the screen is about. With the caret in the
+  action's line it goes there, because where your hands are has already
+  answered the question and an app that wrote somewhere else would be guessing
+  over you
+- **the nine are shown all nine at a time**, the empty ones included, and they
+  are written in that same list. The empty slot is the answer to "where does
+  the next one go", and a list that showed only the full ones would renumber
+  itself every time one was cleared - the digit is the whole address, so it has
+  to be the thing that stands still. This is where a snippet is written, and
+  the one place: a slot is not a thing the app can infer from what you have
+  been typing, and a second way in would be a second thing to keep in step
+- **they outlive the browser**, like the bookmarks and for the same reason: a
+  shorthand that went with the tab it was made in would not be worth making.
 
 The keys are in keys.md.
 

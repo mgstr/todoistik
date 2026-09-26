@@ -1,0 +1,595 @@
+<title>Snippets Dialog Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  --page-bg:      #f4f6f9;
+  --page-card:    #ffffff;
+  --page-fg:      #171a20;
+  --page-muted:   #616a7d;
+  --page-line:    #dde1e9;
+  --page-accent:  #2456d6;
+  --page-warn:    #a2571b;
+  --page-warn-bg: #fdf4e7;
+  --shadow: 0 1px 2px rgba(20, 28, 48, .05), 0 8px 24px -12px rgba(20, 28, 48, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg:      #101319;
+    --page-card:    #171b22;
+    --page-fg:      #e8eaf0;
+    --page-muted:   #949cad;
+    --page-line:    #262b35;
+    --page-accent:  #8aa9ff;
+    --page-warn:    #e0a760;
+    --page-warn-bg: #241d12;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg:      #101319;
+  --page-card:    #171b22;
+  --page-fg:      #e8eaf0;
+  --page-muted:   #949cad;
+  --page-line:    #262b35;
+  --page-accent:  #8aa9ff;
+  --page-warn:    #e0a760;
+  --page-warn-bg: #241d12;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page-bg); color: var(--page-fg);
+  font: 400 16px/1.6 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 62rem; margin: 0 auto; padding-block: 3rem 5rem; padding-inline: 1.25rem; display: flex; flex-direction: column; gap: 2.25rem; }
+
+.eyebrow {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--page-muted);
+}
+h1 { margin: .55rem 0 0; font-size: clamp(1.9rem, 1.4rem + 2vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; text-wrap: balance; }
+.dek { margin: .6rem 0 0; max-width: 40rem; color: var(--page-muted); }
+.dek + .dek { margin-top: .5rem; }
+h2.part {
+  margin: 1.5rem 0 -.75rem;
+  font: 600 .74rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--page-muted);
+}
+code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+
+.controls {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  margin-top: 1.35rem; padding-top: 1.35rem; border-top: 1px solid var(--page-line);
+}
+.toggle {
+  font: 600 .82rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--page-fg); background: var(--page-card);
+  border: 1px solid var(--page-line); border-radius: 8px;
+  padding: .55rem .8rem; cursor: pointer;
+}
+.toggle:focus-visible { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.toggle[aria-pressed="true"] { border-color: var(--page-accent); color: var(--page-accent); }
+.note { font-size: .85rem; color: var(--page-muted); }
+
+.card {
+  background: var(--page-card); border: 1px solid var(--page-line);
+  border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+}
+.card > header {
+  display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap;
+  padding: 1rem 1.25rem .85rem; border-bottom: 1px solid var(--page-line);
+}
+.tag {
+  font: 600 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  border: 1px solid var(--page-line); border-radius: 6px;
+  padding: .3rem .45rem; color: var(--page-muted);
+}
+.card h3 { margin: 0; font-size: 1.02rem; font-weight: 600; }
+.card .why { margin-left: auto; font-size: .85rem; color: var(--page-muted); }
+.card .body { padding: 1.1rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: .8rem; }
+.rail { display: flex; gap: .85rem; align-items: flex-start; }
+.rail .lbl {
+  flex: 0 0 auto; width: 2.8rem; padding-top: .7rem;
+  font: 400 .68rem/1 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted);
+}
+.frame { flex: 1 1 auto; min-width: 0; border: 1px solid var(--page-line); border-radius: 10px; overflow: hidden; }
+.take { margin: 0; font-size: .92rem; max-width: 46rem; }
+.take + .take { margin-top: -.2rem; }
+.take b { font-weight: 600; }
+.cost { color: var(--page-warn); }
+@media (max-width: 40rem) {
+  .rail { flex-direction: column; gap: .4rem; }
+  .rail .lbl { padding-top: 0; }
+}
+
+/* ---- the specimen -------------------------------------------------------
+   Everything below .app is lifted from internal/web/static/style.css as it
+   stands, scoped so the two themes can sit side by side on one page: the
+   dialog at min(30rem,92vw) with .85rem 1rem of padding, the rows at
+   .2rem .5rem with a 6px radius, the 1.1rem digit column, the token box at
+   .88rem monospace with a 6px border, the 7.5rem label gutter, the key bar
+   at .35rem with its accent-coloured key letters. What is below is what
+   would ship. */
+.app {
+  font: 15px/1.45 -apple-system, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--fg); padding: 1rem;
+}
+.app.light {
+  --bg: #ffffff; --fg: #1a1a1a; --muted: #777; --line: #e2e2e2; --accent: #2456d6;
+  --badge-bg: #f0f0f0; --select: #eef2ff; --row-hover: #f6f8ff; --danger: #c02626;
+  --bar-bg: #eceef3; --warn: #b07800;
+}
+.app.dark {
+  --bg: #16181d; --fg: #e6e6e6; --muted: #9a9a9a; --line: #2c2f36; --accent: #7da2ff;
+  --badge-bg: #23262d; --select: #22304d; --row-hover: #1d2129; --danger: #ff7b7b;
+  --bar-bg: #1f232b; --warn: #f5c518;
+}
+/* the dialog, as #bookmarks-dialog is drawn */
+.app .dlg {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg); color: var(--fg);
+  width: min(30rem, 100%); padding: .85rem 1rem; margin: 0 auto; overflow: hidden;
+}
+.app .dlg .keybar { margin: .7rem -1rem -.85rem; }
+.app .dlg.wide { width: min(34rem, 100%); }
+.app .dlg h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); font-weight: 700; }
+.app .list { list-style: none; margin: 0; padding: 0; }
+.app .row {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: nowrap;
+  padding: .2rem .5rem; border-radius: 6px;
+}
+.app .row.kb-selected { background: var(--select); outline: 1px solid var(--accent); }
+.app .slot { width: 1.1rem; flex: none; color: var(--muted); text-align: right; }
+.app .line { overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem; }
+.app .empty { color: var(--muted); font-style: italic; font-family: inherit; font-size: 1rem; }
+.app .clear {
+  margin-left: auto; padding: 0 .3rem; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; font: inherit;
+}
+/* the token box: input, mirror, completion list */
+.app .fbox { position: relative; flex: 1 1 auto; min-width: 0; }
+.app .fbox > input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .88rem; line-height: 1.4;
+  padding: .25rem .5rem; border: 1px solid var(--line); border-radius: 6px;
+  letter-spacing: normal; white-space: pre;
+  position: relative; width: 100%; background: transparent; color: var(--fg);
+}
+.app .fbox > input.focused { outline: none; border-color: var(--accent); }
+.app .fsuggest {
+  position: absolute; z-index: 6; top: 100%; left: 0;
+  margin: .15rem 0 0; padding: .2rem; list-style: none;
+  min-width: 12rem; max-height: 19rem; overflow-y: auto;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px -8px rgba(0,0,0,.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88rem;
+}
+.app .fsuggest li { padding: .2rem .45rem; border-radius: 5px; white-space: nowrap; cursor: pointer; }
+.app .fsuggest li.on { background: var(--select); outline: 1px solid var(--accent); }
+/* the form gutter */
+.app .stack { display: flex; flex-direction: column; gap: .5rem; max-width: 48rem; margin: 0; }
+.app label.gutter {
+  display: flex; flex-direction: row; align-items: baseline; gap: .6rem; margin: 0;
+}
+.app label.gutter > .lb { flex: 0 0 7.5rem; text-align: right; color: var(--muted); font-size: .85rem; }
+.app label.gutter.thin > .lb { flex: 0 0 1.1rem; }
+.app label.gutter > input, .app label.gutter > textarea, .app label.gutter > .fbox { flex: 1 1 auto; min-width: 0; }
+.app label.gutter > input.plain, .app label.gutter > textarea {
+  font: inherit; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 6px; padding: .25rem .5rem;
+}
+.app textarea { resize: none; overflow-y: hidden; }
+.app h2.formhead { font-size: 1.05rem; font-weight: 700; margin: .2rem 0 .35rem; }
+.app .pagehead h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
+.app .crumb { color: var(--muted); font-size: .9rem; }
+/* the key bar */
+.app .keybar {
+  display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+  padding: .35rem .75rem; border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted); font-size: .85rem;
+  margin: 1rem -1rem -1rem;
+}
+.app .keybar .k { white-space: nowrap; }
+.app .keybar b {
+  display: inline-block; margin-right: .3rem;
+  color: var(--accent); font-weight: 700;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.app .keybar .kb-global { margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line); display: flex; gap: 1rem; }
+.app .backdrop { padding: 1.4rem .75rem; background: color-mix(in srgb, var(--fg) 8%, var(--bg)); }
+.app .settings-sec { max-width: 48rem; }
+.app .settings-sec h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 .1rem; }
+.app .sub { color: var(--muted); font-size: .85rem; margin: 0 0 .5rem; }
+
+.decision { display: grid; gap: .55rem; }
+.decision .q { font-weight: 600; }
+ul.plain { margin: 0; padding-left: 1.15rem; }
+ul.plain li { margin: .25rem 0; font-size: .92rem; }
+table.matrix { border-collapse: collapse; width: 100%; font-size: .9rem; }
+table.matrix th, table.matrix td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--page-line); vertical-align: top; }
+table.matrix th { font: 600 .72rem/1.3 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted); }
+.scroller { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">todoistik · study</p>
+  <h1>The snippets under the digits</h1>
+  <p class="dek">On an edit or create screen the nine digits stop being bookmarks and
+  become <b>snippets</b>: <code>^3</code> writes a kept run of names into the meta line, and
+  <code>^0</code> is the nine of them on the screen. This page is about that second key —
+  what the dialog that keeps them looks like, in the app's own stylesheet, in both themes.</p>
+  <p class="dek">Four shapes, and they differ on one question: <b>is this a list you read
+  and press, like the bookmarks, or a form you type in?</b> Everything else follows from
+  that answer.</p>
+  <p class="dek"><b>2026-09-26 — B was chosen.</b> It is the bookmarks dialog, and being
+  the bookmarks dialog is the whole of the argument: one shape for nine numbered slots,
+  one set of keys to remember, and a bare digit that still means the slot it is printed
+  beside.</p>
+  <div class="controls">
+    <button class="toggle" id="t-sel" aria-pressed="true">show the cursor</button>
+    <button class="toggle" id="t-sug" aria-pressed="false">open a completion list</button>
+    <span class="note">The specimens use the real palette, the real 7.5rem gutter and the real key bar.</span>
+  </div>
+</header>
+
+<h2 class="part">The four</h2>
+
+<!-- ============================== A ============================== -->
+<section class="card">
+  <header>
+    <span class="tag">A</span>
+    <h3>Nine boxes</h3>
+    <span class="why">the bookmarks dialog with every row already open</span>
+  </header>
+  <div class="body">
+    <p class="take">Nine token boxes stacked under a digit each, all live at once. Nothing to
+    open, nothing to close: you arrow into the one you want and type. Each writes when it loses
+    the focus, so there is no Save — the same way the panel chooser posts on the press.</p>
+    <p class="take cost"><b>What it costs:</b> the digits go dead inside the dialog — a <code>1</code>
+    pressed in here is a character, not slot one — and so do <code>j</code> and <code>k</code>, because
+    the caret is always in a box. Nine inputs is also nine completion lists and nine places
+    the wavy underline can be, on a dialog that is a third full most of the time.</p>
+
+    <div class="rail">
+      <span class="lbl">light</span>
+      <div class="frame"><div class="app light"><div class="backdrop">{{A}}</div></div></div>
+    </div>
+    <div class="rail">
+      <span class="lbl">dark</span>
+      <div class="frame"><div class="app dark"><div class="backdrop">{{A}}</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== B ============================== -->
+<section class="card">
+  <header>
+    <span class="tag">B</span>
+    <h3>Read down, open one — chosen</h3>
+    <span class="why">the bookmarks dialog's keyboard, unchanged</span>
+  </header>
+  <div class="body">
+    <p class="take">The nine read as text, exactly as the bookmarks do, and one of them opens
+    into a box when you press it. <code>j</code> <code>k</code> move, <code>↵</code> opens the row
+    under the cursor, a bare digit opens that slot from anywhere in the list, <code>⌫</code> empties
+    one and <code>esc</code> closes — first the box, then the dialog. One box is open at a time, so
+    there is one completion list and one place the caret can be.</p>
+    <p class="take">It is the same dialog you already know, because it <i>is</i> the same dialog:
+    a numbered list of nine kept things, where the digit is the whole address and the empty
+    slots are part of the answer.</p>
+    <p class="take cost"><b>What it costs:</b> editing a slot is two presses rather than none, and
+    the row changes height as it opens.</p>
+
+    <div class="rail">
+      <span class="lbl">light</span>
+      <div class="frame"><div class="app light"><div class="backdrop">{{B}}</div></div></div>
+    </div>
+    <div class="rail">
+      <span class="lbl">dark</span>
+      <div class="frame"><div class="app dark"><div class="backdrop">{{B}}</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== C ============================== -->
+<section class="card">
+  <header>
+    <span class="tag">C</span>
+    <h3>A form, in the app's own shape</h3>
+    <span class="why">nine gutter rows and a Save</span>
+  </header>
+  <div class="body">
+    <p class="take">If it is a form, draw it like every other form in the app: the
+    <code>.stack</code>, the 7.5rem label gutter, the box taking what is left, <code>^↵</code> to
+    submit. The digit is the label, the way <span class="mono">Title</span> and
+    <span class="mono">Meta</span> are labels one screen over.</p>
+    <p class="take cost"><b>What it costs:</b> a Save, which the bookmarks deliberately do not have —
+    and the gutter is 7.5rem of nothing to hold a single character, so the boxes start a third of
+    the way across a dialog that is mostly boxes. It reads as a settings screen that happens to
+    be floating.</p>
+
+    <div class="rail">
+      <span class="lbl">light</span>
+      <div class="frame"><div class="app light"><div class="backdrop">{{C}}</div></div></div>
+    </div>
+    <div class="rail">
+      <span class="lbl">dark</span>
+      <div class="frame"><div class="app dark"><div class="backdrop">{{C}}</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== D ============================== -->
+<section class="card">
+  <header>
+    <span class="tag">D</span>
+    <h3>A section on Settings</h3>
+    <span class="why">no dialog at all — <code>^0</code> goes there</span>
+  </header>
+  <div class="body">
+    <p class="take">Snippets are configuration, and the app already has one screen for the
+    configuration that is neither a screen nor an item. Nine rows there, reached with
+    <code>g e</code> like anything else on it, and <code>^0</code> is simply the jump.</p>
+    <p class="take cost"><b>What it costs:</b> the thing this whole feature exists for is a
+    half-written action with unsaved edits in it, and <code>^0</code> would walk away from it.
+    That is the argument against, and it is the whole argument: the bookmarks dialog is a dialog
+    for exactly this reason — you look something up without leaving what you were doing.</p>
+
+    <div class="rail">
+      <span class="lbl">light</span>
+      <div class="frame"><div class="app light">{{D}}</div></div>
+    </div>
+    <div class="rail">
+      <span class="lbl">dark</span>
+      <div class="frame"><div class="app dark">{{D}}</div></div>
+    </div>
+  </div>
+</section>
+
+<h2 class="part">And what pressing one does</h2>
+
+<section class="card">
+  <header>
+    <span class="tag">^1</span>
+    <h3>Slot 1 is <span class="mono">@home #short #car</span></h3>
+    <span class="why">what each meta line takes of it</span>
+  </header>
+  <div class="body">
+    <p class="take">The same press on three screens. What a line cannot hold is dropped without
+    a word — an action takes one context and already has <code>@office</code>, a project takes none
+    at all, and a create-project screen has two meta lines of which the project's is the one
+    that is written.</p>
+    <div class="controls" style="margin-top:.2rem;padding-top:0;border:0">
+      <button class="toggle" id="t-press" aria-pressed="false">press ^1</button>
+      <span class="note" id="press-note">before</span>
+    </div>
+
+    <div class="rail">
+      <span class="lbl">light</span>
+      <div class="frame"><div class="app light">{{E}}</div></div>
+    </div>
+    <div class="rail">
+      <span class="lbl">dark</span>
+      <div class="frame"><div class="app dark">{{E}}</div></div>
+    </div>
+  </div>
+</section>
+
+<h2 class="part">The trade, in one table</h2>
+
+<section class="card">
+  <div class="body">
+    <div class="scroller">
+    <table class="matrix">
+      <thead><tr><th>&nbsp;</th><th>A · nine boxes</th><th>B · read down</th><th>C · a form</th><th>D · Settings</th></tr></thead>
+      <tbody>
+        <tr><th>digits inside</th><td>typed as text</td><td>open that slot</td><td>typed as text</td><td>open that row</td></tr>
+        <tr><th><code>j</code> <code>k</code></th><td>gone</td><td>as everywhere</td><td>gone</td><td>as everywhere</td></tr>
+        <tr><th>presses to edit slot 7</th><td>0 (arrow down)</td><td>1 (press <code>7</code>)</td><td>0 (tab down)</td><td>2 (<code>^0</code>, then <code>7</code>)</td></tr>
+        <tr><th>completion lists live</th><td>nine</td><td>one</td><td>nine</td><td>one</td></tr>
+        <tr><th>a Save</th><td>no — on blur</td><td>no — on close</td><td>yes</td><td>yes</td></tr>
+        <tr><th>keeps your edit screen</th><td>yes</td><td>yes</td><td>yes</td><td class="cost">no</td></tr>
+        <tr><th>reads as the bookmarks</th><td>nearly</td><td>exactly</td><td>no</td><td>no</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<h2 class="part">What the two open questions were answered with</h2>
+
+<section class="card">
+  <div class="body decision">
+    <p class="q">What may a snippet hold — the narrow answer or the wide one?</p>
+    <p class="take"><b>The wide one, minus the dates.</b> Everything an action's meta line
+    carries by name, the sizes and <code>#today</code> included, because those are exactly the
+    things typed over and over. Not <code>due:</code> or <code>snooze:</code>: a slot is stamped
+    on many items and a moment belongs to one, so <span class="mono">due:2026-09-20</span> under
+    a digit is wrong the day after it was written. <code>ParseSnippet</code> in
+    <code>tokens.go</code> is the refusal; <code>BOX_RULES.snippet</code> is the box saying so as
+    you type.</p>
+    <p class="q">And the collision with the bookmarks</p>
+    <p class="take"><b>The digits belong to the line the screen has.</b> A filter line means
+    bookmarks, a meta line means snippets, and no screen has both — so it is decided by the
+    screen and never by a mode. Nothing is lost: a bookmark's <i>going</i> half is
+    <code>g 1</code>…<code>g 9</code> and works from an edit screen as it does everywhere, and
+    its <i>keeping</i> half needs a filter line, which an edit screen has none of.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// The specimens. One template each, stamped into both themes, so a change to
+// a row is a change in one place and the two panes cannot drift apart.
+
+var SLOTS = [
+  "@home #short #car",
+  "@office #focus",
+  "@calls #car",
+  "#today",
+  "",
+  "@errands #grocery",
+  "@online #long",
+  "",
+  ""
+];
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+function keybar(view, global) {
+  function ks(list) {
+    return list.map(function (k) { return '<span class="k"><b>' + k[0] + '</b>' + k[1] + '</span>'; }).join("");
+  }
+  return '<div class="keybar">' + ks(view) +
+    (global && global.length ? '<div class="kb-global">' + ks(global) + '</div>' : '') + '</div>';
+}
+
+var SUGGEST = ['<ul class="fsuggest"><li class="on">#car</li><li>#calls</li><li>#cabin</li></ul>'];
+
+// --- A: nine live boxes ----------------------------------------------------
+function paneA(opt) {
+  var rows = SLOTS.map(function (v, i) {
+    var here = opt.sel && i === 2;
+    var sug = opt.sug && i === 2;
+    return '<li class="row">' +
+      '<span class="slot">' + (i + 1) + '</span>' +
+      '<span class="fbox"><input value="' + esc(sug ? "@calls #c" : v) + '" class="' + (here ? "focused" : "") + '" readonly>' +
+      (sug ? SUGGEST[0] : '') + '</span>' +
+      '</li>';
+  }).join("");
+  return '<div class="dlg"><h2>Snippets</h2><ul class="list">' + rows + '</ul>' +
+    keybar([["↓↑", "move"], ["⌫", "clear"], ["esc", "close"]]) + '</div>';
+}
+
+// --- B: read down, open one ------------------------------------------------
+function paneB(opt) {
+  var rows = SLOTS.map(function (v, i) {
+    var open = i === 2;
+    if (open) {
+      return '<li class="row kb-selected">' +
+        '<span class="slot">' + (i + 1) + '</span>' +
+        '<span class="fbox"><input value="' + esc(opt.sug ? "@calls #c" : v) + '" class="focused" readonly>' +
+        (opt.sug ? SUGGEST[0] : '') + '</span>' +
+        '</li>';
+    }
+    return '<li class="row">' +
+      '<span class="slot">' + (i + 1) + '</span>' +
+      '<span class="line">' + (v ? esc(v) : '<span class="empty">empty</span>') + '</span>' +
+      (v ? '<button class="clear" title="clear (⌫)">⌫</button>' : '') +
+      '</li>';
+  }).join("");
+  var keys = opt.sug
+    ? [["↓↑", "move"], ["↵", "take"], ["esc", "back"]]
+    : [["j k", "move"], ["1…9", "edit"], ["↵", "done"], ["⌫", "clear"], ["esc", "close"]];
+  return '<div class="dlg"><h2>Snippets</h2><ul class="list">' + rows + '</ul>' + keybar(keys) + '</div>';
+}
+
+// --- C: a form -------------------------------------------------------------
+function paneC(opt) {
+  var rows = SLOTS.map(function (v, i) {
+    var here = opt.sel && i === 2;
+    var sug = opt.sug && i === 2;
+    return '<label class="gutter"><span class="lb">' + (i + 1) + '</span>' +
+      '<span class="fbox"><input value="' + esc(sug ? "@calls #c" : v) + '" class="' + (here ? "focused" : "") + '" readonly>' +
+      (sug ? SUGGEST[0] : '') + '</span></label>';
+  }).join("");
+  return '<div class="dlg wide"><h2>Snippets</h2><div class="stack">' + rows + '</div>' +
+    keybar([["↓↑", "move"], ["^↵", "save"], ["esc", "cancel"]]) + '</div>';
+}
+
+// --- D: a section on Settings ---------------------------------------------
+function paneD(opt) {
+  var rows = SLOTS.map(function (v, i) {
+    var here = opt.sel && i === 2;
+    var sug = opt.sug && i === 2;
+    return '<li class="row' + (here && !sug ? ' kb-selected' : '') + '">' +
+      '<span class="slot">' + (i + 1) + '</span>' +
+      '<span class="fbox"><input value="' + esc(sug ? "@calls #c" : v) + '" class="' + (sug ? "focused" : "") + '" readonly>' +
+      (sug ? SUGGEST[0] : '') + '</span></li>';
+  }).join("");
+  return '<div class="pagehead"><h1>Settings</h1></div>' +
+    '<div class="settings-sec"><h2>Snippets</h2>' +
+    '<ul class="list">' + rows + '</ul></div>' +
+    keybar([["j k", "move"], ["↵", "edit"], ["⌫", "clear"]],
+           [["g", "go to"], ["^m", "jump"], ["?", "help"]]);
+}
+
+// --- E: what ^1 writes -----------------------------------------------------
+function field(label, value, mark) {
+  return '<label class="gutter"><span class="lb">' + label + '</span>' +
+    '<span class="fbox"><input value="' + esc(value) + '" class="' + (mark ? "focused" : "") + '" readonly></span></label>';
+}
+
+function paneE(opt) {
+  var on = opt.press;
+  var blocks = [
+    ['An action', [
+      field("Title", "Ring the garage about a slot", false),
+      field("Meta", on ? "@office #short #car due:friday" : "@office due:friday", on)
+    ], on ? '<span class="lb"></span>' : ''],
+    ['A project', [
+      field("Title", "Winter tyres", false),
+      field("Meta", on ? "#short #car" : "", on)
+    ], ''],
+    ['A new project, with its first action', [
+      field("Meta", on ? "#short #car" : "", on),
+      field("Next action", "Ring the garage about a slot", false),
+      field("Meta", "@calls", false)
+    ], '']
+  ];
+  return blocks.map(function (b) {
+    return '<div style="margin-bottom:1rem"><h2 class="formhead">' + b[0] + '</h2>' +
+      '<div class="stack">' + b[1].join("") + '</div></div>';
+  }).join("") +
+  '<p class="crumb">' + (on
+    ? "@home is gone from all three — the action already has a context and a project takes none. #car and #short landed; the next action’s own line was not touched."
+    : "before the press") + '</p>';
+}
+
+var PANES = { A: paneA, B: paneB, C: paneC, D: paneD, E: paneE };
+var state = { sel: true, sug: false, press: false };
+
+function render() {
+  document.querySelectorAll(".app").forEach(function (app) {
+    var which = app.dataset.pane;
+    if (!which) return;
+    var host = app.querySelector(".backdrop") || app;
+    host.innerHTML = PANES[which](state);
+  });
+}
+
+// stamp the {{X}} placeholders into real panes on first load
+(function () {
+  document.querySelectorAll(".app").forEach(function (app) {
+    var host = app.querySelector(".backdrop") || app;
+    var m = host.innerHTML.trim().match(/^\{\{([A-E])\}\}$/);
+    if (m) { app.dataset.pane = m[1]; }
+  });
+  render();
+})();
+
+function bind(id, key, label) {
+  var b = document.getElementById(id);
+  b.addEventListener("click", function () {
+    state[key] = !state[key];
+    b.setAttribute("aria-pressed", String(state[key]));
+    if (label) label();
+    render();
+  });
+}
+bind("t-sel", "sel");
+bind("t-sug", "sug");
+bind("t-press", "press", function () {
+  document.getElementById("press-note").textContent = state.press ? "after" : "before";
+});
+</script>

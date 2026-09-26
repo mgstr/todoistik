@@ -64,6 +64,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [The key bar is the buttons](#the-key-bar-is-the-buttons) — a row of buttons under a form was the bar drawn twice
 - [Theme](#theme) — `light-dark()`, and how being told which palette is remembered
 - [Bookmarked filters](#bookmarked-filters) — `internal/web/bookmarks.go`, the wiring under the nine digits
+- [Snippets](#snippets) — `internal/web/snippets.go`, the bookmarks' twin on the other line
 - [View help](#view-help) — `?` opens one panel saying what this view is for
 - [Navigation](#navigation) — the rail, its five captions, its badges, and the jump overlay
 - [The Dashboard](#the-dashboard) — nine panels, one read, one template
@@ -3973,6 +3974,95 @@ the same name in `app.js`).
   stepped through nine invisible rows on every list in the app. It now skips
   any row whose dialog is closed, which also catches the answers left behind
   in the unknown-name and link choosers
+
+## Snippets
+
+design.md, "Snippets" asks for nine runs of notation under the digits, stamped
+onto the meta line in front of you by one press, and keys.md has the keys. This
+is the wiring (`internal/web/snippets.go`, `ParseSnippet` in
+`internal/app/tokens.go`, and the section of the same name in `app.js`). It is
+the bookmarks' twin throughout, deliberately — where a rule here is the same
+rule, it is the same code or the same selector rather than a second copy of it.
+
+- **they live in `app_state` beside the bookmarks**, one row holding one query
+  string, `1=%40home+%23short&3=%40calls+%23car`. Same argument, same shape: a
+  slot nobody has filled costs nothing, and a shorthand kept in the browser
+  would go with the tab it was made in
+- **there is no second half.** A bookmark is a view and a line, because going
+  to one has to land somewhere; a snippet is a line, because it is written into
+  whatever screen you are standing on. So the stored value is flat where the
+  bookmarks' has `v`+digit beside the digit, and the hidden save form carries
+  no view
+- **what is stored is the line written back out of the fields it parsed to**
+  (`readableSnippet` → `app.ParseSnippet` → `MetaFields.String`), which is the
+  codec rule the meta line and the bookmarks both already follow. A slot
+  therefore always reads back in the one fixed order whatever order it was
+  typed in, and — the half that matters here — a name no remembered list holds
+  can never reach a slot at all
+- **`ParseSnippet` is the widest of the narrowed lines and refuses the dates.**
+  `ParseMeta` takes everything, `ParseProjectMeta` and `ParseSomedayMeta` drop
+  to tags (`nonTagField` names what they dropped); this one takes everything
+  *by name* and drops the moments, which `dateField` names — the opposite half
+  of the same question. A snippet is stamped on many items and a date belongs
+  to one (design.md, "Snippets"), and refusing it on the way in is what keeps
+  the browser's `BOX_RULES.snippet`, which allows no `dates` either, from being
+  the only thing saying so
+- **one endpoint, `POST /snippet`, with `slot` and `q`**, an empty `q`
+  clearing, a slot outside 1–9 a 404 — the bookmark endpoint's shape. It
+  differs in one way: an unreadable line is a 400 naming the problem rather
+  than a line quietly stored minus what could not be read. A filter that lost a
+  token narrows a list slightly differently and you see the count; a snippet
+  that lost one writes a different thing onto an item every day from now on
+- **it answers JSON, and nothing here navigates.** The dialog is standing over
+  a form full of unsaved words — which is the whole reason this is a dialog and
+  not a section of the Settings screen — so the write is a `fetch` and the row
+  is filled in from what the server stored
+- **the dialog is rendered on every page**, like the bookmarks', and which of
+  the two `ctrl-0` opens is the key layer's answer: `metaBox()` is non-null
+  here, so it is the snippets. That function is also the whole of design.md's
+  rule about a screen with two meta lines — the focused box if the caret is in
+  one, the first in document order otherwise, which on both project screens is
+  the project's — and it is scoped to the open dialog where there is one, so
+  the add-action dialog's row is the line in front of you rather than the
+  project's behind it. The snippets dialog itself is never that scope
+- **a row opens into a real token box and closes back into text.** The box is
+  built by the key layer when a row is pressed and removed when it is left,
+  rather than nine of them drawn and hidden: a hidden token box is a mirror, a
+  completion list and a set of marks that all have to be kept right while
+  nobody can see them. The `.line` and the `⌫` are hidden rather than rebuilt,
+  because a row is a place and the place does not move because it is being
+  written in. One box at a time is what leaves the bare digits meaning what
+  they mean outside — the slot's own address — and what keeps one completion
+  list on the screen instead of nine
+- **while a row is being written, the dialog answers two keys and passes the
+  rest down.** `esc` and a bare `↵` close the box; everything else falls
+  through to the `[data-tokenbox]` branch below it, so the completion list, the
+  marks and the arrow keys are the box's own and are not written twice. The
+  branch is placed after the bookmarks' and guards on `topDialog()`, which is
+  what lets the unknown-name dialog open over it
+- **an unreadable line asks before it closes.** `closeSnippetBox` runs
+  `problemsIn` and hands the first problem to `askAbout` with itself as the
+  continuation — the same mechanism the filter line uses on `↵`, so a name
+  that was simply never created is one press from being created. Both callers
+  that could close over that question — opening another row, and closing the
+  dialog — check `writingRow()` afterwards and stand down if the question is
+  still up
+- **the stamp goes through an `input` event.** `stampSnippet` sets
+  `box.value` and dispatches one, rather than calling `paintBox` itself: the
+  mirror, the marks, the `#today` dot, the project `#↓` mark and the Save gate
+  all hang off that one listener, and a second path into them is how one of
+  them comes to be missed. What it appends is what the target line has room
+  for, counted against that box's own `BOX_RULES` row — so the dropping rule
+  is the box's table and not a list of screens
+- **the CSS is the bookmarks' rule with a second selector on it.** Two dialogs
+  of nine numbered slots are one shape, and a second copy of the width, the
+  digit column and the clear mark is how they would come to differ for no
+  reason anybody could name. The one rule that is the snippets' alone is the
+  box inside a row
+
+The four shapes this was chosen from — nine live boxes, this one, a gutter form
+and a section on the Settings screen — are in
+`research/snippets-dialog-study.html`.
 
 ## View help
 

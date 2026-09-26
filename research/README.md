@@ -476,3 +476,36 @@ ways); it **merges** rather than replacing, so a context or a size the project
 has no opinion about survives; and the project's **snooze stays behind**,
 because on an action a snooze means "not workable yet" and copying one would
 park the very action the project is waiting on.
+
+## snippets-dialog-study.html — the ctrl-0 dialog the nine snippets are written in
+
+**2026-09-26 · decided: B, the bookmarks dialog with one row open at a time.**
+See design.md, "Snippets", implementation.md, "Snippets" and keys.md.
+
+Nine runs of notation under the digits, stamped onto the meta line by one
+press — the bookmarks' argument applied to the other line the app has. Keeping
+them was never in question; where they are *written* was, because this is the
+first of the app's numbered-slot lists that is edited rather than pressed. Four
+shapes, each drawn with `style.css` itself in both themes, plus a toggle that
+stamps slot 1 onto an action, a project and a create-project screen so the
+silent dropping can be read rather than described.
+
+| | Variant | Outcome |
+|---|---|---|
+| A | Nine live token boxes | Rejected: nothing to open, but the digits, `j` and `k` all go dead inside a dialog whose whole subject is nine numbered slots — the caret is always in a box. Nine boxes is also nine completion lists and nine places a wavy underline can be |
+| **B** | **Read down, open one** | **Chosen.** The bookmarks dialog unchanged — rows read as notation, `j`/`k` move, a bare digit or `↵` opens that slot into a box, `⌫` empties, `esc` closes the box then the dialog. One box and one completion list live at a time. Costs one press to start editing, and the row changes height as it opens |
+| C | The app's `.stack` gutter form, with a Save | Rejected: a Save the bookmarks deliberately do not have, and 7.5rem of label gutter spent on one character. Reads as a settings screen that happens to float |
+| D | A section on the Settings screen | Rejected, and it is the clarifying one: the thing this feature exists for is a half-written action, and `^0` would have walked away from it. That is why the bookmarks are a dialog too |
+
+The deciding argument was not which is quickest to type in — A wins that, by
+one press. It was that **two dialogs of nine numbered slots must be one shape**.
+The bookmarks already taught the digit-is-the-address rule, the all-nine-shown
+rule and the `j k ↵ ⌫ esc` set; a second list that renumbered the keys would
+make both of them harder to remember than either was alone. B is the only
+variant where a bare digit inside still means the slot it is printed beside.
+
+Two things settled alongside it, both recorded on the page: a snippet holds
+everything an action's meta line carries **by name** but none of the dates (a
+slot is stamped on many items, a moment belongs to one), and the digits mean
+snippets wherever the screen has a meta line and bookmarks wherever it has a
+filter line — never a mode, because no screen has both.

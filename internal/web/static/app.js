@@ -288,6 +288,13 @@
       if (line) keys.push(["^1\u20269", "bookmark this filter"]);
       else if (anyBookmark()) keys.push(["^1\u20269", "go to a bookmark"]);
       keys.push(["^0", "bookmarks", function () { openBookmarks(); }]);
+    } else if (snippetDigits()) {
+      // the other nine, on the screens the bookmarks have nothing to say on:
+      // a meta line is being written, so the digits write into it. The range
+      // is offered only where there is a slot to press, the way the bookmarks'
+      // is, and `^0` is a button like any other because it opens one thing
+      if (anySnippet()) keys.push(["^1\u20269", "a snippet"]);
+      keys.push(["^0", "snippets", function () { openSnippets(); }]);
     }
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -365,6 +372,26 @@
       const row = selected();
       if (rows().length > 1) keys.push(["j k", "move"]);
       if (row && (line || row.dataset.line)) keys.push(["\u21b5", line ? "bookmark here" : "go"]);
+      if (row && row.dataset.line) keys.push(["\u232b", "clear"]);
+      keys.push(["esc", "close"]);
+      return { view: keys, global: [] };
+    }
+    const snp = snippetsDialog();
+    if (snp && snp.open) {
+      // the row being written has the box's own keys, which the completion
+      // list already speaks for; the list of nine has the keys the bookmarks'
+      // list has, and the digit is the slot's address in here too
+      if (writingRow()) {
+        if (openSuggest()) {
+          return { view: [["\u2193\u2191", "move"], ["\u21b5", "take"], ["esc", "back"]], global: [] };
+        }
+        return { view: [["\u21b5", "done"], ["esc", "done"]], global: [] };
+      }
+      const keys = [];
+      if (rows().length > 1) keys.push(["j k", "move"]);
+      keys.push(["1\u20269", "write one"]);
+      const row = selected();
+      if (row) keys.push(["\u21b5", "write"]);
       if (row && row.dataset.line) keys.push(["\u232b", "clear"]);
       keys.push(["esc", "close"]);
       return { view: keys, global: [] };
@@ -1992,7 +2019,19 @@
     // an idea carries tags and nothing else — not even its own snooze, which
     // is the date box beside the line (design.md, "Someday/maybe item")
     someday: { contexts: 0, fields: [], dates: {}, prose: false },
+    // a snippet is the widest of the written lines and the only one with no
+    // item under it: everything an action's meta line carries by name, and
+    // none of the dates. A slot is stamped on many items and a deadline
+    // belongs to one, so `due:` here would be wrong the day after it was
+    // written (design.md, "Snippets"; ParseSnippet in tokens.go refuses the
+    // same thing on the way in, which is the half that decides)
+    snippet: { contexts: 1, fields: ["short", "medium", "long", "focus", "today"], dates: {}, prose: false, waiting: true },
   };
+
+  // The lines that are written onto an item, as against the ones that ask
+  // about items. It is what a snippet may be stamped into, and the order is
+  // the order a screen draws them in — see metaBox.
+  const META_MODES = ["action", "project", "someday"];
 
   function tokenBoxes() { return Array.from(document.querySelectorAll("[data-tokenbox]")); }
   function rulesFor(box) { return BOX_RULES[box.dataset.tokenbox] || BOX_RULES.filter; }
@@ -2778,6 +2817,294 @@
     renderKeybar();
   }
 
+  // ---- The snippets ------------------------------------------------------
+  //
+  // The other nine under the same digits, and on the screens the bookmarks
+  // have nothing to say on: where a meta line is being written, `^3` stamps
+  // slot three onto it and `^0` is the nine of them (design.md, "Snippets").
+  //
+  // The digits are not two meanings here either — they are the same idea the
+  // bookmarks state, applied to the other line the app has. A bookmark keeps
+  // a filter and asks a question with it; a snippet keeps a run of names and
+  // writes it down. Which of the two a digit means is decided by the screen
+  // and not by a mode: a filter line has bookmarks on it, a meta line has
+  // snippets, and no screen has both. Going to a bookmark from an edit screen
+  // is `g 3`, which is what that half was always pressed with.
+  //
+  // The nine live on the server, beside the bookmarks. Nothing is kept in
+  // here: the dialog the server rendered is where the lines are read from.
+
+  function snippetsDialog() { return document.getElementById("snippets-dialog"); }
+
+  function snippetRow(n) {
+    const dlg = snippetsDialog();
+    return dlg ? dlg.querySelector('[data-slot="' + n + '"]') : null;
+  }
+
+  function snippetLine(n) {
+    const row = snippetRow(n);
+    return row ? row.dataset.line : "";
+  }
+
+  function anySnippet() {
+    const dlg = snippetsDialog();
+    return !!(dlg && dlg.querySelector('[data-slot]:not([data-line=""])'));
+  }
+
+  // The meta line a snippet is written into, and "" of a screen that has
+  // none — which is what makes the digits the bookmarks' again there.
+  //
+  // Two screens carry two of these: a project and its next action, on the
+  // project's own page and on the one a project is created on. The project's
+  // line is the one a snippet lands on, because it is the first on the screen
+  // and a screen is read down — except while the caret is in the other one,
+  // which is the one moment the question has already been answered by where
+  // your hands are. Writing into a box you are not typing in when you are
+  // plainly typing in another would be the app guessing over you.
+  //
+  // A dialog scopes it the same way it scopes everything else: the draft row
+  // being written in the add-action dialog is the line in front of you, not
+  // the project's behind it. The snippets dialog itself is never the scope —
+  // the box in there is the slot being written, not an item's line.
+  function metaBox() {
+    const dlg = topDialog();
+    const scope = dlg && dlg !== snippetsDialog() ? dlg : document;
+    const boxes = Array.from(scope.querySelectorAll("[data-tokenbox]")).filter(function (b) {
+      return META_MODES.indexOf(b.dataset.tokenbox) >= 0;
+    });
+    if (!boxes.length) return null;
+    const at = document.activeElement;
+    if (at && boxes.indexOf(at) >= 0) return at;
+    return boxes[0];
+  }
+
+  // Which of the two nines this screen's digits mean. The bar and the key
+  // must never disagree about that, so both ask here — design.md, "Snippets"
+  // says no screen has both lines, and this is where that is relied on: a
+  // screen that somehow had both keeps its bookmarks, since that is the
+  // meaning the digits had before the snippets existed.
+  function snippetDigits() { return !filterBar() && !!metaBox(); }
+
+  // One press, written onto the line. What the line has no room for is
+  // dropped without a word (design.md, "Snippets"): a context on a project,
+  // a size on an idea, a second context on an action that has one, and
+  // anything the line already says. A name is the same name whatever is in
+  // its brackets — `@shop(Lidl)` does not go onto a line that already names
+  // a shop — because the count the box keeps is of contexts, not of spellings.
+  //
+  // Appended, never woven in: the line is a set and the order it reads back
+  // in is the codec's (tokens.go, MetaFields.String), so where a name is put
+  // matters only until the next save.
+  function stampSnippet(box, line) {
+    const rules = rulesFor(box);
+    const have = tokensIn(box.value);
+    const names = have.map(function (t) { return t.sigil + t.name; });
+    let contexts = have.filter(function (t) {
+      return t.sigil === "@" && t.name !== "waitingFor";
+    }).length;
+    const add = [];
+    tokensIn(line).forEach(function (t) {
+      if (names.indexOf(t.sigil + t.name) >= 0) return;
+      if (t.sigil === "@") {
+        if (t.name === "waitingFor") {
+          if (!rules.waiting) return;
+        } else {
+          if (contexts >= rules.contexts) return;
+          contexts++;
+        }
+      } else {
+        if (rules.tags === false) return;
+        const field = BOX_RULES.action.fields.indexOf(t.name) >= 0;
+        if (field && rules.fields.indexOf(t.name) < 0) return;
+      }
+      names.push(t.sigil + t.name);
+      add.push(t.text);
+    });
+    if (!add.length) return;
+    const cur = box.value.replace(/\s+$/, "");
+    box.value = (cur ? cur + " " : "") + add.join(" ");
+    if (document.activeElement === box) {
+      box.setSelectionRange(box.value.length, box.value.length);
+    }
+    // the ordinary event, so that the mirror, the marks, the today dot, the
+    // project mark and the Save gate all follow it exactly as they follow a
+    // keystroke — there is one path through all of that and this is it
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  // The chord on an edit screen. A slot with nothing in it does nothing and
+  // says nothing, which is the rule an empty bookmark is already kept by; a
+  // full slot with nothing this line can take is the same press with the
+  // dropping done quietly, and it is still the app's key.
+  function pressSnippet(n) {
+    const box = metaBox();
+    if (!box) return false;
+    const line = snippetLine(n);
+    if (!line) return false;
+    stampSnippet(box, line);
+    return true;
+  }
+
+  function openSnippets() {
+    const dlg = snippetsDialog();
+    if (!dlg || dlg.open || !snippetDigits()) return false;
+    dlg.showModal();
+    select(rows()[0]);
+    renderKeybar();
+    return true;
+  }
+
+  function closeSnippets() {
+    const dlg = snippetsDialog();
+    if (!dlg || !dlg.open) return;
+    closeSnippetBox(true);
+    // ...unless writing it asked something, and then the asking is the screen
+    if (writingRow()) return;
+    select(null);
+    dlg.close();
+    renderKeybar();
+  }
+
+  // ---- writing one -------------------------------------------------------
+  //
+  // A row opens into the app's own token box and closes back into text. One
+  // at a time: that is what leaves the digits meaning what they mean outside,
+  // keeps one completion list on the screen, and makes the caret's place in
+  // the dialog somewhere you can point at.
+  //
+  // The box is built here rather than drawn nine times and hidden, because a
+  // hidden token box is a mirror, a completion list and a set of marks that
+  // all have to be kept right while nobody can see them.
+
+  function writingRow() {
+    const dlg = snippetsDialog();
+    return dlg ? dlg.querySelector(".row.writing") : null;
+  }
+
+  function writingBox() {
+    const row = writingRow();
+    return row ? row.querySelector("[data-tokenbox]") : null;
+  }
+
+  function openSnippetBox(row) {
+    if (!row || row.classList.contains("writing")) return false;
+    // whatever was open is written first, and if that turned into a question
+    // about an unknown name then that question is what is happening now —
+    // opening a second box over it would leave two rows being written
+    closeSnippetBox(true);
+    if (writingRow()) return false;
+    const wrap = document.createElement("span");
+    wrap.className = "fbox";
+    const mirror = document.createElement("span");
+    mirror.className = "fmirror";
+    mirror.setAttribute("aria-hidden", "true");
+    const box = document.createElement("input");
+    box.setAttribute("data-tokenbox", "snippet");
+    box.setAttribute("autocomplete", "off");
+    box.spellcheck = false;
+    box.setAttribute("aria-label", "snippet " + row.dataset.slot);
+    box.value = row.dataset.line || "";
+    const list = document.createElement("ul");
+    list.className = "fsuggest";
+    list.hidden = true;
+    wrap.appendChild(mirror);
+    wrap.appendChild(box);
+    wrap.appendChild(list);
+    // the text and the clear mark stay in the row rather than being rebuilt
+    // when it closes: a row is a place, and the place does not go away
+    // because it is being written in
+    row.querySelector(".line").hidden = true;
+    const clear = row.querySelector("[data-snippet-clear]");
+    if (clear) clear.hidden = true;
+    row.appendChild(wrap);
+    row.classList.add("writing");
+    select(row);
+    box.focus();
+    box.setSelectionRange(box.value.length, box.value.length);
+    paintBox(box);
+    renderKeybar();
+    return true;
+  }
+
+  // Closing writes what is in the box, unless the line still holds something
+  // the app cannot read — then the question is asked, exactly as it is asked
+  // of the filter line, and the close happens once it has been answered. A
+  // slot may not hold an unknown name: it would put an underlined mistake
+  // into a form days later and leave you to work out where it came from
+  // (design.md, "Snippets", and the same rule on the server in snippets.go).
+  function closeSnippetBox(commit) {
+    const row = writingRow();
+    if (!row) return false;
+    const box = writingBox();
+    if (commit && box) {
+      const bad = problemsIn(box);
+      if (bad.length) {
+        askAbout(box, bad[0], function () { closeSnippetBox(true); });
+        return true;
+      }
+    }
+    const line = box ? box.value.trim() : "";
+    hideSuggest();
+    const wrap = row.querySelector(".fbox");
+    if (wrap) wrap.remove();
+    row.classList.remove("writing");
+    row.querySelector(".line").hidden = false;
+    const clear = row.querySelector("[data-snippet-clear]");
+    if (clear) clear.hidden = false;
+    if (commit && line !== (row.dataset.line || "")) writeSnippet(row.dataset.slot, line);
+    renderKeybar();
+    return true;
+  }
+
+  // The write, and nothing else: the dialog is standing over a form full of
+  // unsaved words, so nothing here may navigate. The row is filled in from
+  // what the server stored rather than from what was sent, since the server
+  // is what decides how a line reads once it is a set of fields.
+  function writeSnippet(n, line) {
+    const form = document.querySelector("[data-snippet-save]");
+    if (!form) return;
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ slot: String(n), q: line }).toString(),
+    }).then(function (res) {
+      if (!res.ok) throw new Error(String(res.status));
+      return res.json();
+    }).then(function (kept) {
+      showSnippet(kept.slot, kept.line);
+    }).catch(function () { /* nothing was stored, and nothing on screen says it was */ });
+  }
+
+  // The row, saying what the slot now holds. An empty slot still reads as a
+  // slot, for the reason an empty bookmark does.
+  function showSnippet(n, line) {
+    const row = snippetRow(n);
+    if (!row) return;
+    row.dataset.line = line;
+    const text = row.querySelector(".line");
+    text.textContent = "";
+    if (line) {
+      text.appendChild(document.createTextNode(line));
+    } else {
+      const none = document.createElement("span");
+      none.className = "empty";
+      none.textContent = "empty";
+      text.appendChild(none);
+    }
+    let clear = row.querySelector("[data-snippet-clear]");
+    if (line && !clear) {
+      clear = document.createElement("button");
+      clear.type = "button";
+      clear.className = "clear";
+      clear.setAttribute("data-snippet-clear", "");
+      clear.tabIndex = -1;
+      clear.title = "clear (⌫)";
+      clear.textContent = "⌫";
+      row.appendChild(clear);
+    } else if (!line && clear) clear.remove();
+    renderKeybar();
+  }
+
   // Enter, and leaving the box: the moments to ask about what the list has
   // been leaving out. With nothing to ask, what is typed is applied now
   // rather than after the pause.
@@ -2903,6 +3230,12 @@
       "no-context": function (p) { return "this view filters by when something was finished, by tag and by name; " + p.text + " has nothing to narrow here"; },
       "not-here": function (p) { return "this view filters by when something was finished, by tag and by name; " + p.text + " has nothing to narrow here"; },
       "bad-date": function (p) { return p.text + " is not a day or a period — write it as completed:2026-09-13, completed:yesterday, completed:monday, completed:month or completed:3weeks"; },
+    },
+    // a date on a snippet is refused as a kind of thing rather than as a
+    // token this box does not take: what is wrong with it is that it means a
+    // different day every time the slot is pressed
+    snippet: {
+      "not-here": function (p) { return "a snippet has no dates; " + p.text + " belongs on the item itself"; },
     },
     // an idea carries the area it is about and nothing else — not a field an
     // action has, and not a date: the two refusals differ only in the wording
@@ -3422,7 +3755,13 @@
     // digits are handled where the rest of its keys are.
     if (e.ctrlKey && !e.metaKey && !e.altKey && /^[0-9]$/.test(keyOf(e)) && !topDialog()) {
       const digit = Number(keyOf(e));
-      const did = digit === 0 ? openBookmarks() : pressBookmark(digit);
+      // Which of the two nines this is, is the screen's answer and not a mode:
+      // a meta line is being written here, so the digits are the snippets
+      // (design.md, "Snippets"). No screen has both lines, and the going half
+      // of a bookmark is `g 3`, which works from here as it works everywhere.
+      const did = snippetDigits()
+        ? (digit === 0 ? openSnippets() : pressSnippet(digit))
+        : (digit === 0 ? openBookmarks() : pressBookmark(digit));
       // a digit with nothing to keep and nothing kept is not the app's key,
       // and is left to the browser rather than swallowed to do nothing
       if (did) { e.preventDefault(); return; }
@@ -3558,6 +3897,56 @@
       }
       if (!e.ctrlKey && !e.metaKey && !e.altKey) {
         if (/^[1-9]$/.test(k)) { e.preventDefault(); pressBookmark(Number(k)); return; }
+        e.preventDefault();
+      }
+      return;
+    }
+    const snp = snippetsDialog();
+    if (snp && snp.open && topDialog() === snp) {
+      const writing = writingRow();
+      if (writing) {
+        // While a row is open the box owns the keyboard, and the box is the
+        // app's own token box — so everything it answers to falls through to
+        // the handler below rather than being answered twice here. Two keys
+        // are the dialog's: esc closes the box and keeps the dialog, and
+        // enter with no completion list up is done with this row.
+        if (e.key === "Escape") {
+          e.preventDefault();
+          if (openSuggest()) { hideSuggest(); return; }
+          closeSnippetBox(true);
+          return;
+        }
+        if (e.key === "Enter" && !openSuggest()) {
+          e.preventDefault();
+          closeSnippetBox(true);
+          return;
+        }
+        return; // the token box below answers the rest
+      }
+      if (e.key === "Escape") { e.preventDefault(); closeSnippets(); return; }
+      const k = keyOf(e);
+      if (k === "j" || k === "k") { e.preventDefault(); move(k === "j" ? 1 : -1); return; }
+      // the delete key empties a slot, the way it removes a row anywhere
+      // else. The row stays: a slot is a place, and the nine places are the
+      // whole map
+      if (e.key === "Backspace" || e.key === "Delete") {
+        const row = selected();
+        if (row && row.dataset.line) { e.preventDefault(); writeSnippet(row.dataset.slot, ""); }
+        return;
+      }
+      if (e.key === "Enter") {
+        const row = selected();
+        if (row) { e.preventDefault(); openSnippetBox(row); }
+        return;
+      }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        // a digit is the slot's own address in here, exactly as it is
+        // outside: it opens that one, wherever the cursor happens to be
+        if (/^[1-9]$/.test(k)) {
+          e.preventDefault();
+          openSnippetBox(snippetRow(Number(k)));
+          return;
+        }
         e.preventDefault();
       }
       return;
@@ -3752,6 +4141,21 @@
     }
     const slot = e.target.closest("#bookmarks-dialog [data-slot]");
     if (slot) { e.preventDefault(); pressBookmark(Number(slot.dataset.slot)); return; }
+    // the snippets dialog: clicking a row is writing in it, and the mark
+    // beside a full one empties it — the same two things its keys do
+    const wipeSnip = e.target.closest("[data-snippet-clear]");
+    if (wipeSnip) {
+      e.preventDefault();
+      const full = wipeSnip.closest("[data-slot]");
+      if (full) writeSnippet(full.dataset.slot, "");
+      return;
+    }
+    const snipSlot = e.target.closest("#snippets-dialog [data-slot]");
+    if (snipSlot && !e.target.closest("[data-tokenbox], .fsuggest")) {
+      e.preventDefault();
+      openSnippetBox(snipSlot);
+      return;
+    }
     if (e.target.closest("[data-draft-add]")) { e.preventDefault(); openDraft(null); return; }
     if (e.target.closest("[data-newproject]")) { e.preventDefault(); newProjectDialog(); return; }
     const row = rowFromEvent(e);

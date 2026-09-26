@@ -122,6 +122,15 @@
   <input type="hidden" name="view" value="{{.View}}">
   <input type="hidden" name="q" value="">
 </form>
+{{/* ...and what a row of the snippets dialog presses. One form for all nine,
+     for the reason the bookmark save is one: the slot is a field and not a
+     route. No view on it — a snippet is written into the screen you are
+     standing on rather than opening one, so there is no second half to keep
+     (implementation.md, "Snippets"). */}}
+<form method="post" action="/snippet" hidden data-snippet-save>
+  <input type="hidden" name="slot" value="">
+  <input type="hidden" name="q" value="">
+</form>
 {{/* Not aria-hidden any more: the bar holds the screen's controls rather than
      a list of what its controls answer to, and a real button inside an
      aria-hidden container is a control nothing can reach (implementation.md,
@@ -239,6 +248,40 @@
            ring on the one control in it that destroys something — the cursor
            reaches it with ⌫, and the mouse by clicking it */}}
       {{if .Line}}<button type="button" class="clear" tabindex="-1" data-bookmark-clear title="clear (⌫)">⌫</button>{{end}}
+    </li>
+  {{end}}
+  </ul>
+</dialog>
+{{/* The nine snippets — a run of notation each, stamped onto a meta line by
+     one press (design.md, "Snippets"). The bookmarks dialog's twin, and
+     deliberately: it is nine numbered slots of which the empty ones are part
+     of the answer, so it is read the same way, moved through with the same
+     keys, and the digit is the whole address here too.
+
+     One difference, and it is the whole of the difference: a bookmark is
+     pressed from this list and a snippet is written in it. So a row opens
+     into the app's own token box when it is pressed — `↵`, or its own digit
+     — and closes back into text when the box is left. One box at a time,
+     which is what keeps the digits meaning what they mean everywhere else in
+     here and leaves one completion list on the screen rather than nine (see
+     research/snippets-dialog-study.html for the four shapes this was chosen
+     from).
+
+     The box is only made when a row is opened, by the key layer, rather than
+     drawn nine times and hidden: a hidden token box is a box the mirror, the
+     completion list and the marks all have to be kept right for while nobody
+     can see it. */}}
+<dialog id="snippets-dialog" aria-labelledby="snippets-title">
+  <h2 id="snippets-title">Snippets</h2>
+  {{/* the list takes the focus on the way in, for the reason the bookmarks'
+       list does: the first focusable thing in here would otherwise be the one
+       control that destroys something */}}
+  <ul class="list snippets" tabindex="-1" autofocus>
+  {{range .Snippets}}
+    <li class="row snippet" data-kb-row data-slot="{{.N}}" data-line="{{.Line}}">
+      <span class="slot">{{.N}}</span>
+      <span class="line">{{if .Line}}{{.Line}}{{else}}<span class="empty">empty</span>{{end}}</span>
+      {{if .Line}}<button type="button" class="clear" tabindex="-1" data-snippet-clear title="clear (⌫)">⌫</button>{{end}}
     </li>
   {{end}}
   </ul>
