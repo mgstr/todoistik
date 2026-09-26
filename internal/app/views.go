@@ -277,40 +277,86 @@ func sortActions(acts []*Action, f Filters) {
 
 // --- the views -----------------------------------------------------------
 
-// NextActions: becameNextActionAt set, not completed, not assigned, and not
-// snoozed. The main working view; all its filters apply.
+// NextActions: every standalone action, and one action per project — the one
+// that project's next action is. Not completed, not assigned, not snoozed. The
+// main working view; all its filters apply.
 //
-// This is the one view a snoozed action is missing from, and design.md says
-// why: the view answers "what do I do next", and a snoozed action cannot be
-// done yet, so it is not an answer to that. Every other view still shows it —
-// its project's action list above all — see design.md, "Time fields".
-func (a *App) NextActions(f Filters) ([]*Action, error) { return a.nextActions(f, false) }
-
-// NextActionsWithSnoozed is the same query with the snoozed ones kept, and it
-// is what the weekly review reads. A snooze date is a claim about the future
-// and the review is the only place a wrong one is caught (design.md, "Weekly
-// review"), so the walk cannot be built on the one query that hides them.
-func (a *App) NextActionsWithSnoozed(f Filters) ([]*Action, error) { return a.nextActions(f, true) }
-
-func (a *App) nextActions(f Filters, keepSnoozed bool) ([]*Action, error) {
-	acts, err := a.loadActions(`a.became_next_at IS NOT NULL AND a.completed_at IS NULL AND a.assigned_to = ''`)
+// One per project is the whole shape of this view (design.md, "Next actions"):
+// a project that put every available step here would be answering "what do I do
+// next" with a plan, and a list you have to choose within is a list you stop
+// reading. A standalone action has no plan to be at the front of, so every one
+// of them is here.
+//
+// This is also the one view a snoozed action is missing from, and design.md says
+// why: the view answers "what do I do next", and a snoozed action cannot be done
+// yet, so it is not an answer to that. Every other view still shows it — its
+// project's action list above all — see design.md, "Time fields".
+func (a *App) NextActions(f Filters) ([]*Action, error) {
+	acts, err := a.loadActions(`a.completed_at IS NULL AND a.assigned_to = ''`)
 	if err != nil {
 		return nil, err
 	}
-	if !keepSnoozed {
-		today := a.Today()
-		awake := acts[:0]
-		for _, act := range acts {
-			if act.IsSnoozed(today) {
-				continue
-			}
-			awake = append(awake, act)
+	next, err := a.nextActionIDs()
+	if err != nil {
+		return nil, err
+	}
+	today := a.Today()
+	keep := acts[:0]
+	for _, act := range acts {
+		if act.IsSnoozed(today) {
+			continue
 		}
-		acts = awake
+		if act.ProjectID != 0 && next[act.ProjectID] != act.ID {
+			continue
+		}
+		keep = append(keep, act)
+	}
+	acts = a.filterActions(keep, f, true, true, true)
+	sortActions(acts, f)
+	return acts, nil
+}
+
+// NextActionsWithSnoozed is the pool the view above is the workable part of:
+// every open action that is yours to do, snoozed or not, at the front of its
+// plan or further down it. It is what the weekly review walks.
+//
+// The review reads the pool and not the view, and each of the two things it
+// keeps is load-bearing. A snooze date is a claim about the future and the
+// review is the only place a wrong one is caught (design.md, "Weekly review").
+// An action further down a plan is in no view that is worked *from*, so the
+// review is where its wording is checked — which is what stops one-per-project
+// turning the rest of a plan into somewhere things quietly rot.
+func (a *App) NextActionsWithSnoozed(f Filters) ([]*Action, error) {
+	acts, err := a.loadActions(`a.completed_at IS NULL AND a.assigned_to = ''`)
+	if err != nil {
+		return nil, err
 	}
 	acts = a.filterActions(acts, f, true, true, true)
 	sortActions(acts, f)
 	return acts, nil
+}
+
+// nextActionIDs is which action each active project's next one is, by project.
+// A project missing from it has none — everything it holds is snoozed, or it is
+// stalled and holds nothing at all.
+//
+// It is derived here rather than asked of the database, because what a next
+// action is cannot be written as a WHERE clause: it is the project's pointing
+// where that still stands and the plan's own order where it does not, and the
+// plan is a tree (see Project.NextAction).
+func (a *App) nextActionIDs() (map[int64]int64, error) {
+	projects, err := a.projectsWhere(`completed_at IS NULL`, Filters{}, false)
+	if err != nil {
+		return nil, err
+	}
+	today := a.Today()
+	out := make(map[int64]int64, len(projects))
+	for _, p := range projects {
+		if n := p.NextAction(today); n != nil {
+			out[p.ID] = n.ID
+		}
+	}
+	return out, nil
 }
 
 // Tasks: the standalone actions, whatever their state — Tasks answers
@@ -473,8 +519,8 @@ func (a *App) ProjectCandidates(q string, limit int) ([]*ProjectCandidate, int, 
 }
 
 func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project, error) {
-	rows, err := a.db.Query(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until, completed_at
-		FROM projects WHERE ` + where)
+	rows, err := a.db.Query(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until,
+		next_action_id, completed_at FROM projects WHERE ` + where)
 	if err != nil {
 		return nil, err
 	}
@@ -483,10 +529,12 @@ func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project
 		p := &Project{}
 		var created, reviewed string
 		var comp sql.NullString
-		if err := rows.Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &comp); err != nil {
+		var nextID sql.NullInt64
+		if err := rows.Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &nextID, &comp); err != nil {
 			rows.Close()
 			return nil, err
 		}
+		p.NextActionID = nextID.Int64
 		p.CreatedAt = parseTS(created)
 		p.LastReviewedAt = parseTS(reviewed)
 		p.CompletedAt = parseTSPtr(comp)

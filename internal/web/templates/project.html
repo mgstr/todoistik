@@ -131,7 +131,14 @@
          ringed in red — the same rule the error banners follow, which is that
          a problem is marked where it is fixed. It was on the action list while
          the missing next action was a row you would have added there; the
-         boxes under this heading are where it is written now. */}}
+         boxes under this heading are where it is written now.
+
+         The ring asks the project and not the box: an empty box is no longer
+         the same fact as a stalled project. A project whose every open action
+         is snoozed has these boxes empty and is waiting rather than stuck, so
+         it gets no ring — what is under the heading then is the offer to write
+         a step that can be done now, not a complaint (design.md, "Stalled
+         projects"). */}}
     <h2 class="nexthead{{if $p.Stalled}} stalled{{end}}"><span class="what">Next action</span></h2>
     {{end}}
     {{/* Required only when there is one: an action that exists cannot lose its
@@ -158,7 +165,8 @@
        boxes to reach a form, and it made adding an action a different act here
        from what it is on the screen a project is created on — one plan, one
        way of writing into it (implementation.md, "Writing a project"). */}}
-  {{template "projectactions" (dict "Rows" $p.RestTree "Drafts" $d.Drafts "Today" $.Today "Form" "itemform")}}
+  {{template "projectactions" (dict "Rows" ($p.RestTree $.Today) "Drafts" $d.Drafts "Today" $.Today
+    "Form" "itemform" "Next" true)}}
 
   {{/* the same row of buttons an action's page carries, in the same order:
        save, the state changes, delete, and the way out */}}
@@ -167,15 +175,21 @@
     {{/* complete and delete both say where to go, because the project this
          screen is about is finished or gone either way — implementation.md,
          "Writing a project" */}}
-    {{/* Done is here only when there is no next action left, and then it is
+    {{/* Done is here only when the project holds nothing open, and then it is
          the only Done on the screen. A project with open work cannot be
          completed — internal/app answers ErrOpenActions — so the button was
          offering something the app refuses, and `d` had to be told which of
          two Dones it meant by whether a row was selected. One Done, and what
          it finishes is whatever is in front of you: the next action while
-         there is one, and the project once there is not (design.md,
-         "Completing a next action"). */}}
-    {{if not $d.NextAction}}
+         there is one, and the project once there is nothing left (design.md,
+         "Completing a next action").
+
+         Nothing open, not "no next action": a project whose every open action
+         is snoozed has no next action and cannot be finished either, so this
+         page carries no Done at all for as long as that is true — and `d`
+         presses nothing, which is the standing rule about a key with nothing
+         to do (keys.md). */}}
+    {{if not $p.OpenActions}}
     <form method="post" action="/project/{{$p.ID}}/complete" class="inline kb-complete">
       <input type="hidden" name="back" value="{{$d.Back}}">
       <button>Done</button>
@@ -190,7 +204,7 @@
 
   {{/* the dialog the list's rows are written in, and the one definition of a
        row it clones — the same pair the screens that create a project carry */}}
-  {{template "draftdialog" (dict "Siblings" $d.Siblings "Form" "itemform")}}
+  {{template "draftdialog" (dict "Siblings" $d.Siblings "Form" "itemform" "Next" true)}}
 
   {{end}}
 </div>

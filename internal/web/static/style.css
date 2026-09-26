@@ -526,6 +526,12 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .check { border: none; background: transparent; padding: 0 .15rem; font-size: 1rem; }
 .pick { border: none; background: transparent; color: var(--line); padding: 0 .15rem; }
 .pick.picked { color: #c88a00; }
+/* the third mark, on the rows of a project's plan only: make this the next
+   action. Pale like the unpicked dot, because it is an offer and not a state —
+   nothing in a list is ever *wearing* it, since the action it names leaves the
+   list for the boxes above it (design.md, "Project"). */
+.tonext { border: none; background: transparent; color: var(--line); padding: 0 .15rem; }
+.tonext:hover { color: var(--accent); }
 
 .stack { display: flex; flex-direction: column; gap: .5rem; max-width: var(--form-width); margin: .75rem 0; }
 .stack label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
@@ -653,10 +659,12 @@ h2.nexthead.stalled { display: inline-flex; }
    layer — so they sit in the row the way they sit in every other one, in a
    wrapper that takes no room when the line says nothing */
 .row.draft .draftbadges { display: contents; }
-/* a draft can be neither picked nor completed, so both marks' places are kept
-   and left blank: the titles line up with the saved rows above, and no mark
-   is offered that would do nothing */
+/* a draft can be neither picked, completed nor made next, so the marks' places
+   are kept and left blank: the titles line up with the saved rows above, and no
+   mark is offered that would do nothing. A snoozed or finished row in a plan
+   holds the third place open the same way */
 .row .check.gap { visibility: hidden; }
+.row .tonext.gap { visibility: hidden; }
 .row.draft.unsaved { border-color: var(--accent); }
 
 #draft-dialog {

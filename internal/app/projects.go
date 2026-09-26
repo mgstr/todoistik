@@ -85,12 +85,14 @@ func (a *App) projectRowTx(tx *sql.Tx, id int64) (*Project, error) {
 	p := &Project{}
 	var created, reviewed string
 	var completed sql.NullString
-	err := tx.QueryRow(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until, completed_at
-		FROM projects WHERE id=?`, id).
-		Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &completed)
+	var nextID sql.NullInt64
+	err := tx.QueryRow(`SELECT id, title, dod, created_at, last_reviewed_at, snooze_until,
+		next_action_id, completed_at FROM projects WHERE id=?`, id).
+		Scan(&p.ID, &p.Title, &p.DOD, &created, &reviewed, &p.SnoozeUntil, &nextID, &completed)
 	if err != nil {
 		return nil, err
 	}
+	p.NextActionID = nextID.Int64
 	p.CreatedAt = parseTS(created)
 	p.LastReviewedAt = parseTS(reviewed)
 	p.CompletedAt = parseTSPtr(completed)
@@ -285,25 +287,56 @@ func (a *App) Promote(actionID int64, f ProjectFields, actions []ActionFields) (
 	return a.CreateProject(f, actions)
 }
 
-// ProjectStateAfterComplete is what the completion flow needs to decide what
-// to ask (design.md, "Completing a next action").
-type ProjectStateAfterComplete struct {
-	Project     *Project  `json:"project"`
-	OpenActions []*Action `json:"openActions"`
-	HasNext     bool      `json:"hasNext"`
-}
-
-// ProjectState reports the project's situation for the completion prompt.
-func (a *App) ProjectState(projectID int64) (*ProjectStateAfterComplete, error) {
+// IsFinishable reports a project with nothing open left: the one state in which
+// completing it is accepted, and the one thing the completion flow has to ask
+// about after an action is ticked off (design.md, "Completing a next action").
+//
+// It is the question `CompleteProject` answers `ErrOpenActions` to, asked before
+// the press rather than after — so a screen can leave the Done off instead of
+// offering one the app refuses. It is deliberately not "has no next action":
+// those came apart when a project stopped counting every open action as one, and
+// a project waiting on a snooze has no next action and is not finishable either.
+func (a *App) IsFinishable(projectID int64) (bool, error) {
 	p, err := a.Project(projectID)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	st := &ProjectStateAfterComplete{Project: p, OpenActions: p.OpenActions()}
-	for _, act := range st.OpenActions {
-		if act.IsNext() {
-			st.HasNext = true
+	return len(p.OpenActions()) == 0, nil
+}
+
+// MakeNext points the project at one of its actions: this is the one that is
+// next, whatever the plan's order would otherwise have said (design.md,
+// "Project").
+//
+// It writes the pointing and nothing else. The previous next action loses
+// nothing — it is not restamped, not reordered and not moved in the plan —
+// because being next is the project's claim about which step is on you now and
+// not a property of the action it lands on. Which is also why there is no
+// unpointing: a project with a workable action always has a next one, and
+// changing your mind is pointing somewhere else.
+func (a *App) MakeNext(actionID int64) error {
+	return a.tx(func(tx *sql.Tx) error {
+		act, err := a.openActionTx(tx, actionID)
+		if err != nil {
+			return err
 		}
-	}
-	return st, nil
+		if act.ProjectID == 0 {
+			return errors.New("a task has no project to be the next action of")
+		}
+		before, err := a.openProjectRowTx(tx, act.ProjectID)
+		if err != nil {
+			return err
+		}
+		// the same rule the derivation reads, so the app can never be pointed
+		// at an action the page would refuse to show: a snoozed action is not
+		// workable yet, and "next" said about it would be a claim the snooze
+		// contradicts (design.md, "Time fields")
+		if !canBeNext(act, a.Today()) {
+			return errors.New("a snoozed action can not be the next action; wake it first")
+		}
+		if _, err := tx.Exec(`UPDATE projects SET next_action_id=? WHERE id=?`, actionID, act.ProjectID); err != nil {
+			return err
+		}
+		return a.audit(tx, EvEdited, "project", act.ProjectID, before)
+	})
 }

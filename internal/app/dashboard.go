@@ -581,17 +581,28 @@ func oldestAction(acts []*Action, byDelegation bool) *Action {
 
 // --- how much of Next is workable ----------------------------------------
 
-// Every action that is a next action of something and not finished — the pool
-// the "Next actions" view is the workable part of. Four states, and the view
-// shows one of them; if the other three come to outweigh it, "what can I do
-// now" has quietly stopped being a list you can act from.
+// Every open action — the pool the "Next actions" view is the workable part of.
+// Five states, and the view shows one of them; if the other four come to
+// outweigh it, "what can I do now" has quietly stopped being a list you can act
+// from.
+//
+// "Further down a plan" is the one of the five that is nobody's fault and still
+// worth counting: an action a project holds behind its next one is invisible to
+// every view that is worked from, by design, and this is the figure that says
+// how much is in that state. The order of the cases is what makes the first row
+// exactly the view's own count — a delegated or snoozed action is reported as
+// that whether or not it is also at the front of its plan.
 func (a *App) nextMix() (Dist, error) {
-	acts, err := a.loadActions(`a.became_next_at IS NOT NULL AND a.completed_at IS NULL`)
+	acts, err := a.loadActions(`a.completed_at IS NULL`)
+	if err != nil {
+		return Dist{}, err
+	}
+	next, err := a.nextActionIDs()
 	if err != nil {
 		return Dist{}, err
 	}
 	today := a.Today()
-	var workable, delegated, snoozed, blocked int
+	var workable, delegated, snoozed, blocked, behind int
 	for _, act := range acts {
 		switch {
 		case act.AssignedTo != "":
@@ -600,6 +611,8 @@ func (a *App) nextMix() (Dist, error) {
 			blocked++
 		case act.SnoozeUntil != "" && act.SnoozeUntil > today:
 			snoozed++
+		case act.ProjectID != 0 && next[act.ProjectID] != act.ID:
+			behind++
 		default:
 			workable++
 		}
@@ -613,6 +626,7 @@ func (a *App) nextMix() (Dist, error) {
 		{"waiting on someone", delegated},
 		{"snoozed until a date", snoozed},
 		{"waiting on a sibling", blocked},
+		{"further down a plan", behind},
 	} {
 		d.Rows = append(d.Rows, Bar{Label: r.label, Count: r.n, Value: fmt.Sprintf("%d", r.n)})
 	}

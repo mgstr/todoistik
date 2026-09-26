@@ -931,6 +931,10 @@
       window.location.href = doingHref(row);
     }]);
     if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+    // Only the rows of a plan carry it, and only the ones that could be next:
+    // the mark is on the row or it is not, so the bar and the key agree without
+    // either knowing what a project is.
+    if (row.querySelector("form.kb-next")) into.push([renderKey("n"), "next", function () { actOn("kb-next"); }]);
     // The mark goes both ways, so the entry says the answer this press lands
     // on rather than the name of the control — the same rule the Settings
     // screen's `h theme dark` follows (keys.md, "What is built").
@@ -1512,6 +1516,10 @@
     if (pressedIs("d", e)) return actOn("kb-complete");
     if (pressedIs("t", e)) return actOn("kb-pick");
     if (pressedIs("r", e)) return actOn("kb-review");
+    // `n` is a row's alone: there is no screen-level "make next", because what
+    // it would be about is the action already in the boxes at the top of the
+    // page (keys.md, `n`).
+    if (pressedIs("n", e)) return actOn("kb-next");
     if (pressedIs("b", e)) return leave();
     // doing is navigation, so it is bare in every mode
     if (!e.ctrlKey && keyOf(e) === "w" && canDo(row)) {

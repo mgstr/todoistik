@@ -49,7 +49,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Tasks](#tasks) — the standalone actions: no project, not yet done
   - [Next actions](#next-actions) — the working view, and what is on you to act on
   - [Today](#today) — what has run out of time, and what was picked this morning
-  - [Waiting for](#waiting-for) — next actions where the ball is in someone else's court
+  - [Waiting for](#waiting-for) — the delegated actions, where the ball is in someone else's court
   - [Calendar](#calendar) — everything with a real deadline, soonest first
   - [Archive](#archive) — the completed commitments, newest first
   - [Scheduler](#scheduler) — the schedules, ordered by when they next fire
@@ -599,10 +599,16 @@ names the title bar gives the same screen depending on which it is holding.
 The item type is untouched by any of it - an action is still an action, and
 "task" is what one with no project is called.
 
-Every action is a next action of whatever it belongs to, standalone or not:
-`becameNextActionAt` is stamped when the action is created and never cleared. An
-action that cannot be started yet says so with a snooze, which names *why* - a
-date, or the action it comes after - rather than with a state that only says
+**A standalone action is always its own next action.** It is not in a plan, so
+there is nothing it could be behind: deciding it is worth doing is the whole of
+what makes it next, and every one of them is on "Next actions" from that moment.
+This is the one place the two kinds part company - an action inside a project is
+next only while the project says it is (see "Project") - and it parts company
+because a pile of small commitments has no front. Naming one of them "the next
+task" would be inventing an order over things that have none.
+
+An action that cannot be started yet says so with a snooze, which names *why* -
+a date, or the action it comes after - rather than with a state that only says
 *not now*. The stalled project check does not apply to standalone actions.
 
 The one thing a standalone action cannot do is wait on another action, because
@@ -626,25 +632,80 @@ Project has following fields:
 A project has no due date. A deadline belongs to an action - see "Deliberate
 omissions".
 
-A next action is not a property of the project. It is a property of the action -
-see `becameNextActionAt`. A project can therefore have several next actions at
-the same time, which is what a parallel project looks like (booking the flight,
-renewing the passport and asking for time off are all available at once), while
-a sequential project simply happens to have one.
-
 Projects and standalone actions together are every commitment in the app. An
 action either sits under a project or is standalone; there is no third place,
 and nothing is loose.
 
+#### The next action is one, and it is chosen
+**A project has exactly one next action, or none.** It is the step that is on
+you now, and it is what the project contributes to "Next actions" - one line
+there, never a list. A project that put every available step on that view would
+be answering *what do I do next* with a plan, and the answer to that question
+has to be a thing you can start, not a set to choose from. Several projects each
+offering their one step is a list you read down; several projects each offering
+four is the same pile the inbox is, arriving in the one view that is supposed to
+be worked from.
+
+This is a change of mind, and what it gives up is worth naming: a project can no
+longer show a parallel plan as several simultaneously available actions (booking
+the flight, renewing the passport and asking for time off all at once). The plan
+still holds all three, and any of them can be made the next one in a keystroke -
+what is gone is all three being *next* together. A plan is still parallel; what
+is serial is the attention paid to it, which is the honest half.
+
+**Which one it is, is a choice and not an order.** The order actions were
+written in is not a claim about which matters now - the order of a plan is what
+came out of thinking about the outcome, and which step to take today is a
+different question, asked on a different day. So one of them is pointed at, with
+`n` on its row (keys.md), and the pointing stands until it is pointed somewhere
+else. Nothing else about the plan is disturbed by it: the order stays as it was
+written, because the plan is a record of thinking and not a queue.
+
+- **until something is pointed at, the plan's own order answers.** The first
+  open, workable action in the list is the next one, which is what a project
+  created a minute ago has without anybody deciding anything - and a project
+  whose next action has just been completed likewise. Nothing has to be chosen
+  for a project to have a next action, or the choosing would be a tax on
+  finishing things.
+- **a snoozed action is never the next one.** It cannot be started, and being
+  next is a claim that it can - so the mark is not offered on a snoozed row, and
+  a pointing is dropped for as long as the action it names is asleep. It comes
+  back when the action does: the pointing is remembered, and what it *means* is
+  worked out afresh every time the project is read, because a snooze runs out
+  with the calendar and nothing is written down when it does.
+- **a waiting for action can be the next one.** The next move on the project
+  really is somebody else's, and saying so is what keeps a delegated project out
+  of the stalled check. It does not appear in "Next actions" - nothing waiting on
+  someone else does - so such a project is one that shows up in "Waiting for"
+  and nowhere else, which is exactly what is true of it.
+- **an action further down the plan is in no view that is worked from**, and
+  that is the cost of one-per-project. What answers it is the weekly review,
+  which walks every open action and not only the ones at the front (step 5), and
+  the dashboard, which counts how many are sitting behind one ("How much of Next
+  is workable"). Without both of those this rule would be a way of losing work
+  quietly, which is the one thing this document is built against.
+
 #### Stalled projects
-An active project is stalled when it has no next action.
+An active project is stalled when it holds no open action at all.
 
 This is the single most common way things silently die: the project stays
 visible, looks alive, and nothing ever moves. Catching it is the highest value
 check in the app, and it costs nothing - it is derived, never stored.
 
+**Nothing open, and not "no next action" - the two are no longer the same
+sentence.** They were while every available step counted as a next action; now a
+project can have work in hand and nothing that is next, and the distinction is
+the whole point of the check. A project whose every open action is snoozed is
+*waiting* - on a date, or on a sibling that is itself open - and waiting is a
+plan. Stalled is the absence of one. Shouting at a project that is waiting would
+teach you to ignore the colour, which costs the check the only thing it has.
+
 - a project is exempt while it is snoozed, and once it is completed
-- a project whose only next action is a waiting for action is **not** stalled
+- a project whose only open actions are snoozed is **not** stalled. Its next
+  action field is empty, and that is a different fact, said in a different place:
+  the boxes on its page stand empty and unmarked, offering a step that could be
+  done now to whoever wants to write one
+- a project whose next action is a waiting for action is **not** stalled
 - the check applies to projects only. Standalone actions are not covered by it,
   and neither is the Tasks view - see "Tasks"
 
@@ -655,7 +716,11 @@ they are not something only the weekly review surfaces.
 **On the project's own page the mark is over the empty box the next action goes
 in, not across the top.** That box is where the missing next action is written,
 so that is where the app says it is missing - the same rule the error state
-follows, which marks the field it is about. A banner over the whole screen was
+follows, which marks the field it is about. The mark asks the project and not
+the box, since an empty box is no longer proof of a stall: the project that is
+waiting on a snooze has the same empty box and no mark on it.
+
+A banner over the whole screen was
 louder without being clearer: it shouted at a page you had opened *because* you
 already knew, and it said in a sentence what a mark by the box says by being
 there. It was on the heading of the action list while the missing action was a
@@ -685,18 +750,27 @@ Time related fields, and the items each one applies to:
   creation counts as its first review, and the field is never empty. It drives
   the weekly review: it shows what has already been walked through and what is
   still outstanding, which is what makes an interrupted review resumable
-- becameNextActionAt: (required, actions only) when the action became a next
-  action, which is when it was created - every action is one, and there is no
-  state in which it is not (see "Standalone actions"). A **real** next action is
-  one whose `completedAt` is still empty. The field doubles as the age of the
-  next action, which is what shows an action that has been next for a long time
-  without moving, and for actions with "assigned to" set it is also the
-  delegation date. Because it is also the delegation date, changing "assigned
-  to" restamps it: delegating an action starts a new clock - you stopped waiting
-  on yourself and started waiting on them - and taking an action back restamps
-  it again for the same reason in reverse. Without the restamp, an action that
-  had been next for three weeks and was then delegated would look three weeks
-  stale in the "Waiting for" view on day one.
+- becameNextActionAt: (required, actions only) when the action became available
+  to be worked on, which is when it was created. It is the age the working views
+  sort and count by: how long this has been there to be done and has not been
+  done, which is what shows an action going stale.
+
+  **It is not restamped when the action becomes the one a project points at**,
+  and that is deliberate rather than an omission. An action that has sat in a
+  plan for three weeks and is pointed at this morning has been waiting three
+  weeks, and resetting its clock would hide exactly the thing the number exists
+  to show - step 5 of the weekly review goes looking for actions that have been
+  available for a long time without moving, and a clock that restarted every time
+  attention moved would answer that question with "all of them are new". The
+  field says how long the work has been waiting, never how long the decision has
+  stood.
+
+  For actions with "assigned to" set it is also the delegation date, and that is
+  the one thing that does restamp it: delegating an action starts a new clock -
+  you stopped waiting on yourself and started waiting on them - and taking an
+  action back restamps it again for the same reason in reverse. Without the
+  restamp, an action that had been waiting three weeks and was then delegated
+  would look three weeks stale in the "Waiting for" view on day one.
 - snoozeUntil: (optional, projects and actions) marks the item as not yet ready
   to be worked on, until that date passes
 - snoozeOnAction: (optional, **actions only**) the action of the same project
@@ -797,8 +871,9 @@ the app can watch.
 - **refusing rings is also what keeps the check honest.** With none of them
   possible the waiting graph is a forest, so every chain ends at an action
   waiting on nothing - which means a project with open actions always has at
-  least one that can actually be started. That is why a waiting action can count
-  as a next action for the stalled check without the check losing its meaning.
+  least one that can eventually be started. That is why an action waiting on a
+  sibling can count as work in hand for the stalled check without the check
+  losing its meaning.
 
 A snoozed item is **not hidden** where what it belongs to is read. A snoozed
 action stays in its project's action list, shown differently to say that it is
@@ -809,12 +884,17 @@ it is not. The same holds for a snoozed project in the projects list.
 
 What a snooze actually does:
 - a snoozed **project** is exempt from the stalled project check
-- a snoozed **action** still counts as a next action of its project, so
+- a snoozed **action** still counts as work its project has in hand, so
   deferring a single action does not make the whole project look stalled. The
   stalled project check knows about snoozed actions. This is the same exemption
   a waiting for action gets, and for the same reason. An action waiting on a
   sibling counts the same way, and safely: the sibling it waits on is itself
   open, so the project has a move available
+- a snoozed **action** can not be what its project points at as next. Counting
+  against the stalled check and being the next action came apart here, and the
+  two readings are both right: the project has something in hand, and none of it
+  can be started today. So a project holding nothing but snoozed actions is not
+  stalled *and* has an empty next action field - see "Stalled projects"
 - a snoozed **action** is left out of the "Next actions" view, and out of that
   view only - whichever half of the snooze it carries. That view answers "what
   do I do next", and an action that cannot be done yet is not an answer to that
@@ -1106,11 +1186,11 @@ The known cases:
     that *create* one the DOD is required and the create button is simply dead
     until it is there, so a form that opened already marked would be shouting
     about the state every new project starts in.
-- "assigned to" set while `becameNextActionAt` is empty. A waiting for action
-  that is not a next action would appear in no view and silently disappear. The
-  normal flows cannot produce this - setting "assigned to" restamps
-  `becameNextActionAt` - so this state means data got in past the normal flows,
-  and it is flagged rather than reinterpreted.
+- "assigned to" set while `becameNextActionAt` is empty. A delegated action with
+  no clock on it has no age in "Waiting for", which is the one number that view
+  is read for. The normal flows cannot produce this - setting "assigned to"
+  restamps `becameNextActionAt` - so this state means data got in past the normal
+  flows, and it is flagged rather than reinterpreted.
 
 Such a state is not silently resolved by letting one field win over the other -
 that would hide the mistake instead of the item. The app makes an effort to
@@ -2093,12 +2173,21 @@ review. Tasks needs no review step of its own.
 
 ### Next actions
 The main working view, and the one the app is used from day to day: the actions
-that are on you to act on. `becameNextActionAt` is set, `completedAt` is empty
-and "assigned to" is empty. Actions inside a project and standalone ones appear
-side by side - what matters here is that they are next, not where they live.
+that are on you to act on. `completedAt` is empty, "assigned to" is empty, and
+the action is either standalone or the one its project points at as next.
+Actions inside a project and standalone ones appear side by side - what matters
+here is that they are next, not where they live.
 
-Note the distinction in naming. A waiting for action is still a next action of
-its project - that is what keeps a delegated project from counting as stalled -
+**One line per project, and every standalone action.** A project offers the one
+step that is on you now (see "Project"); a task is not in a plan and so is always
+its own next action. This is what keeps the view a list to work down rather than
+a list to choose within: a dozen projects each putting four available steps here
+would answer "what do I do next" with forty-eight answers, which is the pile the
+inbox already is. The rest of each plan is one keystroke away on the project's
+page, where changing which step is next is also one keystroke (keys.md).
+
+Note the distinction in naming. A waiting for action can be what its project
+points at - that is what keeps a delegated project from counting as stalled -
 but it does not appear in this view, because this view is only the actions that
 are yours to act on.
 
@@ -2106,8 +2195,8 @@ Snoozed actions do **not** appear here, and this is the one view they are left
 out of. The question is "what do I do next", and an action that is snoozed
 cannot be done yet - it is not an answer to it. They are not hidden anywhere
 else: they still appear in their project's action list and in Tasks, they still
-count as a next action of their project for the stalled project check, and the
-weekly review still walks them - see "Time fields".
+count as work in hand for the stalled project check, and the weekly review still
+walks them - see "Time fields".
 
 There is no separate "what can I do right now" screen. It was this same query
 with a few filters applied, and a second view that can quietly disagree with the
@@ -2157,11 +2246,13 @@ and it is never named or saved (see "Deliberate omissions").
 The results are sorted by one of:
 
 - **title** - alphabetical, ascending or descending
-- **age** - `becameNextActionAt`, how long the action has been next. Not the
-  creation date: what is worth seeing is how long something has been available
-  to be done and has not been done. Reversible as well
+- **age** - `becameNextActionAt`, how long the action has been available to be
+  done and has not been done. Not how long it has been the one its project points
+  at, which would restart the clock on an old action the moment it was pointed at
+  and hide the very thing being looked for - see "Time fields". Reversible as
+  well
 
-Default is age, oldest first. An action that has been next for weeks without
+Default is age, oldest first. An action that has been available for weeks without
 moving is the thing this view should push under your nose, and it is the same
 signal step 5 of the weekly review goes looking for.
 
@@ -2203,14 +2294,19 @@ Today has no review step. Everything in it is walked already, as part of a
 project, as a next action or as a waiting for item.
 
 ### Waiting for
-Every next action with a non-empty "assigned to" field: commitments that are
+Every open action with a non-empty "assigned to" field: commitments that are
 still tracked, but where the ball is not in your court.
 This covers people (delegated to somebody) as well as things (an order placed, a
 form submitted, a PR awaiting CI).
 
+Every one of them, and not only the ones their projects point at as next: this
+view is the complete answer to "what have I handed off", and a delegated action
+that showed up nowhere because its project is currently pointing at another step
+would be the silent death this whole document is built against.
+
 Rules:
-- a waiting for action is still a next action, so a project whose only next
-  action is a waiting for one is **not** stalled
+- a waiting for action can be what its project points at, so a project whose
+  only open action is a delegated one is **not** stalled
 - it is excluded from the "Next actions" view, since it cannot be acted upon
 - its age comes from `becameNextActionAt`, which for these items is the
   delegation date
@@ -2469,12 +2565,15 @@ which is the question being asked.
   no such record anywhere - a review's progress lives on each item's own
   `lastReviewedAt` (see "Weekly review") - so what it says is when one was last
   being done, which is true and is nearly the same news
-- **How much of Next is workable** - the "Next actions" count against everything
-  that is a next action of something: what is workable now, what is waiting on a
-  person, what is snoozed until a date, and what is waiting on a sibling. If the
-  three grow past the first, "what can I do now?" has quietly stopped being a
-  list you can act from, and the view itself cannot say so because it is the
-  part that is still fine
+- **How much of Next is workable** - the "Next actions" count against every open
+  action there is: what is workable now, what is waiting on a person, what is
+  snoozed until a date, what is waiting on a sibling, and what is sitting further
+  down a plan behind the step its project points at. If the four grow past the
+  first, "what can I do now?" has quietly stopped being a list you can act from,
+  and the view itself cannot say so because it is the part that is still fine.
+  The last of the five is the number one-per-project owes the screen: those
+  actions are in no view that is worked from, by design (see "Project"), and this
+  is the one place that says how many of them there are
 - **The oldest thing in each view** - one row per view, the item in it that has
   waited longest, as a link. This is "Nothing dies silently" made into a screen:
   everything else here is something to know and this is something to go and fix
@@ -2698,9 +2797,12 @@ and body and all, and that is what the audit entry keeps.
   already under way. **Which plan is asked first**, on a screen of its own, and
   the same form then opens with the project answered. The action is created
   under that project, following the same default as adding an action from the
-  project itself: it becomes the project's next action, and whether it waits on
-  one of that project's other actions is settled afterwards, on its own page
-  (see "Editing items").
+  project itself: it joins the end of the plan, and becomes the project's next
+  action only if that project had none - filing a step into a stalled project is
+  exactly what resolves the stall. Making it the next action of a project that
+  already has one is a separate press, on the project's page, because it is a
+  separate decision (see "Project"). Whether it waits on one of that project's
+  other actions is settled afterwards, on its own page (see "Editing items").
   - **the picker offers the active projects, and nothing else.** A stalled or
     snoozed project is a valid target: filing a next action into a stalled
     project is exactly what resolves the stall, and a project's snooze is about
@@ -2777,12 +2879,12 @@ and body and all, and that is what the audit entry keeps.
     an action is written in anywhere else (see "Writing a project"), and the
     list can be reordered and pruned before the project is made - what is being
     decided here is the shape of the plan, and a plan is not written in the
-    order it occurs to you. Every one of them becomes a next action, and none
-    can be written waiting on another: there are no actions to name until the
-    project exists, so the ordering inside the plan is written a moment later
-    (see "Writing a project"). Delegation is carried by each action's own meta
-    line, because a delegated action belongs to a project exactly as validly as
-    one you will do yourself
+    order it occurs to you. The first of them is the project's next action,
+    being the first of the plan, and none can be written waiting on another:
+    there are no actions to name until the project exists, so the ordering
+    inside the plan is written a moment later (see "Writing a project").
+    Delegation is carried by each action's own meta line, because a delegated
+    action belongs to a project exactly as validly as one you will do yourself
 - **Someday/Maybe**: worth looking at some time, but not now. The item becomes a
   someday/maybe item, still unclarified, and the answer is written on a form of
   its own: the **text**, which may be reworded to formulate the idea more
@@ -2991,8 +3093,9 @@ remember it, which is the thing the app exists not to require.
   in a capture, it is the definition of done you wrote for this outcome and then
   met. It is still a box on a form and still edited by hand
 - **the completed steps come with it.** What a finished plan turned out to be is
-  most of what makes it worth copying, and a project is created here with every
-  action a next action, exactly as the Project branch always creates one
+  most of what makes it worth copying, and a project is created here with the
+  first of its actions as the next one, exactly as the Project branch always
+  creates one
 - **what the capture itself carried is not lost.** Its body goes under the
   copied description rather than instead of it: both were written about this
   job, and dropping either would drop it invisibly, which is the failure the
@@ -3069,10 +3172,14 @@ its own row.
 Completing a next action is the moment with the most context about what comes
 next, so the project is checked right there:
 
-- there are still open actions, and at least one of them is marked as a next
-  action - nothing is asked, the completion is accepted silently
-- there are still open actions, but none of them is marked as a next action -
-  ask to mark one of them as the next action
+- there are still open actions, and the project has a next action again -
+  nothing is asked, the completion is accepted silently. The field fills itself
+  from the plan, which is what makes working a project down a run of one key
+  rather than a decision per step (see "Project")
+- there are still open actions, but every one of them is snoozed - nothing is
+  asked either. The project is waiting on a date or on a sibling, which is not
+  something to decide now, and it is not stalled. Its next action field stands
+  empty until the first of them wakes up
 - there are no open actions left - ask whether to complete the project, showing
   the DOD for reference, or to create a next action
 - in that last case, doing nothing is always allowed. If there is no time or
@@ -3127,9 +3234,18 @@ neither of them answered "which one do I press".
    without a DOD, are fixed. Snoozed projects are walked too - the snooze date
    is one of the things being asked about.
 5. **Next actions** - still valid, still a real physical next action? An action
-   that has been next for weeks without moving usually means the action is
+   that has been available for weeks without moving usually means the action is
    phrased wrong, not that you are lazy. Standalone actions are covered here,
    since every one of them is a next action.
+
+   **This step walks every open action of yours, not only the ones the views
+   show.** It is the pool the "Next actions" view is the workable part of: the
+   snoozed ones, because a snooze date is a claim about the future and this is
+   the only place a wrong one is caught, and the ones sitting further down a plan
+   behind the step their project points at, because those are in no view that is
+   worked from and this is therefore the only place their wording is ever read
+   again. One-per-project is safe because of this step; without it, the rest of
+   every plan would be somewhere things rot quietly (see "Project").
 6. **Someday/Maybe** - is this still worth keeping, and is it still about what
    it says? An idea that has become live, and one that is dead, leave the same
    way: back to the inbox, to be answered there. This step runs on its own,
@@ -3208,12 +3324,22 @@ the weekly review asks about, so it needs the room a list does not have.
 **A project's next action is open on its page, never a row to be pressed.** A
 project is opened to answer one question - what moves this forward - and the
 answer was a line you had to open something to read, so the commonest reason to
-open a project cost a second screen before it told you anything. The action at
-the head of the plan is therefore shown as its own three fields, and the list
-below holds everything after it. Which action that is, is the plan's own answer:
-the first open one in the order the list is drawn, since a project may have
-several next actions at once and the plan's order is what says which of them is
-at the front.
+open a project cost a second screen before it told you anything. The project's
+next action is therefore shown as its own three fields, and the list below holds
+everything else in the plan. Which action that is, is what the project has been
+pointed at, and the plan's own order only where it has been pointed at nothing
+(see "Project").
+
+- **any row of that list can be made the next action, in one press.** `n` on the
+  row, and it changes places with whatever was in the boxes - the list is where
+  the plan is read, so it is where the choosing happens, and the answer is
+  visible in the same glance because what was chosen is now in the boxes above.
+  This is also why the mark is here and nowhere else: being next is a fact about
+  one project's work, and a press in a view that does not show the project would
+  change something you cannot see from where you are standing.
+- **the mark is not offered on a snoozed row**, which is the rule rather than a
+  detail of the screen: a snoozed action cannot be started, and next is a claim
+  that it can (see "Time fields").
 
 - **the page has one Save, and it writes both.** The project and that action are
   one screen and are saved in one press, because they are read as one thing: an
@@ -3230,19 +3356,26 @@ at the front.
   one of the two things the screen is about, not a line in a list that happens
   to be on it.
 - **Done on this page means finish what is in front of you.** The next action
-  while there is one, and the project once there is not - so completing the last
-  action does not change which key to press, only what that press finishes.
-  There is never a choice of two Dones here: a project with open work cannot be
-  completed at all, so while it has a next action its own Done is not on the
-  screen, and once it has none that Done is the only one left. Each press hands
-  the following action to the field, which is the whole shape of working a
-  project down - see "Completing a next action".
+  while there is one, and the project once there is nothing left - so completing
+  the last action does not change which key to press, only what that press
+  finishes. There is never a choice of two Dones here: a project with open work
+  cannot be completed at all, so while it has a next action its own Done is not
+  on the screen, and once it holds nothing open that Done is the only one left.
+  Each press hands the following action to the field, which is the whole shape of
+  working a project down - see "Completing a next action".
+  - **and on the project that is waiting, there is no Done at all.** Every open
+    action snoozed means there is no action to finish and no project that may be
+    finished either, so the page offers neither and the key presses nothing. A
+    Done that was refused on being pressed would be worse than one that is not
+    there (see "Stalled projects").
 - **on a project with no next action the boxes are empty, and writing in them
   makes one.** This is the same act as adding an action, arrived at from the
   direction of the thing that is missing: a stalled project opens with an empty
   box where its next action goes, and filling it in resolves the stall. Leaving
   it empty is still a save - the app never forces a next action to be invented
-  (see "Stalled projects").
+  (see "Stalled projects"). The project that is only waiting opens the same way,
+  and for it the empty box is an offer rather than a complaint: a step that can
+  be done now, written beside a plan that currently cannot be.
 - **the project's tags can be put on that action in one press.** A third mark on
   the heading, beside the two above, and it writes the action's meta line rather
   than saving anything: what the project is tagged with is very often what its
@@ -3391,15 +3524,23 @@ the screen behind them.
 
 Rules:
 
-- **an action added to a project is a next action**, and saying otherwise means
-  naming what it waits on. The default is deliberate, because the costs are
-  asymmetric: an action wrongly held back is invisible to "Next actions" - it
-  silently dies, which is the failure mode this whole document is built against -
-  while a wrongly available one merely turns up in the working view, where it is
-  seen and dealt with. So holding one back is the deliberate act, and it is the
-  one that has to be performed. What makes it safe is that it cannot be
-  performed vaguely: it names a date or a sibling, either of which the app can
-  watch and wake it on (see "Time fields")
+- **an action added to a project is workable**, and saying otherwise means naming
+  what it waits on. It joins the plan available rather than held back, and the
+  default is deliberate because the costs are asymmetric: an action wrongly held
+  back is one the app will not offer you even when its project's turn comes,
+  while a wrongly available one is a candidate for a keystroke that is already a
+  choice. So holding one back is the deliberate act, and it is the one that has
+  to be performed. What makes it safe is that it cannot be performed vaguely: it
+  names a date or a sibling, either of which the app can watch and wake it on
+  (see "Time fields")
+- **and it is not made the next action of a project that already has one.**
+  Which step is on you now is a decision, and a step written down while planning
+  is not a claim to have made it - an action added to the end of a plan taking
+  the front of it would quietly change what the app says you should be doing
+  because you thought of something. A project with *no* next action is the
+  exception, and the only one: there the new action takes the field, because an
+  empty field asking to be filled is precisely what was just answered (see
+  "Project")
 - **removing an obsolete action is deleting it**, which is how any action that
   is not completed gets resolved (see "Completion"). It is audited and
   recoverable. Deleting the last open action of a project is allowed, and leaves
@@ -3413,8 +3554,8 @@ Rules:
   "Inbox Zero"), with one asymmetry: the title is still required and still has
   to be a reference to the outcome, but an existing project may be left without
   a DOD and without any action. Neither is prevented, both are marked loudly
-  instead - no DOD is an error state, no next action is stalled. Requiring them
-  at creation is not the same demand: Inbox Zero is the deliberate act of
+  instead - no DOD is an error state, and nothing open at all is stalled.
+  Requiring them at creation is not the same demand: Inbox Zero is the act of
   deciding what a thing is, and that is the moment those answers are cheapest
   and most honest
 
@@ -3435,9 +3576,12 @@ about the project. Nothing leaves a project into limbo.
 **Attach** - the mirror of Detach: a standalone action joins an existing active
 project, picked the same way the Action branch of Inbox Zero picks one
 (see "Inbox Zero"). It keeps its title, context, duration, tags, description and
-dates unchanged, including `becameNextActionAt` - a standalone action is always
-a next action, and it stays exactly as next as it already was, simply under a
-project now. Used when an action was filed standalone and later turns out to
+dates unchanged, including `becameNextActionAt` - the clock counts how long the
+work has been waiting, and joining a plan does not change that. What does change
+is that it is now in a plan and a plan has a front: an action that was its own
+next action becomes the project's next one only if that project had none, and
+otherwise joins the end of the plan behind the step already chosen (see
+"Project"). Used when an action was filed standalone and later turns out to
 belong to a project - either because it was captured before the project existed,
 or because it should have been filed under it from the start.
 
@@ -3453,7 +3597,7 @@ the action:
   description carries over to the first action, since a project has no
   description of its own (see "Deliberate omissions")
 - a DOD is required
-- at least one action is required, which becomes the next action
+- at least one action is required, the first of which becomes the next action
 
 An action that belongs to a project and should become a project of its own is
 first detached, then promoted.

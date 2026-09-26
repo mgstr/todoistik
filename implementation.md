@@ -44,7 +44,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [The remembered lists](#the-remembered-lists) — the Settings page, where a name is learned and unlearned
 - [Interface density](#interface-density) — progressive disclosure on the filter controls, never on the rows
   - [The Next view's controls are a line, not a panel](#the-next-views-controls-are-a-line-not-a-panel) — the widest panel replaced by a typed line
-  - [The Next view drops snoozed actions in the query](#the-next-view-drops-snoozed-actions-in-the-query) — one function, so no count disagrees with its list
+  - [What the Next view leaves out, it leaves out in the query](#what-the-next-view-leaves-out-it-leaves-out-in-the-query) — one function, so no count disagrees with its list
   - [A field's name sits beside its box, not above it](#a-fields-name-sits-beside-its-box-not-above-it) — the label moves into a gutter and buys back height
   - [A box is as wide as the form, and as tall as what is in it](#a-box-is-as-wide-as-the-form-and-as-tall-as-what-is-in-it) — 48rem, and a box that grows with its content
 - [Token boxes](#token-boxes) — the filter line and the three meta lines are one control
@@ -851,7 +851,7 @@ outside it, and neither of those can decide anything.
   or an inbox item's or an idea's first line, and the one date the view is
   about. That is the due date for an open action, when it next fires for a
   schedule, and nothing for the archive, where a deadline is history. A project
-  with no next action says `stalled`, the one mark a list may never drop
+  holding nothing open says `stalled`, the one mark a list may never drop
   (design.md, "Stalled projects"). Descriptions, tags and ages are not shown: a
   list on a phone is scanned, and what an item holds besides is read at the
   desk
@@ -2435,7 +2435,7 @@ boxes" for how it is built, and design.md, "The filter line" for why.
   on every row whether or not it is about to be used. No direction chosen yet
   — noted here so it is not lost
 
-### The Next view drops snoozed actions in the query
+### What the Next view leaves out, it leaves out in the query
 
 - **the filter lives in `NextActions`, not in the handler or the template.**
   The view, the nav badge and the read API's `next` all read that one
@@ -2443,16 +2443,32 @@ boxes" for how it is built, and design.md, "The filter line" for why.
   the list it counts — which is the disagreement design.md, "Next actions"
   exists to prevent. It tests with `Action.IsSnoozed`, the same one the row
   styling uses, so "snoozed" keeps a single definition
-- **the weekly review calls `NextActionsWithSnoozed` instead.** Step 5 has to
-  walk the snoozed ones — their date is one of the claims being checked
-  (design.md, "Weekly review") — and a step built on the view's query would
-  have quietly stopped asking about exactly the items whose dates go stale
-  unnoticed. The step's count was never built on that query: `ReviewCounts` is
-  its own SQL and already counts them, so the count and the list still agree
-- **nothing else moved.** The stalled project check has its own opinion of
-  what a next action is (design.md: a snoozed action still counts as one),
-  Tasks and the project page still list them, and the `zzz until` badge and
-  the dimmed row stay exactly as they are for every view that still shows one
+- **the same function drops the actions that are not their project's next one**,
+  by the same argument: one place decides what the view is, so the badge cannot
+  count rows the list does not draw. It cannot be a WHERE clause — what a next
+  action is is a pointing where that still stands and a walk of the plan's tree
+  where it does not (see `Project.NextAction`) — so `nextActionIDs` derives one
+  id per active project and the query filters against that map. A standalone
+  action skips the test: there is no plan for it to be at the front of
+- **that map costs a read of every active project and its actions**, which is
+  the honest price of the answer being derived rather than stored, and is
+  nothing at this size. What it buys is that a snooze running out needs no
+  write anywhere: the morning an action wakes up, its project has a next action
+  again because the question was asked that morning
+- **the weekly review calls `NextActionsWithSnoozed` instead**, which is now the
+  whole pool rather than the same query with one filter lifted: every open
+  action that is yours, snoozed or not, at the front of its plan or behind it.
+  Step 5 has to walk the snoozed ones — their date is one of the claims being
+  checked (design.md, "Weekly review") — and it has to walk the ones further
+  down a plan, which are in no view that is worked from and would otherwise be
+  read again by nobody. The step's count was never built on the view's query:
+  `ReviewCounts` is its own SQL over the same pool, so the count and the list
+  still agree
+- **nothing else moved.** The stalled project check has its own opinion, and it
+  is now plainly a different one (design.md: a snoozed action is work in hand
+  and is not what is next), Tasks and the project page still list them, and the
+  `zzz until` badge and the dimmed row stay exactly as they are for every view
+  that still shows one
 
 ### A field's name sits beside its box, not above it
 
@@ -2840,6 +2856,26 @@ per-view one.
   an empty column with nothing between it and the words. In front of the
   checkbox it reads as what it is: the two things you do to a row, together, and
   a colour that scans straight down the list before any title is read
+- **the third mark is `↑`, and only one list has it.** On the rows of a
+  project's plan it makes that action the project's next one, which is a
+  `kb-next` form posting `/action/{id}/next` (design.md, "Project"). The
+  template takes a `Next` flag for it, so the mark exists where there is a
+  project for it to mean something and nowhere else: every other list in the app
+  is an answer to a question, and pressing it there would change a project you
+  cannot see from where you are standing. It reads `↑` because the action goes
+  *up*, into the boxes at the top of that page — the only place in the app where
+  being next is visible at all
+  - **a row that cannot take it keeps the place and offers nothing.** A snoozed
+    or completed row draws `span.tonext.gap`, hidden like the pick dot's gap,
+    and so does `draftrow` on that one screen: the titles stay in one column,
+    and the key bar cannot advertise `n` on a row whose form is not there. Which
+    is also the whole of how the eligibility rule reaches the keyboard — the
+    server draws the mark or it does not, and `canBeNext` is the one thing that
+    decides
+  - **nothing in a list ever *wears* it**, unlike the pick dot: the action that
+    is next has left the list for the boxes above it, so the mark is always an
+    offer and never a state. That is why it is one glyph with no filled variant
+    and no `aria-pressed`
 - **the "Out of time" rows carry no pick at all** — design.md, "Today" says why.
   It is dropped from the row rather than drawn disabled, and `t` goes with it:
   the key bar builds itself from the forms a row actually has, so that row
@@ -4345,7 +4381,8 @@ without a second copy of the fields (see "Writing a project"): `Prefix` goes in
 front of every name, because a project form already owns `title` and `meta`;
 `Form` names the form the boxes belong to when they do not sit inside it; and
 `Required` says whether a title has to be there, which it does not for the
-empty next action of a stalled project.
+empty boxes of a project with no next action — one that is stalled, or one
+whose every open action is asleep.
 
 - **adding a *further* action to a project is the dialog, on the page.** The
   first is not added at all — it is the boxes the page already carries under
@@ -4458,7 +4495,7 @@ empty next action of a stalled project.
   `Undone` the one form on these screens that carries no destination, which
   is what "Reading a completed item" says of it
 - **the project ask carries the destination on.** When the completion leaves
-  the project with no next action, the redirect to `/project/{id}` adds
+  the project with nothing open, the redirect to `/project/{id}` adds
   `?from=` the `back` that was posted, so the screen asking the question hands
   the way out along and Back there still reaches the view the action was opened
   from. Without it the chain broke at the ask: a project's page reads its Back
@@ -4774,16 +4811,43 @@ keep true, and every drift between them was a difference about whether the
 project existed yet rather than about what a project is (design.md, "Writing a
 project").
 
-- **which action is open is `Project.NextAction`** — the first open one in
-  `ActionTree` order, nil when there is none. A domain question, so it is
-  answered in internal/app: a project may have several next actions at once
-  (design.md, "Project"), and which of them is at the head is the plan's
-  answer, not the page's
+- **which action is open is `Project.NextAction`** — the action the project's
+  `next_action_id` names while that action is open and awake, and otherwise the
+  first open, unsnoozed one in `ActionTree` order. Nil when there is none. A
+  domain question, so it is answered in internal/app rather than by the page: a
+  project has one next action (design.md, "Project"), and which one it is is the
+  project's own answer
+  - **the pointing is stored and the answer is derived, and the two are not the
+    same thing.** `next_action_id` is nullable, null meaning nobody has pointed;
+    the method reads it, checks it can still be next, and falls through to the
+    plan when it cannot. That is what makes a date snooze running out need no
+    write: nothing happens at midnight, and the next read of the project simply
+    answers differently. A stored answer would have had to be fixed up by every
+    completion and every edit that touches a snooze, and the one case nothing
+    can hook is the one that happens by itself
+  - **`ON DELETE SET NULL`, like `snooze_action_id`.** Deleting the action a
+    project points at is one of the ways it stops having a next one, and the
+    column says so rather than leaving a dangling id for the derivation to step
+    over. Detaching leaves the id in place and harmless — the action is no
+    longer among `p.Actions`, so the pointing matches nothing and the plan
+    answers
+  - **`canBeNext` is the one definition of eligible**, read by the derivation
+    and by `MakeNext` before it writes. Two copies would have let a row offer a
+    mark the writer refuses, or the reverse
+- **`MakeNext` writes the pointing and touches nothing else.** No restamp of
+  `became_next_at` on either action, no reordering of the plan: being next is
+  the project's claim about which step is on you now, and the clock on an action
+  is how long the work has been waiting (design.md, "Time fields"). It refuses a
+  task — there is no project to be next of — and a snoozed action, and it audits
+  the project with the row as it was, which is what makes the previous pointing
+  recoverable
 - **the list under it is `Project.RestTree`**, which is the same walk with that
   one row left out and the depths untouched. What waited on the next action
   stays one level in, because what it is indented under is directly above the
   list — re-rooting those rows would draw them as waiting on nothing, which is
-  the one thing the shape exists to say
+  the one thing the shape exists to say. It takes `today` for the same reason
+  `NextAction` does, and the template passes `$.Today`: which row is lifted out
+  is a question about a snooze, and a snooze is a question about the date
 - **the plan's list is one `<ul>` with both kinds of row in it.** The saved
   ones are `actionrow`, drawn from `RestTree`; the unsaved ones follow as
   `draftrow`. One list, because its order is the plan's order and a second list
@@ -4829,15 +4893,22 @@ project").
   and `t` did nothing on this page until the heading had been walked onto,
   which is a cursor move demanded before the one action the page exists to show
   you can be ticked off
-- **the project's own Done is drawn only when there is no next action**, and
-  that is the same condition `internal/app` enforces: `CompleteProject` answers
+- **the project's own Done is drawn only when `OpenActions` is empty**, which is
+  the same condition `internal/app` enforces: `CompleteProject` answers
   `ErrOpenActions` while any action is open, so the button spent most of its
   life offering something the app refuses. Dropped rather than disabled, which
   is what the list rows already do with the marks a completed action cannot
-  press. It leaves exactly one Done on the page at any moment — the action's
-  while there is one, the project's once there is not — so `d` needs no rule to
-  tell two of them apart and `screenForm`'s document order settles it anyway:
+  press. It leaves at most one Done on the page at any moment — the action's
+  while there is one, the project's once nothing is open — so `d` needs no rule
+  to tell two of them apart and `screenForm`'s document order settles it anyway:
   the subject row comes before the button bar
+  - **`OpenActions` and not `NextAction`, and that is the whole of the change
+    here.** They were the same test while every open action was a next action.
+    Now a project can hold nothing but snoozed work, and it has no next action
+    to complete *and* may not be completed itself: the page then carries neither
+    Done, and `d` presses nothing. Asking `NextAction` would have drawn the
+    project's Done there and had the app refuse the press — a button that lies
+    about what it does being strictly worse than one that is absent (keys.md)
 - **one Save, and `projectUpdate` writes all of it.** It reads the project's
   fields, the open action's and every row's before writing any of them, so a
   meta line the app cannot read refuses the whole press rather than keeping the
@@ -4944,6 +5015,12 @@ project").
   here" every time the last next action was completed. `.nexthead` carries that
   padding and its answering negative margin at all times, for the same reason:
   selecting the row must paint it without moving the word
+  - **the ring asks `$p.Stalled` and not the empty branch it is drawn in.** The
+    two used to be the same question; a project whose every open action is
+    snoozed now reaches this branch and must not be ringed, being a project that
+    is waiting rather than one that is stuck (design.md, "Stalled projects"). So
+    the template draws the empty heading either way and the class is the
+    project's own answer
 - **the error banners stay at the top.** They are about the fields right under
   them — a project with no DOD — and that is where they are fixed. Two marks
   in two places is not two ways of saying the same thing: each one points at
@@ -4956,6 +5033,15 @@ project").
   the Done twice over. What the redirect still carries is `from`: the screen
   it opens is on the way back to the view the action was completed in, and
   that destination has to survive the one press (see "Writing an action")
+  - **the redirect fires on `IsFinishable` and not on "has no next action".** A
+    project left holding nothing but snoozed actions has no next action and is
+    asked nothing: there is no decision to make about a project that is waiting
+    on a date, and being sent to its page to look at an empty box would be the
+    app asking a question it has just answered itself (design.md, "Completing a
+    next action"). The old `ProjectState` carried both answers, and the handler
+    read the wrong one of the two the moment they came apart — so what
+    internal/app hands back now is the single question being asked, the same one
+    `CompleteProject` refuses on, asked before the press instead of after
 - **where each resolution lands is pinned by a test**
   (`internal/web/leaving_test.go`), because it is invisible in the templates:
   a missing hidden field looks like nothing at all, and the page it fails to
@@ -5055,6 +5141,15 @@ still reports it, a value rewritten only where the old value is still there.
   remember at every delete path — project deletion included. Completion is the
   other, and it cannot be a constraint, so `setActionCompleted` clears the
   dependents explicitly in the same transaction
+- **`projects.next_action_id` is the same shape, and null is not a gap.** It is
+  which action the project has been pointed at as next (design.md, "Project"),
+  added the way every column here is added and deliberately not backfilled: null
+  means nobody has pointed, and a project that has never been pointed at answers
+  from its plan exactly as it did before the column existed. So there is nothing
+  to write into the rows that predate it, and a backfill would have invented a
+  decision for every project in the database. `ON DELETE SET NULL` for the
+  reason above — deleting the action is one of the ways a project stops having a
+  next one
 - **`ALTER TABLE ... DROP COLUMN`** is used directly rather than the
   rename-copy-drop dance. SQLite has supported it since 3.35 and the driver is
   current
