@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"todoistik/internal/app"
 )
@@ -125,6 +126,91 @@ func TestTheProjectsDoneIsOfferedOnlyWithNoNextAction(t *testing.T) {
 	}
 }
 
+// The mark that moves the crown: `n` on a row of the plan makes that action the
+// project's next one, and the page comes back with it in the boxes at the top
+// (design.md, "Project"). It is offered on the rows that could take it and
+// nowhere else — a snoozed action is not workable, and a list outside a plan has
+// no project to be next of.
+func TestTheNextMarkIsOnThePlansRowsOnly(t *testing.T) {
+	s, a := newTestServer(t)
+	twoActionProject(t, a)
+
+	body := getPage(t, s, "/project/1")
+	if !strings.Contains(body, `action="/action/2/next" class="kb-next inline"`) {
+		t.Errorf("a row of the plan carries no mark for making it next: %s", body)
+	}
+	// and the action already in the boxes carries none: it is next, so there is
+	// nothing for a press to do and nothing is offered
+	if strings.Contains(body, `action="/action/1/next"`) {
+		t.Error("the next action is offered a key that would do nothing")
+	}
+
+	rec := postForm(t, s, "/action/2/next", url.Values{})
+	if rec.Code >= 400 {
+		t.Fatalf("the press was refused: %d %s", rec.Code, rec.Body.String())
+	}
+	p, err := a.Project(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next := p.NextAction(a.Today()); next == nil || next.ID != 2 {
+		t.Fatalf("the next action is %+v after the mark was pressed", next)
+	}
+	body = getPage(t, s, "/project/1")
+	if !strings.Contains(body, `name="atitle" value="Borrow a drill"`) {
+		t.Errorf("the pointed-at action is not in the project's boxes: %s", body)
+	}
+
+	// the views that are not plans carry no mark at all: making an action next
+	// is a claim about the order of one project's work, and the answer is
+	// invisible from anywhere else (keys.md, `n`)
+	if body := getPage(t, s, "/next"); strings.Contains(body, "kb-next") {
+		t.Error("the Next view offers the mark")
+	}
+	if body := getPage(t, s, "/tasks"); strings.Contains(body, "kb-next") {
+		t.Error("Tasks offers the mark")
+	}
+
+	// a snoozed row holds the mark's place open and offers nothing
+	sleep := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+	if err := a.SnoozeAction(1, sleep); err != nil {
+		t.Fatal(err)
+	}
+	body = getPage(t, s, "/project/1")
+	if strings.Contains(body, `action="/action/1/next"`) {
+		t.Errorf("a snoozed row offers the mark: %s", body)
+	}
+	if !strings.Contains(body, `<span class="tonext gap">`) {
+		t.Error("a row that cannot be made next does not keep the mark's place")
+	}
+}
+
+// A project holding nothing but snoozed actions has no next action and cannot
+// be completed either, so its page carries no Done at all — and no stalled
+// ring, because it is waiting rather than stuck (design.md, "Stalled projects").
+func TestAProjectWaitingOnASnoozeHasEmptyBoxesAndNoRing(t *testing.T) {
+	s, a := newTestServer(t)
+	p, err := a.CreateProject(app.ProjectFields{Title: "Tyres changed", DOD: "On the car"},
+		[]app.ActionFields{{Title: "Ring the fitter"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sleep := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+	if err := a.SnoozeAction(p.Actions[0].ID, sleep); err != nil {
+		t.Fatal(err)
+	}
+	body := getPage(t, s, "/project/1")
+	if !strings.Contains(body, `<h2 class="nexthead">`) {
+		t.Errorf("the boxes are not empty: %s", body)
+	}
+	if strings.Contains(body, "nexthead stalled") {
+		t.Error("a project waiting on a snooze is marked stalled")
+	}
+	if strings.Contains(body, `action="/project/1/complete"`) {
+		t.Error("a project with an open action offers a Done the app refuses")
+	}
+}
+
 // The third mark on the heading: the project's tags, brought down onto the
 // action's line. It writes a box and posts nothing, so all the server decides
 // is whether it can be pressed at all — which is whether the project has tags
@@ -222,7 +308,7 @@ func TestSavingTheProjectPageWritesBothHalves(t *testing.T) {
 	if p.DOD != "On the wall, straight" {
 		t.Errorf("the project's DOD was not saved: %q", p.DOD)
 	}
-	next := p.NextAction()
+	next := p.NextAction(a.Today())
 	if next.Title != "Buy the picture at Selver" {
 		t.Errorf("the next action's title was not saved: %q", next.Title)
 	}
@@ -297,7 +383,7 @@ func TestTheEmptyBoxesMakeTheNextActionOrLeaveItAlone(t *testing.T) {
 	if p, err = a.Project(1); err != nil {
 		t.Fatal(err)
 	}
-	next := p.NextAction()
+	next := p.NextAction(a.Today())
 	if next == nil || next.Title != "Book the garage" || next.Context != "phone" {
 		t.Errorf("the box did not make the project's next action: %+v", next)
 	}
@@ -353,7 +439,7 @@ func TestTheProjectBranchWritesItsFirstActionOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	next := p.NextAction()
+	next := p.NextAction(a.Today())
 	if next == nil || next.Title != "Book the garage" {
 		t.Fatalf("the project has no first action: %+v", p)
 	}

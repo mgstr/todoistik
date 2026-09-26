@@ -354,6 +354,23 @@
     <button title="complete (d)" class="check">☐</button>
   </form>
   {{end}}
+  {{/* Next is asked for by the one list that is a plan — the rest of a project's
+       actions, under the one that is next — and by nothing else. The arrow says
+       where the press sends this row: up, into the boxes at the top of the page,
+       which is the only place in the app where being next is visible at all
+       (keys.md, `n`).
+
+       It is drawn on the rows that can take it and left as a blank gutter on the
+       rows that cannot, so the titles line up and no mark is offered that would
+       be refused: a snoozed action is not workable yet, and a completed one is
+       finished (design.md, "Project"). */}}
+  {{if .Next}}
+  {{if and (not $a.CompletedAt) (not ($a.IsSnoozed $today))}}
+  <form method="post" action="/action/{{$a.ID}}/next" class="kb-next inline">
+    <button title="make this the next action (n)" class="tonext">↑</button>
+  </form>
+  {{else}}<span class="tonext gap">↑</span>{{end}}
+  {{end}}
   <a href="/action/{{$a.ID}}" class="title">{{$a.Title}}</a>
   {{if and .ShowProject $a.ProjectTitle}}<a class="badge proj" href="/project/{{$a.ProjectID}}">{{$a.ProjectTitle}}</a>{{end}}
   {{if $a.ContextLabel}}<span class="badge ctx">{{$a.ContextLabel}}</span>{{end}}
@@ -567,10 +584,14 @@
      Three hidden fields carry it, rather than state held in the keyboard
      layer, because that is what makes a refused form able to hand it back. */}}
 <li class="row draft" data-kb-row data-draft>
-  {{/* both marks' places kept and left blank: a draft cannot be picked or
-       completed, and a mark that did nothing would be offering both */}}
+  {{/* the marks' places kept and left blank: a draft cannot be picked, completed
+       or made next, and a mark that did nothing would be offering all three.
+       The third place is kept only where the rows beside it have it, which is
+       the project's own page — the screens that create a project have no saved
+       row for anything to be next of yet. */}}
   <span class="pick gap">●</span>
   <span class="check gap">☐</span>
+  {{if .Next}}<span class="tonext gap">↑</span>{{end}}
   <span class="title">{{.Title}}</span>
   {{/* always emitted, empty when there is nothing to say: the keyboard layer
        clones this row and fills it in, and a row it had to build out of parts
@@ -597,13 +618,19 @@
      Rows is what the list already holds — an existing project's, drawn by
      `actionrow` — and Drafts is what has been written and not saved. Both sit
      in the one `<ul>`, because the order of that list is the plan's order and
-     a second list would be a second plan. */}}
+     a second list would be a second plan.
+
+     Next says whether these rows carry the mark that makes one of them the
+     project's next action. They do on the project's own page, where there is a
+     project to be next of; they do not on the two screens that create one,
+     where every row is a draft and the first action is the one in the boxes
+     above by construction (design.md, "Writing a project"). */}}
 <h2>More actions</h2>
 <ul class="list" data-draft-list>
   {{range .Rows}}
-    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
+    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false "Next" $.Next)}}
   {{end}}
-  {{range .Drafts}}{{template "draftrow" (dict "Title" .Title "Meta" .Meta "Description" .Description "Form" $.Form)}}{{end}}
+  {{range .Drafts}}{{template "draftrow" (dict "Title" .Title "Meta" .Meta "Description" .Description "Form" $.Form "Next" $.Next)}}{{end}}
 </ul>
 
 {{/* the button is under the list it adds to. The first action needs none — it
@@ -642,7 +669,7 @@
 </dialog>
 {{/* one definition of a row, cloned by the keyboard layer when an action is
      added and rendered by the server when a refused form comes back */}}
-<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form)}}</template>
+<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form "Next" .Next)}}</template>
 {{end}}
 
 {{define "leavedialog"}}

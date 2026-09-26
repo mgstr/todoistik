@@ -1735,9 +1735,14 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err = s.app.CompleteAction(id); err == nil && act.ProjectID != 0 {
-			// completing is the moment with the most context: check the project
-			st, serr := s.app.ProjectState(act.ProjectID)
-			if serr == nil && !st.HasNext {
+			// completing is the moment with the most context: check the project.
+			// The ask is about a project with nothing open left — finish it, or
+			// write the step that comes next. A project still holding something
+			// is asked nothing: it has a next action, or everything it has is
+			// snoozed and is waiting rather than undecided (design.md,
+			// "Completing a next action")
+			done, serr := s.app.IsFinishable(act.ProjectID)
+			if serr == nil && done {
 				// The project's own page is the ask. It carries no marker of
 				// having been reached this way: what it has to say — the
 				// Actions heading ringed in red, and Done and Add in the bar
@@ -1764,6 +1769,12 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 		err = s.app.DeleteAction(id)
 	case "detach":
 		err = s.app.Detach(id)
+	case "next":
+		// the mark on a row of a project's plan: this is the one that is next.
+		// It leaves nothing behind to redirect to, so it ends where every other
+		// row mark ends — the page it was pressed on, redrawn with this action
+		// in the boxes at the top (design.md, "Project")
+		err = s.app.MakeNext(id)
 	case "snooze":
 		err = s.app.SnoozeAction(id, strings.TrimSpace(r.FormValue("until")))
 	case "tag":
@@ -1835,9 +1846,10 @@ type projectForm struct{ Title, DOD, Meta string }
 type projectPageData struct {
 	Project *app.Project
 	Fields  projectForm // what the project's own boxes show
-	// the action at the head of the plan, which the page shows open in its own
-	// boxes rather than as a row to be pressed (design.md, "Projects"). Nil
-	// when the project has none, and then the boxes are empty and make one
+	// the project's next action, which the page shows open in its own boxes
+	// rather than as a row to be pressed (design.md, "Projects"). Nil when the
+	// project has none — it is stalled, or everything it holds is snoozed — and
+	// then the boxes are empty and make one
 	NextAction *app.Action
 	Next       draftAction   // what those boxes show — the same triple a project form writes anywhere
 	Drafts     []draftAction // actions written here and not saved yet, under the plan
@@ -1861,7 +1873,7 @@ func (s *Server) projectData(proj *app.Project, r *http.Request) *projectPageDat
 	// "Completion"), so it has no boxes for a next action to be open in — and
 	// nothing it still holds is next.
 	if proj.CompletedAt == nil {
-		d.NextAction = proj.NextAction()
+		d.NextAction = proj.NextAction(s.app.Today())
 		if a := d.NextAction; a != nil {
 			d.Next = draftAction{Title: a.Title, Meta: a.Meta(), Description: a.Description}
 		}
@@ -1998,7 +2010,7 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	// anywhere else must not reach an action this project does not own
 	nextID := parseID(strings.TrimSpace(r.FormValue("nextid")))
 	if nextID != 0 {
-		next := proj.NextAction()
+		next := proj.NextAction(s.app.Today())
 		if next == nil || next.ID != nextID {
 			s.bounceProject(w, r, proj, "that is no longer this project's next action — open the project again")
 			return

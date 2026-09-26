@@ -170,7 +170,7 @@ func TestIgnoringACompletionRequestLeavesTheAction(t *testing.T) {
 	if still.CompletedAt != nil {
 		t.Error("ignoring a request completed the action")
 	}
-	if !still.IsNext() {
+	if !still.IsOpen() {
 		t.Error("ignoring a request took the action off the next list")
 	}
 }

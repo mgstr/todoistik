@@ -803,12 +803,12 @@ func TestActionTreeNestsTheWaiting(t *testing.T) {
 	}
 }
 
-// The head of the plan, which a project's page shows open in its own boxes
-// rather than as a row (implementation.md, "Writing a project"): the first
-// open action in the list's own order, and the list is then everything else
-// with the plan's depths untouched — what waited on the head is still drawn
-// one level in, hanging off the boxes directly above it.
-func TestNextActionIsTheHeadOfThePlan(t *testing.T) {
+// With nobody having pointed at anything, the next action is the head of the
+// plan — the first open, unsnoozed action in the list's own order — and the
+// list is then everything else with the plan's depths untouched: what waited on
+// the head is still drawn one level in, hanging off the boxes directly above
+// it (implementation.md, "Writing a project").
+func TestTheNextActionFallsBackToTheHeadOfThePlan(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
 		[]ActionFields{{Title: "Buy the picture"}})
@@ -817,10 +817,10 @@ func TestNextActionIsTheHeadOfThePlan(t *testing.T) {
 	a.CreateAction(p.ID, ActionFields{Title: "Choose the wall"})
 
 	got, _ := a.Project(p.ID)
-	if next := got.NextAction(); next == nil || next.Title != "Buy the picture" {
+	if next := got.NextAction(a.Today()); next == nil || next.Title != "Buy the picture" {
 		t.Fatalf("the next action is %+v, want the first of the plan", next)
 	}
-	rest := got.RestTree()
+	rest := got.RestTree(a.Today())
 	want := []struct {
 		title string
 		depth int
@@ -844,13 +844,13 @@ func TestNextActionIsTheHeadOfThePlan(t *testing.T) {
 		t.Fatal(err)
 	}
 	got, _ = a.Project(p.ID)
-	if next := got.NextAction(); next == nil || next.Title != "Hang it" {
+	if next := got.NextAction(a.Today()); next == nil || next.Title != "Hang it" {
 		t.Fatalf("the next action is %+v after the head was completed", next)
 	}
 	// and the completed one is on the list, which is where a project's own
 	// record of what it took still lives
-	if len(got.RestTree()) != 2 {
-		t.Fatalf("the rest has %d rows, want the completed head and the third action", len(got.RestTree()))
+	if len(got.RestTree(a.Today())) != 2 {
+		t.Fatalf("the rest has %d rows, want the completed head and the third action", len(got.RestTree(a.Today())))
 	}
 
 	// a project with nothing open has no head, and is stalled for that reason
@@ -862,11 +862,11 @@ func TestNextActionIsTheHeadOfThePlan(t *testing.T) {
 		}
 	}
 	got, _ = a.Project(p.ID)
-	if got.NextAction() != nil {
-		t.Errorf("a project with no open action still has a next one: %+v", got.NextAction())
+	if got.NextAction(a.Today()) != nil {
+		t.Errorf("a project with no open action still has a next one: %+v", got.NextAction(a.Today()))
 	}
 	if !got.ComputeStalled(a.Today()) {
-		t.Error("a project with no next action is not stalled")
+		t.Error("a project holding nothing open is not stalled")
 	}
 }
 
@@ -985,6 +985,139 @@ func TestNextActionsHidesSnoozed(t *testing.T) {
 	if len(acts) != 4 {
 		t.Fatalf("the review must still see the snoozed one: %v", titles(acts))
 	}
+}
+
+// A project's next action is the one it was pointed at, and the plan's order is
+// only what answers before anybody has pointed (design.md, "Project"). The
+// pointing outlives everything that is not about it: other actions are added,
+// other actions are completed, and the answer does not move.
+func TestTheNextActionIsWhicheverWasPointedAt(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	frame, err := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// an action added to a plan that already has a next action is not it: the
+	// plan has a front and it is still where it was (design.md, "Reshaping items")
+	got, _ := a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next == nil || next.Title != "Buy the picture" {
+		t.Fatalf("adding an action moved the next one: %+v", next)
+	}
+	if err := a.MakeNext(frame.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next == nil || next.ID != frame.ID {
+		t.Fatalf("the next action is %+v, want the one pointed at", next)
+	}
+	// and the list under the boxes is the rest of the plan, the pointed-at one
+	// lifted out of wherever in it it was standing
+	rest := got.RestTree(a.Today())
+	if len(rest) != 1 || rest[0].Title != "Buy the picture" {
+		t.Fatalf("the rest of the plan is %v", nodeTitles(rest))
+	}
+	// completing what was pointed at falls back to the plan rather than leaving
+	// the project with nothing: the pointing is a preference, not the answer
+	if err := a.CompleteAction(frame.ID); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next == nil || next.Title != "Buy the picture" {
+		t.Fatalf("a completed next action did not hand the field on: %+v", next)
+	}
+	// a task has no plan to be at the front of, so there is nothing to point
+	task, _ := a.CreateAction(0, ActionFields{Title: "Buy milk"})
+	if err := a.MakeNext(task.ID); err == nil {
+		t.Error("a standalone action was accepted as a project's next action")
+	}
+}
+
+// A snoozed action is not workable, so it is not what is next — and a project
+// holding nothing but snoozed actions has no next action and is not stalled
+// either. It is waiting, which is a plan; stalled is the absence of one
+// (design.md, "Stalled projects").
+func TestASnoozedActionIsNeverTheNextOne(t *testing.T) {
+	a, _ := newTestApp(t) // 2026-09-04
+	p, _ := a.CreateProject(ProjectFields{Title: "Tyres changed", DOD: "On the car"},
+		[]ActionFields{{Title: "Ring the fitter", SnoozeUntil: "2026-09-11"}})
+	sleeping := p.Actions[0]
+	got, _ := a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next != nil {
+		t.Fatalf("a snoozed action is next: %+v", next)
+	}
+	if got.Stalled {
+		t.Error("a project whose only action is snoozed is marked stalled")
+	}
+	if err := a.MakeNext(sleeping.ID); err == nil {
+		t.Error("a snoozed action was accepted as the next one")
+	}
+	// the day the snooze runs out nothing writes, so the answer has to be
+	// derived: the same project, read on a later day, has its next action back
+	if next := got.NextAction("2026-09-11"); next == nil || next.ID != sleeping.ID {
+		t.Fatalf("a woken action is not next again: %+v", next)
+	}
+	// a project pointed at an action that then falls asleep falls back too
+	awake, _ := a.CreateAction(p.ID, ActionFields{Title: "Book the slot"})
+	if err := a.MakeNext(awake.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.SnoozeAction(awake.ID, "2026-09-20"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next != nil {
+		t.Fatalf("the pointed-at action was snoozed and is still next: %+v", next)
+	}
+	if got.Stalled {
+		t.Error("a project holding two snoozed actions is marked stalled")
+	}
+}
+
+// The main working view is one action per project: a project that put every
+// available step on it would be answering "what do I do next" with a plan
+// (design.md, "Next actions"). Every standalone action is still there — a task
+// is not in a plan and has no front to be at.
+func TestNextActionsIsOnePerProject(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "Buy the picture"}})
+	if _, err := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame"}); err != nil {
+		t.Fatal(err)
+	}
+	other, _ := a.CreateProject(ProjectFields{Title: "Tax filed", DOD: "Accepted"},
+		[]ActionFields{{Title: "Collect the receipts"}})
+	if _, err := a.CreateAction(other.ID, ActionFields{Title: "Fill the form"}); err != nil {
+		t.Fatal(err)
+	}
+	a.CreateAction(0, ActionFields{Title: "Buy milk"})
+
+	acts, err := a.NextActions(Filters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Buy the picture", "Collect the receipts", "Buy milk"}
+	if got := titles(acts); len(got) != len(want) {
+		t.Fatalf("the view holds %v, want one per project plus the task: %v", got, want)
+	}
+	// the review reads the pool and not the view: an action further down a plan
+	// is in no view that is worked from, so this is where its wording is checked
+	pool, err := a.NextActionsWithSnoozed(Filters{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(pool) != 5 {
+		t.Fatalf("the review must walk every open action, got %v", titles(pool))
+	}
+}
+
+func nodeTitles(nodes []ActionNode) []string {
+	var out []string
+	for _, n := range nodes {
+		out = append(out, n.Title)
+	}
+	return out
 }
 
 func titles(acts []*Action) []string {

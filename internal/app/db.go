@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS projects (
 	created_at TEXT NOT NULL,
 	last_reviewed_at TEXT NOT NULL,
 	snooze_until TEXT NOT NULL DEFAULT '',
+	next_action_id INTEGER REFERENCES actions(id) ON DELETE SET NULL,
 	completed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS actions (
@@ -172,9 +173,27 @@ func (a *App) migrate() error {
 			return err
 		}
 	}
+	// A project points at the one of its actions that is next (design.md,
+	// "Project"). Nullable, and null is the ordinary state rather than a gap
+	// to be backfilled: a project that has never been pointed at falls back to
+	// the first open, unsnoozed action in its plan, which is exactly what every
+	// project did before the column existed. ON DELETE SET NULL for the same
+	// reason snooze_action_id has it — deleting the action is one of the ways a
+	// project stops having a next action.
+	has, err = a.hasColumn("projects", "next_action_id")
+	if err != nil {
+		return err
+	}
+	if !has {
+		if _, err := a.db.Exec(`ALTER TABLE projects ADD COLUMN next_action_id INTEGER
+			REFERENCES actions(id) ON DELETE SET NULL`); err != nil {
+			return err
+		}
+	}
 	// #parked is gone, and with it the one meaning an empty became_next_at
-	// had. Every action is a next action of its project now; what used to be
-	// said by parking is said by waiting on the sibling that comes first.
+	// had. Every action became available to be worked on when it was written;
+	// what used to be said by parking is said by waiting on the sibling that
+	// comes first.
 	//
 	// An open action is stamped with the moment the parking was lifted, the
 	// way a detach stamps one — becoming available is an event, and it is

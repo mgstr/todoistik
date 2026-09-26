@@ -89,11 +89,11 @@ type Action struct {
 	CompletedAt       *time.Time `json:"completedAt,omitempty"`
 }
 
-// IsNext reports a real next action: not completed. Every action is a next
-// action of whatever it belongs to — becameNextActionAt is always stamped —
-// and an action that cannot be started yet says so with a snooze rather than
-// by not being next at all (design.md, "Standalone actions").
-func (a *Action) IsNext() bool { return a.CompletedAt == nil }
+// IsOpen reports work still in hand: not completed. It is what keeps a project
+// out of the stalled check — a project holding anything open has something to
+// do, even where that something is snoozed or delegated and is therefore not
+// what the project's next action is (design.md, "Stalled projects").
+func (a *Action) IsOpen() bool { return a.CompletedAt == nil }
 
 func (a *Action) IsWaiting() bool { return a.AssignedTo != "" && a.CompletedAt == nil }
 
@@ -142,31 +142,42 @@ func (a *Action) Errors() []string {
 }
 
 type Project struct {
-	ID             int64      `json:"id"`
-	Title          string     `json:"title"`
-	DOD            string     `json:"dod"`
-	Tags           []string   `json:"tags,omitempty"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	LastReviewedAt time.Time  `json:"lastReviewedAt"`
-	SnoozeUntil    string     `json:"snoozeUntil,omitempty"`
-	CompletedAt    *time.Time `json:"completedAt,omitempty"`
-	Actions        []*Action  `json:"actions,omitempty"`
-	Stalled        bool       `json:"stalled,omitempty"` // derived, filled by queries
+	ID             int64     `json:"id"`
+	Title          string    `json:"title"`
+	DOD            string    `json:"dod"`
+	Tags           []string  `json:"tags,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+	LastReviewedAt time.Time `json:"lastReviewedAt"`
+	SnoozeUntil    string    `json:"snoozeUntil,omitempty"`
+	// NextActionID is the action this project has been pointed at, 0 when it
+	// has been pointed at none. It is a preference and not the answer: what the
+	// project's next action *is* is NextAction, which reads this and falls back
+	// to the plan (design.md, "Project").
+	NextActionID int64      `json:"nextActionId,omitempty"`
+	CompletedAt  *time.Time `json:"completedAt,omitempty"`
+	Actions      []*Action  `json:"actions,omitempty"`
+	Stalled      bool       `json:"stalled,omitempty"` // derived, filled by queries
 }
 
 func (p *Project) IsSnoozed(today string) bool {
 	return p.SnoozeUntil != "" && p.SnoozeUntil > today
 }
 
-// ComputeStalled derives the stalled state from the loaded actions: an
-// active, unsnoozed project with no next action. A waiting-for or snoozed
-// action still counts as a next action of its project.
+// ComputeStalled derives the stalled state from the loaded actions: an active,
+// unsnoozed project with nothing open at all.
+//
+// Nothing open, and not "no next action" — the two came apart when a project
+// stopped counting every available step as one. A project whose every open
+// action is snoozed has no next action and is not stalled: it is waiting on a
+// date or on a sibling, and waiting is a plan, where stalled is the absence of
+// one (design.md, "Stalled projects"). A delegated action counts the same way
+// and always has.
 func (p *Project) ComputeStalled(today string) bool {
 	if p.CompletedAt != nil || p.IsSnoozed(today) {
 		return false
 	}
 	for _, a := range p.Actions {
-		if a.IsNext() {
+		if a.IsOpen() {
 			return false
 		}
 	}
@@ -218,23 +229,45 @@ func (p *Project) ActionTree() []ActionNode {
 	return out
 }
 
-// NextAction is the one at the head of the plan: the first open action in
-// ActionTree order, nil when the project has none and is therefore stalled.
+// NextAction is the project's one next action: the action it has been pointed
+// at while that action can still be it, and otherwise the first open, unsnoozed
+// action in ActionTree order. Nil when every open action is snoozed, and nil
+// when nothing is open at all — which is the stalled project.
 //
-// The project is read and worked on through this one action — it is the action
-// its page opens with its own fields showing (implementation.md, "Writing a
-// project") — so which one it is has to be the plan's own answer rather than
-// the page's. A project may have several next actions at once (design.md,
-// "Project"), and the plan's order is what says which of them is at the front:
-// the same order the list is drawn in, so the action shown open is the row that
-// would otherwise have been first.
-func (p *Project) NextAction() *Action {
+// Derived on every read, and that is the point of it. The pointing is stored,
+// but what it means has to be worked out now: a snooze runs out with the
+// calendar and nothing writes when it does, so a project told once which action
+// is next would sit with an empty field on the morning that field should have
+// filled itself. Falling back to the plan is also what keeps a project nobody
+// has pointed at reading exactly as it did before there was anything to point
+// with (design.md, "Project").
+//
+// A delegated action is a candidate like any other: being one is what keeps a
+// project whose only move is somebody else's out of the stalled check, and out
+// of the "Next actions" view along with it. A snoozed action is not a
+// candidate, which is the whole of what a snooze is for.
+func (p *Project) NextAction(today string) *Action {
+	if p.NextActionID != 0 {
+		for _, act := range p.Actions {
+			if act.ID == p.NextActionID && canBeNext(act, today) {
+				return act
+			}
+		}
+	}
 	for _, n := range p.ActionTree() {
-		if n.CompletedAt == nil {
+		if canBeNext(n.Action, today) {
 			return n.Action
 		}
 	}
 	return nil
+}
+
+// canBeNext is what a next action has to be: open, and workable now. One
+// definition, read by the derivation above and by the app before it writes a
+// pointing down (see MakeNext), so that the mark a row offers and the answer
+// the page draws can never disagree about which actions are eligible.
+func canBeNext(act *Action, today string) bool {
+	return act.CompletedAt == nil && !act.IsSnoozed(today)
 }
 
 // RestTree is the plan without the line the next action is on: what a
@@ -246,8 +279,8 @@ func (p *Project) NextAction() *Action {
 // it is indented under is directly above the list — the open boxes. Re-rooting
 // those rows would say they wait on nothing, which is the one thing the shape
 // exists to say.
-func (p *Project) RestTree() []ActionNode {
-	next := p.NextAction()
+func (p *Project) RestTree(today string) []ActionNode {
+	next := p.NextAction(today)
 	if next == nil {
 		return p.ActionTree()
 	}
@@ -261,6 +294,8 @@ func (p *Project) RestTree() []ActionNode {
 	return out
 }
 
+// OpenActions is everything the project still holds, next or not — what the
+// stalled check counts and what refuses to let the project be completed.
 func (p *Project) OpenActions() []*Action {
 	var open []*Action
 	for _, a := range p.Actions {

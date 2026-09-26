@@ -159,6 +159,7 @@ been.
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
 | `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
 | `r` | the review mark | a row of a weekly review step |
+| `n` | make this the next action | a row of the plan on a project's page, and nowhere else |
 | `t` | Today | every list row that carries the mark, an action's page, a project's next action, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote, the add-action dialog, and a stalled project's empty boxes, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
 | `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
@@ -167,6 +168,34 @@ been.
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
 | `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
+
+**`n` is spent at last, and on the thing it used to mean.** It held Parked /
+Next and went when `#parked` did, and was left free rather than reused while
+the fingers that knew it were still finding that out (see "Buttons that get no
+letter"). What it presses now is the other half of the same idea: the old key
+said *this action is available*, and this one says *this action is the one*. A
+project has one next action and it is chosen (design.md, "Project"), so there
+is a press to make, and `n` is the first letter of the only word for it.
+
+- **it is a row's key and never a screen's.** It acts on the row under the
+  cursor, which is how a plan is walked — `j`/`k` down the list, `n` on the one
+  that should be next — and there is no screen-level answer to it, because what
+  a screen-level `n` would be about is the action already in the boxes at the
+  top of the page. That action is next. There is nothing to press.
+- **it is offered only where it would do something**, which here means three
+  things at once: the row is in a plan, it is not the action already next (that
+  one is not in the list at all), and it is not snoozed — a snoozed action
+  cannot be started, so *next* is a claim the snooze contradicts. The mark is
+  drawn or it is not, and the bar reads the mark, so the key and the offer
+  cannot come to disagree.
+- **`g n` is still the Next actions view**, and that is the prefix doing its job
+  rather than a collision: pressing `g` puts the keyboard in a state where only
+  a jump can follow. It is the fifth letter shared between a button and a jump,
+  and the pair is the friendliest of them — both mean "the next action", one
+  showing you the list and one deciding what is on it.
+- **the panel chooser's own `n` is untouched.** A dialog is a menu of its own
+  letters and the row keys stand down inside one, which is the same rule that
+  keeps the unknown-name dialog's `n` for *create it*.
 
 **`r` is one of the three letters in the map that are spent twice, and it is
 worth saying why rather than pretending otherwise** — `t` and `a` are the
@@ -410,9 +439,10 @@ them as uppercase badges, which is a styling decision and is argued for in
 implementation.md, "Navigation".
 
 **A jump letter may collide with a button letter, and the prefix is what is
-supposed to make that safe.** Four of the fourteen are also buttons — `d` is
+supposed to make that safe.** Five of the fourteen are also buttons — `d` is
 Done and the Dashboard, `t` is the Today mark and the Today view, `r` is the
-review mark and the Review view, `w` is doing and Waiting for. The rule that
+review mark and the Review view, `w` is doing and Waiting for, and `n` is the
+next-action mark and the Next actions view. The rule that
 allows it is that the two are never offered in the same breath: pressing `g`
 puts the keyboard in a state where only a jump can follow. Without the prefix
 these fourteen would have had to come out of the letters the buttons had not
@@ -519,9 +549,10 @@ share a noun with the letter that held them.
 There were five. **Parked / Next** held `n`, and it went when `#parked` did:
 what it toggled was an action's availability said as a bare state, and what
 says it now is a snooze on the meta line, which names the reason — a date, or
-the sibling this action comes after. A button cannot name a sibling. So `n` is
-free, and deliberately left so rather than spent on something else while the
-fingers that used it are still finding that out (design.md, "Time fields").
+the sibling this action comes after. A button cannot name a sibling. So `n` was
+free, and was left so rather than spent on something else while the fingers
+that used it were still finding that out (design.md, "Time fields"). It is
+spent now, and on the nearer half of what it used to mean — see the map above.
 
 Recapture is the one that could not follow them, and the reason is worth
 writing down: it is a control **on a row**, one per line of the audit, and the
@@ -711,12 +742,19 @@ never be advertised without working:
   longer have to wait for the cursor to arrive.
 
   **And `d` means one thing on that page: finish what is in front of you.** The
-  next action while there is one, and the project once there is not. Not two
-  Dones told apart by whether a row is selected — the project's own Done is not
-  even on the screen while it has open work, because internal/app refuses to
-  complete a project that has any (design.md, "Completing a next action"). So
-  the letter is not spent twice and never was: there is one Done on that page
-  at any moment, and completing the last action is what changes which one.
+  next action while there is one, and the project once there is nothing open at
+  all. Not two Dones told apart by whether a row is selected — the project's own
+  Done is not even on the screen while it has open work, because internal/app
+  refuses to complete a project that has any (design.md, "Completing a next
+  action"). So the letter is not spent twice and never was: there is at most one
+  Done on that page at any moment, and completing the last action is what
+  changes which one.
+
+  **At most one, because there is a state with none.** A project whose every
+  open action is snoozed has no next action to finish and may not be finished
+  itself, so neither Done is drawn and `d` presses nothing there — which is the
+  bar telling the truth rather than a key going missing (design.md, "Stalled
+  projects").
 - **and that is what lets `t` be the task branch.** The three are read before
   the declared keys, so `t` asks for a `kb-pick` first and only then for a
   control on the page. Stage one of processing carries no such form — the
@@ -725,6 +763,19 @@ never be advertised without working:
   special-cased: the ordering was already there, and a screen with a Today
   mark on it could not have taken `t` for anything else, which is the same
   thing as saying the two are never on a screen together.
+- **`kb-next` is a fifth row form, and the only one that is a row's alone.** `n`
+  presses it, and it is not in `pushScreenKeys` and never will be: the three
+  above answer for the screen when no row is selected because an action's page
+  and a project's are *about* an item, and "make this the next action" has no
+  such reading — the item those pages are about is either already next or is
+  not in a plan. So the key does nothing with nothing selected, and the bar does
+  not offer it, which is the standing rule rather than an exception to it.
+
+  It leaves the screen, unlike the review mark: the answer is which action is in
+  the boxes at the top of the page, so the page is drawn again with the row and
+  the boxes swapped. An ordinary submit, an ordinary redirect back to where it
+  was pressed, and no deaf window — nothing is being destroyed, and pressing it
+  twice on the same row means the same thing the second time.
 - **`kb-review` is a fourth row form, and the one that does not leave.** `r`
   presses it, and it is the only one of the four whose answer is a row redrawn
   where it stands rather than a screen replaced — so it takes no deaf window
