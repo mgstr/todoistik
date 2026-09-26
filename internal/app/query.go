@@ -105,11 +105,14 @@ var viewFilters = map[string]ViewFilters{
 	// about where you are and how much time you have
 	"next": {Contexts: true, Tags: true, Durations: true, Focus: true, Name: true},
 	// tags and words only: what is here is not a question of what can be done
-	// now (design.md, "Tasks", "Waiting for", "Projects", "Someday/Maybe")
-	"tasks":    {Tags: true, Name: true},
-	"waiting":  {Tags: true, Name: true},
-	"projects": {Tags: true, Name: true},
-	"someday":  {Tags: true, Name: true},
+	// now (design.md, "Tasks", "Waiting for", "Projects", "Someday/Maybe",
+	// "Reference"). Reference is the one of them where the line is the view's
+	// only control: a pile that is only ever added to is read by narrowing it
+	"tasks":     {Tags: true, Name: true},
+	"waiting":   {Tags: true, Name: true},
+	"projects":  {Tags: true, Name: true},
+	"someday":   {Tags: true, Name: true},
+	"reference": {Tags: true, Name: true},
 	// what is coming, and what was finished: each carries its own window
 	"calendar": {Tags: true, Due: true, Name: true},
 	"archive":  {Tags: true, Completed: true, Name: true},

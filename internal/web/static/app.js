@@ -9,6 +9,10 @@
     i: "/inbox", t: "/today", n: "/next", p: "/projects", k: "/tasks",
     w: "/waiting", c: "/calendar", s: "/someday", h: "/scheduler",
     r: "/review", a: "/archive", u: "/audit", d: "/dashboard", e: "/settings",
+    // Reference: `r` is Review and `e` is Settings, so it takes the next free
+    // letter of its own name — the derivation `y` and `h` already have
+    // (keys.md, "The map")
+    f: "/reference",
     // not a view: g z is g i then z, which is the pair pressed most often
     z: "/process",
   };
@@ -2019,6 +2023,10 @@
     // an idea carries tags and nothing else — not even its own snooze, which
     // is the date box beside the line (design.md, "Someday/maybe item")
     someday: { contexts: 0, fields: [], dates: {}, prose: false },
+    // and material carries the same, for its own reason: it is not something
+    // you are doing, so nothing that describes doing it has anywhere to go
+    // (design.md, "Reference item")
+    reference: { contexts: 0, fields: [], dates: {}, prose: false },
     // a snippet is the widest of the written lines and the only one with no
     // item under it: everything an action's meta line carries by name, and
     // none of the dates. A slot is stamped on many items and a deadline
@@ -2031,7 +2039,7 @@
   // The lines that are written onto an item, as against the ones that ask
   // about items. It is what a snippet may be stamped into, and the order is
   // the order a screen draws them in — see metaBox.
-  const META_MODES = ["action", "project", "someday"];
+  const META_MODES = ["action", "project", "someday", "reference"];
 
   function tokenBoxes() { return Array.from(document.querySelectorAll("[data-tokenbox]")); }
   function rulesFor(box) { return BOX_RULES[box.dataset.tokenbox] || BOX_RULES.filter; }
@@ -3246,6 +3254,16 @@
       "not-here": function (p) {
         if (p.sigil === "") return "a someday/maybe item has no dates; it waits on the list until you decide about it";
         return "a someday/maybe item has no " + p.text + "; that belongs on the action it becomes";
+      },
+    },
+    // the same two refusals for material, in its own words: what it is told to
+    // leave off is told to it as "you are not doing this", where an idea is
+    // told "not yet"
+    reference: {
+      "no-context": function (p) { return "reference material has no context; " + p.text + " belongs on an action, and this is not one"; },
+      "not-here": function (p) {
+        if (p.sigil === "") return "reference material has no dates; it is not waiting for anything";
+        return "reference material has no " + p.text + "; it is something you keep, not something you do";
       },
     },
     // the Scheduler's line: a schedule is text and a rule, and carries no

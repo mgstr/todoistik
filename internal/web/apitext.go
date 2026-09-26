@@ -79,6 +79,16 @@ func (s *Server) textAnswer(view string, f app.Filters, problems []apiProblem, d
 			endItem(&body)
 		}
 
+	case []*app.ReferenceItem:
+		count = len(v)
+		for _, it := range v {
+			// no reviewed: on these rows, and nothing is missing: material is
+			// not a commitment and is never walked (design.md, "Reference")
+			line, rest := app.SplitCapture(it.Text)
+			textRow(&body, it.ID, fields(line, tags(it.Tags), "kept:"+day(it.CreatedAt, loc)), rest)
+			endItem(&body)
+		}
+
 	case []*app.Project:
 		count = len(v)
 		for _, p := range v {

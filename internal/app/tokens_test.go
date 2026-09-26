@@ -503,6 +503,61 @@ func TestParseSnippet(t *testing.T) {
 	}
 }
 
+// The same line as a someday/maybe item's, refused in its own words: reference
+// material is not something you are doing, so nothing that describes doing it
+// has anywhere to go (design.md, "Reference item").
+func TestParseReferenceMeta(t *testing.T) {
+	v := vocab([]string{"home"}, []string{"car", "house"})
+	tags, err := ParseReferenceMeta("#house #car", v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(tags, []string{"car", "house"}) {
+		t.Fatalf("tags: %v", tags)
+	}
+	for _, c := range []struct{ text, wants string }{
+		{"@home", "no context"},
+		{"@waitingFor(Marju)", "no @waitingFor"},
+		{"#short", "no size"},
+		{"#focus", "no #focus"},
+		{"#today", "no #today"},
+		{"due:2026-10-01", "no due date"},
+		{"snooze:2026-10-01", "no snooze"},
+		{"#nosuchtag", "is not notation"},
+		{"the model number is on the back", "is not notation"},
+	} {
+		if _, err := ParseReferenceMeta(c.text, v); err == nil {
+			t.Fatalf("%q should have been refused", c.text)
+		} else if !strings.Contains(err.Error(), c.wants) {
+			t.Fatalf("%q: error should say %q: %v", c.text, c.wants, err)
+		}
+	}
+	// and it is told it is not doing anything, where an idea is told "not yet"
+	if _, err := ParseReferenceMeta("@home", v); err == nil ||
+		!strings.Contains(err.Error(), "reference material") {
+		t.Fatalf("the refusal should name what it is talking about: %v", err)
+	}
+}
+
+func TestWriteReferenceMetaRoundTrips(t *testing.T) {
+	v := vocab(nil, []string{"car", "house"})
+	it := &ReferenceItem{Tags: []string{"house", "car"}}
+	line := WriteReferenceMeta(it)
+	if line != "#car #house" {
+		t.Fatalf("line: %q", line)
+	}
+	tags, err := ParseReferenceMeta(line, v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(tags, []string{"car", "house"}) {
+		t.Fatalf("did not survive: %v", tags)
+	}
+	if got := WriteReferenceMeta(&ReferenceItem{}); got != "" {
+		t.Fatalf("nothing to say means an empty box, got %q", got)
+	}
+}
+
 func TestWriteSomedayMetaRoundTrips(t *testing.T) {
 	v := vocab(nil, []string{"car", "house"})
 	it := &SomedayItem{Tags: []string{"house", "car"}}
@@ -626,6 +681,24 @@ func TestSeedGivesASomedayItemTheWholeCapture(t *testing.T) {
 	}
 	if s.Description != "" {
 		t.Fatalf("description: %q — the someday form has no second box", s.Description)
+	}
+}
+
+// A reference item is one free-form field and its tags as well, so the whole
+// capture goes in the one box — the same reading, and the branch is named on
+// the call rather than sharing the someday one, because the two forms are two
+// screens (design.md, "Inbox Zero").
+func TestSeedGivesAReferenceItemTheWholeCapture(t *testing.T) {
+	v := vocab(nil, []string{"house"})
+	s := SeedCapture("reference", "The boiler #house\nVaillant ecoTEC 832", v)
+	if s.Meta != "#house" {
+		t.Fatalf("meta: %q", s.Meta)
+	}
+	if s.Title != "The boiler\nVaillant ecoTEC 832" {
+		t.Fatalf("text: %q", s.Title)
+	}
+	if s.Description != "" {
+		t.Fatalf("description: %q — the reference form has no second box", s.Description)
 	}
 }
 

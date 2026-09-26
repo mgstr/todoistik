@@ -52,6 +52,14 @@ CREATE TABLE IF NOT EXISTS someday_items (
 	created_at TEXT NOT NULL,
 	last_reviewed_at TEXT NOT NULL
 );
+-- Reference material: kept, and never reviewed. No last_reviewed_at, because
+-- nothing here is a commitment that could go stale — the pile is read when
+-- something in it is wanted (design.md, "Reference item").
+CREATE TABLE IF NOT EXISTS reference_items (
+	id INTEGER PRIMARY KEY,
+	text TEXT NOT NULL,
+	created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS projects (
 	id INTEGER PRIMARY KEY,
 	title TEXT NOT NULL,

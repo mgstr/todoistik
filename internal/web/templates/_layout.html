@@ -41,6 +41,11 @@
   <a href="/scheduler" class="{{if eq .View "scheduler"}}on{{end}}" title="g h">Scheduler{{if .Nav.Scheduler}}<span class="badge navcount">{{.Nav.Scheduler}}</span>{{end}}</a>
   <a href="/review" class="{{if eq .View "review"}}on{{end}}" title="g r">Review{{if .Nav.Review}}<span class="badge navcount">{{.Nav.Review}}</span>{{end}}</a>
   <div class="grp">Records</div>
+  {{/* Reference is a record and not a "Later": nothing in it is waiting to be
+       decided about or done, which is what the Later group is a list of. And
+       no badge — a badge answers "how much is waiting for me", and this pile
+       only ever grows (implementation.md, "Navigation"). */}}
+  <a href="/reference" class="{{if eq .View "reference"}}on{{end}}" title="g f">Reference</a>
   <a href="/archive" class="{{if eq .View "archive"}}on{{end}}" title="g a">Archive</a>
   <a href="/audit" class="{{if eq .View "audit"}}on{{end}}" title="g u">Audit</a>
   <a href="/dashboard" class="{{if eq .View "dashboard"}}on{{end}}" title="g d">Dashboard</a>
@@ -564,6 +569,24 @@
   {{if .Focus}}autofocus{{end}}>{{.Text}}</textarea></label>
 {{template "extlinks" .Text}}
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "someday")}}</label>
+{{end}}
+
+{{define "referencefields"}}
+{{/* The fields reference material is written in, wherever it is being
+     written: the Reference branch of processing, and the item's own page later
+     on. One definition, for the reason somedayfields has one — the branch and
+     the page are the same two questions, and two copies is how the meta line
+     ends up on only one of them.
+
+     Two fields and no more. The material itself, which is added to as more of
+     it is found out, and the area of responsibility it is about, which is what
+     makes a pile that is only ever added to findable. Nothing that describes
+     doing something, because "there is nothing to do about this" is the answer
+     that filed it here (design.md, "Reference item"). */}}
+<label class="gutter"><span class="lb">Material</span> <textarea name="text" rows="1" data-grow required
+  {{if .Focus}}autofocus{{end}}>{{.Text}}</textarea></label>
+{{template "extlinks" .Text}}
+<label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict "Name" "meta" "Value" .Meta "Mode" "reference")}}</label>
 {{end}}
 
 {{define "projectfields"}}

@@ -223,6 +223,7 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /inbox", s.inboxPage)
 	m.HandleFunc("POST /capture", s.capturePost)
 	m.HandleFunc("GET /someday", s.somedayPage)
+	m.HandleFunc("GET /reference", s.referencePage)
 	m.HandleFunc("GET /projects", s.projectsPage)
 	m.HandleFunc("GET /tasks", s.tasksPage)
 	m.HandleFunc("GET /next", s.nextPage)
@@ -261,6 +262,12 @@ func (s *Server) routes() {
 	m.HandleFunc("GET /somedayitem/{id}", s.somedayItemPage)
 	m.HandleFunc("POST /somedayitem/{id}", s.somedayItemUpdate)
 	m.HandleFunc("POST /somedayitem/{id}/inbox", s.somedayItemToInbox)
+
+	// reference item editing. Delete and not Inbox: material that is not worth
+	// keeping is not a decision waiting to be made (design.md, "Reference")
+	m.HandleFunc("GET /referenceitem/{id}", s.referenceItemPage)
+	m.HandleFunc("POST /referenceitem/{id}", s.referenceItemUpdate)
+	m.HandleFunc("POST /referenceitem/{id}/delete", s.referenceItemDelete)
 
 	// weekly review
 	m.HandleFunc("GET /review", s.reviewPage)
@@ -427,6 +434,8 @@ func viewOf(path string) string {
 		seg = "scheduler"
 	case "somedayitem":
 		seg = "someday"
+	case "referenceitem":
+		seg = "reference"
 	}
 	if _, ok := viewHelp[seg]; ok {
 		return seg

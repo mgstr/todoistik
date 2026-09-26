@@ -153,7 +153,7 @@ been.
 
 | Key | Button | Where |
 | --- | --- | --- |
-| `s` | Save | action, project, someday item, schedule |
+| `s` | Save | action, project, someday item, reference item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
 | `a` | Add, and Action | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen. On the processing question it is the Action branch, which is the same noun doing the same thing — see "The processing branches" |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
@@ -161,7 +161,7 @@ been.
 | `r` | the review mark | a row of a weekly review step |
 | `n` | make this the next action | a row of the plan on a project's page, and nowhere else |
 | `t` | Today | every list row that carries the mark, an action's page, a project's next action, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote, the add-action dialog, and a stalled project's empty boxes, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
-| `⌫` | Delete | every row that carries one, action, project, schedule, a capture on the processing screen, a draft row |
+| `⌫` | Delete | every row that carries one — including a Reference row, which is the one list view that carries a delete — action, project, reference item, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
 | `u` | Undone | a completed action's page, a completed project's page |
@@ -355,6 +355,16 @@ never on a screen together — stage one carries no form to add a row to — and
 neither destroys anything. The test the `r` paragraph sets is passed on every
 clause at once, which is what "one letter, one *noun*" was written to allow.
 
+**`r` opens a form now, and the letter did not move.** The branch used to post
+and be done with it: the item left the app, and there was nothing to write
+because nothing was kept. Reference material is kept in the app now (design.md,
+"Reference item"), so the press lands on a form with the material and its area
+on it, and `c` creates — the shape `y` already has. Nothing here changes: a key
+presses a control, and whether that control posts or opens the next screen is
+not something the map has an opinion about. What it does change is which keys
+are on the screen after the press, and they are the form's: `c` create, `esc`
+back to the question.
+
 **`d` is the two-minute rule, and it was `2`.** The number was the rule's own
 number and the argument for it was that `d` is Done app-wide, so the two would
 read as the same answer. They *are* the same answer: this branch records
@@ -404,13 +414,13 @@ them — which also keeps the delete key identical everywhere, deliberately.
 | --- | --- |
 | `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful |
 | `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
-| `g` + letter | a view — the fourteen are the table below |
+| `g` + letter | a view — the fifteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
 | `z` | Inbox Zero over the whole inbox |
 | `w` | the selected action, alone on the doing screen |
 
-**The fourteen jump letters live here, and lived in implementation.md until
+**The fifteen jump letters live here, and lived in implementation.md until
 now.** A letter that opens a view is spent exactly as hard as a letter that
 presses a button — `t` is Today's jump and Today's mark, `d` is the Dashboard's
 jump and Done, `r` is Review's jump and the review mark, and not one of those
@@ -425,35 +435,44 @@ written down here.
 | View | Key | View | Key |
 | --- | --- | --- | --- |
 | Inbox | `i` | Someday/Maybe | `s` |
-| Today | `t` | Scheduler | `h` |
-| Next actions | `n` | Review | `r` |
-| Projects | `p` | Archive | `a` |
-| Tasks | `k` | Audit | `u` |
-| Waiting for | `w` | Dashboard | `d` |
-| Calendar | `c` | Settings | `e` |
+| Today | `t` | Reference | `f` |
+| Next actions | `n` | Scheduler | `h` |
+| Projects | `p` | Review | `r` |
+| Tasks | `k` | Archive | `a` |
+| Waiting for | `w` | Audit | `u` |
+| Calendar | `c` | Dashboard | `d` |
+| | | Settings | `e` |
+
+**Reference is `f`, and it is the third letter of its own name.** `r` is Review
+and `e` is Settings, both spent long before this view existed, so it takes the
+next letter of "reference" that is free — the derivation `y` and `h` already
+have, and the same one this table's own sentence describes. `m` for "material"
+was the other candidate and the weaker one: the view is called Reference
+everywhere else in the app, and a jump letter is guessed from the name on the
+rail.
 
 The letter is the view's own first where that was free and a distinct fallback
-where it was not, and the fourteen are unique among themselves. They are
+where it was not, and the fifteen are unique among themselves. They are
 written lowercase here because lowercase is what is pressed; the overlay draws
 them as uppercase badges, which is a styling decision and is argued for in
 implementation.md, "Navigation".
 
 **A jump letter may collide with a button letter, and the prefix is what is
-supposed to make that safe.** Five of the fourteen are also buttons — `d` is
+supposed to make that safe.** Five of the fifteen are also buttons — `d` is
 Done and the Dashboard, `t` is the Today mark and the Today view, `r` is the
 review mark and the Review view, `w` is doing and Waiting for, and `n` is the
 next-action mark and the Next actions view. The rule that
 allows it is that the two are never offered in the same breath: pressing `g`
 puts the keyboard in a state where only a jump can follow. Without the prefix
-these fourteen would have had to come out of the letters the buttons had not
-already taken, and there are not fourteen of those.
+these fifteen would have had to come out of the letters the buttons had not
+already taken, and there are not fifteen of those.
 
 **They did not behave that way until the map was written down here, which is
 the argument for this file making itself.** The row commands were read before
 the pending `g` was, so with a row under the cursor `g d` completed it and went
 nowhere, and `g t`, `g r` and `g w` went the same way — in `hybrid` and
 `command` modes, which includes the default. Nothing on the page was wrong and
-no other test could see it; what made it visible was putting the fourteen
+no other test could see it; what made it visible was putting the fifteen
 letters next to the buttons they share, in the one file whose job is to notice
 that a letter is spent twice. The pending `g` is now answered before every
 other key on the page, which is where the `^m` jump was already read and for
@@ -503,8 +522,8 @@ nothing.
 the bookmark under that digit — its view, with its filter on it — and that is
 the one half of the pair that needs nothing from the screen it is pressed on,
 so it works everywhere, the Inbox and the review included. A digit is free
-after `g` because every jump is a letter — one per view, and there is no
-fourteenth view wanting a number — so nothing had to be given up for it.
+after `g` because every jump is a letter — one per view, and no view is left
+wanting a number — so nothing had to be given up for it.
 
 The two are not two meanings: `^3` with a filter up *makes* a bookmark and is
 pressed with your hands in the filter line, `g 3` *goes to* one and is pressed
@@ -811,6 +830,14 @@ never be advertised without working:
   the boxes swapped. An ordinary submit, an ordinary redirect back to where it
   was pressed, and no deaf window — nothing is being destroyed, and pressing it
   twice on the same row means the same thing the second time.
+- **the Reference view is the first list whose rows carry `kb-delete`**, which
+  is what makes `⌫` mean "take this out of the pile" while the pile is being
+  read. Nothing new was needed for it: `deleteHere` has always asked the
+  selected row for its own delete form before falling back to the screen's, and
+  the bar has always offered the key only where such a form exists. What the
+  view adds is the first row that answers — see design.md, "Reference" for why
+  a pile that only grows is the one list where pruning belongs on the row, and
+  the audit entry is what makes the press recoverable.
 - **`kb-review` is a fourth row form, and the one that does not leave.** `r`
   presses it, and it is the only one of the four whose answer is a row redrawn
   where it stands rather than a screen replaced — so it takes no deaf window

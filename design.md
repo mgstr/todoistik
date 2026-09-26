@@ -21,6 +21,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Inbox item](#inbox-item) — the raw capture, near-schemaless so that capturing costs no decision
   - [Schedule](#schedule) — a piece of text and a rule for when to put it back in the inbox
   - [Someday/maybe item](#somedaymaybe-item) — an idea worth revisiting, that you are not ready to work on
+  - [Reference item](#reference-item) — what is kept and not done, and why the app keeps it now
   - [Action](#action) — one non-breakable task with a visible effect
   - [Project](#project) — a result needing more than one step, and its definition of done
   - [Time fields](#time-fields) — creation, due, snooze and completion, and which items take which
@@ -46,6 +47,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Filtering the remembered lists](#filtering-the-remembered-lists) — tags, contexts and verbs shown as three clouds
   - [Inbox](#inbox) — undecided captures, oldest first, and the one view with a rule attached
   - [Someday/Maybe](#somedaymaybe) — ideas, on their own longer review cadence
+  - [Reference](#reference) — the pile of material, newest first, read by narrowing it
   - [Projects](#projects) — the active ones, with stalled loudly marked and snoozed set apart
   - [Tasks](#tasks) — the standalone actions: no project, not yet done
   - [Next actions](#next-actions) — the working view, and what is on you to act on
@@ -160,6 +162,8 @@ The objects the app works with:
   yet
 - **someday/maybe item**: a raw capture that is worth revisiting some time, but
   not now
+- **reference item**: a raw capture that is not actionable and is worth
+  keeping - a manual, an account number, an article to come back to
 - **action**: a single non-breakable task, that can be done and have visible
   output effect
 - **project**: when end result can't be achieved in result of single action it
@@ -543,6 +547,60 @@ Rules:
   is worth more than a shortcut
 - someday/maybe items are reviewed on their own, longer cadence - a month by
   default rather than the week everything else gets (see "Weekly review")
+
+### Reference item
+Material that is worth keeping and is not worth doing: the boiler's model
+number, an account number, an article to come back to.
+
+A reference item is the same unclarified capture a someday/maybe item is, and it
+is here for the opposite reason. An idea on the someday list is a commitment not
+made *yet*; this is a capture with no commitment in it at all - the question
+"what is it?" was answered with "nothing to do, but do not lose it". Clarifying
+it would be inventing an outcome for something that has none.
+
+**The app keeps this material now, and used to keep none of it.** The branch
+sent the item out to wherever material was kept and the audit entry was the
+whole record it had ever existed, which made the one answer of Inbox Zero that
+says "worth keeping" the one answer that kept nothing. Whatever the material was
+then living in, it was reached by leaving the app, searched by a different
+search, and filed by hand a second time - so in practice the branch was pressed
+as a politer Delete. Material and commitments are captured in one place and by
+one keystroke, and the pile that answers "where did I write that down" is worth
+no less than the pile that answers "what should I do".
+
+Fields:
+- Text: (required) free-form, the material as captured, editable
+- Tags: (optional) the areas of responsibility the material is about
+- Creation date: (required) how long it has been kept
+
+Nothing else. No context, no size, no deadline, nobody it is waiting on: every
+one of those describes doing something, and this is the answer given when there
+is nothing to do. **And no `lastReviewedAt`**, which is the omission that
+separates this from a someday/maybe item: an idea is walked on a cadence because
+a parked commitment goes stale, and material does not - the boiler's model
+number is as true in a year as it is today. A pile nobody is obliged to walk is
+exactly what makes it cheap to keep.
+
+Rules:
+- items become reference items from the inbox, as one of the outcomes of Inbox
+  Zero, and the wording and the tags are settled there, as part of that answer
+  (see "Inbox Zero")
+- both stay editable afterwards, on the item's own page. Material is *added to*
+  as more of it is found out - the account number today, the portal it is typed
+  into next month - and a note that cannot be corrected is one you stop trusting,
+  which is the whole value of the pile
+- **the tags are what make it findable**, and they are the only structure there
+  is. No folders and no second dimension: a pile this long is read by narrowing
+  it (see "Reference"), and an area of responsibility is the narrowing that is
+  already written down everywhere else in the app (see "Tags")
+- **it is never reviewed**, and never appears in the weekly review. There is no
+  commitment here to have gone quietly wrong
+- **there is one way out, and it is the delete.** Material that turns out not to
+  be worth keeping is not a decision waiting to be made, so it leaves here
+  rather than going back to the inbox the way an idea does (see "Reshaping
+  items"). Material that turns out to *need* something done about it is a new
+  capture, written as the action it now is - the item is not what has changed,
+  what you know about it is
 
 ### Action
 An action is a single (non-breakable into smaller parts) task, that should be
@@ -1216,7 +1274,7 @@ create something all recorded the capture as *deleted*. Nothing was deleted: the
 item became a task, a step of a project, a project or an idea for later, and the
 log said the opposite about the commonest answers of a normal week, in the one
 place the app keeps to be read back. Each branch now records its own answer, as
-Delete, Send to reference materials and the two minute rule always did.
+Delete and the two minute rule always did.
 
 Two things follow from that, and both are why it is worth the six event names
 rather than one:
@@ -1243,6 +1301,16 @@ Entries written before are not rewritten and keep the word they were written
 with. An old log therefore has one bucket where a new one has three, which is a
 gap in what can be counted and not a wrong answer: nothing claims the log says
 more about the past than it does.
+
+**The reference branch is the second place this has happened, and it is the same
+rule doing the same work.** It recorded "sent to reference" while that is what
+it did, and records having made a reference item now that it keeps one - two
+words, because the two are different things to have happened and differ in
+exactly the way that matters here: an item that was sent out of the app is
+recovered by recapturing its text, and one that became a reference item is not
+lost and has nothing to recover. So the old entries still offer to put their
+text back in the inbox and the new ones do not, which is the only honest pair of
+answers.
 
 The one exception is `#today`, which is never audited - see "#today".
 
@@ -1508,7 +1576,7 @@ no item at all: it is a query over the same items like everything else here, but
 what it returns is how many, how fast and how old rather than which. That does
 not make it a different kind of object - nothing is stored in it, it cannot be
 created or deleted, and turning it off would lose nothing but the reading - but
-it does mean the rules below about rows, filters and ages are about the twelve
+it does mean the rules below about rows, filters and ages are about the thirteen
 views that list things, and the "Dashboard" says which of them it keeps as it
 goes.
 
@@ -1903,7 +1971,7 @@ about it to remember. A tenth key shows the nine.
   makes one press land on the whole question. It is still nine slots for the
   whole app and not nine per view - which digit holds "the car" is a thing to
   remember once, and remembering it per screen is remembering nine times
-  thirteen of them
+  fourteen of them
 - **a bookmark is therefore a place, and is reached the way the app's other
   places are.** Going to a view and going to a bookmark are now the same kind of
   move - a destination, named by one key - so the app's way of saying "go to"
@@ -1972,8 +2040,9 @@ line worth keeping.
   screen, because that half has never been the chord - it is `g 3`, and it works
   from everywhere (see "Bookmarked filters")
 - **what the line has no room for is dropped, and nothing is said about it.** A
-  project has no context, an idea has neither a context nor a size, and an
-  action that already names one context cannot name a second. A snippet written
+  project has no context, an idea and a piece of reference material have neither
+  a context nor a size, and an action that already names one context cannot name
+  a second. A snippet written
   onto any of those lands as whatever fits, and the rest simply does not arrive.
   The alternative is a refusal, and a refusal here would be the app telling you
   something you were not asking: pressing a snippet is a shorthand for typing,
@@ -2023,9 +2092,9 @@ The keys are in keys.md.
 
 ### Filtering by name
 Every view that can grow long carries the same name filter, and it behaves
-identically in all of them: **Someday/Maybe**, **Projects**, **Tasks**, **Next
-actions**, **Waiting for**, the **Calendar**, the **Scheduler** and the
-**Archive**.
+identically in all of them: **Someday/Maybe**, **Reference**, **Projects**,
+**Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the
+**Scheduler** and the **Archive**.
 
 Matching is case insensitive. Several words may be given and **all** of them
 have to be present, in any order and anywhere in the name - `call bank` finds
@@ -2050,8 +2119,8 @@ Zero". Neither does **Today**, for a related reason - see "Today".
 ### Filtering by tag
 Tags are the other shared filter, written `#car` in the line, as many as you
 like. It is carried by every view whose items have tags on them - **Projects**,
-**Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Archive**
-and **Someday/Maybe** - and behaves identically in all of them. It is what
+**Tasks**, **Next actions**, **Waiting for**, the **Calendar**, the **Archive**,
+**Someday/Maybe** and **Reference** - and behaves identically in all of them. It is what
 answers the review question "which part of my life am I starving?", which is why
 it reaches all of them and not only the working view.
 
@@ -2195,6 +2264,42 @@ The someday/maybe items - raw ideas worth revisiting some time, but not now.
   the one row control this view had ("move on it") was a second, faster route
   into a decision that deserves the screen it now takes, and it sat on every row
   for the one occasion a year each is used
+
+### Reference
+The reference material - what is kept and not done.
+
+- **newest first**, which is the one list here ordered that way. Every other
+  view is oldest-first because age is a reproach: something has been sitting
+  there. Nothing is waiting here, and what was filed last is what is most often
+  looked for again
+- the age shown is how long the material has been kept, which is the one thing
+  besides the words and the tags that an item has to say
+- it is a plain list, filtered by the same line every long view is filtered by
+  (see "The filter line"), and that line may ask about names and tags - the two
+  things a reference item carries
+- **the filter line is the view.** Everywhere else the line is how a long list is
+  narrowed when you want it narrowed; here it is how the pile is read at all,
+  because the pile only grows and is opened with one thing already in mind. That
+  is also why this view is the one that would suffer most from a hidden filter,
+  and why it says what it is hiding like every other filtered list does
+- each line shows the tags the material is about and the links it holds. The
+  links are worth more here than anywhere else: an article to come back to *is*
+  a link, and following it is the whole of what the row is for (see "Following a
+  link")
+- **a line shows the material as it was filed, body and all**, which is what a
+  someday/maybe line does and is a stronger rule here: the filter reads the
+  whole text, so a line that showed only its first words could match on
+  something it was not showing and leave you looking for why the row is there.
+  A long item is a long line, and that is the honest shape of the thing kept
+- **a line carries one control, and it is the delete.** Everything else about an
+  item - rewording it, adding to it, changing the area - is on its own page, one
+  keystroke away, the way it is on a someday/maybe item. Delete is on the row
+  because pruning is what is actually done to a pile while reading it, and
+  because it is recoverable: the audit entry keeps the item as it was (see
+  "Audit entry")
+- it carries **no count in the navigation**. A count there answers "how much is
+  waiting for me", and nothing here is waiting - a number that only ever went up
+  would be read as a backlog and would be wrong every time
 
 ### Projects
 The active projects, one to a line, with stalled ones loudly marked and snoozed
@@ -2803,14 +2908,14 @@ readable again.
 
 For each item the only question asked is: what is it? The answer is one of:
 
-The four branches that create something - Task, Action, Project and
-Someday/Maybe -
+The five branches that create something - Task, Action, Project, Someday/Maybe
+and Reference material -
 **read the captured item's first line as notation on the way into their form**:
 whatever that item's meta line can hold moves into it, and the words that are
-left become the title. An action's line holds all of it; a project's and a
-someday item's hold the tags, and a context or a size written on such a capture
-stays in the title, where it is seen and dealt with by hand (see "Writing a
-project", "Someday/maybe item"). A name that is not on a remembered list is
+left become the title. An action's line holds all of it; a project's, a someday
+item's and a reference item's hold the tags, and a context or a size written on
+such a capture stays in the title, where it is seen and dealt with by hand (see
+"Writing a project", "Someday/maybe item", "Reference item"). A name that is not on a remembered list is
 prose and stays put, which is the same rule the meta line itself obeys and what
 keeps `marju@gmail.com` out of the context box (see "Contexts").
 
@@ -2841,24 +2946,31 @@ them has somewhere real to put it:
 - **Someday/Maybe**: the text, all of it, into the one box the form has. An
   unclarified idea is a single free-form field and its tags, so there is nothing
   to split the capture into and nothing gained by splitting it
+- **Reference material**: the same, into the same shape of box, for the same
+  reason - and here the body is usually the part worth keeping. A mail capture's
+  link and a reminder's note are exactly the material being filed, so a branch
+  that read only the first line would keep the label and drop the thing
 
 Nothing is decided by this. It fills in a form that is still answered by hand,
 and a line the notation cannot account for - two contexts, an unreadable date -
 is left alone entirely rather than half moved: what was dropped would be
 invisible, and this is the one moment the item is being looked at deliberately.
 
-**Delete, Send to reference materials and the two-minute rule ignore it**, and
-there is nothing to fix there: those three create no object, so the line has
-nowhere to be read into. The item leaves exactly as it was captured, notation
-and body and all, and that is what the audit entry keeps.
+**Delete and the two-minute rule ignore it**, and there is nothing to fix
+there: those two create no object, so the line has nowhere to be read into. The
+item leaves exactly as it was captured, notation and body and all, and that is
+what the audit entry keeps. Reference material used to be the third of them, and
+stopped being when it started keeping what it was given.
 
 - **Delete**: the item is deleted. Recorded in the audit log.
-- **Send to reference materials**: the item is not actionable, but is worth
-  keeping - a manual, an account number, an article to come back to. It is sent
-  out of the app, to wherever reference material is kept. This is an external
-  action: the app itself stores no reference material. The branch exists so that
-  such captures have a correct answer, instead of being trashed or parked in
-  someday/maybe forever.
+- **Reference material**: the item is not actionable, but is worth keeping - a
+  manual, an account number, an article to come back to. It becomes a
+  **reference item** and is written the way material is written: the text, all
+  of it, and the area of responsibility it is about (see "Reference item"). It
+  is kept in the app and read in its own view (see "Reference"). The branch used
+  to be a single press that sent the material out of the app and kept nothing of
+  it, which made the answer "worth keeping" the one answer here that lost what
+  it was given - and made the branch, in practice, a politer Delete.
 - **Task**: it is done in a single step, and that step stands on its own. The
   item is converted into a **standalone** action and is written in the form an
   action is written in - the title starts with a verb and is self-descriptive;
@@ -3694,6 +3806,13 @@ A text that is already sitting in the inbox collapses into the item that is
 there, by the rule every other way in obeys (see "Duplicate captures") - the
 idea is in the inbox either way, which is what was asked for.
 
+**A reference item has no trip back, and the silence is deliberate.** Nothing
+about it is the wrong shape: it was filed as material and it is still material,
+and the case that looks like reshaping - "this turns out to need doing" - is a
+new commitment rather than this item converted. What changed is what you know,
+not what the item is, so it is captured as the action it now is and the material
+stays where material lives (see "Reference item").
+
 ## Out of scope
 
 ### Deliberate omissions
@@ -3768,13 +3887,16 @@ as fresh ideas.
   concept to cover a case that is already covered: complete the action, and put
   a `snoozeUntil` on the next one. Watering the plants late simply shifts the
   next watering, which is exactly what a snooze does.
-- **Reference material storage.** The app keeps no reference material of its
-  own. Material that belongs to a specific commitment lives in the description
-  of the **action** it belongs to; everything else leaves through the "send to
-  reference materials" branch of Inbox Zero and is kept outside the app. A
-  project has no description of its own: it has a definition of done, which is
+- **Files and attachments.** Reference material is kept in the app (see
+  "Reference item") and it is *text*, like everything else here. Nothing is
+  uploaded, nothing is stored beside the database, and a PDF is referred to by
+  where it lives rather than copied in. A store of files is a second store, with
+  its own backups, its own sizes and its own way of going missing, and the one
+  thing it would buy over a line of text and a link is being able to read the
+  file without the thing that made it.
+- **A description on a project.** A project has a definition of done, which is
   the one thing about a project worth writing down, and a free-text field beside
   it was somewhere for the same sentence to be written a second time in weaker
   words. Material a project needs belongs to whichever of its actions needs it -
   and material that belongs to none of them is not material this project needs,
-  it is reference material, which leaves.
+  it is reference material, which is kept in its own view.

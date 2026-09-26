@@ -1,0 +1,27 @@
+{{template "top" .}}
+{{$it := .Data}}
+{{/* One piece of material, in the same form it is filed on, and one row of
+     buttons under it — the shape a someday item's page has, for the reason it
+     has it: a screen you can leave with the same key everywhere, and a Save
+     that only offers itself when there is something to save (design.md,
+     "Editing items"). */}}
+<div class="item" data-cancel="/reference"
+  {{with itemlinks $it.Text}}data-links="{{.}}"{{end}}>
+  <form method="post" action="/referenceitem/{{$it.ID}}" id="itemform" class="stack" data-dirty-save>
+    {{template "referencefields" (dict "Text" $it.Text "Meta" $it.Meta)}}
+  </form>
+
+  {{/* the one thing this screen says rather than asks, in the place a someday
+       item's page says the same thing: over the buttons. It hides with every
+       other age (^t), being one. */}}
+  <p class="stamps"><span class="agetext">kept {{age $it.CreatedAt}}</span></p>
+  <div class="actionsbar">
+    <button form="itemform" class="primary" data-key="s" data-key-label="save" data-key-typing>Save</button>
+    {{/* Delete and not Inbox: an idea goes back to be decided about because
+         there is a decision left to make, and material that is not worth
+         keeping has none (design.md, "Reference") */}}
+    <form method="post" action="/referenceitem/{{$it.ID}}/delete" class="inline kb-delete"><button class="danger">Delete</button></form>
+    <a class="button" href="/reference">Back</a>
+  </div>
+</div>
+{{template "bottom" .}}

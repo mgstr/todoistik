@@ -235,8 +235,8 @@ func (a *App) monthStart(back int) time.Time {
 // --- the two distributions -----------------------------------------------
 
 // becameLabels turns a leaving event into what the row says, and fixes the
-// order the rows are drawn in: what became a commitment first, then what
-// became nothing, which is the panel read from most answered-with-work to
+// order the rows are drawn in: what became a commitment first, then what was
+// kept without being one, then what became nothing, which is the panel read from most answered-with-work to
 // least. A fixed order and not a ranking, unlike the channels below — the
 // branches are a closed set with a natural order, and a panel that reshuffled
 // itself between visits would have to be re-read each time rather than
@@ -252,9 +252,14 @@ var becameLabels = []struct{ Event, Label string }{
 	{EvBecameAction, "an action in a project"},
 	{EvBecameProject, "a project"},
 	{EvBecameSomeday, "someday/maybe"},
+	{EvBecameReference, "reference material"},
 	{EvTwoMinute, "done on the spot"},
 	{EvTrashed, "trashed"},
-	{EvReference, "reference material"},
+	// the reference branch's old word, kept apart from the row above for the
+	// reason `deleted` is kept apart from the four it used to stand for: those
+	// captures left the app and nothing here holds them, which is a different
+	// thing to have happened and stays readable as one
+	{EvReference, "sent out, before the app kept material"},
 	{EvConfirmed, "a completion confirmed"},
 	{EvDeleted, "filed, before the log said which"},
 }
