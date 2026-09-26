@@ -2735,10 +2735,12 @@ and body and all, and that is what the audit entry keeps.
   processing"), and now the answers do too.
 
   **Neither form asks where the action lives.** It has been answered - by which
-  button was pressed, and then by the picker - so the Project box shows it and
-  cannot be changed, which is what an action's own page has always done. Moving
-  an action between projects afterwards is what Detach and Attach are for (see
-  "Reshaping items").
+  button was pressed, and then by the picker - so the Action form's Project box
+  shows the answer and cannot be changed, which is what an action's own page has
+  always done. Moving an action between projects afterwards is what Detach and
+  Attach are for (see "Reshaping items"). The Task form shows nothing there at
+  all: its answer is "no project", and a box reading a word for none is a field
+  restating the branch that was pressed (see "Editing items").
 
   Two further things are settled on both forms, and neither is a branch of its
   own:
@@ -3305,6 +3307,18 @@ an action opened from a list shows its project without offering to change it,
 because moving an action between projects is Detach and Attach and not an edit
 (see "Reshaping items"). A form that looked different in each place would be
 four forms to keep true, and the fourth would be the one missing a field.
+
+- **and the project is shown only where it names one.** The field is read and
+  never written, so a row whose whole content is the screen it is on is a line
+  spent saying nothing. Two of them were exactly that. A task has no project,
+  and the row used to read `<standalone>` - a word for "none" sat where a name
+  goes, on the one screen whose own trail already says *task*, which is the
+  noun that means standalone (see "Tasks"). An action added to a project while
+  that project's form is open used to read `<this project>` - a field answering
+  a question the screen behind it is the answer to. Both rows are gone, and the
+  one case the row exists for is untouched: an action opened from a list, where
+  which project it belongs to is the thing about it the screen does not
+  otherwise say.
 
 **Leaving without saving is always offered.** Nothing is written until it is
 saved, the way out is the same key that leaves any screen, and it costs nothing -
