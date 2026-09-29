@@ -789,9 +789,15 @@ For an agent (or a person) picking this up cold:
   document has to appear in it verbatim, so rewording a sentence that another
   file quotes is caught the same way a rename is.
 
-- **Small commits, one topic each.** Prefer a docs-only commit separate from the
-  code commit that implements it, matching this repo's existing history, over
-  one commit that mixes design discussion with implementation.
+- **Small commits, one topic each — and the docs are part of the topic.** A
+  commit changes one thing and says so, in design.md, implementation.md and
+  keys.md as much as in the code. Do not split the docs into a commit of their
+  own: a commit that moves behaviour while its document still describes the old
+  behaviour is wrong about itself, and separating them guarantees at least one
+  revision where the two disagree. Work lands here as squash-merged pull
+  requests, so the split would be undone on the way in regardless. Separate the
+  discussion from the implementation by putting them in different *branches*,
+  which is what branches are for, not in different commits of the same one.
 
 ## Development
 

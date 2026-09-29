@@ -31,5 +31,15 @@ from "forgotten".
 Both docs justify every rule rather than merely stating it. Match that voice:
 a new bullet says why, not just what.
 
-Doc updates go in their own commit, separate from the code commit that
-implements them, matching this repo's existing history.
+The docs go in the **same commit** as the code they describe. "Same unit of
+work" is meant literally: a commit that changes behaviour and leaves design.md
+saying the old thing is a commit that is wrong about itself, and splitting the
+two guarantees at least one revision where the documentation and the code
+disagree. Landed history is squash-merged pull requests, so a split is undone
+on the way in anyway — it buys nothing and costs a window where `git show` on a
+commit does not explain it.
+
+This is the one convention that changed its mind. It used to ask for a
+docs-only commit, on the reasoning that design discussion reads better apart
+from implementation. That is true of a *branch*, which is where the separation
+belongs, and it was never true of the commit that lands.
