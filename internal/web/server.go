@@ -191,8 +191,13 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) authed(r *http.Request) bool {
+	// An empty token opens the server, and the todoistik binary will not start
+	// with one (see main.go), so this branch is reachable only from a test that
+	// builds a Server directly and does not want to carry a token through every
+	// request. It is not a mode the app has: there is no way to ask for it from
+	// the command line, and nothing in the docs offers it.
 	if s.token == "" {
-		return true // no token configured: bind to localhost and trust it
+		return true
 	}
 	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
 		return subtle.ConstantTimeCompare([]byte(strings.TrimPrefix(h, "Bearer ")), []byte(s.token)) == 1

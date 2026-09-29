@@ -2,8 +2,9 @@
 # The keyboard trial server: the normalized keys on their own port, against a
 # copy of the database, so pressing the new delete key cannot reach real work.
 #
-# It is separate from dev.sh so both can run at once — the app as it was on
-# 8390, this on 8391 — which is the only way to compare a key by feel.
+# It is separate from cmd/start-todoistik-dev.sh so both can run at once — the
+# app as it was on 8390, this on 8391 — which is the only way to compare a key
+# by feel.
 #
 # Switch modes by editing keys.mode in the settings file below and reloading;
 # nothing is compiled into a mode (keys.md, "The three modes").
