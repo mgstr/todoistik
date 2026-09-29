@@ -36,6 +36,7 @@ func main() {
 		tokenFile = fs.String("token-file", "", "a file holding the bot token; otherwise TELEGRAM_TOKEN")
 		base      = fs.String("url", env("TODOISTIK_URL", "http://127.0.0.1:8390"), "the running app's base URL")
 		token     = fs.String("token", os.Getenv("TODOISTIK_TOKEN"), "the app's bearer token; empty for a server started without one")
+		appFile   = fs.String("app-token-file", "", "a file holding the app's bearer token; otherwise -token or TODOISTIK_TOKEN")
 	)
 	fs.Usage = func() {
 		fmt.Fprint(os.Stderr, `telegrambot answers one Telegram chat: a message is captured into the inbox,
@@ -43,8 +44,9 @@ a command reads a view.
 
   TELEGRAM_TOKEN=... telegrambot -chat 123456789
 
-The bot token is never a flag: a flag is on the process list for anything on
-the machine to read.
+Neither token belongs in a flag value: a flag is on the process list for
+anything on the machine to read. Each has a file to come from instead —
+-token-file for the bot's, -app-token-file for the app's.
 
 `)
 		fs.PrintDefaults()
@@ -55,6 +57,17 @@ the machine to read.
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "telegrambot: %v\n", err)
 		os.Exit(2)
+	}
+	// the app's own token, by the same route as the bot's. Unlike the bot's it
+	// may end up empty, which is a server started without one and not a
+	// mistake — so there is no env fallback to report as missing here, only a
+	// named file that has to be readable if it was named at all
+	appToken := *token
+	if strings.TrimSpace(*appFile) != "" {
+		if appToken, err = fileToken(*appFile); err != nil {
+			fmt.Fprintf(os.Stderr, "telegrambot: %v\n", err)
+			os.Exit(2)
+		}
 	}
 	var chatID int64
 	if strings.TrimSpace(*chat) != "" {
@@ -69,7 +82,7 @@ the machine to read.
 
 	r := &runner{
 		tg:     newTelegram(botToken),
-		bot:    &bot{app: apiclient.New(apiclient.Base(*base), *token)},
+		bot:    &bot{app: apiclient.New(apiclient.Base(*base), appToken)},
 		chat:   chatID,
 		out:    os.Stdout,
 		errOut: os.Stderr,
@@ -194,18 +207,32 @@ func (r *runner) fail(format string, args ...any) {
 // everything the bot is sent, and a flag is on the process list.
 func readToken(file string) (string, error) {
 	if strings.TrimSpace(file) != "" {
-		b, err := os.ReadFile(file)
-		if err != nil {
-			return "", err
-		}
-		if tok := strings.TrimSpace(string(b)); tok != "" {
-			return tok, nil
-		}
-		return "", fmt.Errorf("%s holds no token", file)
+		return fileToken(file)
 	}
 	tok := strings.TrimSpace(os.Getenv("TELEGRAM_TOKEN"))
 	if tok == "" {
 		return "", errors.New("no bot token: set TELEGRAM_TOKEN or -token-file (from @BotFather)")
+	}
+	return tok, nil
+}
+
+// fileToken reads a secret out of a file: the whole file, trimmed. A file that
+// cannot be read, or that holds nothing, is an error rather than an empty
+// token, because a named file is a stated intention — falling back silently
+// would start the program with no credential and fail it somewhere further on,
+// where the cause no longer names the file that was meant to supply it.
+//
+// It is the route a secret takes instead of a flag value (implementation.md,
+// "Where a secret lives"): a path on the process list tells `ps` where the
+// secret is, not what it is, and the file is in a 0700 directory.
+func fileToken(file string) (string, error) {
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	tok := strings.TrimSpace(string(b))
+	if tok == "" {
+		return "", fmt.Errorf("%s holds no token", file)
 	}
 	return tok, nil
 }

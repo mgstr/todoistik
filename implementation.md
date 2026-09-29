@@ -13,6 +13,8 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [API authentication](#api-authentication) — one static bearer token, checked on every request
   - [A read is spelled as data or as text](#a-read-is-spelled-as-data-or-as-text) — `?format=` answers as JSON or as plain text
   - [Every view in one answer](#every-view-in-one-answer) — `GET /api/context`, every view through the one read path
+  - [Where a secret lives](#where-a-secret-lives) — one sourced 0600 file, and why a secret is never a flag
+  - [Working on it](#working-on-it) — `cmd/start-todoistik-dev.sh`, the dev server that rebuilds on every save
 - [Reminders, both ways](#reminders-both-ways) — `cmd/remindersync`, between a macOS list and the app
   - [move: a list into the inbox](#move-a-list-into-the-inbox) — one capture per reminder, and the reminder deleted
   - [sync: a view onto a list](#sync-a-view-onto-a-list) — the list made to hold what a view and its filter hold
@@ -158,6 +160,7 @@ the default is 2, which is 48 files.
 **Go**, server-rendered HTML with **HTMX**, and a small amount of vanilla JS for the keyboard layer.
 
 - one static binary makes the self-hosted platform cheap to operate: copy it to the server and run it, nothing else installed
+- **every binary is built into `bin/`, by `cmd/build.sh`, and none of them is tracked.** There are five of them now — the app and the four programs under `cmd/` — and at 10 to 20 MB each they were five untracked files sitting in the repository root, one `.gitignore` line apiece, in the way of every `ls` and every search that did not exclude them. One directory is one ignore rule (`/bin/`) and it stays one however many commands are added. **The script lives with the source it builds, not with the output**: `bin/` holds build products only, so it can be ignored whole and deleted whole, where a script kept inside it is source surviving on a `!` exception that `rm -rf bin` silently undoes. `cmd/` is where the programs are, a non-directory there is not a command, and both `go` and the script's own `[ -d ]` loop step over it. The script discovers what to build — the module root, then each directory under `cmd/` — rather than listing it, because a build script that has to be edited when a command is added is a build script that is quietly wrong for as long as nobody notices
 - server-rendered pages keep the app fast and the client thin. HTMX covers the in-place updates a working view needs (completing an action, toggling a filter) without a frontend framework
 - no ORM ceremony required — the schema is small and the queries are the views
 - JS exists for exactly one job: the keyboard layer. Everything it triggers is a request the server answers, so the server stays the single source of truth
@@ -167,6 +170,8 @@ the default is 2, which is 48 files.
 A **static bearer token**, one long-lived secret, checked on every request.
 
 - one token, set in the server's configuration, sent as `Authorization: Bearer <token>`. It covers the capture API, the read API and the UI alike — the UI accepts it once and keeps it in a cookie
+- **there is no way to run without one.** `main.go` refuses to start on an empty token, before it opens the database. It was optional once, on the argument that an empty token is fine behind localhost — and that argument is sound about the afternoon it is made and worthless about the app, because binding to `0.0.0.0` later is one word in a unit file and nothing about that word says it is also turning authentication off. A rule that holds only while nobody edits the address is not a rule, so the address is no longer part of it. The refusal is in the binary rather than in `cmd/start-todoistik.sh`, where it briefly lived, for the reason it is in the binary and not in the script: a check in one way of starting the app is a check the other ways do not get, and the ways multiply (a unit file, a cron line, a shell)
+- **the token is trimmed before it is used.** It arrives from a file or an editor as often as it is typed, and both leave a newline; an untrimmed token is a server that starts, looks right, and refuses every login for a reason nothing displays. `checkedToken` in `main.go` does it, and is the one thing in that file with a test of its own — what it prevents is silent, so a build that lost it would look exactly like a build that had it
 - trivial for every intended caller: a curl one-liner, a share-sheet shortcut, a cron script, an AI reading a view
 - this is a single-user app; scoped tokens, rotation machinery and OAuth are complexity with no second user to justify them. If the token leaks, change it — every caller is yours
 
@@ -318,6 +323,170 @@ view holds.
   it; a bundle reads twelve views and would have to say which of them each
   problem belonged to. Since the bundle takes no filters but this one, the one
   check is written where it applies
+
+### Where a secret lives
+
+Every binary reads its secrets from the environment, and the environment is
+filled from **`.env/secrets.sh`**, one file, sourced before a run:
+
+```sh
+. .env/secrets.sh
+./bin/todoistik
+```
+
+- **a secret is never a flag value.** `-token`, `-password` and the like exist
+  for the app's own token only because a flag is in the process list, where any
+  `ps` on the machine reads it. The bot token, the mail app password and the
+  bearer token come from an export or from a `-*-file` path instead — which is
+  why `mailsync` and `telegrambot` have a `-password-file`/`-token-file` and no
+  `-password`/`-token` of their own
+- **one secret, one copy, and the file is the copy.** The bearer token is in
+  `.env/todoistik-token`, and `.env/secrets.sh` exports `TODOISTIK_TOKEN` by
+  reading that file rather than by repeating its value. It was written out in
+  both places at first, since the file exists for the rule below and the
+  variable exists for everything that inherits its environment — and the two
+  drifted within a day: the server came up under the development throwaway
+  while `telegrambot` sent the real one, and every read the bot made returned
+  `missing or wrong bearer token` from an app that was working perfectly. The
+  general form is that a value stored twice is a value that will disagree with
+  itself, and the fix is not vigilance but arithmetic: derive one from the
+  other, so that there is nothing to keep in step. Deriving *this* way round is
+  forced — a file holding a path could not be handed to `-app-token-file`
+- **a secret that has to be named on a command line is named as a path.** The
+  rule above is about the *value*, and the escape from it is always the same
+  shape: `telegrambot`'s `-app-token-file` does for the app's bearer token what
+  its `-token-file` already did for the bot's, and `cmd/start-telegrambot.sh`
+  passes it. The difference is the whole point — `ps` then shows where the
+  token is rather than what it is, and where it is, is a `0600` file in a
+  `0700` directory that the reader would have needed to be you to open. A
+  named file that is missing or empty is refused rather than fallen back on,
+  because naming one is a stated intention and a silent fallback would start
+  the program with no credential and fail it a layer later, as a 401 from the
+  app, where the cause no longer names the file meant to supply it. It is the
+  one client that has this, because it is the one whose script hands the token
+  over; the others inherit it from the environment and need no path
+- **one file rather than a shell rc**, because the set is then visible as a
+  set: what the app needs is one `cat` away, and a machine that has lost a
+  secret shows it as an empty line rather than as a variable that was never
+  exported anywhere findable
+- **`.env/` is `0700` and `secrets.sh` is `0600`**, so the file is unreadable
+  by other accounts and the directory cannot be walked by them either. A
+  directory needs its execute bit to be entered at all, which is why it is not
+  `0600` like the file it holds
+- **`.env/` is in `.gitignore`**, for the reason `todoistik.conf` is: a file
+  git has never been offered cannot be committed by an absent-minded `git add
+  -A`. The template of what belongs in it lives in README, "Secrets", the same
+  way the settings file's shape does
+- **the directory holds what is yours, not only what is secret.**
+  `remindersync.conf` is in it beside the secrets, and it is not a credential:
+  it is the names of your Reminders lists and the filters you watch, in a file
+  whose every line *may* carry a token but usually does not. It is there
+  because the two want the same treatment for two different reasons that arrive
+  at the same rule — a secret must not be committed and must not be readable, a
+  personal config should not be committed and is nobody else's business — and
+  one `0700` directory ignored whole gives both, where `/remindersync.conf` in
+  the root needed an ignore line of its own and still sat in the way of every
+  `ls`. What separates this directory from `todoistik.conf` is whose file it
+  is: the settings file is the *app's* configuration, the same on any machine
+  running it the same way, and it is ignored only because the values in it are
+  a preference. `.env/` is the machine's and the person's
+- **every long-running program has a `cmd/start-<program>.sh` apiece**,
+  which sources the file and starts that one program. The scripts are what
+  know which pieces of the environment each program needs — the account and
+  the label for `mailsync`, the config file for `remindersync`, nothing beyond
+  the token for `telegrambot`, and none of it in the root — so that knowledge
+  is in the repository rather
+  than in one machine's shell history. They pass their arguments through, so a
+  `-dry-run` or a `-period` still reaches the program, and each refuses with
+  one line naming what is missing rather than starting a program that will fail
+  later and further away. A script hands its pieces over as **flags rather than
+  leaving them in the environment for the program to find**, even where the
+  program would read the same variable itself: `MAILSYNC_USER` is `mailsync`'s
+  own default for `-user`, and passing it anyway is what lets the script refuse
+  a missing account by the name of the file it belongs in, instead of letting
+  the program's own "required" arrive a layer further away from the fix.
+  `telegrambot`'s `-chat` is handed over the same way and is passed *even when
+  empty*, because there empty is an answer rather than an omission — a bot with
+  no chat answers nobody and prints the id of whoever writes, which is the only
+  way to learn the number — so a guard like `mailsync`'s would refuse the one
+  run whose purpose is to be refused by Telegram. The token it does guard is
+  the app's, and it is the one thing a script checks that it then declines to
+  pass by value: it hands over `-app-token-file` if the file is there, leaves
+  the environment to carry it if not, and refuses only when neither holds
+  anything. That
+  is not a contradiction of the rule above, because a Gmail address is an
+  identifier and not a credential — it is on every message in the mailbox — and
+  `ps` learning it costs nothing the mailbox does not already spend. The
+  password beside it stays out of the flags for exactly the reason the rule
+  gives. What has no sensible default is refused rather than guessed
+  (`MAILSYNC_USER`: whose mailbox this is cannot be inferred), and what has one
+  keeps it (`MAILSYNC_LABEL` falls back to `todoistik`). `remindersync`'s script
+  runs `loop`: `move` and `sync` are single passes, typed out when one list is
+  wanted now, and the file it runs is `REMINDERSYNC_CONF`,
+  `.env/remindersync.conf` by default. **A script reads the environment only
+  after it has sourced the file that sets it** — obvious written down, and
+  wrong in `start-remindersync.sh` for as long as the config path was resolved
+  above the `.` line: `REMINDERSYNC_CONF` was read from whatever shell had
+  started the script and never from the file that documents it, so the one
+  variable the file offered that script did nothing at all. `start-todoistik.sh`
+  is the one that passes *nothing*, because every setting the server has is an
+  env var `main.go` already reads and naming them again as flags would put the
+  bearer token on the process list for the sake of saying it twice — so what
+  the script contributes is the sourcing and the two refusals every one of
+  these makes — no secrets file, no binary. It has no token check of its own:
+  it had one for a while, against the address, and the rule it was enforcing
+  has since moved into the binary where it belongs (see "API authentication").
+  That is the general shape and not a one-off — a script can only refuse for
+  the way in it is, and the app is started other ways.
+  `start-todoistik-dev.sh` is its twin and has "Working on it" to itself
+- **nothing loads the file by itself.** There is no dotenv reader in any
+  binary: the shell sources it, the binaries only read `os.Getenv`. A program
+  that silently picks up a file beside it behaves differently depending on the
+  directory it was started from, and these run from cron, from a loop and from
+  an MCP client, all with different working directories
+
+### Working on it
+
+`cmd/start-todoistik-dev.sh` is the development server: `wgo` watching the
+tree, rebuilding and restarting the app on every save, on `127.0.0.1:8390`. It
+is `cmd/start-todoistik.sh`'s twin, and the pair is the point: **one name, two
+scripts, and the suffix says which half you are in** — running the app, or
+working on it. They were one script under two names before (`dev.sh` in the
+root, and nothing at all for running it), which made the choice invisible to
+anyone who had not already made it.
+
+- **it watches `.html`, `.css` and `.js` as well as the Go files**, because
+  `templates/` and `static/` are `//go:embed`-ed (see "Stack"). An embedded
+  file is baked in at compile time, so a template edit that does not recompile
+  is a template edit that does not exist — and the failure is a page that looks
+  unchanged, which reads as "my edit was wrong" rather than "my edit was not
+  built". Watching the three extensions is what keeps those two apart
+- **it sources `.env/secrets.sh` like every other start script, and then
+  fills what the file left empty.** The order is what makes that work: the
+  sourcing first, the `${VAR:-default}` assignments after, so the file always
+  wins and the defaults are only ever what is left. The one that matters is the
+  token — with none of your own it serves under a fixed throwaway one, `go`. A
+  random token per start would log you out on every save, which is every few
+  seconds while a template is being shaped, and requiring a real one would put
+  a setup step in front of the first run of a server whose whole purpose is to
+  be restarted carelessly. A fixed one is neither. Since the app began refusing
+  to start without a token (see "API authentication") this fallback is what
+  keeps the dev server startable on a machine whose secrets file is still
+  empty, which is the first machine anyone builds this on
+- **it lives in `cmd/` with the other start scripts, and is named as one.** A
+  `dev.sh` in the root said "this is different" by being somewhere else, at the
+  cost of nothing in the root saying the other scripts existed at all, and of
+  the difference being a location rather than a sentence. `cmd/` holds every
+  way this repository is started, the suffix carries the distinction, and a
+  reader who opens the directory sees the whole set and can tell the halves
+  apart without opening anything
+- **`keytest.sh` is its companion and stays in the root**, on 8391 against a
+  copy of the database, so an unfamiliar key can be pressed without reaching
+  real work. It is separate from this so both run at once — the app as it was
+  on 8390, the trial on 8391 — which is the only way to compare a key by feel
+  (keys.md, "The three modes"). It is not a `cmd/start-*.sh` because it does
+  not start this app: it starts a copy of it, pointed at a copy of the data,
+  to be thrown away
 
 ## Reminders, both ways
 

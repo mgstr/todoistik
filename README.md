@@ -8,8 +8,17 @@ designed yet.
 ## Run
 
 ```sh
-go build -o todoistik .
-TODOISTIK_TOKEN=$(openssl rand -hex 24) ./todoistik -addr 0.0.0.0:8390 -db ~/todoistik.db -tz Europe/Tallinn
+./cmd/build.sh              # the binaries, into bin/
+./cmd/start-todoistik.sh    # sources .env/secrets.sh and runs bin/todoistik
+```
+
+Everything the server takes is in `.env/secrets.sh` (see "Secrets" below), so
+the script passes nothing on the command line of its own — but it passes yours
+through, so `./cmd/start-todoistik.sh -addr :8391` still works for one run. The
+binary underneath takes no secret it cannot read from the environment:
+
+```sh
+TODOISTIK_TOKEN=$(openssl rand -hex 24) ./bin/todoistik -addr 0.0.0.0:8390 -db ~/todoistik.db -tz Europe/Tallinn
 ```
 
 Flags (each also readable from the environment):
@@ -18,12 +27,115 @@ Flags (each also readable from the environment):
 |----------|-------------------|------------------|--------------------------------------------|
 | `-addr`  | `TODOISTIK_ADDR`  | `127.0.0.1:8390` | listen address                             |
 | `-db`    | `TODOISTIK_DB`    | `todoistik.db`   | SQLite database file                       |
-| `-token` | `TODOISTIK_TOKEN` | *(empty)*        | bearer token; empty disables auth — then keep it bound to localhost |
+| `-token` | `TODOISTIK_TOKEN` | *(required)*     | bearer token; the server refuses to start without one |
 | `-tz`    | `TODOISTIK_TZ`    | `Local`          | the one timezone that defines "today"      |
 | `-config`| `TODOISTIK_CONFIG`| `todoistik.conf` | settings file; missing is fine, wrong is fatal |
 
 Open the address in a browser and enter the token once. Press `?` for the key
 map.
+
+## Secrets
+
+The app's token, the mail password and the bot token are read from the
+environment; the environment comes from `.env/secrets.sh`, which is `0600`
+inside a `0700` directory and is not in git. Everything else that is yours
+rather than the app's lives in that directory too — `remindersync.conf`, which
+names your lists and the filters you watch, and the token file below — for the
+same reason: one ignored, unreadable directory holds what should not be
+committed and should not be read, and nothing personal is left in the
+repository root to be committed by an absent-minded `git add -A`. Source the
+secrets before starting anything:
+
+```sh
+. .env/secrets.sh
+./bin/todoistik
+```
+
+Or let a start script do it, which is what they are for.
+
+Make the file once, and fill in what you use:
+
+```sh
+mkdir -p .env && chmod 700 .env
+cat > .env/secrets.sh <<'EOF'
+if [ -r .env/todoistik-token ]; then export TODOISTIK_TOKEN="$(cat .env/todoistik-token)"; fi
+#export TODOISTIK_URL=http://127.0.0.1:8390   # only if the server is not on the default
+export MAILSYNC_USER=            # the Gmail account the label is on
+#export MAILSYNC_PASSWORD=       # a Google app password, not the account password
+#export MAILSYNC_LABEL=todoistik # the Gmail label emptied
+#export TELEGRAM_TOKEN=          # from @BotFather
+export TELEGRAM_CHAT=            # the one chat id answered; empty prints who writes
+#export REMINDERSYNC_CONF=.env/remindersync.conf   # the loop's runs, one per line
+#export TODOISTIK_TOKEN_FILE=.env/todoistik-token   # the bearer token as a path, for start-telegrambot.sh
+#export TODOISTIK_ADDR=0.0.0.0:8390
+#export TODOISTIK_DB=~/todoistik.db
+#export TODOISTIK_TZ=Europe/Tallinn
+EOF
+chmod 600 .env/secrets.sh
+```
+
+No binary reads this file by itself — the shell does, which is why it is
+sourced and not passed as a path. A secret is never a flag value: a flag is in
+the process list for anyone with `ps`, which is why `mailsync` and
+`telegrambot` take a `-password-file`/`-token-file` rather than the secret
+itself. See implementation.md, "Where a secret lives".
+
+The app's own bearer token has the same escape where it is handed over on a
+command line rather than inherited: put it in a file of its own and name the
+file. `start-telegrambot.sh` looks for `.env/todoistik-token` (or wherever
+`TODOISTIK_TOKEN_FILE` says) and passes it as `-app-token-file`, so what `ps`
+shows is where the token is and not what it is.
+
+That file is also where the token *lives*: the line above reads it rather than
+repeating it, so there is one copy. Make it with
+
+```sh
+openssl rand -hex 24 > .env/todoistik-token && chmod 600 .env/todoistik-token
+```
+
+and both the server and the bot are then talking about the same secret. They
+were two lines once — a value here and a file beside it — and two copies of one
+value drift: the server answered under one, the bot sent the other, and every
+read the bot made came back `missing or wrong bearer token`. A missing file
+leaves `TODOISTIK_TOKEN` unset and the app refuses to start and says so, which
+is the right way round for this to fail.
+
+### Starting it all
+
+Everything that runs continuously has a script in `cmd/` apiece, which sources
+the secrets and starts the one program with what it needs:
+
+```sh
+./cmd/start-todoistik.sh       # the app
+./cmd/start-mailsync.sh        # the Gmail label, every 5 minutes
+./cmd/start-telegrambot.sh     # the one chat
+./cmd/start-remindersync.sh    # .env/remindersync.conf, every direction in it
+```
+
+There is a fifth, `./cmd/start-todoistik-dev.sh`, which is the first one's twin
+for working on the app rather than running it — see "Development" below.
+
+Each passes anything you give it through to the program, so
+`./cmd/start-mailsync.sh -dry-run` and `./cmd/start-remindersync.sh -period 10`
+say what they look like, and anything you pass wins over what the script sets —
+`./cmd/start-mailsync.sh -user other@gmail.com` empties the label on a second
+account. They run from anywhere and refuse with one line when the secrets file,
+the binary, the config file or a setting with no default is not there:
+`start-mailsync.sh` needs `MAILSYNC_USER`, because whose mailbox this is cannot
+be guessed the way the label can. `start-telegrambot.sh` asks only for a
+token, from `.env/todoistik-token` or from the environment; `TELEGRAM_CHAT` may
+be empty, and on the first run it should be — the bot answers nobody and prints
+the id of whoever writes to it, which is the number to put in the file.
+
+`start-remindersync.sh` runs the `loop` direction, the one that keeps going;
+`move` and `sync` are single passes and stay typed out.
+
+`start-todoistik.sh` is the one that passes nothing of its own, because every
+setting the server has is an env var it already reads — naming them again as
+flags would buy nothing and would put the bearer token on the process list. It
+checks nothing either: the server requires a token and says so itself, which is
+the only place that can say it to every way of starting the app rather than to
+this one.
 
 ## Backups
 
@@ -187,10 +299,10 @@ is a separate binary, and the direction is named on the command line, because
 the two do opposite things to the same list:
 
 ```sh
-go build -o remindersync ./cmd/remindersync
-./remindersync move -list "Inbox" -token "$TOK"                        # a list into the inbox
-./remindersync sync -list "geocaching" -q "#gc #sync" -token "$TOK"    # a view onto a list
-./remindersync loop -token "$TOK" ~/remindersync.conf                  # both, every few minutes
+./cmd/build.sh
+./bin/remindersync move -list "Inbox" -token "$TOK"                     # a list into the inbox
+./bin/remindersync sync -list "geocaching" -q "#gc #sync" -token "$TOK" # a view onto a list
+./bin/remindersync loop -token "$TOK" .env/remindersync.conf            # both, every few minutes
 ```
 
 `move` and `sync` take the same four flags, and `sync` two more:
@@ -281,7 +393,7 @@ phone says "this looks done", and you answer at the desk. See design.md,
 ### loop — every direction, every few minutes
 
 ```sh
-./remindersync loop -token "$TOK" -period 5 ~/remindersync.conf
+./bin/remindersync loop -token "$TOK" -period 5 .env/remindersync.conf
 ```
 
 | flag       | env               | default                 |                                                    |
@@ -295,12 +407,12 @@ The config file holds **one run per line**, and a line is the words you would
 type at the prompt — the program's own name at the front is optional:
 
 ```sh
-cat > ~/remindersync.conf <<'EOF'
+cat > .env/remindersync.conf <<'EOF'
 # the phone's inbox, into todoistik
 move -list Inbox
 
 # geocaching, out to the watch
-./remindersync sync -list geocaching -q "#gc #sync"
+./bin/remindersync sync -list geocaching -q "#gc #sync"
 
 # a second list, from a different filter
 sync -list "к покупке" -q "@grocery"
@@ -328,7 +440,7 @@ block, a pass where nothing moved prints nothing at all — so anything in the
 log is something that happened:
 
 ```
-2 run(s) every 5 minute(s), from /Users/andres/remindersync.conf:
+2 run(s) every 5 minute(s), from /Users/andres/projects/todoistik/.env/remindersync.conf:
   move -list Inbox
   sync -list geocaching -q #gc #sync
 
@@ -361,9 +473,9 @@ the label on a mail wherever you read it; the run captures it and takes the
 label off:
 
 ```sh
-go build -o mailsync ./cmd/mailsync
+./cmd/build.sh
 MAILSYNC_PASSWORD=$(cat ~/.mailsync-app-password) \
-  ./mailsync -label todoistik -user you@gmail.com -token "$TOK"
+  ./bin/mailsync -label todoistik -user you@gmail.com -token "$TOK"
 ```
 
 | flag             | env                 | default                 |                                                     |
@@ -418,14 +530,15 @@ and a command reads a view. It runs beside the app and polls Telegram, so
 nothing has to be reachable from the internet.
 
 ```sh
-go build -o telegrambot ./cmd/telegrambot
-TELEGRAM_TOKEN=$(cat ~/.telegrambot-token) ./telegrambot -chat 123456789 -token "$TOK"
+./cmd/build.sh
+TELEGRAM_TOKEN=$(cat ~/.telegrambot-token) ./bin/telegrambot -chat 123456789 -token "$TOK"
 ```
 
 | flag          | env               | default                 |                                                     |
 |---------------|-------------------|-------------------------|-----------------------------------------------------|
 | `-chat`       | `TELEGRAM_CHAT`   | *(empty)*               | the one chat id answered; empty answers nobody       |
 | `-token-file` |                   | *(empty)*               | a file holding the bot token; otherwise `TELEGRAM_TOKEN` |
+| `-app-token-file` |               | *(empty)*               | a file holding the app's bearer token; otherwise `-token` or `TODOISTIK_TOKEN` |
 | `-url`        | `TODOISTIK_URL`   | `http://127.0.0.1:8390` | the running app                                     |
 | `-token`      | `TODOISTIK_TOKEN` | *(empty)*               | the app's bearer token; empty for a server started without one |
 
@@ -468,7 +581,7 @@ speaks over stdin and stdout, so the client starts it as a child process and
 nothing has to be reachable from the network.
 
 ```sh
-go build -o todoistikmcp ./cmd/todoistikmcp
+./cmd/build.sh
 ```
 
 In Claude Code, `~/.claude.json` or a project's `.mcp.json`:
@@ -477,7 +590,7 @@ In Claude Code, `~/.claude.json` or a project's `.mcp.json`:
 {
   "mcpServers": {
     "todoistik": {
-      "command": "/path/to/todoistikmcp",
+      "command": "/path/to/bin/todoistikmcp",
       "env": { "TODOISTIK_URL": "http://127.0.0.1:8390", "TODOISTIK_TOKEN": "..." }
     }
   }
@@ -676,9 +789,15 @@ For an agent (or a person) picking this up cold:
   document has to appear in it verbatim, so rewording a sentence that another
   file quotes is caught the same way a rename is.
 
-- **Small commits, one topic each.** Prefer a docs-only commit separate from the
-  code commit that implements it, matching this repo's existing history, over
-  one commit that mixes design discussion with implementation.
+- **Small commits, one topic each — and the docs are part of the topic.** A
+  commit changes one thing and says so, in design.md, implementation.md and
+  keys.md as much as in the code. Do not split the docs into a commit of their
+  own: a commit that moves behaviour while its document still describes the old
+  behaviour is wrong about itself, and separating them guarantees at least one
+  revision where the two disagree. Work lands here as squash-merged pull
+  requests, so the split would be undone on the way in regardless. Separate the
+  discussion from the implementation by putting them in different *branches*,
+  which is what branches are for, not in different commits of the same one.
 
 ## Development
 
@@ -689,7 +808,49 @@ go test ./...    # the domain suite (internal/app, internal/cron), and the
                  # document-reference check (internal/docs)
 gofmt -l .       # should print nothing; gofmt -w . to fix
 ./doctoc.sh      # rewrite the contents list in design.md and implementation.md
+./cmd/build.sh   # the five binaries, into bin/
 ```
+
+### The development server
+
+```sh
+./cmd/start-todoistik-dev.sh     # 127.0.0.1:8390, rebuilding on every save
+```
+
+`templates/` and `static/` are `//go:embed`-ed, so a template or a CSS edit
+only reaches the browser through a recompile — which is why this runs under
+[wgo](https://github.com/bokwoon95/wgo) (`go install
+github.com/bokwoon95/wgo@latest`) watching `.html`, `.css` and `.js` as well as
+the Go files, and why editing a template and reloading the page without it
+shows you the old one.
+
+It is `start-todoistik.sh`'s twin, and the difference is the whole of it: that
+one runs the built binary, this one compiles the tree on every change. Both
+source `.env/secrets.sh` like every other start script; what this one adds is a
+fallback under each setting the file leaves empty, and the one that matters is
+the token. With none of your own it serves under a fixed throwaway one, `go`,
+so a restart does not log you out mid-session and there is nothing to set up
+before the first run. Fill `TODOISTIK_TOKEN` in and it uses that instead, and
+`TODOISTIK_ADDR=0.0.0.0:8390 ./cmd/start-todoistik-dev.sh` changes one setting
+for one run.
+
+`./keytest.sh` is its companion on 8391, against a copy of the database, so a
+new key can be pressed without reaching real work — the two run at once, which
+is the only way to compare a key by feel.
+
+`bin/` is where every binary lands and holds nothing else, so it is ignored
+whole. The script itself lives in `cmd/`, beside the programs it builds and in
+source control: a build script kept in `bin/` is a source file in a directory
+of build products, tracked only by an exception in `.gitignore` that one
+`rm -rf bin` throws away. A file under `cmd/` that is not a directory is not a
+command, so neither `go` nor the script's own loop mistakes it for one.
+
+The script finds what to build rather than listing it (the module root, then
+every directory under `cmd/`), so a new command is built by the next run
+without the script being edited. A binary in the repository root was the older
+arrangement, and it put five large untracked files in the middle of everything
+a search and an `ls` had to wade through, each needing its own line in
+`.gitignore` to stay out of `git status`.
 
 `.claude/settings.json` is checked in, and pre-approves the read-only half of
 that work — the four commands above, the git commands that only report, and

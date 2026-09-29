@@ -1,13 +1,11 @@
-/todoistik
+# every binary is built into bin/ by cmd/build.sh; nothing in there is source
+/bin/
 *.db
 *.db-shm
 *.db-wal
 *.db.backups/
 /todoistik.conf
-/remindersync
-/remindersync.conf
-/mailsync
-/telegrambot
 .keytest/
 .claude/*
 !.claude/settings.json
+/.env/

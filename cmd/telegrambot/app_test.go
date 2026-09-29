@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -86,5 +87,44 @@ func TestTheRealAppsViewsReadAsLists(t *testing.T) {
 	}
 	if got := strings.Join(b.answer("/inbox").replies, "\n"); strings.Contains(got, "oat") {
 		t.Errorf("the inbox list shows more than an item's first line:\n%s", got)
+	}
+}
+
+// A token reaches this program through a file so that it is not a flag value,
+// where any `ps` would read it (implementation.md, "Where a secret lives").
+// What is worth pinning is the refusals: a named file that is not there, or
+// that holds nothing, has to say so rather than hand back an empty token and
+// let the failure surface a layer later as a 401 from the app.
+func TestATokenFileIsReadOrRefused(t *testing.T) {
+	write := func(body string) string {
+		p := filepath.Join(t.TempDir(), "token")
+		if err := os.WriteFile(p, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return p
+	}
+
+	// the trailing newline every editor leaves is not part of the token
+	if tok, err := fileToken(write("s3cret\n")); err != nil || tok != "s3cret" {
+		t.Errorf("fileToken read %q, %v; want \"s3cret\", nil", tok, err)
+	}
+	if _, err := fileToken(write("   \n\t\n")); err == nil {
+		t.Error("a file holding only whitespace was accepted as a token")
+	}
+	if _, err := fileToken(filepath.Join(t.TempDir(), "absent")); err == nil {
+		t.Error("a file that is not there was accepted as a token")
+	}
+
+	// the bot's own token falls back to the environment when no file is named,
+	// and only then — a named file never reaches the environment behind it
+	t.Setenv("TELEGRAM_TOKEN", "from-the-environment")
+	if tok, err := readToken(""); err != nil || tok != "from-the-environment" {
+		t.Errorf("readToken(\"\") read %q, %v; want the environment's", tok, err)
+	}
+	if tok, err := readToken(write("from-the-file")); err != nil || tok != "from-the-file" {
+		t.Errorf("readToken(file) read %q, %v; want the file's", tok, err)
+	}
+	if _, err := readToken(filepath.Join(t.TempDir(), "absent")); err == nil {
+		t.Error("a named file that is not there fell back to the environment")
 	}
 }
