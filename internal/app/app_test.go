@@ -176,6 +176,33 @@ func TestScheduleWithYearRunsOutAndDeletesItself(t *testing.T) {
 	}
 }
 
+// A rule written as a phrase is kept as it was typed and fires like any other
+// (design.md, "Schedule"). The last day of the month is the one worth firing
+// for real: it is the only rule here that no field expression could have made.
+func TestScheduleWrittenAsAPhrase(t *testing.T) {
+	a, now := newTestApp(t)
+	s, err := a.CreateSchedule("Close the books", "last day of month", " MM-DD")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := a.Schedule(s.ID)
+	if got.Rule != "last day of month" || got.RuleReadable != "the last day of every month" || got.NextFire != "2026-09-30" {
+		t.Fatalf("rule %q, readable %q, next %q", got.Rule, got.RuleReadable, got.NextFire)
+	}
+	*now = time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)
+	if err := a.DayStart(); err != nil {
+		t.Fatal(err)
+	}
+	items, _ := a.Inbox()
+	texts := strings.Join(itemTexts(items), "|")
+	if len(items) != 2 || !strings.Contains(texts, "Close the books 09-30") || !strings.Contains(texts, "Close the books 10-31") {
+		t.Fatalf("want the 30th of September and the 31st of October, got: %v", itemTexts(items))
+	}
+	if _, err := a.CreateSchedule("Stand-up", "every funday", ""); err == nil {
+		t.Fatal("a phrase that names no day was accepted")
+	}
+}
+
 func TestScheduleNeverBackfires(t *testing.T) {
 	a, now := newTestApp(t)
 	// mark today as already opened, then create a monthly schedule mid-month

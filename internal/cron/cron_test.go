@@ -138,3 +138,80 @@ func TestReadable(t *testing.T) {
 		}
 	}
 }
+
+// A rule written as a phrase is the same rule the fields would have made, so
+// each is pinned against the days it has to fire on and one it must not. The
+// last day of the month is the one that no field expression can stand in for.
+func TestPhrases(t *testing.T) {
+	cases := []struct {
+		expr string
+		date string
+		want bool
+	}{
+		{"every day", "2026-09-04", true},
+		{"workdays", "2026-09-04", true},  // a Friday
+		{"workdays", "2026-09-05", false}, // a Saturday
+		{"workdays", "2026-09-07", true},
+		{"weekends", "2026-09-05", true},
+		{"weekends", "2026-09-06", true},
+		{"weekends", "2026-09-07", false},
+		{"every Monday", "2026-09-07", true},
+		{"every Monday", "2026-09-08", false},
+		{"every mon", "2026-09-07", true},
+		{"Every  MONDAY", "2026-09-07", true},
+		{"every Monday, Thursday", "2026-09-10", true},
+		{"every Monday and Thursday", "2026-09-10", true},
+		{"every Monday and Thursday", "2026-09-09", false},
+		{"first day of month", "2026-09-01", true},
+		{"first day of month", "2026-09-02", false},
+		{"15 day of month", "2026-09-15", true},
+		{"15th day of month", "2026-09-15", true},
+		{"the 15th day of the month", "2026-09-15", true},
+		{"15 day of month", "2026-09-16", false},
+		{"last day of month", "2026-09-30", true},
+		{"last day of month", "2026-09-29", false},
+		{"last day of month", "2026-10-31", true},
+		{"last day of month", "2026-10-30", false},
+		{"last day of month", "2027-02-28", true},
+		{"last day of month", "2028-02-28", false}, // a leap year
+		{"last day of month", "2028-02-29", true},
+	}
+	for _, c := range cases {
+		e, err := Parse(c.expr)
+		if err != nil {
+			t.Fatalf("Parse(%q): %v", c.expr, err)
+		}
+		if got := e.Matches(day(c.date)); got != c.want {
+			t.Errorf("%q on %s = %v, want %v", c.expr, c.date, got, c.want)
+		}
+	}
+	for _, s := range []string{"every", "every funday", "every month", "workday", "0 day of month",
+		"32 day of month", "second day of month", "last day"} {
+		if _, err := Parse(s); err == nil {
+			t.Errorf("Parse(%q) succeeded, want error", s)
+		}
+	}
+	readable := map[string]string{
+		"every day":                 "every day",
+		"Workdays":                  "workdays",
+		"weekends":                  "weekends",
+		"every monday":              "every Monday",
+		"every thu and mon":         "every Monday, Thursday",
+		"first day of month":        "the 1st of every month",
+		"22 day of month":           "the 22nd of every month",
+		"the last day of the month": "the last day of every month",
+	}
+	for expr, want := range readable {
+		e, err := Parse(expr)
+		if err != nil {
+			t.Fatalf("Parse(%q): %v", expr, err)
+		}
+		if got := e.Readable(); got != want {
+			t.Errorf("Readable(%q) = %q, want %q", expr, got, want)
+		}
+	}
+	e, _ := Parse("last day of month")
+	if got := e.NextAfter(day("2026-09-30")); !got.Equal(day("2026-10-31")) {
+		t.Errorf("NextAfter = %v, want 2026-10-31", got)
+	}
+}

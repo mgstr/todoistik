@@ -10,7 +10,7 @@ import (
 	"todoistik/internal/cron"
 )
 
-// ValidateRule checks a schedule's When: a single date or a 3-field cron
+// ValidateRule checks a schedule's When: a single date, a phrase or a cron
 // expression, validated when the schedule is saved.
 func ValidateRule(rule string) error {
 	if ValidDate(rule) {
@@ -18,7 +18,7 @@ func ValidateRule(rule string) error {
 	}
 	_, err := cron.Parse(rule)
 	if err != nil {
-		return fmt.Errorf("neither a date nor a cron rule: %w", err)
+		return fmt.Errorf("not a date, a phrase or a cron rule: %w", err)
 	}
 	return nil
 }

@@ -387,7 +387,8 @@ and projects.
 Fields:
 - Text: (required) free-form, what will land in the inbox. It is a capture, so
   it stays raw - not a title, not an action, not a project
-- When: (required) either a single **date**, or a **cron expression** at day
+- When: (required) a single **date**, one of a handful of **phrases** (below),
+  or a **cron expression** at day
   granularity - day of month, month, day of week, and an optional fourth field,
   the year. No times: nothing in this app has an hour, so neither does this. The
   first three are the calendar fields of standard cron, with standard syntax and
@@ -409,6 +410,36 @@ Fields:
   and the years it may name run 2000-2099: a schedule is something you will
   actually be reminded of, so outside that range a four-digit number is a typo
   and being told so is worth more than being able to schedule 2317
+- **the commonest rules can be written in words instead.** A cron expression
+  can say nearly anything, and that is the cost of it: `* * 1-5` has to be
+  worked out when it is written and worked out again every time it is read, for
+  a rule that already has a name. So the rules that are most of what a schedule
+  is ever asked for have one:
+  - `every day`
+  - `workdays` - Monday to Friday
+  - `weekends` - Saturday and Sunday
+  - `every Monday` - any day of the week, or several: `every Monday, Thursday`
+  - `first day of month`
+  - `last day of month`
+  - `15 day of month` - any day from 1 to 31
+
+  Capitals and spacing do not matter, a day may be shortened to the three
+  letters cron takes, and `15th`, a leading `the` and `of the month` are all
+  read as what they obviously mean. The list is short on purpose: it is not a
+  language, and anything it does not cover is what the cron expression is still
+  there for. A phrase that is nearly one of these is refused like any other rule
+  the app cannot read, saying what it tripped on
+- **a phrase is kept the way it was written.** It is not turned into a cron
+  expression on the way in: "When" shows `workdays` when the schedule is opened
+  again, because a rule written in words to avoid reading cron should not come
+  back as cron. The "Scheduler" says it in the same words it uses for any other
+  rule
+- **`last day of month` is the one phrase cron has no expression for.** The
+  last day is the 28th, 29th, 30th or 31st depending on the month and the year,
+  and three calendar fields cannot say "whichever it is". `31 * *` is not it -
+  that fires in seven months of the twelve, and so does `31 day of month`, which
+  means exactly what it says. Every other phrase is a second spelling of a rule
+  that could already be written; this one is a rule that could not
 - Suffix: (optional, empty by default) appended to the text when the capture is
   made. `YYYY`, `MM` and `DD` are replaced with the date of the occurrence being
   fired; everything else is literal, including any leading space. An empty
