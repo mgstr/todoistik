@@ -132,7 +132,7 @@ func TestLinkLabelLeavesAShortLinkAlone(t *testing.T) {
 }
 
 // The attribute the key layer follows. It has to be exactly what the chips and
-// the live words say the text holds, and in the same order, because ^o and the
+// the live words say the text holds, and in the same order, because `l` and the
 // eye are looking at the same item.
 func TestItemLinksIsTheSameSetOnOneLine(t *testing.T) {
 	text := "spec https://a.example/1 and thread https://b.example/2"
@@ -157,7 +157,7 @@ func TestItemLinksReadsEveryFieldAndSaysEachLinkOnce(t *testing.T) {
 }
 
 // Empty is the answer that lets a template leave the attribute off, which is
-// how the key bar knows not to offer ^o (implementation.md, "Links in item
+// how the key bar knows not to offer `l` (implementation.md, "Links in item
 // text"). A plain `http://` address is words, so an item holding only one holds
 // no link at all.
 func TestItemLinksIsEmptyWhenThereIsNothingToFollow(t *testing.T) {

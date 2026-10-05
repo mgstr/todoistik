@@ -1364,14 +1364,13 @@ is precisely when leaving the app to fetch it costs most.
   and that does not change here. The link is live on the screen the item is read
   in full on, which is the processing screen - one keystroke away, and the
   screen where the decision is being made anyway
-- **the keyboard follows one too, with `ctrl-o`.** Pressing a link is a thing
+- **the keyboard follows one too, with a key of its own.** Pressing a link is a thing
   done with a pointer, and most of the screens an item is read on are walked
   with `j` and `k` - so the key follows the link belonging to whatever the
   cursor is on: the row selected on a list, or the one item a screen is about.
-  Ctrl rather than a bare letter, because `o` already opens the selected row,
-  and because the moment the link is wanted is often the moment the item is open
-  with a box being typed in, which is exactly what a modifier is spent on (see
-  implementation.md, "The keys")
+  A key of its own rather than the one that opens the row, because the two go
+  opposite ways - one into the item's page, one out to a browser tab - from the
+  same row at the same moment (keys.md, "The two modes" has the letter)
 - **the key reaches what the item holds, not only what the screen drew.** It is
   on the screens showing least of an item that its link is wanted most: a next
   action is a title and some badges, the doing screen is a title alone, and a
@@ -1383,7 +1382,7 @@ is precisely when leaving the app to fetch it costs most.
 - **and `links.reach` narrows it back to the screen.** Both readings are
   defensible: a key that opens something you cannot see first is a key you have
   to trust, and trusting a link is the one thing this whole section says not to
-  do without looking. `shown` is that answer - `ctrl-o` follows only what is on
+  do without looking. `shown` is that answer - the key follows only what is on
   the screen, and on a next-actions row or the doing screen it then does nothing
   at all. The default is `any`, because a key that is missing on the two screens
   it exists for is not worth the key
@@ -1396,7 +1395,7 @@ is precisely when leaving the app to fetch it costs most.
   since under the default reach most of them are not on the screen to be marked
 - **the key is not offered where the item holds no link**, the way no key here
   is ever offered without working (see implementation.md, "The keys"). An item
-  with nothing to follow is most items, so a `ctrl-o` that was always advertised
+  with nothing to follow is most items, so a key that was always advertised
   would be advertising nothing most of the time
 
 ### Writing an action
@@ -1770,8 +1769,18 @@ key, and the key has not moved.
 about how the app is worked and a fact about what a browser will let a letter do
 while a box is being typed in, and splitting the map across this file and
 implementation.md is how the same letter came to be spent twice. The rules that
-letters have to obey - one letter one button, what a modifier is for, how a
-screen is left - live there with the map they govern.
+letters have to obey - one letter one button, which mode a key is live in, how
+a screen is left - live there with the map they govern.
+
+**The keyboard has two modes, and the page always says which.** With the caret
+in a box every key is typed; with it out of one every key is a command, and
+none of them needs a modifier held. `esc` is the way from the first to the
+second. The whole page changes its ground while a box is being typed in, so
+the question "will this letter be written or obeyed" never has to be asked of
+a corner of the screen - the mistake a modal keyboard makes possible is acting
+on a list when you meant to write, or writing when you meant to act, and the
+only defence against it is knowing the mode without looking for it (keys.md,
+"The two modes").
 
 **The key bar says when the keyboard is in Russian.** Not for the keys - those
 work either way - but for the boxes: what gets typed into a capture or a

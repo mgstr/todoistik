@@ -21,7 +21,7 @@ import (
 // zero value of this struct is not the default set — Defaults() is.
 type Config struct {
 	// ZenShowsTimer: the minutes since this action went on the screen are
-	// shown beside it. The default only — ctrl-t flips it while it is up.
+	// shown beside it. The default only — `e` flips it while it is up.
 	ZenShowsTimer bool
 	// ZenTimerFormat: how that number is written. "auto", or a pattern of
 	// H/HH/M/MM with anything else taken literally.
@@ -56,24 +56,17 @@ type Config struct {
 	// "Panels"). Independent of KeysAnyLayout: either is worth having
 	// without the other.
 	KeysLayoutMarker bool
-	// LinksReach: how far ctrl-o sees when it follows a link in the item
+	// LinksReach: how far `l` sees when it follows a link in the item
 	// under the cursor. ReachAny is every link the item's text holds,
 	// ReachShown only the ones the screen has actually drawn (design.md,
 	// "Following a link").
 	LinksReach string
-	// KeysMode: whether a button's declared letter is pressed bare, with
-	// ctrl, or bare except for the three that have to fire while a box is
-	// being typed in. A control declares its letter and never its modifier,
-	// so this is the one place that decides (keys.md, "The three modes").
-	// It exists because the question is about hands rather than about the
-	// code, and the only honest way to settle it is to work in each.
-	KeysMode string
 	// KeysBarStyle: how a key bar entry that presses something is painted,
 	// now that the bar is where the buttons are and not merely a list of
 	// what they answer to (implementation.md, "The key bar is the buttons").
 	// The bar holds two kinds of entry — one that presses a control and one
 	// that steers — and this decides how loudly it tells them apart, from
-	// not at all to the button's own styling. Like KeysMode it is a question
+	// not at all to the button's own styling. It is a question
 	// about a week of use rather than about the code.
 	KeysBarStyle string
 	// AnimDone, AnimDelete, AnimBack: what each of the three keys that leave a
@@ -98,7 +91,7 @@ type Config struct {
 	// is — see design.md, "Theme".
 	//
 	// The file is the *default*, not the last word: the Settings screen
-	// remembers what it was told, the way the panels remember what ctrl-v was
+	// remembers what it was told, the way the panels remember what `v` was
 	// told, and a remembered answer wins (implementation.md, "Theme").
 	Theme string
 	// DupMatch: how a capture being processed is compared against the actions
@@ -139,17 +132,6 @@ const TimerAuto = "auto"
 const (
 	ReachAny   = "any"
 	ReachShown = "shown"
-)
-
-// The three answers keys.mode takes. Hybrid is the default because it is what
-// the app already did: bare letters everywhere, with ctrl on save, create and
-// add — the three that are pressed with the hands still in a form. The other
-// two are the whole answer in one direction or the other, and they are here to
-// be worked in rather than reasoned about (keys.md, "The three modes").
-const (
-	ModeCommand  = "command"
-	ModeModifier = "modifier"
-	ModeHybrid   = "hybrid"
 )
 
 // The five answers keys.bar_style takes, quietest first. They differ only in
@@ -296,7 +278,6 @@ func Defaults() Config {
 		KeysAnyLayout:     true,
 		KeysLayoutMarker:  true,
 		LinksReach:        ReachAny,
-		KeysMode:          ModeHybrid,
 		KeysBarStyle:      BarChip,
 		AnimDone:          AnimStrike,
 		AnimDelete:        AnimCollapse,
@@ -403,7 +384,6 @@ func (c *Config) strs() map[string]*string {
 	return map[string]*string{
 		"zen.timer_format": &c.ZenTimerFormat,
 		"links.reach":      &c.LinksReach,
-		"keys.mode":        &c.KeysMode,
 		"keys.bar_style":   &c.KeysBarStyle,
 		"anim.done":        &c.AnimDone,
 		"anim.delete":      &c.AnimDelete,
@@ -426,7 +406,6 @@ var checks = map[string]func(string) error{
 	"zen.timer_format": checkTimerFormat,
 	"zen.views":        checkNames,
 	"links.reach":      checkReach,
-	"keys.mode":        checkKeysMode,
 	"keys.bar_style":   checkBarStyle,
 	"anim.done":        checkAnim("anim.done"),
 	"anim.delete":      checkAnim("anim.delete"),
@@ -481,18 +460,6 @@ func checkBarStyle(v string) error {
 	}
 	return fmt.Errorf("%q is not a bar style: it is %q (no mark), %q (a pill under the pointer), %q (a bordered pill at rest), %q (the letter drawn as a key) or %q (the form button's own styling)",
 		v, BarPlain, BarHover, BarChip, BarKeycap, BarButton)
-}
-
-// checkKeysMode: one of three words. A fourth would read as a fourth
-// behaviour and get none — the failure every string setting here is checked
-// against.
-func checkKeysMode(v string) error {
-	switch v {
-	case ModeCommand, ModeModifier, ModeHybrid:
-		return nil
-	}
-	return fmt.Errorf("%q is not a key mode: it is %q (bare letters), %q (ctrl and a letter) or %q (bare, with ctrl on save, create and add)",
-		v, ModeCommand, ModeModifier, ModeHybrid)
 }
 
 // checkReach: one of two words and nothing else. A third word here would read

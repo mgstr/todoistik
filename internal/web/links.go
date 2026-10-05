@@ -137,7 +137,7 @@ func linkLabel(u string) string {
 }
 
 // itemLinks is the `data-links` attribute: every link the item's text holds,
-// on one line, for the key layer to follow with ctrl-o. Several texts because
+// on one line, for the key layer to follow with `l`. Several texts because
 // an item is not always one field — a capture is a line and a body, and both
 // are read on the processing screen.
 //
@@ -150,7 +150,7 @@ func linkLabel(u string) string {
 // ambiguous: a link with a space in it is not one (see linkPattern). Empty
 // when the item holds none, so a template can leave the attribute off with
 // `{{with itemlinks ...}}` — and its absence is then already the answer to
-// "has this item a link", which is what the key bar asks before offering ^o.
+// "has this item a link", which is what the key bar asks before offering `l`.
 func itemLinks(texts ...string) string {
 	var out []string
 	seen := map[string]bool{}

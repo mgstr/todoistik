@@ -115,7 +115,7 @@ func (s *Server) bookmarks() bookmarks {
 	return decodeBookmarks(v)
 }
 
-// bookmarkSave answers one press of ctrl-N with a filter on the screen, and
+// bookmarkSave answers one press of a digit with a filter on the screen, and
 // the same key from inside the dialog: slot, the view being looked at, and
 // the line to keep in it. An empty line clears the slot, which is what the
 // dialog's delete key sends — one endpoint, because storing and clearing are

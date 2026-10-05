@@ -282,20 +282,20 @@ func (s *Server) routes() {
 	// doing: one action, alone on the screen
 	m.HandleFunc("GET /doing/{id}", s.doingPage)
 
-	// the one display flag, toggled from anywhere by ctrl-t
+	// the one display flag, toggled from anywhere by `e`
 	m.HandleFunc("POST /ages", s.agesToggle)
 
-	// the panels around a view, toggled from the ctrl-v dialog
+	// the panels around a view, toggled from the `v` dialog
 	m.HandleFunc("POST /panels/{which}", s.panelsToggle)
 	// which palette the screen is painted in, chosen on the Settings screen
 	m.HandleFunc("POST /theme/{name}", s.themeSet)
 
-	// the nine filter lines under the digits: ctrl-N keeps one, and the
-	// ctrl-0 dialog is where they are read and cleared
+	// the nine filter lines under the digits: a digit keeps one, and the
+	// `0` dialog is where they are read and cleared
 	m.HandleFunc("POST /bookmark", s.bookmarkSave)
 
 	// the other nine under the same digits: the runs of notation a meta line
-	// is stamped with, written in the ctrl-0 dialog of an edit screen
+	// is stamped with, written in the `0` dialog of an edit screen
 	m.HandleFunc("POST /snippet", s.snippetSave)
 
 	// settings: tag / context list management

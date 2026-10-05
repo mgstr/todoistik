@@ -42,6 +42,18 @@
    the palette — which a set of custom properties alone never could. */
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
+/* Insert mode: the caret is in a box, so every letter is a character and no
+   key but `esc` is the app's (keys.md, "The two modes"). The ground itself
+   changes, because the ground is the one thing on the screen that is in view
+   wherever the eye happens to be — a marker in a corner is read only when it
+   is looked for, and the question "will this letter be typed or obeyed" is
+   asked without looking. One token and not a second palette: everything that
+   paints itself with --bg follows, the boxes and the dialogs included, so the
+   page stays one surface in either mode. Warm against a ground that is
+   neutral or cool in both schemes, and no further from it than a sheet of
+   paper is from a screen — it has to be told apart at a glance and then
+   worked on for a paragraph. */
+:root.kb-insert { --bg: light-dark(#fbf3dc, #2a2416); }
 * { box-sizing: border-box; }
 /* `hidden` is the attribute, and the attribute decides. The browser's own
    [hidden] rule is the weakest thing in the cascade and loses to any class of
