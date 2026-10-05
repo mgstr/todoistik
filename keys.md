@@ -41,12 +41,12 @@ changes because of that — a key still presses a control, and the control is
 still the thing being pressed — but two consequences land here:
 
 - **an entry that presses a control is pressable, and an entry that steers is
-  not.** `j k move`, `g go to`, `^m jump`, the "needs …" line: these are how
+  not.** `j k move`, `g go to`, `m jump`, the "needs …" line: these are how
   you get somewhere rather than things you press, and the bar must not invite
   a click on them. The promise "everything listed works" would otherwise be
   true of the letters and false of the targets.
 - **every control needs a letter now, including the rare ones.** A button with
-  no letter used to be reachable anyway, by `^m` and a hint hung on the button
+  no letter used to be reachable anyway, by `m` and a hint hung on the button
   itself. With the button off the page there is nothing to hang a hint on, so
   the six below became five letters — see "Buttons that get no letter".
 
@@ -73,83 +73,122 @@ Stated as "one letter means one thing" the rule cannot be satisfied by any map
 at all, and a rule nobody can keep gets quietly dropped rather than argued
 with.
 
-## The three modes
+## The two modes
 
 A bare letter cannot be a command where the hands are — it would be typed. The
-app has always split the keyboard on that fact, and the split is the thing
-worth arguing about:
+app has always split the keyboard on that fact. It used to split it three ways
+and let a settings line choose between them; it splits it one way now, and it
+is the way vim does:
 
-- **`command`** — every button is a bare letter. The caret being in a box is
-  what stops them firing, which makes the screen modal in the vim sense. The
-  app already arranges this correctly without saying so: screens you arrive at
-  to *write* focus a field (the processing branches, a new action, promote),
-  and screens you arrive at to *act on* do not (an action's page, a project's
-  page), so the button bar is live on arrival exactly where the buttons are.
-- **`modifier`** — every button is ctrl and a letter, live inside a box too.
-  Nothing is modal, and every command costs a chord. Viable here only because
-  the macOS readline bindings in text fields (`^a`, `^e`, `^k` and the rest)
-  are not used on this machine; on a keyboard where they were, this mode would
-  have to take most of them away, which is the opposite of what it is for.
-- **`hybrid`** — bare letters, with ctrl on exactly the controls that have to
-  fire mid-typing: Save, Create, Add. This is what the app does today, with
-  the drift taken out.
+- **command mode** — every key is the app's, and every key is bare. `d` is
+  Done, `s` is Save, `f` is the filter line. A screen is in this mode whenever
+  the caret is not in a box.
+- **insert mode** — the caret is in a box, and every key is the box's. A
+  letter is a character and a digit is a digit, and nothing the app owns
+  fires: not Save, not the filter line, not a snippet. The one key that is
+  still the app's is `esc`, which takes the caret out of the box and gives the
+  letters back.
 
-**Hybrid reads the control, not the letter.** A control that is pressed with
-the caret in a box says so, and hybrid is the only mode that looks. Keyed on
-the letter instead, it is wrong the moment two buttons share one — and the
-pair that made the point was `a`: Add inside a project form, and the Task
-branch on the processing screen while that branch was still `a`, on a screen
-with no box on it at all. A modifier there protected nothing while costing a
-chord on the app's commonest answer. That pair has since come apart, because
-the branch is `t` now (see "The processing branches"), and no letter in the
-map currently carries both a typed control and an untyped one. The rule
-outlives the example on purpose: `data-key-typing` is a fact about where a
-control sits, so the next shared letter brings the case straight back, and a
-scheme that had meanwhile keyed the modifier to the letter would be wrong
-again the day it did. Two buttons may share a letter (see "One letter, one
-button"); they do not thereby share a reason to spend a modifier.
+**The mode is where the caret is, and nothing else.** There is no flag behind
+it and no key that sets it: putting the caret in a box *is* entering insert
+mode, however it got there — a click, `tab`, the `m` jump, or a screen that
+opens on the box it wants written in. A mode kept as a variable can come to
+disagree with the screen, and that disagreement is the classic modal bug: the
+letters going somewhere other than where the eye says they will. A mode that
+is only ever read off the caret cannot have it.
 
-`keys.mode` in the settings file chooses one. It exists because the question
-is not answerable in the abstract — it is a question about hands, and the only
-honest way to settle it is to work in each for a while and notice which one
-you reach past. Both other modes stay buildable for as long as the flag does,
-which is the price of finding out; if one wins outright the flag can go.
+The app already arranged arrival correctly before it had a name for this:
+screens you arrive at to *write* focus a field (the processing branches, a new
+action, promote), and screens you arrive at to *act on* do not (an action's
+page, a project's page), so the keys are live on arrival exactly where the
+keys are what you came for.
 
-**A control declares its letter, never its modifier.** `data-key="d"`, and the
-mode decides whether that fires as `d` or `^d`. A template that wrote `^s`
-would be encoding a policy decision in twelve places, which is how the two
-halves of the split drifted apart in the first place.
+**Nothing is a chord.** Ctrl used to be spent twice: on the controls that had
+to fire in the middle of typing — Save, Create, Add — and on the keys that
+belonged to the app rather than to a screen — the filter line, the jump, the
+panels, the nine under the digits. Both were answers to one question, *how is
+this reached without leaving the box*, and the answer now is that the box is
+left: `esc`, then the letter. That is two presses on the home row against one
+that takes the hand off it, and the trade is the right way round because of
+which keys were paying. A chord is the uncomfortable press, and it was sitting
+on the keys pressed most — saving a form, opening the filter — while the bare
+letters went to the ones pressed least.
 
-What a control may declare is `data-key-typing`: that it is reached with the
-caret still in a box. That is a fact about where the control sits, not a
-choice of chord — `command` and `modifier` ignore it entirely, and only
-hybrid asks.
+So a key that arrives with ctrl, cmd or alt held is never the app's, and is
+left to the browser and the system. That hands back every readline binding in
+a text box (`^a`, `^e`, `^k`) and every accelerator the browser has, without
+the app having to know which of them this machine uses — the older scheme was
+viable only because those bindings happened not to be in use here.
 
-## What the mode governs
+**The page says which mode it is in by changing its ground.** In insert mode
+the background of the whole page turns warm; in command mode it is the
+theme's own. Not a marker in a corner, because a marker is read only when it
+is looked for, and *will this letter be typed or obeyed* is a question asked
+without looking — the ground is the one thing in view wherever the eye is.
+And not a drastic change: it has to be told apart at a glance and then worked
+on for a paragraph, so it is as far from the ordinary ground as paper is from
+a screen and no further (implementation.md, "Keyboard"). The bar says the same
+thing a second time, by emptying — see "The bar while you are typing".
 
-Only buttons.
+**What still works in a box is what a box does by itself.** `↵` in a one-line
+box submits its form, as it does in any browser, and adds in the capture
+dialog, where `shift-↵` is the newline. `↓` `↑` `↵` and `tab` work a token
+box's completion list, and `↵` on the filter line asks about a name it does
+not know. None of these is a shortcut of the app's: they are the box being a
+box, and a text box that did not answer enter would be broken rather than
+modal. The rule is that insert mode has no key *of the app's* in it but
+`esc`, and these were never the app's.
 
-**Navigation is always bare, in every mode.** `j` `k` `o` `↵` `g` `z` `p` `w`
-move a cursor or go to a screen, and you are never typing while doing that —
-which is the entire reason a modifier exists. The one case where you are is
-already answered: `^j` / `^k` hand you from the filter line into the list it
-narrows.
+**A dialog with boxes in it has no command mode.** `esc` in a dialog closes
+the dialog — that is the dialog's own step of unwinding, and it comes before
+the caret's — so there is no state in which a letter could be pressed at one.
+A dialog is finished with `↵` from any one-line box, and from a multi-line
+one with `tab` to its button and `↵` there. That last case is what `^↵` used
+to be for, and it is the one place its going costs a press that `esc` does
+not give back; it is paid in the add-action and new-project dialogs, in the
+one box of each where enter has to stay a newline.
 
-**The globals are always ctrl, in every mode.** They were reserved when ctrl
-meant "not a screen key", and they stay reserved: they do not belong to the
-screen, so they cannot take part in a flag that is about how a screen's own
-controls are pressed.
+**A control declares its letter, and that is all it declares.** `data-key="d"`.
+There was a second attribute, `data-key-typing`, for a control that had to be
+reached with the caret still in a box; no control is reached that way now, so
+there is nothing for it to say.
 
-This rule is what keeps `o` and `^o` apart. `o` opens the selected row — the
-item's own page, inside the app. `^o` follows a link written *inside* that
-item, out to a browser tab (design.md, "Following a link"). They are opposite
-directions and both live on the same row at the same moment, so they can never
-be the same chord. Under a flag that modified everything, they would have
-been.
+**What each chord became.** Written down once, because fingers that knew the
+old map will look for it here:
+
+| Was | Is | |
+| --- | --- | --- |
+| `^s` `^c` `^a` | `s` `c` `a` | Save, Create and Add, from command mode |
+| `^e` | `e` | show me the time |
+| `^o` | `l` | follow a link — see below for why not `o` |
+| `^m` | `m` | jump to a control |
+| `^f` | `f` | the filter line |
+| `^v` | `v` | the panel chooser, and `v` again for zen |
+| `^0` | `0` | the nine of them, on the screen |
+| `^1`…`^9` | `1`…`9` | go to a bookmark, or write a snippet; *keeping* a filter moved into the `0` list |
+| `^j` `^k` | — | from the filter line into its list: `esc`, then `j` |
+| `^↵` | — | finish the form from inside a box: `esc`, then `s` or `c` |
+
+**`l` and not `o`, because `o` was already a key.** `o` opens the selected row
+— the item's own page, inside the app — and following a link goes the other
+way, out to a browser tab, from the very same row at the very same moment
+(design.md, "Following a link"). While one of them was a chord they could
+share a letter; bare, they cannot. The link takes the new letter because it
+is the one that had a modifier to lose, and `l` is the first letter of what
+it follows and was free everywhere.
+
+**`keys.mode` is gone.** It chose between `command`, `modifier` and `hybrid`,
+and it existed because the question was about hands and could only be settled
+by working in each. It has been settled, and further than any of the three
+went: `command` was bare letters for a screen's own buttons with the app's
+own keys still on ctrl, and this takes ctrl off those as well. Keeping the
+flag would have meant keeping two keyboards buildable, each with its own
+answer for every row of the table above. A settings file that still carries
+the line is refused at startup, like any other setting the app does not know.
 
 ## The map
 
-**Buttons** — the letter is declared, the mode supplies the modifier.
+**Buttons** — each one declares its letter.
 
 | Key | Button | Where |
 | --- | --- | --- |
@@ -220,17 +259,16 @@ from whichever side you are standing on, which is the same argument the digits
 below make for the bookmarks.
 
 **The review's digits.** On the weekly review's own screen, `1`…`7` open the
-step whose number is printed beside it (design.md, "Weekly review"). Bare, like
-every other key that is not a letter, and free to be bare there: the bookmarks
-are `^1`…`^9` and are offered only where a screen has a filter line, which this
-one has not. `1` is Gather and presses nothing, because Gather has no screen —
+step whose number is printed beside it (design.md, "Weekly review"). The
+bookmarks are under the same digits and are offered only where a screen has a
+filter line, which this one has not. `1` is Gather and presses nothing, because Gather has no screen —
 the line keeps its number, since the number is its place in the order, and the
 bar simply does not offer a key for it. That is the standing rule doing its
 job rather than an exception to it: nothing advertises a key that does not
 exist.
 
 **The bar shows them as a range, `2…7 step`**, the shape the match list's
-`1…3 copy` and the bookmarks' `^1…9` already have — an entry that says how to
+`1…3 copy` and the bookmarks' `1…9` already have — an entry that says how to
 steer rather than one that presses. The numbers are printed on the lines, which
 is where a numbered list's keys are read; the bar listing all six would be the
 screen written out a second time, in the one place that is supposed to say what
@@ -246,18 +284,8 @@ obvious letter and the weaker one: it names the field, and the field is not
 what moves.
 
 Nothing collides. The digit under it is spoken for twice already — the
-review's `1`…`7` and the bookmarks' `^1`…`^9` — and both are pressed without
-shift, so the shifted place was free. Had the key been `m` instead, it would
-have had to be argued against `^m`, the jump prefix; that argument is winnable,
-because the globals are always ctrl and `m`/`^m` would have stayed apart the
-way `o`/`^o` do, but it did not have to be had.
-
-**Being a non-letter costs it one thing, and the cost is worth naming**: a key
-that is not a letter is itself in all three modes, because there is nothing for
-a mode to change about it — which means it can never be a `data-key-typing`
-key, so it cannot fire while the caret is in a box. From inside the meta line
-it is `esc` and then `#`. That is the same bargain `⌫` already makes, and the
-alternative was `^#`, which is ctrl-shift-3 and is not a key anybody presses.
+review's `1`…`7` and the nine bookmarks and snippets under `1`…`9` — and all
+of those are pressed without shift, so the shifted place was free.
 
 **It is a place on the keyboard and not a character, like every other key
 here.** Shift-3 prints `#` in Estonian and `№` in Russian, so `keyOf` answers
@@ -285,7 +313,7 @@ wrong is expensive, and an entry a pointer can reach is worse to have among
 the keys pressed all day than a letter was.
 
 **The five above are the tier that used to have no letters.** They are rare,
-deliberate acts and they were reached with `^m` and a declared letter, which
+deliberate acts and they were reached with `m` and a declared letter, which
 worked only while the button was on the screen to hang a hint on. Two of them
 share a letter with something already on the map, and both share the *noun*,
 which is what the rule asks: `p` is Promote here and the Project branch on the
@@ -343,7 +371,7 @@ the worst a slip costs is a dot you press again.
 map, which is the same collision answered the other way — `g t` was already
 Today, so the view took the next letter of its own name. The two maps are
 separate namespaces and each gets the letter that is free in it: here `k` is
-the cursor, always bare in every mode, and stage one has a match list to move
+the cursor, and stage one has a match list to move
 through, so `k` is not free. Consistency between the two maps would have cost
 the guessable letter in the one place a letter is guessed at.
 
@@ -378,20 +406,18 @@ one.
 **The digits `1`…`9` press the match list**, where the processing screen shows
 what a capture looks like (design.md, "Matches while processing"). They are
 the list's own numbering, drawn on its rows, and pressing one copies that
-finished item into the branch's form. They are bare and not chorded:
+finished item into the branch's form.
 
-- **a digit is not a letter, so no mode touches it**, which is what a key on a
-  numbered list has to be — the numbers are printed on the rows, and a list
-  whose keys changed shape with `keys.mode` would be printing something that
-  is not true in two of the three
-- **`^1`…`^9` are the bookmarks and stay the bookmarks.** Those are offered
-  only where a screen has a filter line and this screen has none, so the
-  chords press nothing here — but a second meaning for them was still the
-  wrong answer while a bare digit was free
+- **the bookmarks are under the same digits and are not here.** Those are
+  offered only where a screen has a filter line, and this screen has none; the
+  snippets want a meta line, and stage one has none of those either. A
+  declared key is read before either would be, so the list's numbers mean the
+  list even if that ever changed (see "A digit a screen declares for itself
+  wins.")
 - **the bar shows the range and not the nine**, `1…3 copy`, which says how to
-  steer rather than pressing anything — the shape `^1…9` already has. Nine
-  entries saying "copy" would bury the six answers under a list of keys the
-  screen has already drawn beside the rows they act on
+  steer rather than pressing anything — the shape the bookmarks' `1…9` has.
+  Nine entries saying "copy" would bury the six answers under a list of keys
+  the screen has already drawn beside the rows they act on
 
 `p` is free because the row key `p` is gone. It only ever aliased `↵`: an
 inbox row's link already goes to the processing screen, which is why the bar
@@ -400,19 +426,13 @@ spend, and dropping it makes nothing unreachable.
 
 `y` is what is left of "Someday/Maybe" once every other letter of its own name
 is spent — `s` Save, `o` open, `m` the jump, `e` the time, `d` Done, `a`
-Action, `b` Back. It is a poor mnemonic and the only letter that is free both
-bare and under ctrl, which is what a branch key has to be to survive all three
-modes. The branch that had to give way is the right one: Save is on four edit
-screens and is one of the three keys that must fire while a box is being typed
-in, and this one is pressed once per idea you decide not to commit to.
-
-**A key that is not a letter takes no modifier, in any mode.** `⌫` and `2` are
-themselves in all three, because there is nothing for a mode to change about
-them — which also keeps the delete key identical everywhere, deliberately.
+Action, `b` Back. It is a poor mnemonic and the letter that was free. The
+branch that had to give way is the right one: Save is on four edit screens,
+and this one is pressed once per idea you decide not to commit to.
 
 | Key | Goes to |
 | --- | --- |
-| `j` `k` | through the current list; `^j` `^k` do the same from inside the filter line. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful |
+| `j` `k` | through the current list. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful |
 | `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
 | `g` + letter | a view — the fifteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
@@ -470,110 +490,101 @@ already taken, and there are not fifteen of those.
 **They did not behave that way until the map was written down here, which is
 the argument for this file making itself.** The row commands were read before
 the pending `g` was, so with a row under the cursor `g d` completed it and went
-nowhere, and `g t`, `g r` and `g w` went the same way — in `hybrid` and
-`command` modes, which includes the default. Nothing on the page was wrong and
-no other test could see it; what made it visible was putting the fifteen
+nowhere, and `g t`, `g r` and `g w` went the same way. Nothing on the page
+was wrong and no other test could see it; what made it visible was putting the fifteen
 letters next to the buttons they share, in the one file whose job is to notice
 that a letter is spent twice. The pending `g` is now answered before every
-other key on the page, which is where the `^m` jump was already read and for
+other key on the page, which is where the `m` jump was already read and for
 the same reason.
 
 **A chord pressed while the overlay is up is not a jump, and does not press the
-button either.** Navigation is bare in every mode, so `^d` after `g` is not the
+button either.** No key of the app's is a chord, so `^d` after `g` is not the
 Dashboard; it is spent taking the overlay away and doing nothing else, which is
-the answer `^m` already gives a chord pressed into its hints. Holding shift to
+the answer `m` already gives a chord pressed into its hints. Holding shift to
 reach a key is not an answer at all and leaves the overlay standing.
 
-**Globals** — ctrl in every mode.
+**The app's own keys** — the ones that do not belong to a screen. Bare, like
+every other key, and so live in command mode only.
 
 | Key | What |
 | --- | --- |
-| `^e` | show me the time: the ages on every list, and the timer on the doing screen |
-| `^o` | follow a link in the item under the cursor |
-| `^m` | jump to a control on the screen already open |
-| `^f` | the filter line, and a second press takes it and every filter away |
-| `^1`…`^9` | the nine under the digits: bookmarks where there is a filter line, snippets where there is a meta line |
-| `^0` | the nine of them, on the screen — whichever nine this screen's digits mean |
-| `^v` | the panel chooser; a second `^v` presses zen |
-| `^↵` | submit the form being typed in |
+| `e` | show me the time: the ages on every list, and the timer on the doing screen |
+| `l` | follow a link in the item under the cursor |
+| `m` | jump to a control on the screen already open |
+| `f` | the filter line, and a second press takes it and every filter away |
+| `1`…`9` | the nine under the digits: go to a bookmark where there is a filter line, write a snippet where there is a meta line |
+| `0` | the nine of them, on the screen — whichever nine this screen's digits mean |
+| `v` | the panel chooser; a second `v` presses zen |
 | `?` | the view's own help |
 | `esc` | unwind one step — see below |
 
-**The digits are one key with two answers, and the filter line decides
-which.** With a filter up, `^3` keeps it; with no filter up, `^3` goes to what
-is kept there. That is not two meanings on one key — which the file argues
-against everywhere else — but one idea said from whichever end you are
-standing at: this digit and this filter belong together. Two keys would have
-cost eighteen chords and a rule about which is which, to say the same thing.
+**A bare digit goes to a bookmark and never makes one.** `3` on a list view
+opens what is kept under 3 — its view, with its filter on it — whether or not
+a filter is up. Keeping the filter that is up is done in the `0` list: `0`,
+then the digit.
 
-They are the app's rather than a screen's, so they take ctrl like every other
-global — and a digit is not a letter, so no mode touches them (see "The map"
-above, and the rule that `⌫` and `2` are themselves in all three). The
-processing screen's `2` therefore stays bare in every mode, which is what
-keeps it out of the bookmarks' way: a `^2` there would have been the same
-chord twice.
+It was one key with two answers, `^3` keeping the filter when one was up and
+going to the bookmark when none was, and that was sound while the key was a
+chord: a chord is pressed on purpose. A bare digit is one stray keystroke, and
+with a filter up that keystroke would have written over a slot without
+showing what was in it. So the half that destroys something moved to where
+the nine are on the screen and the slot is read before it is written. It
+costs nothing in presses — `0` `3` is two keys, and `^3` was two keys held
+together.
 
-Both are offered only where the screen has a filter line, because the chord's
-other half is keeping the filter that is up and there is none on the Inbox —
-the same rule that stops the bar advertising anything else that would do
-nothing.
+**A digit a screen declares for itself wins.** The review's `1`…`7` and the
+processing screen's match list are bare digits too, and neither screen has a
+filter line or a meta line, so nothing is taken from either side. The order
+is still stated, because it is what would decide if a screen ever had both:
+a declared key is read before the standing ones.
 
-**A bookmark now names its own view, so it is also a `g`.** `g 1`…`g 9` open
-the bookmark under that digit — its view, with its filter on it — and that is
-the one half of the pair that needs nothing from the screen it is pressed on,
-so it works everywhere, the Inbox and the review included. A digit is free
-after `g` because every jump is a letter — one per view, and no view is left
-wanting a number — so nothing had to be given up for it.
+**A bookmark names its own view, so it is also a `g`.** `g 1`…`g 9` open the
+bookmark under that digit from anywhere, the Inbox and the review included —
+the bare digit works only where the screen has a filter line, which is where
+the bar offers it. A digit is free after `g` because every jump is a letter.
 
-The two are not two meanings: `^3` with a filter up *makes* a bookmark and is
-pressed with your hands in the filter line, `g 3` *goes to* one and is pressed
-with your hands anywhere. Making one where there is nothing to make it from is
-not a thing to spend a second key on, and going somewhere is the app's most
-ordinary move and already has a key — so each half sits under the key its own
-half of the job already belongs to.
+**A digit on an empty slot does nothing and says nothing**, bare or after
+`g`. No message, no empty view: a key with nothing to do is never offered,
+and "there is nothing under 4" is not news to whoever pressed 4. The bar says
+`1…9 go to a bookmark` only when some slot is full, so the offer and the
+answer cannot disagree.
 
-**A `g` on an empty slot does nothing and says nothing.** `g 4` with slot 4
-empty spends the press: no message, no empty view. That is the standing rule
-rather than an exception to it — a key with nothing to do is never offered,
-and "there is nothing under 4" is not news to whoever pressed 4. While `g` is
-armed the bar says `1…9 a bookmark` only when some slot is full, so the offer
-and the answer cannot disagree.
-
-**`^0` is a list, and inside it the digits are bare**, meaning exactly what
-they mean outside: keep this filter here, or go to what is here. `j` `k` move,
+**`0` is a list, and inside it a digit means the slot.** With a filter up it
+keeps that filter there; with none up it goes to what is there. `j` `k` move,
 `↵` is the digit of the row under the cursor, `⌫` empties a slot, and `esc`
 closes. All nine are shown whatever is in them — design.md, "Bookmarked
 filters" says why the empty ones are part of the answer — and a full row reads
 as the view it opens and then the line it opens it with.
 
-**On a screen where a meta line is being written, the digits are the
-snippets.** `^3` writes the run of names kept under 3 onto the line in front
-of you, and `^0` is the nine of them (design.md, "Snippets"). That is not a
-third meaning for the digit: it is the same idea the bookmarks state, applied
-to the other line the app has. A filter line asks a question and a meta line
-writes something down, both are typed daily, and both have half a dozen
-answers that come round again and again.
+**On a screen with a meta line, the digits are the snippets.** `3` writes the
+run of names kept under 3 onto the meta line, and `0` is the nine of them
+(design.md, "Snippets"). That is not a second meaning for the digit: it is the
+same idea the bookmarks state, applied to the other line the app has. A
+filter line asks a question and a meta line writes something down, both are
+typed daily, and both have half a dozen answers that come round again and
+again.
 
-Which of the two a digit means is decided by the screen and never by a mode.
-No screen carries both lines — an edit screen has no filter bar and a list
-view has no meta box — so there is nothing to disambiguate and nothing to
+**A snippet is pressed from command mode, like everything else.** It was the
+one key whose whole job happened in the middle of typing — `^3` with the
+caret in the line — and it is `esc`, then `3`, now. The line it writes onto
+is the screen's meta line; where a screen has two, it is the first, which is
+the project's (implementation.md, "Snippets"). What that costs is real and
+is the price of the rule having no exceptions: one chord left in the map is
+one key the hand has to remember is different, on a keyboard whose point is
+that none is.
+
+Which of the two nines a digit means is decided by the screen and never by a
+mode. No screen carries both lines — an edit screen has no filter bar and a
+list view has no meta box — so there is nothing to disambiguate and nothing to
 remember: the digits do the thing the screen you are standing on is for. The
 bar says which, because it says every key by reading the page.
 
-Nothing is lost on either side of that. The half of a bookmark that would be
-wanted on an edit screen is *going to* one, and that half has never been the
-chord: it is `g 1`…`g 9`, and it works from everywhere including here. The
-half that is the chord — keeping the filter that is up — needs a filter line
-to keep, and there is none on an edit screen. So the digits were free there,
-in the same way they were free after `g`.
-
-**A snippet is written in the `^0` list, and the digits inside it are bare.**
-`j` `k` move, `↵` opens the row under the cursor into a box — or its own digit
-does, from wherever the cursor is — `⌫` empties a slot, and `esc` closes:
-first the box, then the dialog. One row is open at a time, which is what
-leaves the digits in here meaning what they mean outside, the slot's own
-address. All nine are shown whatever is in them, for the reason the bookmarks
-are (design.md, "Snippets").
+**A snippet is written in the `0` list, and a digit in there opens its
+slot.** `j` `k` move, `↵` opens the row under the cursor into a box — or its
+own digit does, from wherever the cursor is — `⌫` empties a slot, and `esc`
+closes: first the box, then the dialog. One row is open at a time. All nine
+are shown whatever is in them, for the reason the bookmarks are (design.md,
+"Snippets").
 
 Inside an open row the box is the app's own token box and keeps its own keys:
 `↓` `↑` through the completions, `↵` to take one. `↵` with no list up is done
@@ -581,19 +592,19 @@ with the row, and `esc` is the same — nothing is thrown away by either, since
 a slot is written the moment the row is left. A name the app does not know
 stops the row from closing and asks about it, exactly as the filter line does.
 
-`^e` is *elapsed*, which is the one word that covers both halves of what the
+`e` is *elapsed*, which is the one word that covers both halves of what the
 key means: an age is elapsed time and a timer counts it. It has to cover both,
-because "show me the time" must never be two keys or one key with two answers
-— it took `^t` for that reason, and gave it up because Today is pressed many
-times a day and a display flag is pressed occasionally.
+because "show me the time" must never be two keys or one key with two answers.
+`t` was the obvious letter and is Today, which is pressed many times a day
+where a display flag is pressed occasionally.
 
 ## Buttons that get no letter
 
-One, now: **Recapture** on the audit. It is reached with `^m c`, which is what
-`^m` is for — `g` goes to a view, `^m` goes one level in.
+One, now: **Recapture** on the audit. It is reached with `m c`, which is what
+`m` is for — `g` goes to a view, `m` goes one level in.
 
 The other four — **Detach**, **Promote**, **Undone** and **Inbox** on a someday
-item — are in the map above. They moved because the tier stopped working: `^m`
+item — are in the map above. They moved because the tier stopped working: `m`
 hangs its letters on the controls of the open screen, and with the buttons
 drawn in the bar rather than on the form there is no longer a button to hang
 one on. A letter each was the honest answer, and it cost less than it looked
@@ -612,12 +623,12 @@ Recapture is the one that could not follow them, and the reason is worth
 writing down: it is a control **on a row**, one per line of the audit, and the
 audit's rows carry no cursor. A standing letter means "do this to the thing
 under the cursor", and there is no cursor here to mean it about — so it stays
-a button on its row, where the pointer and `^m` can both reach it. That is the
+a button on its row, where the pointer and `m` can both reach it. That is the
 same reason every list row keeps its own Done and Today buttons: a row control
 is per-item, and the bar's entries are per-screen.
 
 What made the old tier untrustworthy was not that it existed but that its
-letters moved: `^m l` deleted an action inside a project and `^m e` deleted one
+letters moved: `m l` deleted an action inside a project and `m e` deleted one
 standing alone, because Detach vanished from the screen and every letter after
 it shifted up. So **a control may declare its jump letter**, and a declared
 letter is claimed before any computed one. That escape hatch stays, unused by
@@ -629,9 +640,10 @@ targets — boxes and lists, mostly — guessable; see implementation.md,
 
 ## The bar while you are typing
 
-With the caret in a box, every bare letter is a character rather than a
-command. The bar narrows to what a chord can still reach — the `^` keys, the
-"needs …" line, and `esc leave the box` — and everything else goes.
+With the caret in a box, every key is a character rather than a command. The
+bar narrows to the one key that is still the app's — `esc leave the box` —
+and the "needs …" line, which is a reason rather than a key. Everything else
+goes.
 
 It goes rather than being greyed out or annotated. The bar's one promise is
 that what it lists works now; a key shown with a note saying it does not is
@@ -639,17 +651,15 @@ still a key shown, and `b back` beside a box you must press `esc` to get out
 of is a plain lie about what one press does. There is nothing to add to make
 that clear — there is something to remove.
 
-Which makes the bar the mode indicator the modal design would otherwise need.
-In `command` almost the whole bar empties as the caret enters a box and comes
-back on `esc`, so the two states are visibly different without a word being
-written to say so. In `modifier` almost nothing changes, because almost
-nothing was bare. That difference, watched for a week, is most of what the
-trial is for.
+Which makes the bar the second thing that says the mode, under the ground
+(see "The two modes"). The ground says *which*; the bar says *what that
+means*, by showing the whole map in one mode and one key in the other.
 
-For the same reason `^↵` drops out of the bar when the form's own submit
-button has a chord of its own: `^s save` and `^↵ save` are one answer said
-twice. In `command` mode the declared key is a bare letter and dead in a box,
-so there `^↵` is the only way to finish a form from inside one and it stays.
+Where a box has keys of its own the bar says those instead: the completion
+list's `↓↑ move`, `↵ take`, and on the filter line `↵ ask about …` while there
+is a name to ask about. A dialog's bar offers `↵` with its button's own words
+from any box where enter finishes it, and drops the entry in the one where
+enter is a newline.
 
 ## Leaving a screen
 
@@ -759,15 +769,23 @@ thing you meant.
 
 ## What is built
 
-All of it. `keys.mode` defaults to `hybrid`, which is what the app did before
-any of this, so nothing about the trial is a one-way door.
+All of it.
 
-Three mechanisms carry the whole map, and each one exists so that a key can
-never be advertised without working:
+A handful of mechanisms carry the whole map, and each one exists so that a
+key can never be advertised without working:
 
-- **`renderKey`** is the single place a declared letter becomes a chord.
-  Everything that reads a `data-key` goes through it — the handler and the key
-  bar both — so the two cannot come to disagree about what a screen offers.
+- **one line decides the mode.** The key handler asks whether the event came
+  from a box that takes text; if it did, `esc` blurs it and every other key is
+  left alone, and nothing below that line is read. Everything below it is
+  command mode, and the first thing it does is drop any key with a modifier
+  held. So "insert mode has no key of the app's but `esc`" and "nothing is a
+  chord" are each one line of code rather than a property every key has to
+  remember to have (implementation.md, "Keyboard").
+- **the ground is read off the same question.** A class on the document says
+  the caret is in a box, set by the function that redraws the bar — which is
+  already called on every move of the focus and every swap of the page — so
+  the ground, the bar and the handler cannot come to disagree about which mode
+  this is.
 - **`kb-complete`, `kb-pick`, `kb-delete`** are now screen forms as well as
   row forms. `d`, `t` and `⌫` press the selected row's if there is one and the
   screen's if there is not, which is how an action's page and a row of the
@@ -846,7 +864,7 @@ never be advertised without working:
   reason every other pair does: one path, so the letter and the pointer cannot
   come to mean different things. See implementation.md, "The weekly review
   screens".
-- **`data-jump`** lets a control name its own `^m` letter, claimed before any
+- **`data-jump`** lets a control name its own `m` letter, claimed before any
   computed one, which is what stopped Delete moving between `l` and `e`. Only
   Recapture still uses it, and it stays for the reason above.
 - **the bar's entries are the controls.** An entry that presses something is a
@@ -855,16 +873,10 @@ never be advertised without working:
   settings file chooses how loudly the difference is drawn, from `plain` to
   `button`, and defaults to `chip` — see implementation.md, "The key bar is
   the buttons".
-- **`renderKey` leaves a key that is not a letter alone**, in all three modes.
-  It did not: `modifier` turned every declared key into a chord, so a declared
-  digit became `^`-something there — which the map above already said it
-  should not, and which would be the bookmark key as well. The map was right
-  and the code was wrong; nothing else in it changed. It is what lets the
-  match list draw its numbers on its rows and mean them.
 - **a numbered list is one entry in the bar, not nine.** A control marked
   `data-key-quiet` still answers its key and is left out of the bar, and a run
   of them is drawn as the range they cover — `1…3 copy` — which presses
-  nothing, exactly as `^1…9` does. The run ends at the first ordinary key, so
+  nothing, exactly as the bookmarks' `1…9` does. The run ends at the first ordinary key, so
   the bar can never claim a range that is not one (implementation.md, "The
   match list").
 
@@ -881,7 +893,7 @@ never be advertised without working:
   bar doing exactly what it is supposed to: nothing advertises a key that does
   not exist. The one thing on the screen that *is* pressable is a link — a row
   of "the oldest thing in each view" — and it is reached the way every other
-  link on a screen with no cursor is reached, with `^m`.
+  link on a screen with no cursor is reached, with `m`.
 - **`j`/`k` on it move by section, not by row**, which is a key it does have
   and the one correction to the bullet above. It was written as "no rows to
   move through, so `j`/`k` have nowhere to go", and that was half an answer:
@@ -906,10 +918,13 @@ What is left, and deliberately:
 - **the project picker still takes a bare `c`** for "new project" while its
   list is shut. It owns the keyboard the way a dialog does, so nothing
   collides, but it is a second `c` in a file that argues against second
-  meanings. Worth revisiting once the trial has settled which mode wins.
+  meanings.
+- **`esc` with the filter line up goes back into the line.** From the list,
+  `esc` drops the cursor and puts the caret in the filter box — which is
+  command mode's own key landing you in insert mode. It predates the two modes
+  and is the only way back to an open line that does not close it (`f` closes
+  it and takes the filters away), so it stays until something better is
+  decided; the ground changing is what keeps it from being a surprise.
 - **the panel chooser keeps `t` `n` `k` `z`.** A dialog is a menu of its own
   letters and the jump layer already stands down inside one, so these are not
   the screen's keys to normalize.
-- **`^↵` still submits the form being typed in**, alongside `c`. It is not a
-  button's key — it is "finish this", from inside a box, whatever the button
-  happens to be — so it survives the map rather than being replaced by it.

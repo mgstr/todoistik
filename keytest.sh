@@ -6,8 +6,8 @@
 # app as it was on 8390, this on 8391 — which is the only way to compare a key
 # by feel.
 #
-# Switch modes by editing keys.mode in the settings file below and reloading;
-# nothing is compiled into a mode (keys.md, "The three modes").
+# There is one keyboard now (keys.md, "The two modes"); this stays for trying a
+# key that is not built yet.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)

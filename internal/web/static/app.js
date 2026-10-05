@@ -43,13 +43,12 @@
     document.querySelectorAll(".ghint").forEach(function (h) { h.remove(); });
   }
 
-  // ctrl-m is g one level in: g goes to a view, ctrl-m goes to a control on
-  // the screen already open. Ctrl, because the whole point is reaching another
-  // box without leaving the one the hands are in — a bare letter could not,
-  // since it would be typed into the box instead. It was ctrl-j until ctrl-j
-  // and ctrl-k became the list's own keys (see moveKey), and ctrl-n until the
-  // letters made the commonest jump ctrl-n m — the meta line is always m, so
-  // the prefix may as well be the same key (implementation.md).
+  // `m` is g one level in: g goes to a view, `m` goes to a control on the
+  // screen already open. It was a chord while the app had chords, so that a
+  // box could be reached from inside another; reaching one now is `esc` and
+  // then `m`, like everything else (keys.md, "The two modes"). The letter is
+  // the one the commonest jump already ended on — the meta line is always m,
+  // so the prefix may as well be the same key (implementation.md).
   let jPending = false;
   let jumpMap = {};
 
@@ -278,27 +277,27 @@
     const keys = [["g g", "add to inbox"], ["g", "go to"]];
     // offered only where there is something to jump to, so a list view with
     // no form on it does not advertise a key that would light up nothing
-    // `^m` arms a second key rather than pressing a control, so it is one of
+    // `m` arms a second key rather than pressing a control, so it is one of
     // the entries the bar lists without offering — a prefix is not a button
-    if (jumpTargets().length) keys.push(["^m", "jump"]);
+    if (jumpTargets().length) keys.push(["m", "jump"]);
     if (document.getElementById("help")) keys.push(["?", "help", function () { toggleHelp(); }]);
     // the bookmarked filters, offered by the same rule as everything else
-    // here: the digits keep a filter only where there is one to keep, and go
-    // to one only where one is kept. The nine are nine keys and not a control,
-    // so that entry says how to steer and presses nothing; `^0` opens one
-    // thing and is therefore a button like the rest of them
+    // here: a digit goes to a bookmark only where one is kept. The nine are
+    // nine keys and not a control, so that entry says how to steer and presses
+    // nothing; `0` opens one thing and is therefore a button like the rest of
+    // them. Keeping the filter that is up is done in that list and not by a
+    // bare digit, so no single stray key can write over a slot (keys.md,
+    // "The map")
     if (filterBar()) {
-      const line = liveFilter();
-      if (line) keys.push(["^1\u20269", "bookmark this filter"]);
-      else if (anyBookmark()) keys.push(["^1\u20269", "go to a bookmark"]);
-      keys.push(["^0", "bookmarks", function () { openBookmarks(); }]);
+      if (anyBookmark()) keys.push(["1\u20269", "go to a bookmark"]);
+      keys.push(["0", "bookmarks", function () { openBookmarks(); }]);
     } else if (snippetDigits()) {
       // the other nine, on the screens the bookmarks have nothing to say on:
-      // a meta line is being written, so the digits write into it. The range
-      // is offered only where there is a slot to press, the way the bookmarks'
-      // is, and `^0` is a button like any other because it opens one thing
-      if (anySnippet()) keys.push(["^1\u20269", "a snippet"]);
-      keys.push(["^0", "snippets", function () { openSnippets(); }]);
+      // there is a meta line here, so the digits write onto it. The range is
+      // offered only where there is a slot to press, the way the bookmarks'
+      // is, and `0` is a button like any other because it opens one thing
+      if (anySnippet()) keys.push(["1\u20269", "a snippet"]);
+      keys.push(["0", "snippets", function () { openSnippets(); }]);
     }
     // a key marked data-global belongs to the app rather than to this view, so
     // it is read here and lands in the right half of the bar. Last, so a flag
@@ -317,15 +316,12 @@
     return !!(el && el.closest && typing({ target: el }));
   }
 
-  // The entries that survive that: a chord, esc, and the "needs …" line,
-  // which is a reason rather than a key. Nothing is greyed out or annotated —
-  // a key that cannot be pressed is not shown, which is the same rule the bar
-  // follows everywhere else, and what the bar does say is then exactly what
-  // one press will do.
-  function chordOnly(pairs) {
-    return pairs.filter(function (p) {
-      return p[0].indexOf("^") >= 0 || p[0] === "esc" || p[0] === "\u2026";
-    });
+  // The entries that survive that: the "needs …" line, which is a reason
+  // rather than a key. Nothing is greyed out or annotated — a key that cannot
+  // be pressed is not shown, which is the same rule the bar follows everywhere
+  // else, and what the bar does say is then exactly what one press will do.
+  function whileTyping(pairs) {
+    return pairs.filter(function (p) { return p[0] === "\u2026"; });
   }
 
   // Every entry is derived from what is actually on the page and what is
@@ -423,10 +419,8 @@
       const keys = [];
       const bad = problemsIn(filterBox());
       if (bad.length) keys.push(["\u21b5", "ask about " + bad[0].text]);
-      if (createForm()) keys.push(["^\u21b5", "create"]);
-      if (rows().length) keys.push(["^j ^k", "to the list"]);
-      keys.push(["^f", "no filter"], ["esc", "leave the box"]);
-      return { view: keys, global: globalKeys() };
+      keys.push(["esc", "leave the box"]);
+      return { view: keys, global: [] };
     }
     if (jPending) {
       return { view: [["\u2026", "press a marked key"], ["esc", "cancel"]], global: [] };
@@ -440,7 +434,7 @@
       if (document.querySelector(".pane[data-inbox-full]")) view.push(["z", "inbox zero"]);
       // the nine have nothing on screen to pin a tag to either \u2014 the dialog
       // they are drawn in is shut \u2014 so the bar carries them, as a range and
-      // only where there is one to go to, the shape `^1\u20269` already has
+      // only where there is one to go to, the shape `1\u20269` has on a list
       if (anyBookmark()) view.push(["1\u20269", "a bookmark"]);
       view.push(["esc", "cancel"]);
       return { view: view, global: [] };
@@ -468,35 +462,29 @@
     // the bar says which of the two it is offering (keys.md, "The map")
     else if (sections().length) view.push(["j k", "by section"]);
     if (zero) pushRowKeys(view, row);
-    if (createForm()) view.push(["^↵", "create", function () { press(createForm()); }]);
     branchKeys().forEach(function (k) { view.push(k); });
     // offered only where the item under the cursor actually holds one, the way
     // every other entry here is derived from the page rather than written down
-    if (itemLinks(linkScope()).length) view.push(["^o", "open link", function () { followLink(); }]);
+    if (itemLinks(linkScope()).length) view.push(["l", "open link", function () { followLink(); }]);
     // last of the view's own answers, and beside the way out — see pushDeleteKey
     pushDeleteKey(view, row);
     const cancel = document.querySelector("[data-cancel]");
     if (cancel) {
-      view.push([renderKey("b"),
+      view.push(["b",
         cancel.dataset.cancelLabel || "back",
         function () { leave(); }]);
     }
     const bar = filterBar();
     if (bar) {
-      view.push(["^f", bar.hidden ? "filter" : "no filter",
+      view.push(["f", bar.hidden ? "filter" : "no filter",
         function () { if (filterBar().hidden) openFilter(); else closeFilter(); }]);
     }
     if (bar && !bar.hidden) view.push(["esc", "to the filter"]);
-    // With the caret in a box the bar narrows to what a chord can still
-    // reach, and says the one key that gets the letters back. This is the
-    // mode made visible: in `command` almost everything goes and returns on
-    // esc, in `modifier` almost nothing does — which is the difference the
-    // two are being tried for (keys.md, "The bar while you are typing").
+    // With the caret in a box the bar narrows to the one key that gets the
+    // letters back. This is insert mode said a second time, under the page's
+    // own change of ground (keys.md, "The bar while you are typing").
     if (typingNow()) {
-      return {
-        view: chordOnly(view).concat([["esc", "leave the box"]]),
-        global: chordOnly(globalKeys()),
-      };
+      return { view: whileTyping(view).concat([["esc", "leave the box"]]), global: [] };
     }
     return { view: view, global: globalKeys() };
   }
@@ -511,7 +499,7 @@
   // than listed key by key: the match list on the processing screen numbers
   // its own rows, which is where those numbers are read, and nine entries
   // saying "copy" would bury the six answers under them. The entry presses
-  // nothing — it says how to steer, exactly as the bookmarks' `^1…9` does —
+  // nothing — it says how to steer, exactly as the bookmarks' `1…9` does —
   // and a run of them ends the moment an ordinary key comes between, so the
   // bar can never claim a range that is not one.
   function branchKeys() {
@@ -523,7 +511,7 @@
         out.push(keyEntry(el));
         return;
       }
-      const k = renderKey(el.dataset.key, el);
+      const k = el.dataset.key;
       if (run) {
         run[0] = run.first + "…" + k;
         return;
@@ -547,7 +535,7 @@
   // the bar also walks the page itself, to collapse a numbered list into a
   // range (see branchKeys), and the two must build an entry the same way.
   function keyEntry(el) {
-    return [renderKey(el.dataset.key, el), el.dataset.keyLabel || "",
+    return [el.dataset.key, el.dataset.keyLabel || "",
       function () { press(el); }, tone(el)];
   }
 
@@ -614,40 +602,6 @@
 
   function anyLayout() { return paneSays("data-keys-any-layout"); }
 
-  // ---- keys.mode ---------------------------------------------------------
-  //
-  // A control declares its letter and never its modifier (keys.md, "The three
-  // modes"); this is the one place that decides how that letter is pressed.
-  // A declaration that already carries `^` is a global — `^e`, `^o` — and is
-  // not the screen's to begin with, so no mode touches it.
-  //
-  // What hybrid puts ctrl on is the *control*, not the letter, and the control
-  // is the one that knows: data-key-typing marks a key that has to fire with
-  // the caret in a box. Keyed on the letter it was wrong the moment two
-  // buttons shared one — `a` is Add inside a project form and the Action
-  // branch on a screen with nothing to type into, and only the first of those
-  // is worth a modifier.
-  function keysMode() {
-    const pane = document.querySelector(".pane");
-    const m = pane && pane.getAttribute("data-keys-mode");
-    return m || "hybrid";
-  }
-
-  // What a declared key is actually pressed as, here, now. Everything that
-  // reads a data-key goes through this — the handler and the bar both — so
-  // the two can never disagree about what a screen is offering.
-  function renderKey(decl, el) {
-    if (!decl || decl.charAt(0) === "^") return decl;
-    // A key that is not a letter is itself in all three modes (keys.md, "The
-    // map"): there is nothing for a mode to change about it, and modifier
-    // mode turning the match list's `3` into `^3` would have spent a digit
-    // the bookmarks already answer to.
-    if (!/^[a-z]$/.test(decl)) return decl;
-    const mode = keysMode();
-    if (mode === "command") return decl;
-    if (mode === "modifier") return "^" + decl;
-    return el && el.hasAttribute("data-key-typing") ? "^" + decl : decl;
-  }
   function layoutMarker() { return paneSays("data-keys-layout-marker"); }
 
   // ---- Which layout the keyboard is in --------------------------------
@@ -754,21 +708,17 @@
     return e.key;
   }
 
-  // A declared key may ask for ctrl, written "^a" — the same notation the bar
-  // already uses for ctrl-enter. Ctrl and not cmd: cmd-a is select-all in every
-  // text box on this machine, and a screen key must not take that away.
+  // The control that declares the key just pressed, if there is one that can
+  // be pressed. Bare keys only: nothing in the app is a chord, so a key that
+  // arrives with a modifier is the browser's or the system's and is left to
+  // them (keys.md, "The two modes").
   function branchFor(e) {
-    if (e.altKey || e.metaKey) return null;
+    if (e.altKey || e.metaKey || e.ctrlKey) return null;
     const k = keyOf(e);
     if (k.length !== 1) return null;
-    const want = (e.ctrlKey ? "^" : "") + k;
-    // Every declaration is rendered through the mode and compared, rather
-    // than the pressed key being turned into a selector: the letter on the
-    // control is the same in all three modes and only the chord changes, so
-    // there is nothing to build a selector out of.
     const all = document.querySelectorAll("[data-key]");
     for (let i = 0; i < all.length; i++) {
-      if (renderKey(all[i].dataset.key, all[i]) === want && keyUsable(all[i])) return all[i];
+      if (all[i].dataset.key === k && keyUsable(all[i])) return all[i];
     }
     return null;
   }
@@ -793,9 +743,9 @@
     if (href) goTo(href, false);
   }
 
-  // ---- Following a link (^o) -------------------------------------------
+  // ---- Following a link (`l`) -------------------------------------------
   //
-  // design.md, "Following a link" gives ^o the link belonging to whatever the
+  // design.md, "Following a link" gives `l` the link belonging to whatever the
   // cursor is on. The server has already said what each item holds, in
   // data-links on the row or on the wrapper of a one-item screen, so nothing
   // here reads item text: what counts as a link is decided once, in Go
@@ -803,7 +753,7 @@
 
   function linksDialog() { return document.getElementById("links-dialog"); }
 
-  // The item ^o is about: the row under the cursor, and otherwise the one item
+  // The item `l` is about: the row under the cursor, and otherwise the one item
   // this screen is for. A list with nothing selected has no answer — which item
   // would it be? — so the key does nothing there and is not offered.
   function linkScope() {
@@ -817,7 +767,7 @@
     return (pane && pane.dataset.linksReach) || "any";
   }
 
-  // What ^o may follow on that item. Under "any" it is every link the item's
+  // What `l` may follow on that item. Under "any" it is every link the item's
   // text holds, which the server wrote down; under "shown" it is the external
   // links this screen actually drew inside the same element. getAttribute and
   // not .href, because the browser normalises .href and the address followed
@@ -877,7 +827,7 @@
     return a;
   }
 
-  // ^o. One link goes straight to its tab, which is nearly always what an item
+  // `l`. One link goes straight to its tab, which is nearly always what an item
   // holds; several put the chooser up, because a key that opened four tabs is
   // not one you would press to find out what an item is carrying. Either way
   // what opens it is an anchor being clicked — there is no second way to open a
@@ -902,8 +852,8 @@
   // they act on whenever there is one — which is the rule the handler follows
   // too, so the bar cannot offer a key that would act somewhere else.
   function pushScreenKeys(into) {
-    if (screenForm("kb-complete")) into.push([renderKey("d"), "done", function () { actOn("kb-complete"); }]);
-    if (screenForm("kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+    if (screenForm("kb-complete")) into.push(["d", "done", function () { actOn("kb-complete"); }]);
+    if (screenForm("kb-pick")) into.push(["t", "today", function () { actOn("kb-pick"); }]);
   }
 
   // Delete is added at the end of the view group rather than beside the keys
@@ -956,21 +906,21 @@
         if (radio) { radio.checked = true; renderKeybar(); }
       }]);
     }
-    if (row.querySelector("form.kb-complete")) into.push([renderKey("d"), "done", function () { actOn("kb-complete"); }]);
+    if (row.querySelector("form.kb-complete")) into.push(["d", "done", function () { actOn("kb-complete"); }]);
     if (canDo(row)) into.push(["w", "doing", function () {
       handSelectionOn(row);
       window.location.href = doingHref(row);
     }]);
-    if (row.querySelector("form.kb-pick")) into.push([renderKey("t"), "today", function () { actOn("kb-pick"); }]);
+    if (row.querySelector("form.kb-pick")) into.push(["t", "today", function () { actOn("kb-pick"); }]);
     // Only the rows of a plan carry it, and only the ones that could be next:
     // the mark is on the row or it is not, so the bar and the key agree without
     // either knowing what a project is.
-    if (row.querySelector("form.kb-next")) into.push([renderKey("n"), "next", function () { actOn("kb-next"); }]);
+    if (row.querySelector("form.kb-next")) into.push(["n", "next", function () { actOn("kb-next"); }]);
     // The mark goes both ways, so the entry says the answer this press lands
     // on rather than the name of the control — the same rule the Settings
     // screen's `h theme dark` follows (keys.md, "What is built").
     if (row.querySelector("form.kb-review")) {
-      into.push([renderKey("r"), reviewed(row) ? "unreviewed" : "reviewed",
+      into.push(["r", reviewed(row) ? "unreviewed" : "reviewed",
         function () { actOn("kb-review"); }]);
     }
   }
@@ -1100,10 +1050,9 @@
     renderKeybar();
   }
 
-  // Whether this event is the press of a declared letter, whatever the mode
-  // renders that letter as.
+  // Whether this event is the bare press of that letter.
   function pressedIs(decl, e) {
-    return renderKey(decl) === (e.ctrlKey ? "^" : "") + keyOf(e);
+    return !e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === decl;
   }
 
   // ---- Unsaved work -------------------------------------------------------
@@ -1531,9 +1480,9 @@
     setTimeout(function () { mark.remove(); }, ms + 50);
   }
 
-  // Read before the ctrl guard in the handler, because in modifier mode these
-  // are ctrl keys too: the letter on the control is the same in all three
-  // modes and only the chord changes.
+  // The keys that act on the row under the cursor, or on the screen when no
+  // row is. Read before the declared keys, which is what lets a letter be a
+  // row's on one screen and a branch's on another (keys.md, "What is built").
   function rowCommand(e) {
     // Not while a dialog is up. A dialog owns the keyboard — that is what
     // keyLive says about every key a page declares — and these four were the
@@ -1552,8 +1501,7 @@
     // page (keys.md, `n`).
     if (pressedIs("n", e)) return actOn("kb-next");
     if (pressedIs("b", e)) return leave();
-    // doing is navigation, so it is bare in every mode
-    if (!e.ctrlKey && keyOf(e) === "w" && canDo(row)) {
+    if (pressedIs("w", e) && canDo(row)) {
       handSelectionOn(row);
       window.location.href = doingHref(row);
       return true;
@@ -1596,14 +1544,15 @@
     const btn = makeButton(scope);
     if (!btn) return [];
     if (!btn.disabled) {
-      // The button's own key is the better name for this when it has one and
-      // that key is a chord: `^s save` and `^\u21b5 save` are one answer said
-      // twice. In `command` mode the declared key is a bare letter and dead
-      // where this entry is read, so there ^enter is the only way out of the
-      // box and stays in the bar.
-      const own = btn.dataset.key;
-      if (own && renderKey(own, btn).indexOf("^") >= 0) return [];
-      return [["^\u21b5", btn.textContent.trim().toLowerCase(),
+      // On the page the button's own letter is its entry and is read with the
+      // other declared keys, so there is nothing to add here. A dialog has no
+      // letter to give — `esc` in one cancels it, so there is no command mode
+      // to press a letter in — and what finishes it is plain enter, from any
+      // box where enter is not a newline.
+      if (!scope.matches || !scope.matches("dialog")) return [];
+      const at = document.activeElement;
+      if (at && at.tagName === "TEXTAREA") return [];
+      return [["\u21b5", btn.textContent.trim().toLowerCase(),
         function () { press(btn); }]];
     }
     const need = missing(scope);
@@ -1632,9 +1581,9 @@
         item.type = "button";
         // the caret stays where it was: the bar is chrome, and a button that
         // took focus on the way down would empty the very bar being clicked —
-        // with the caret in a box the bar narrows to the chords (keys.md,
-        // "The bar while you are typing"), so clicking `^↵ create` would
-        // rewrite the bar out from under the click. The click still fires;
+        // with the caret in a box the bar narrows to `esc` (keys.md, "The bar
+        // while you are typing"), so a click that moved the focus would
+        // rewrite the bar out from under itself. The click still fires;
         // only the focus move is cancelled.
         item.addEventListener("mousedown", function (e) { e.preventDefault(); });
         item.addEventListener("click", function (e) { e.preventDefault(); act(); });
@@ -1669,7 +1618,16 @@
     }
   }
 
+  // Insert mode is the caret being in a box, and the page says so by changing
+  // its ground (keys.md, "The two modes"). Read here because this is already
+  // called on every move of the focus and every swap of the page, and a box
+  // that is swapped away while it holds the caret sends no focusout to hear.
+  function wearMode() {
+    document.documentElement.classList.toggle("kb-insert", typingNow());
+  }
+
   function renderKeybar() {
+    wearMode();
     syncCrumb();
     const bar = document.getElementById("keybar");
     if (!bar) return;
@@ -1856,7 +1814,7 @@
   // (design.md, "Doing one action").
   //
   // It is always ticking, whatever the settings file said: that decides
-  // whether it starts visible, and `ctrl-t` decides after that. A timer that
+  // whether it starts visible, and ``e`` decides after that. A timer that
   // only existed when it was on would start counting from the moment it was
   // asked for, which is not the number anyone means.
   let doingTick = null;
@@ -1922,7 +1880,7 @@
     if (btn && el) btn.dataset.keyLabel = "timer " + (el.hidden ? "hidden" : "shown");
   }
 
-  // ctrl-t means "show me the time" wherever it is pressed: the ages on a list
+  // `e` means "show me the time" wherever it is pressed: the ages on a list
   // (see the layout's own toggle), the timer here. The screen with a timer on
   // it renders no ages control at all, so the key has exactly one meaning
   // wherever it is pressed.
@@ -1935,7 +1893,7 @@
     renderKeybar();
   }
 
-  // The panel chooser: ctrl-v, four forms, each one both a key and a click.
+  // The panel chooser: `v`, four forms, each one both a key and a click.
   function panelsDialog() { return document.getElementById("panels-dialog"); }
 
   // --- token boxes --------------------------------------------------------
@@ -2231,11 +2189,6 @@
   const CREATABLE = /^([@#])[\p{L}\p{N}_-]+(\([^()]+\))?$/u;
   const CREATABLE_VERB = /^[\p{L}][\p{L}-]*$/u;
 
-  function createForm() {
-    const form = document.querySelector("form[data-create]");
-    return form && !form.hidden && keyLive(form) ? form : null;
-  }
-
   function syncCreate() {
     const form = document.querySelector("form[data-create]");
     const box = filterBox();
@@ -2249,6 +2202,9 @@
     const ok = !filterBar().hidden && (verb ||
       (!!m && !(m[1] === "#" && m[2]) && names.indexOf(line.toLowerCase()) < 0));
     form.hidden = !ok;
+    // and not pressable while it is not shown: `c` reaches the button by its
+    // declared key, and a key must never press a control that is not there
+    form.querySelector("button").disabled = !ok;
     if (ok) {
       form.querySelector("[name=q]").value = line;
       form.querySelector("button").textContent = verb ? "Create verb " + line : "Create " + line;
@@ -2666,7 +2622,7 @@
 
   // ---- The bookmarked filters ------------------------------------------
   //
-  // Nine bookmarks under the digits — a view and a line each — and ctrl-0 is
+  // Nine bookmarks under the digits — a view and a line each — and `0` is
   // the nine of them on the screen (design.md, "Bookmarked filters"). One key
   // with two answers, and the filter line decides which: with a filter up, the
   // digit keeps it; with no filter up, the digit goes to what is kept. That is
@@ -2792,7 +2748,7 @@
     renderKeybar();
   }
 
-  // One press of a digit, wherever it was pressed: ctrl-N on the view, and the
+  // One press of a digit, wherever it was pressed: a digit on the view, and the
   // bare digit inside the dialog, which is the same question asked from the
   // list of answers. A view with no filter line has neither a filter to keep
   // nor anywhere to put one, so the key is not the app's there and is never
@@ -2828,8 +2784,8 @@
   // ---- The snippets ------------------------------------------------------
   //
   // The other nine under the same digits, and on the screens the bookmarks
-  // have nothing to say on: where a meta line is being written, `^3` stamps
-  // slot three onto it and `^0` is the nine of them (design.md, "Snippets").
+  // have nothing to say on: where there is a meta line, `3` stamps
+  // slot three onto it and `0` is the nine of them (design.md, "Snippets").
   //
   // The digits are not two meanings here either — they are the same idea the
   // bookmarks state, applied to the other line the app has. A bookmark keeps
@@ -3576,7 +3532,7 @@
   }
 
   // A row the server says to arrive on: the name Settings has just created,
-  // so that the key after ctrl-enter is already about it. Only when nothing
+  // so that the key after creating it is already about it. Only when nothing
   // else claimed the cursor, and only a row the page marked.
   function arrive() {
     if (selected()) return;
@@ -3637,27 +3593,6 @@
     if (row === selected()) handSelectionOn(row);
   }, true);
 
-  // ctrl-j and ctrl-k are j and k with the letters spoken for: the form vim
-  // itself uses, and the one the project picker already took. In a list they
-  // move, like j and k do. From the filter line they are the way out of the box
-  // and into the list it narrows — j and k cannot be, being letters the line is
-  // typed in — and the caret goes with them, or the next j would be typed into
-  // the filter. In any other box they are left alone: nothing is under a meta
-  // line to move to, and ctrl-k is the line's own kill-to-end on this machine.
-  function moveKey(e, delta) {
-    if (!rows().length) return false;
-    const box = filterBox();
-    if (box && e.target === box) {
-      hideSuggest();
-      box.blur();
-      move(delta);
-      return true;
-    }
-    if (typing(e)) return false;
-    move(delta);
-    return true;
-  }
-
   // Only a field you can put text into counts as typing. A radio or a
   // checkbox is an <input> too, and treating those as typing meant that
   // tabbing onto one silently killed j/k/c/t — a bug everywhere, and fatal to
@@ -3675,7 +3610,7 @@
     // key says otherwise. Unmodified keys only: with ctrl or cmd held a
     // browser may report the Latin letter it would match an accelerator
     // against rather than the one the layout types, and believing that would
-    // put the marker out on every ^v.
+    // put the marker out on every cmd-v.
     if (/^Key/.test(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey && layoutMarker()) {
       setLayout(CYRILLIC.test(e.key));
     }
@@ -3706,8 +3641,7 @@
     // the whole of what makes that safe, which it can only be from in front of
     // the keys it is protecting. Read after them, as it was, `g d` completed
     // the row under the cursor and went nowhere, on every screen with a
-    // selection: the row commands sit both above the ctrl guard and below it,
-    // so there is no single line this could have been slipped in behind.
+    // selection.
     if (gPending) {
       // a modifier pressed on its own is not an answer, so it does not count
       // as one: holding shift to reach a key must not throw the jump away
@@ -3715,7 +3649,7 @@
       setPending(false);
       // navigation is bare in every mode (keys.md, "The map"), so a chord is
       // not a jump. It is spent taking the overlay away and does nothing else
-      // — the same answer ctrl-m gives a chord pressed into its hints
+      // — the same answer `m` gives a chord pressed into its hints
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const to = keyOf(e);
       if (to === "g") { e.preventDefault(); openCapture(); return; }
@@ -3733,99 +3667,6 @@
         e.preventDefault();
         goTo(dest, false);
       }
-      return;
-    }
-
-    // ctrl-v is the panels, from anywhere: the chooser if it is shut, and zen
-    // if it is already up — the second press is the answer wanted most often,
-    // and the dialog is a list of four keys rather than a place to be. Ctrl
-    // and not cmd, because cmd-v is paste in every box on this machine and a
-    // key of the app's must not take that away.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "v") {
-      const d = panelsDialog();
-      if (!d) return;
-      e.preventDefault();
-      if (!d.open) { d.showModal(); renderKeybar(); return; }
-      const zen = d.querySelector('[data-key="z"]');
-      if (zen) press(zen);
-      return;
-    }
-
-    // ctrl-f is the filter line, on the views that have one: it is the search
-    // key every other program uses, and what this app has to search is its own
-    // list rather than the page. Pressed again it closes the box and takes the
-    // filters with it — a filter you cannot see is one you cannot undo.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "f") {
-      const bar = filterBar();
-      if (!bar) return; // a view with no box leaves ctrl-f to the browser
-      e.preventDefault();
-      if (bar.hidden) openFilter(); else closeFilter();
-      return;
-    }
-
-    // The bookmarked filters: ctrl-0 puts the nine on the screen, ctrl-1 to
-    // ctrl-9 keep the filter that is up or go to the one kept (keys.md, "The
-    // map"). Globals, so ctrl in every mode — and read here, beside the two
-    // other keys that are about the filter rather than about the list.
-    //
-    // Not while a dialog is up: a dialog owns the keyboard, and the filter
-    // these are about is on the page behind it. The bookmarks dialog's own
-    // digits are handled where the rest of its keys are.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && /^[0-9]$/.test(keyOf(e)) && !topDialog()) {
-      const digit = Number(keyOf(e));
-      // Which of the two nines this is, is the screen's answer and not a mode:
-      // a meta line is being written here, so the digits are the snippets
-      // (design.md, "Snippets"). No screen has both lines, and the going half
-      // of a bookmark is `g 3`, which works from here as it works everywhere.
-      const did = snippetDigits()
-        ? (digit === 0 ? openSnippets() : pressSnippet(digit))
-        : (digit === 0 ? openBookmarks() : pressBookmark(digit));
-      // a digit with nothing to keep and nothing kept is not the app's key,
-      // and is left to the browser rather than swallowed to do nothing
-      if (did) { e.preventDefault(); return; }
-    }
-
-    // A screen key that asks for ctrl is live wherever the screen is, text
-    // boxes included — reaching it without leaving the field is the whole
-    // point of the modifier, and the reason a screen would choose one. Not
-    // while a dialog is up: a dialog owns the keyboard, and the control the
-    // key presses is on the page behind it.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && !document.querySelector("dialog[open]")) {
-      const ctrlBranch = branchFor(e);
-      if (ctrlBranch) { e.preventDefault(); press(ctrlBranch); return; }
-      // and the row and screen commands with it, which in modifier mode are
-      // ctrl keys like any other. Letters only: the delete key is never
-      // modified, and reading it here would take backspace away from the box
-      // being typed in.
-      if (keyOf(e).length === 1 && rowCommand(e)) { e.preventDefault(); return; }
-    }
-
-    // ^o follows a link in the item under the cursor. Read here rather than
-    // left to the declared-key layer above, because what it presses is not a
-    // control on the page: it is the item the selection is on, which changes
-    // with every j and k. After that layer, so a screen wanting ^o for
-    // something of its own would keep it — and, like it, not while a dialog is
-    // up, since the item is on the page behind one.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "o" &&
-        !document.querySelector("dialog[open]")) {
-      // an item with no link leaves the key to the browser rather than
-      // swallowing it to do nothing
-      if (followLink()) e.preventDefault();
-      return;
-    }
-
-    // ctrl-m marks every control on the screen with a letter and takes the
-    // next key as the one to go to. It is read after the screen's own declared
-    // keys, so a screen that wanted ^m for something of its own would keep it,
-    // and it is not inside the block above because that one stands down for a
-    // dialog — a form in a dialog is exactly where a jump is wanted.
-    if (e.ctrlKey && !e.metaKey && !e.altKey && keyOf(e) === "m") {
-      if (setJumping(true)) e.preventDefault();
-      return;
-    }
-
-    if (e.ctrlKey && !e.metaKey && !e.altKey && (keyOf(e) === "j" || keyOf(e) === "k")) {
-      if (moveKey(e, keyOf(e) === "j" ? 1 : -1)) e.preventDefault();
       return;
     }
 
@@ -3887,6 +3728,13 @@
       // the four keys are the dialog's own declared controls, so pressing one
       // is pressing it; everything else is swallowed while it is up
       if (e.key === "Escape") { e.preventDefault(); panels.close(); renderKeybar(); return; }
+      // a second `v` is zen: the answer wanted most often, and the dialog is a
+      // list of four keys rather than a place to be
+      if (pressedIs("v", e)) {
+        const zen = panels.querySelector('[data-key="z"]');
+        if (zen) { e.preventDefault(); press(zen); }
+        return;
+      }
       const choice = branchFor(e);
       if (choice) { e.preventDefault(); press(choice); return; }
       if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
@@ -3988,23 +3836,12 @@
       if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && box === filterBox()) { e.preventDefault(); applyFilter(); return; }
       // esc unwinds one step at a time, the way the project picker does: the
       // list first, then the box. It never closes the filter box — that is
-      // ctrl-f, and it would take the filters with it
+      // `f`, and it would take the filters with it
       if (e.key === "Escape" && open) { e.preventDefault(); hideSuggest(); return; }
     }
     if (typing(e)) {
-      // ctrl-enter (cmd on a mac) submits the form being typed in. Plain Enter
-      // cannot: in a textarea it makes a newline, and the description box is a
-      // textarea — so the one key that finishes a form has to be reachable
-      // from inside it. Derived from the page like everything else: it does
-      // what the form's own submit button does, or nothing.
-      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        // the filter line's form is the filter, and applying it is plain
-        // Enter's; what ctrl-enter commits there is the name the line spells
-        if (e.target === filterBox()) { const make = createForm(); if (make) press(make); return; }
-        submitScope(e.target);
-        return;
-      }
+      // Insert mode: every key is the box's, and the one that is the app's is
+      // the way out (keys.md, "The two modes").
       if (e.key === "Escape") { e.target.blur(); return; }
       // j/k cannot live in a text box — the box has to be typeable — so a box
       // with a list under it says so with data-kb-into, and the arrow drops
@@ -4015,36 +3852,61 @@
       }
       return;
     }
-    // ctrl-enter finishes the form being written, and that has to hold once
-    // your hands have left its boxes: with a row of the project's action list
-    // selected, plain enter opens that action and ctrl-enter still means "done
-    // with this form". The scope is whatever form the selection or the focus
-    // is inside — on every other screen a selected row is a link row sitting
-    // in no form at all, so there is nothing there for this to reach.
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-      const make = createForm();
-      if (make) { e.preventDefault(); press(make); return; }
-      const row = selected();
-      const here = (row && row.closest("form")) ||
-        (document.activeElement && document.activeElement.closest &&
-          document.activeElement.closest("form"));
-      if (here) { e.preventDefault(); submitScope(here); }
-      return;
-    }
-    // The row and screen commands, read before the ctrl guard: in modifier
-    // mode `d`, `t` and `b` arrive with ctrl held.
-    if (!e.altKey && !e.metaKey && rowCommand(e)) { e.preventDefault(); return; }
-
+    // Command mode from here down, and every key in it is bare: a chord is
+    // the browser's or the system's and is left to them.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    if (rowCommand(e)) { e.preventDefault(); return; }
 
     // a key the page declares beats the standing map: on a screen that has
     // its own answers, those are what the letters mean there
     const branch = branchFor(e);
     if (branch) { e.preventDefault(); press(branch); return; }
 
+    // The nine under the digits, and `0` for the list of them. Which nine is
+    // the screen's answer and not a mode: a meta line here means the snippets
+    // (design.md, "Snippets"), a filter line means the bookmarks. After the
+    // declared keys, so a list that numbers its own rows keeps its numbers.
+    // Not while a dialog is up: a dialog owns the keyboard, and the line these
+    // are about is on the page behind it.
+    if (/^[0-9]$/.test(keyOf(e)) && !topDialog()) {
+      const digit = Number(keyOf(e));
+      let did = false;
+      if (snippetDigits()) did = digit === 0 ? openSnippets() : pressSnippet(digit);
+      // a bare digit only ever goes. Keeping the filter that is up is done in
+      // the `0` list, where a slot is looked at before it is written over
+      else if (filterBar()) did = digit === 0 ? openBookmarks() : !!bookmarkLine(digit) && goToBookmark(digit);
+      // a digit with nothing under it is not the app's key
+      if (did) e.preventDefault();
+      return;
+    }
+
     const row = selected();
     switch (keyOf(e)) {
       case "g": e.preventDefault(); setPending(true); break;
+      // the panels: the chooser, where a second `v` is zen
+      case "v": {
+        const d = panelsDialog();
+        if (d && !topDialog()) { e.preventDefault(); d.showModal(); renderKeybar(); }
+        break;
+      }
+      // the filter line, on the views that have one. Pressed again it closes
+      // the box and takes the filters with it — a filter you cannot see is one
+      // you cannot undo
+      case "f": {
+        const bar = filterBar();
+        if (!bar || topDialog()) break;
+        e.preventDefault();
+        if (bar.hidden) openFilter(); else closeFilter();
+        break;
+      }
+      // marks every control on the screen with a letter and takes the next key
+      // as the one to go to. Live in a dialog too: a form in a dialog is
+      // exactly where a jump is wanted
+      case "m": if (setJumping(true)) e.preventDefault(); break;
+      // follows a link in the item under the cursor. An item with no link
+      // leaves the key alone rather than swallowing it to do nothing
+      case "l": if (!topDialog() && followLink()) e.preventDefault(); break;
       // shift moves the row itself rather than the cursor, which is what a
       // draft needs now that `u` and `d` are Undone and Done
       case "j":
@@ -4087,7 +3949,7 @@
         // a box is the commonest press in the app.
         select(null);
         // with the filter line up, leaving the list goes back to the line: the
-        // way back from ctrl-j, and the same one step out that esc in the box
+        // same one step out that esc in the box
         // already is. With the bar down there is nowhere to go back to
         const bar = filterBar();
         if (bar && !bar.hidden) {
@@ -4359,7 +4221,6 @@
     dlg.onkeydown = function (e) {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); return; }
       if (e.key !== "Enter") return;
-      if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); done(true); return; }
       if (e.target !== desc) { e.preventDefault(); e.stopPropagation(); done(true); }
     };
   }
@@ -4576,9 +4437,8 @@
     dlg.onkeydown = function (e) {
       if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); done(false); return; }
       if (e.key !== "Enter") return;
-      // ctrl-enter finishes from anywhere in the dialog, including the
-      // textarea where a plain Enter has to keep meaning "newline"
-      if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); done(true); return; }
+      // plain Enter finishes from every box but the textarea, where it has to
+      // keep meaning "newline"
       if (e.target !== dod) { e.preventDefault(); e.stopPropagation(); done(true); }
     };
   }

@@ -196,7 +196,7 @@ type page struct {
 	View        string // active nav entry
 	Trail       []crumb
 	Panels      panels
-	Timer       bool   // this screen counts its own minutes, so ^t is the timer here
+	Timer       bool   // this screen counts its own minutes, so `e` is the timer here
 	HelpName    string // the view's full name, for the ? panel
 	HelpText    string // what this view is for, for the ? panel
 	Processing  bool   // the nav slot named by View reads "Processing…" instead
@@ -212,12 +212,12 @@ type page struct {
 	Total       int    // items the view holds with no filters at all
 	Durations   []app.Duration
 	Nav         *app.NavCounts
-	// Bookmarks is the nine filter lines, for the ctrl-0 dialog. On every
+	// Bookmarks is the nine filter lines, for the `0` dialog. On every
 	// page because the dialog is in the layout, like the panel chooser.
 	Bookmarks []bookmark
-	// Snippets is the nine runs of notation, for the ctrl-0 dialog of an edit
+	// Snippets is the nine runs of notation, for the `0` dialog of an edit
 	// screen. On every page for the reason the bookmarks are: the dialog is in
-	// the layout, and which of the two ctrl-0 opens is the key layer's answer
+	// the layout, and which of the two `0` opens is the key layer's answer
 	// rather than the server's (implementation.md, "Snippets").
 	Snippets []snippet
 	Today    string
@@ -416,7 +416,7 @@ func (s *Server) themeSet(w http.ResponseWriter, r *http.Request) {
 	back(w, r)
 }
 
-// panelsToggle answers one press in the ctrl-v dialog: a panel, or zen. Like
+// panelsToggle answers one press in the `v` dialog: a panel, or zen. Like
 // the ages flag it writes what was stored rather than what the page sent, so
 // two presses in flight cannot leave the screen saying the opposite of what
 // the last one meant — and it comes straight back to the page it was pressed

@@ -38,10 +38,8 @@ func TestAPendingJumpIsReadBeforeTheRowCommands(t *testing.T) {
 	if pending < 0 {
 		t.Fatalf("no pending-jump branch in the keydown handler")
 	}
-	// Both of them: the handler calls rowCommand twice, once above the ctrl
-	// guard for modifier mode and once below it for the bare letters, and a
-	// pending jump has to come before each. Checking only the first would have
-	// passed while `^d` still fired Done with the overlay up.
+	// Every one of them: the handler has called rowCommand from more than one
+	// place before, and a pending jump has to come before each.
 	first := strings.Index(body, "rowCommand(e)")
 	last := strings.LastIndex(body, "rowCommand(e)")
 	if first < 0 {
@@ -54,9 +52,10 @@ func TestAPendingJumpIsReadBeforeTheRowCommands(t *testing.T) {
 	}
 }
 
-// The other half of the same rule: a jump is bare in every mode, so the pending
-// branch must let a chord past rather than answer it. Without this the branch
-// would swallow `^v` and ctrl-enter whenever an overlay happened to be up.
+// The other half of the same rule: a jump is bare, like every key of the app's,
+// so the pending branch must let a chord past rather than answer it. Without
+// this the branch would swallow cmd-v and the browser's own accelerators
+// whenever an overlay happened to be up.
 func TestAPendingJumpAnswersOnlyBareKeys(t *testing.T) {
 	b, err := staticFS.ReadFile("static/app.js")
 	if err != nil {

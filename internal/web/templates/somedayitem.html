@@ -13,10 +13,10 @@
   {{/* the one thing this screen says rather than asks, in the place an
        action's page says its dates: over the buttons, where it is the last
        thing read before Inbox is pressed. It hides with every other age
-       (^t), being one. */}}
+       (`e`), being one. */}}
   <p class="stamps"><span class="agetext">captured {{age $it.CreatedAt}}</span></p>
   <div class="actionsbar">
-    <button form="itemform" class="primary" data-key="s" data-key-label="save" data-key-typing>Save</button>
+    <button form="itemform" class="primary" data-key="s" data-key-label="save">Save</button>
     {{/* the only way out that changes anything: the idea goes back to be
          decided about, tags and all, and is trashed there if that is the
          decision (design.md, "Reshaping items") */}}

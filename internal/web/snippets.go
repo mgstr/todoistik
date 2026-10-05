@@ -85,7 +85,7 @@ func (s *Server) snippets() snippets {
 	return decodeSnippets(v)
 }
 
-// snippetSave answers one row of the ctrl-0 dialog being written: the slot and
+// snippetSave answers one row of the `0` dialog being written: the slot and
 // the line to keep in it. An empty line clears the slot, which is what the
 // dialog's delete key sends — one endpoint, for the reason the bookmarks have
 // one.

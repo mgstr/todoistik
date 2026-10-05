@@ -78,7 +78,6 @@
   {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
   data-links-reach="{{.Conf.LinksReach}}"
   data-keys-bar-style="{{.Conf.KeysBarStyle}}"
-  data-keys-mode="{{.Conf.KeysMode}}"
   data-anim-done="{{.Conf.AnimDone}}"
   data-anim-delete="{{.Conf.AnimDelete}}"
   data-anim-back="{{.Conf.AnimBack}}"
@@ -97,27 +96,27 @@
 {{define "bottom"}}
 </main>
 {{/* The one display flag in the app, declared the way a screen declares any
-     key (implementation.md, "The keys"): a real form, pressed by ctrl-t from
+     key (implementation.md, "The keys"): a real form, pressed by `e` from
      wherever you are. data-global moves its entry to the right half of the
      bar, where the app's own state is read rather than this view's; the label
      says which way the flag is set, because that is the thing being shown.
      The form itself is hidden — it has nothing to show that the bar does not
      already say, and the class it flips sits on the pane above.
 
-     Not on a screen that counts its own minutes: there ^t is the timer, and
+     Not on a screen that counts its own minutes: there `e` is the timer, and
      "show me the time" must never be two keys or one key with two answers
      (implementation.md, "Doing"). */}}
 {{if not .Timer}}
-<form method="post" action="/ages" hidden data-key="^e" data-global
+<form method="post" action="/ages" hidden data-key="e" data-global
       data-key-label="ages {{if .Ages}}shown{{else}}hidden{{end}}">
   <button>toggle ages</button>
 </form>
 {{end}}
-{{/* What ctrl-N presses when there is a filter on the screen to keep. One
+{{/* What a digit presses when there is a filter on the screen to keep. One
      form for all nine, because the slot is a field and not a route: the key
      layer fills in which digit was pressed and what the line says, the way it
      fills in the panel chooser's forms by pressing them. Hidden, having
-     nothing to show that the ctrl-0 dialog does not already show.
+     nothing to show that the `0` dialog does not already show.
 
      The view rides in the form rather than being worked out by the key layer:
      a bookmark is a view and a line (design.md, "Bookmarked filters"), and
@@ -188,7 +187,7 @@
      been asked. The dialog is filled in by the key layer, one problem at a
      time; creating goes through the same endpoint the Settings screen uses,
      and comes back here with the line still in the box. */}}
-{{/* ^o with more than one link in the item: they are the answers, lettered in
+{{/* `l` with more than one link in the item: they are the answers, lettered in
      the order they read, and nothing opens until one is chosen (design.md,
      "Following a link"). No heading over them — the unknown-name dialog below
      states a problem before offering answers, and this one is a list of links.
@@ -318,7 +317,7 @@
 {{define "count"}}{{if .}}<span class="count">{{.}}</span>{{end}}{{end}}
 
 {{/* The filter box: one line that says what you want to see, summoned with
-     ctrl-f and gone otherwise (design.md, "Filtering"). It is a partial rather
+     `f` and gone otherwise (design.md, "Filtering"). It is a partial rather
      than part of one page because it is meant to be the way every long view
      filters — adding it to another is this one line, once that view's handler
      fills in the same fields.
@@ -370,7 +369,7 @@
 
 {{define "actionrow"}}
 {{$a := .A}}{{$today := .Today}}
-{{/* data-links is what ^o follows here: the description's links, which this
+{{/* data-links is what `l` follows here: the description's links, which this
      row does not show and never has (implementation.md, "Links in item text").
      The row is a title and its badges, and the reference material is one field
      down — the key is what reaches it without opening the item. */}}
@@ -703,7 +702,7 @@
      is the boxes above, which is where an action a project cannot be without
      belongs */}}
 <div class="actionsbar">
-  <button type="button" data-draft-add data-key="a" data-key-label="add" data-key-typing>Add</button>
+  <button type="button" data-draft-add data-key="a" data-key-label="add">Add</button>
 </div>
 {{end}}
 

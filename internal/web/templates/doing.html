@@ -4,7 +4,7 @@
      controls the keys press — nothing else, because everything else is what
      you needed in order to pick this action and this screen is for after the
      picking (design.md, "Doing one action"). */}}
-{{/* the screen holds a title and nothing else, so ^o is the only way the
+{{/* the screen holds a title and nothing else, so `l` is the only way the
      description's link is reachable from here — and this is the screen the
      link is most often wanted on (design.md, "Following a link") */}}
 <section id="doing" data-cancel="{{$d.Back}}"
@@ -24,7 +24,7 @@
   {{/* "show me the time" is one key everywhere, and here it is the timer.
        A hidden button rather than a form: what it flips is not written down
        anywhere, on purpose (design.md, "Doing one action"). */}}
-  <button type="button" hidden data-timer data-global data-key="^e"
+  <button type="button" hidden data-timer data-global data-key="e"
           data-key-label="timer {{if .Conf.ZenShowsTimer}}shown{{else}}hidden{{end}}">toggle timer</button>
 </section>
 {{template "bottom" .}}

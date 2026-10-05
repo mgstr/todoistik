@@ -1,7 +1,7 @@
 {{template "top" .}}
 {{$s := .Data}}
 <div class="item" data-cancel="/scheduler">
-  {{/* only the ages hide with ^t. A rule that has never fired, and the date it
+  {{/* only the ages hide with `e`. A rule that has never fired, and the date it
        fires next, are not ages — and the next firing is the one thing on this
        line you would come here to read. */}}
   <p class="crumb"><a href="/scheduler">Scheduler</a><span class="agetext"> · created {{age $s.CreatedAt}}{{if $s.LastFiredAt}} · last fired {{age $s.LastFiredAt}}{{end}}</span>
@@ -15,7 +15,7 @@
     <label>Suffix <input name="suffix" value="{{$s.Suffix}}"></label>
   </form>
   <div class="actionsbar">
-    <button form="itemform" class="primary" data-key="s" data-key-label="save" data-key-typing>Save</button>
+    <button form="itemform" class="primary" data-key="s" data-key-label="save">Save</button>
     <form method="post" action="/schedule/{{$s.ID}}/delete" class="inline kb-delete"><button class="danger">Delete</button></form>
     <a class="button" href="/scheduler">Back</a>
   </div>

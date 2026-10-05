@@ -26,7 +26,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [Keyboard](#keyboard) — how the layer works; the map itself is in keys.md
   - [Which key is which](#which-key-is-which) — a key is a place on the keyboard, not the character it types
   - [Which layout the keyboard is in](#which-layout-the-keyboard-is-in) — the bar says Russian while the keyboard is Russian
-  - [Jumping to a control](#jumping-to-a-control) — `^m` marks the controls on the screen already open
+  - [Jumping to a control](#jumping-to-a-control) — `m` marks the controls on the screen already open
 - [Capture](#capture) — a dialog summoned on demand, never a box in the chrome
   - [Which way in a capture came by](#which-way-in-a-capture-came-by) — `inbox_items.source`, one word, written in one place
 - [Processing from the Inbox](#processing-from-the-inbox) — the Inbox is a list and two keys, and nothing else
@@ -53,12 +53,12 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [Token boxes](#token-boxes) — the filter line and the three meta lines are one control
 - [Item lines](#item-lines) — one row template for every list, so this is one decision
   - [Ages are written out, not coded](#ages-are-written-out-not-coded) — `3 weeks ago`, not `3w`, and the scale that produces it
-  - [Ages are hidden by default](#ages-are-hidden-by-default) — `^t` turns them on, one flag for the whole app
+  - [Ages are hidden by default](#ages-are-hidden-by-default) — `e` turns them on, one flag for the whole app
   - [The year is the one field that is not cron](#the-year-is-the-one-field-that-is-not-cron) — a fourth calendar field, optional, meaning every year
   - [A rule reads back as a phrase](#a-rule-reads-back-as-a-phrase) — the Scheduler says a cron rule in words
   - [A firing is what the inbox accepted, not what the loop attempted](#a-firing-is-what-the-inbox-accepted-not-what-the-loop-attempted) — a collapsed duplicate is not a firing
 - [Links in item text](#links-in-item-text) — `internal/web/links.go`, and why it is not in internal/app
-  - [Following one from the keyboard](#following-one-from-the-keyboard) — `^o` takes the link belonging to whatever the cursor is on
+  - [Following one from the keyboard](#following-one-from-the-keyboard) — `l` takes the link belonging to whatever the cursor is on
 - [Doing](#doing) — the doing screen, its timer, and the keys that open and leave it
 - [Settings file](#settings-file) — `key = value`, read once at startup, for what deserves no screen
 - [A moment that shows itself](#a-moment-that-shows-itself) — the animation that proves a destructive press landed
@@ -484,7 +484,7 @@ anyone who had not already made it.
   copy of the database, so an unfamiliar key can be pressed without reaching
   real work. It is separate from this so both run at once — the app as it was
   on 8390, the trial on 8391 — which is the only way to compare a key by feel
-  (keys.md, "The three modes"). It is not a `cmd/start-*.sh` because it does
+  (keys.md, "The two modes"). It is not a `cmd/start-*.sh` because it does
   not start this app: it starts a copy of it, pointed at a copy of the data,
   to be thrown away
 
@@ -1114,8 +1114,8 @@ Telegram bot polls rather than being called.
 
 ## Keyboard
 
-**The map is in keys.md.** Which letter presses which button, what a modifier
-is spent on, how a screen is left, and which of those are built yet — all of
+**The map is in keys.md.** Which letter presses which button, which mode a
+key is live in, how a screen is left, and which of those are built yet — all of
 it is there, in one place, because it was previously spread across this
 section, "The processing screen", "Doing" and "The remembered lists", and a
 letter could be spent twice without any one of them being wrong. What stays
@@ -1210,16 +1210,10 @@ a page load, and what the bar derives itself from.
 - single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit and tag are wanted and not yet built — keys.md, "What is built" is the ledger of which is which
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - **a screen may declare keys on its own controls**, with `data-key` and
-  `data-key-label` on the form, link or button the key presses. A declared key
-  may ask for ctrl, written `^a` — the notation the bar already uses for
-  ctrl-enter — and then it is live inside a text box too, which a bare letter
-  can never be. That is what the modifier is for and the only reason to spend
-  one: a screen whose controls sit around a form has to be reachable without
-  leaving the field. Ctrl and not cmd, because cmd-a is select-all in every box
-  on this machine and a screen key must not take that away. The key layer reads
-  those off the page: the bar lists them in document order, and pressing one
-  does exactly what clicking the control does — submit that form, follow that
-  link. Nothing in the JS knows what any of them mean. This is the same
+  `data-key-label` on the form, link or button the key presses. The key layer
+  reads those off the page: the bar lists them in document order, and pressing
+  one does exactly what clicking the control does — submit that form, follow
+  that link. Nothing in the JS knows what any of them mean. This is the same
   construction as the row keys and buys the same guarantee, that a key cannot
   be advertised without working, extended to a screen whose controls are not
   rows. A declared key beats the standing map while that screen is up — the
@@ -1227,59 +1221,70 @@ a page load, and what the bar derives itself from.
   keys.md, "One letter, one button" now rules out. It stays because the
   processing screen's six answers still need it: there the keys *are* the
   screen rather than controls on it
-- **a control declares its letter, never its modifier.** `data-key="d"`, and
-  `keys.mode` decides whether that fires bare or with ctrl — see keys.md, "The
-  three modes". A template that wrote the modifier in would be putting a
-  policy decision in twelve places. A control reached with the caret still in
-  a box adds `data-key-typing`, which only hybrid reads: that is a fact about
-  where the control sits, and it is on the control rather than on the letter
-  because two buttons may share a letter without sharing a form to be typed
-  into — the pair that makes the point is `a`, Add inside a project form and
-  the Action branch on a boxless screen. It came apart for a while, when that
-  branch was `t` and called Task, and it is back; either way the fact belongs
-  on the control, which is what the arrangement was chosen for. keys.md, "The
-  three modes" says why
-- `ctrl-m` then a letter moves the focus to a control on the screen already
-  open — see "Jumping to a control" below
-- `ctrl-j` / `ctrl-k` move through a list exactly as `j` / `k` do, and from
-  the filter line they are the way into the list it narrows: the caret leaves
-  the box and the first row (or, with `ctrl-k`, the last) is selected. They
-  are the form vim uses when the letters are spoken for, which is why the
-  project picker had already taken them — and a filter line is the one place
-  in the app where a list sits under a box whose letters are all spoken for.
-  In any other box they are left to the browser: nothing is under a meta line
-  to move to, and `ctrl-k` is the line's own kill-to-end on this machine. They
-  took the jump's old key, because moving through a list is pressed a hundred
-  times for every jump
+- **a control declares its letter and nothing else.** `data-key="d"`. There
+  is no modifier to declare, because no key of the app's is a chord, and no
+  `data-key-typing` any more, because no control is reached with the caret
+  still in a box — keys.md, "The two modes" says why
+- **the two modes are two lines of the key handler, and that is the whole of
+  the mechanism.** The handler asks whether the event's target is a box that
+  takes text (`typing(e)`: a textarea, a select, or an input of a textual
+  type — not a radio or a checkbox, which are inputs you do not type in). If
+  it is, `esc` blurs the box and every other key returns untouched: that is
+  insert mode. Directly below, any key with ctrl, cmd or alt held returns
+  untouched: that is "nothing is a chord". Everything after those two lines
+  is command mode and may assume a bare key and no caret. Before them sit only
+  the things that own the keyboard outright — a pending `g` or `m`, and the
+  dialogs — and a token box's completion list, which is the box's own
+- **insert mode is drawn by one class and one custom property.**
+  `wearMode()` sets `kb-insert` on the document element whenever the focused
+  element is a box that takes text, and it is called from `renderKeybar()` —
+  not from a focus listener of its own. The bar is already redrawn on every
+  `focusin`, every `focusout` and every swap of the page, and the last of
+  those is the case a listener would miss: a box that is swapped away while it
+  holds the caret sends no `focusout`. In the style sheet the class redefines
+  `--bg` and nothing else, so everything that paints itself with the ground —
+  the page, the rail, the boxes, a dialog — changes together and the page
+  stays one surface. The colour is a warm one, `#fbf3dc` on the light scheme
+  and `#2a2416` on the dark, because the ground is neutral in one and cool in
+  the other and warm is told apart from both; `light-dark()` carries the pair
+  the way it carries every other colour (see "Theme")
+- `m` then a letter moves the focus to a control on the screen already open
+  — see "Jumping to a control" below
+- `j` / `k` are the only keys that move through a list. `ctrl-j` / `ctrl-k`
+  did the same from inside the filter line, so the list could be reached
+  without leaving the box; it is `esc` and then `j` now, like every other key
+  that used to be reached from a box
 - `⌫` (the key labelled delete here, `Backspace` to the browser; forward
   delete means the same) deletes the selected row where the row carries a
-  delete that can be pressed. It is the one key that is not a letter and so
-  takes no modifier in any mode — see keys.md, "The map" for what it reaches,
+  delete that can be pressed — see keys.md, "The map" for what it reaches,
   and "The remembered lists" for the one place it reaches today
-- `ctrl-o` follows a link in the item under the cursor — the selected row, or
-  the one item the screen is about. Ctrl for the reason the declared `^` keys
-  spend one: the link is most often wanted with the item open and a box being
-  typed in. See "Links in item text" for what counts as being in the item,
-  and for the settings key that narrows it to what is on the screen
-- `ctrl-e` is *show me the time*: the ages on every list, app-wide (see "Ages
-  are hidden by default"), and the timer on the doing screen (see "Doing"). It
-  held `ctrl-t` until Today wanted it — keys.md, "The map" has the trade. The
+- `l` follows a link in the item under the cursor — the selected row, or the
+  one item the screen is about. It was `ctrl-o`, sharing a letter with `o`,
+  which opens the row; bare, the two could not share one (keys.md, "The two
+  modes"). See "Links in item text" for what counts as being in the item, and
+  for the settings key that narrows it to what is on the screen
+- `e` is *show me the time*: the ages on every list, app-wide (see "Ages are
+  hidden by default"), and the timer on the doing screen (see "Doing"). The
   one key that sets a flag rather than doing something, which is why the bar
   reads its state back out rather than naming an action. Two flags and one key,
   because the screen with a timer on it has no ages and every screen with ages
   has no timer — they can never both want it at once, and the doing screen
   renders no ages control at all so the collision cannot even be built
-- `ctrl-1` to `ctrl-9` keep the filter that is on the screen or go to the
-  bookmark kept there, and `ctrl-0` puts the nine of them up — see "Bookmarked
-  filters". `g 1` to `g 9` are the going half said the way every other going is
-  said, and work where the chords do not. The only keys in the app that are
-  digits, and the reason the mode must leave a key that is not a letter alone
-  (keys.md, "What is built")
-- `ctrl-enter` submits the form being typed in — see "The meta line"
+- `1` to `9` go to the bookmark kept under that digit, and `0` puts the nine
+  of them up, which is also where the filter on the screen is kept — see
+  "Bookmarked filters". `g 1` to `g 9` are the same going said the way every
+  other going is said, and work on the screens with no filter line. On a
+  screen with a meta line the same digits are the snippets (see "Snippets").
+  They are read after the declared keys, so a list that numbers its own rows
+  keeps its numbers
+- plain `enter` in a one-line box submits its form, which is the browser's
+  doing and not the key layer's. There is no key that finishes a form from
+  inside a multi-line box: it is `esc`, then the form's own letter — see "The
+  meta line"
 - `?` opens the view's own help, not a key map — the key bar carries the keys, and it carries only the ones currently live, which a static list cannot. See "View help"
 - **nothing advertises a key that does not exist.** The `?` panel once listed three that were never built (mark next, park, delete), left behind from a plan for them. A key map is read as a promise, and a key that does nothing when pressed reads as a broken app rather than an unbuilt feature. The bar avoids this by construction, being derived from the page rather than written down
-- **and nothing advertises a key that does not work *now*.** The same promise, one step further in: with the caret in a box every bare letter is a character, so the bar drops to the chords, the "needs …" line and `esc leave the box` — see keys.md, "The bar while you are typing". It is re-read on `focusin` and `focusout`, which is what makes the narrowing visible at the moment it becomes true. Greying the dead keys out was the other answer and is worse: a key shown with a note saying it does not work is still a key shown
-- `/` is not a key any more. It focused the Archive's name box, the last filter panel left, and went with it: every view's filters are `ctrl-f` now (see "Token boxes"), and a second key for the same box on one view would be a key that means something in one place only
+- **and nothing advertises a key that does not work *now*.** The same promise, one step further in: with the caret in a box every key is a character, so the bar drops to the "needs …" line and `esc leave the box` — see keys.md, "The bar while you are typing". It is re-read on `focusin` and `focusout`, which is what makes the narrowing visible at the moment it becomes true. Greying the dead keys out was the other answer and is worse: a key shown with a note saying it does not work is still a key shown
+- `/` is not a key any more. It focused the Archive's name box, the last filter panel left, and went with it: every view's filters are `f` now (see "Token boxes"), and a second key for the same box on one view would be a key that means something in one place only
 
 ### Which key is which
 
@@ -1319,9 +1324,7 @@ has stopped working.
   reason about, and this one's off is "the app before this was built"
 - **it changes nothing inside a text box.** Bare letters already stand down
   where something is being typed, and that guard is untouched — a Cyrillic
-  letter typed into a capture box is text, exactly as before. The `^` keys stay
-  live in boxes, and `ctrl-в` types nothing in any layout, so reading it as
-  `^d` costs the box nothing
+  letter typed into a capture box is text, exactly as before
 
 ### Which layout the keyboard is in
 
@@ -1375,7 +1378,7 @@ layout types, and noticing after the sentence is a line to delete.
   above: it decides nothing, and losing it costs one keystroke of not knowing
 - **unmodified keys only.** With ctrl or cmd held a browser may report the
   Latin letter it would match an accelerator against rather than the letter the
-  layout types, and believing that would put the marker out on every `^v`
+  layout types, and believing that would put the marker out on every `cmd-v`
 - **it sits outside both key groups**, past where the rule between them would
   be. The bar's promise is that everything in a group is a key that works, and
   this is not a key — putting it in one would spend that promise to save a gap
@@ -1389,7 +1392,7 @@ layout types, and noticing after the sentence is a line to delete.
 
 ### Jumping to a control
 
-`g` goes to a view; `ctrl-m` goes to something on the view already open. It
+`g` goes to a view; `m` goes to something on the view already open. It
 marks every control on the screen with a letter, the way `g` marks the rail,
 and the next key pressed goes there — which means whatever that thing is for:
 a box is focused, a button is pressed, and a list is arrived at by selecting
@@ -1406,10 +1409,11 @@ form is not a list, and a screen made of boxes has no cursor to move.
 `j`/`k` walk rows and the row keys act on them, but reaching the meta line
 from the description meant the mouse, or tabbing past everything between.
 
-- **ctrl, so it is reachable from inside a box.** A bare letter cannot be a
-  command where the hands are — it would be typed. That is the same argument
-  the declared `^a` keys make above, and the same reason it is ctrl and not
-  cmd
+- **bare, and so pressed from command mode.** It was `ctrl-m`, so that one
+  box could be reached from inside another; with no chords in the app that is
+  `esc` and then `m` (keys.md, "The two modes"). It is the main way *into*
+  insert mode from the keyboard: the jump puts the caret in the box it names,
+  and the caret being in a box is the mode
 - **the letter is the first letter of the control's own name**, which is what
   makes it guessable without being learned: the name beside the box where
   there is one, the button's own words where there is not. Where two names
@@ -1474,18 +1478,12 @@ from the description meant the mouse, or tabbing past everything between.
   would otherwise take the same key as "close me", so the key is spent here and
   not passed on. A modifier pressed on its own is not an answer and does not
   count as one — holding shift to reach a key must not throw the jump away
-- **it was `ctrl-j` until `ctrl-j` became a list key.** Every list now moves
-  on `ctrl-j` / `ctrl-k` as well as `j` / `k` (see "Keyboard"), which is what
-  the project picker had always used them for, so the jump moved off it rather
-  than leave one key meaning "next row" in the picker and "mark the controls"
-  one box away. The picker still stops the event itself, because its list is
-  not made of `data-kb-row` rows
-- **and it was `ctrl-n` until the meta line named the key.** The letters are
-  the controls' own initials, so the destination asked for far more than any
-  other — the meta line — is always `m`. Under `ctrl-n` the commonest jump in
-  the app was `ctrl-n` `m`, two neighbouring keys for one hand; under `ctrl-m`
-  it is `ctrl-m` `m`, the same finger twice. A prefix key is pressed for
-  whatever follows it, so it may as well be cheap to reach from there
+- **`m`, because the meta line named the key.** The letters are the controls'
+  own initials, so the destination asked for far more than any other — the
+  meta line — is always `m`, and the commonest jump in the app is the same
+  finger twice. A prefix key is pressed for whatever follows it, so it may as
+  well be cheap to reach from there. It was `ctrl-j` and then `ctrl-n` on the
+  way here, while it was a chord
 
 ## Capture
 
@@ -1681,7 +1679,7 @@ and all eight branches on screen at once — three buttons and five forms in
   yesterday at 17:42 · via reminders`, and it is the line that was already
   there — the age gained the hour and the channel joined it rather than either
   arriving as furniture of its own (design.md, "Where it came from"). It is
-  `.cap` and not `.agetext`, so `ctrl-t` does not take it away: the flag hides
+  `.cap` and not `.agetext`, so `e` does not take it away: the flag hides
   ages, and the hour and the channel are not one. An item captured before the
   field existed drops the `· via …` half and keeps the rest, because a source
   of `""` has nothing to say and a screen may not guess. The hour is written
@@ -1936,7 +1934,7 @@ the screen draws two short lists: what is still open, then what is finished.
   one exactly as the "Archive" does: the tick and the struck-through title
   (see "Item lines"). It is the same claim, so it is the same paint — a second
   way of drawing "done" would be a second thing to learn to read
-- **the age obeys `ctrl-e` like every other age**, which means the dates are
+- **the age obeys `e` like every other age**, which means the dates are
   hidden until asked for. One flag with one meaning beats a flag with a list of
   exceptions (see "Ages are hidden by default"); the ordering already puts the
   most recent of equals first, so the date is confirmation rather than the way
@@ -1961,7 +1959,7 @@ the screen draws two short lists: what is still open, then what is finished.
   would drift
 - **`data-key-quiet` keeps nine copies out of the bar.** The rows are
   numbered on the screen, which is where those numbers are read, so the bar
-  draws the range instead — `1…3 copy`, pressing nothing, the shape `^1…9`
+  draws the range instead — `1…3 copy`, pressing nothing, the shape the bookmarks' `1…9`
   already has (keys.md, "What is built"). The collapse is general: a run of
   quiet keys in document order becomes one entry, and the run ends at the
   first ordinary key, so a range the bar shows is always a range that exists
@@ -2038,8 +2036,8 @@ action form opens.
   `data-kb-row` rows, so `j`/`k` move and `↵` opens, and nothing about this
   screen has to be learnt: the keys that work on the Inbox work here. The
   combobox this replaced had a keyboard of its own — letters filtered, the
-  arrows moved, `ctrl-j` and `ctrl-k` moved as well because `j` and `k` were
-  being typed into it — which is a second set of rules for one control on one
+  arrows moved, and two chords moved as well because `j` and `k` were being
+  typed into it — which is a second set of rules for one control on one
   screen, and it cost the filtering to have them. What is lost with it is
   type-to-filter. What is bought is that the commonest answer is one press of
   a key that already meant that
@@ -2236,7 +2234,7 @@ opened with `Enter` and everything happens here (design.md, "Someday/Maybe").
   on one screen, and the second copy was the one that could be wrong. What that
   line was actually for was the capture age, which now sits over the buttons in
   a `.stamps` line, the way an action's page carries its dates: the last thing
-  read before Inbox is pressed, and hidden by `^t` with every other age
+  read before Inbox is pressed, and hidden by `e` with every other age
 - **Cancel is a link and `esc` is the same door.** `data-cancel="/someday"` on
   the item, exactly as an action's page does it, so the key bar reads `esc
   cancel` and the mouse has a button that goes where the key goes. Neither
@@ -2302,7 +2300,7 @@ eventually disagree, and the screen would be lying about its own keyboard.
   `data-key-quiet` the match list uses. A list that draws its own numbers is
   where those numbers are read; six entries in the bar repeating the six names
   already on the screen is the screen said twice, and it pushed the keys that
-  are *not* on the screen — `g`, `^m`, `?` — off the end of the bar. The range
+  are *not* on the screen — `g`, `m`, `?` — off the end of the bar. The range
   starts at 2 because the range says what can be pressed, and Gather cannot:
   the line keeps its 1, and the bar does not claim it
 
@@ -2421,7 +2419,9 @@ One rule, applied wherever something is made:
 - **it applies to dialogs as well as forms.** A `<dialog>` is a scope like a
   form is; the button it gates is its submit button, or its primary one
 - **the key bar reads the same state.** When the button can be pressed it
-  offers `^↵` with the button's own words; when it cannot it says what is still
+  is offered by its own letter, read off the button like any other declared
+  key — or, in a dialog, as `↵` with the button's own words; when it cannot
+  be pressed the bar says what is still
   blank, named from the field's label — *needs title and definition of done* —
   so the bar and the button never disagree and neither has to be re-checked
   against the other
@@ -2576,7 +2576,9 @@ short names in a column wastes a screen saying nothing.
   every name as the line writes it whatever the filter hides, compared without
   case — `#Car` beside `#car` is not offered. It follows the typing rather than
   the applied line, so `#bike` does not have to be applied first to find out
-  it matches nothing; `ctrl-enter` presses it from the box or from the list. Whether `@shop(Lidl)` has a context to go under
+  it matches nothing; `c` presses it once the box is left, and the button is
+  disabled as well as hidden while there is nothing to create, since a declared
+  key presses whatever carries it. Whether `@shop(Lidl)` has a context to go under
   the page cannot tell, and the server's refusal says so on the page it
   redirects back to
 - **`app.CreateName` takes the notation**, not a kind and a name, since the
@@ -2590,7 +2592,7 @@ short names in a column wastes a screen saying nothing.
   there the context was typed deliberately too
 - **the screen comes back filtered by what was created**, `?f=1&q=…&made=…`,
   and the chip `made` names is marked `data-kb-arrive` and selected on arrival
-  when nothing else claimed the cursor — so the key after `ctrl-enter` is
+  when nothing else claimed the cursor — so the key after creating it is
   already about the new name. Only after a create: a chip selected just
   because the line matched it would put `⌫` one keystroke from a mistaken
   delete every time a filter was applied
@@ -2964,25 +2966,25 @@ which notation this one accepts.
   refuses. The list holds nine rather than eight now, because the date list is
   nine long and cutting Sunday off the end costs more than one more row
 - **`↓`/`↑` move, `↵` or `tab` takes, `esc` closes the list**, and `esc` never
-  closes the box — that is `ctrl-f`, and it would take the filters with it.
+  closes the box — that is `f`, and it would take the filters with it.
   One unwind at a time, the way the project picker's `esc` behaves
-- **`ctrl-j` / `ctrl-k` leave the box for the list under it**, blurring the
-  box and selecting the first or last row, and the bar offers it while the
-  caret is in the box and there are rows to go to. `esc` only gave the focus
-  up, which left the next `j` to find the first row on its own — two keys for
-  the move this whole line exists to set up. Not the arrows: `↓` already
-  opens the completion list, and taking it would cost the box its suggestions
+- **`esc` leaves the box and `j` then finds the first row.** Two chords,
+  `ctrl-j` and `ctrl-k`, used to do both at once from inside the line; they
+  went with every other chord (keys.md, "The two modes"). Not the arrows
+  instead: `↓` already opens the completion list, and taking it would cost the
+  box its suggestions
 - **`esc` in the list goes back to the line**, while the bar is up: it drops
   the selection, as `esc` in a list always did, and puts the caret at the end
-  of the line. It is the way back from `ctrl-j`, and the same one step out that
+  of the line. It is the way back from the list, and the same one step out that
   `esc` in the box already is, so `esc` means "out a level" on both sides of
   the bar. With the bar down it only drops the selection, since there is no
   line to go back to; and no filtered view has a `data-cancel`, so there was
   no other meaning for the key to take the place of. Dropping the selection
   still hands the background refresh back its turn — the box being focused
   holds it instead, for as long as the typing does
-- **`ctrl-f`, because it is the key every other program uses for finding
-  things**, and what this app has to find is its own list rather than the page.
+- **`f`, for filter and for find.** It was `ctrl-f`, the key every other
+  program uses for finding things, and what this app has to find is its own
+  list rather than the page; the letter stayed when the chord went.
   Pressed again it closes the box and clears the filters in one act, which is
   design.md's rule that a view cannot be quietly narrowed by a box that is not
   on the screen. Nothing to clear is no round trip; a filter set to clear is
@@ -3160,14 +3162,12 @@ per-view one.
 
 ### Ages are hidden by default
 
-The flag design.md, "Views" asks for: ages off until `ctrl-t` turns them on,
+The flag design.md, "Views" asks for: ages off until `e` turns them on,
 one flag for the whole app.
 
-- **`ctrl-t`, because `t` is the word and `t` is taken.** A bare `t` picks the
-  selected row for today, so the flag asks for ctrl the way any declared key may
-  (see "Keyboard"). That also makes it live inside a text box, which is right
-  for a key that changes what the page shows rather than what is being written
-- **it is a declared key on a real form**, `data-key="^t"` in the layout, so the
+- **`e`, for elapsed, because `t` is the word and `t` is taken.** A bare `t`
+  picks the selected row for today (keys.md, "The map")
+- **it is a declared key on a real form**, `data-key="e"` in the layout, so the
   key layer reaches it the way it reaches every other screen key and nothing in
   the JS knows what ages are. The form is hidden: the bar already says
   everything it would have to show
@@ -3362,7 +3362,7 @@ project — gets it from the one definition, for the reason the partials exist.
 
 ### Following one from the keyboard
 
-design.md, "Following a link" gives `ctrl-o` the link belonging to whatever the
+design.md, "Following a link" gives `l` the link belonging to whatever the
 cursor is on. Four pieces: an attribute the server writes, a scope the key
 layer resolves out of it, a chooser for when there is more than one, and one
 settings key saying how far the key sees.
@@ -3376,7 +3376,7 @@ settings key saying how far the key sees.
   holds — being one function was what `links` was for
 - **the attribute is left off when there is nothing to say**, `{{with itemlinks
   …}}`, so its presence is already the answer to "does this item hold a link".
-  That is what lets the key bar offer `^o` only where it does something,
+  That is what lets the key bar offer `l` only where it does something,
   without a second rule saying when
 - **the scope is the row under the cursor, and otherwise the screen's own
   item**: `selected()`, else `[data-links]:not([data-kb-row])`. A list with
@@ -3476,19 +3476,19 @@ screen is shaped the way it is.
   `doing.show_keybar` are gone: they were this one screen's private version of
   a question every screen has, and `zen.views = doing, processing` is the
   general answer (see "Settings file")
-- **the timer is always ticking, and `ctrl-t` is what shows it.**
+- **the timer is always ticking, and `e` is what shows it.**
   `zen.show_timer` decides how the screen opens; the key flips it after that,
-  and the bar reads back `^t timer shown` / `^t timer hidden` the way the
+  and the bar reads back `e timer shown` / `e timer hidden` the way the
   global entry reads back the ages. The element exists either way, because a
   timer created on demand would start counting from the moment it was asked
   for — which is not the number anyone means by "how long have I been on this".
   The flip is a variable in the keyboard layer: it outlives every boosted
   navigation and a reload puts the settings file back in charge
-- **this screen renders no ages control at all**, which is what lets `ctrl-t`
+- **this screen renders no ages control at all**, which is what lets `e`
   mean one thing. Two hidden controls declaring the same key would be a race
   decided by document order; the layout skips the ages form when the page says
   it counts its own minutes (`page.Timer`), and the timer's own hidden button
-  is then the only `^t` on the page. The bar picks it up as a global key
+  is then the only `e` on the page. The bar picks it up as a global key
   because the button says `data-global` — nothing in the key layer knows what a
   timer is beyond flipping the element it points at
 - **the timer keeps the bottom-right corner**, in the title's own size and at
@@ -3514,14 +3514,13 @@ once at startup from a `key = value` file (`internal/conf`).
 ```
 # todoistik.conf
 zen.views = doing, processing  # these screens open with every panel off
-zen.show_timer = false         # the timer starts hidden; ctrl-t shows it
+zen.show_timer = false         # the timer starts hidden; e shows it
 zen.timer_format = auto        # or a pattern: H:MM, HH:MM, M
 backup.days = 2                # days of hourly snapshots kept; 0 keeps none
 review.someday_days = 30       # days before a someday/maybe item is back on the review
-links.reach = any              # ^o follows any link the item holds; "shown" only the drawn ones
+links.reach = any              # l follows any link the item holds; "shown" only the drawn ones
 keys.any_layout = true         # a shortcut is a place on the keyboard, so the keys work in Russian
 keys.layout_marker = true      # the key bar says "русский" while the keyboard is in Cyrillic
-keys.mode = hybrid             # bare letters, with ctrl on save, create and add
 keys.bar_style = chip          # how a pressable key bar entry is painted
 anim.done = strike             # what `d` looks like on the way out
 anim.delete = collapse         # ...and `⌫`
@@ -3592,7 +3591,7 @@ duplicates.similar = 75        # percent of the characters, when match = similar
   a key and not a rule. It brings its own check like every other word setting,
   so `links.reach = all` stops startup naming the two words rather than
   quietly reading as one of them; and like every other key it says what you
-  get, since both words name what `ctrl-o` will follow rather than what it
+  get, since both words name what `l` will follow rather than what it
   will not
 - **a setting that takes a number brings its own check too.** `backup.days =
   two` stops startup rather than reading as zero — the same failure the string
@@ -3860,11 +3859,12 @@ the screen, and one answer that takes all three. This is how they are built.
   moment the chooser existed. It is the rule dialogs already followed in the
   key handler, moved down to where keys are found so it holds for the bar as
   well
-- **`ctrl-v`, and a second `ctrl-v` presses zen.** Ctrl because a bare letter
-  would collide on half the screens in the app and this key has to work on all
-  of them, `v` for *view*, and not cmd because cmd-v is paste in every box on
-  this machine. The second press answers with the option wanted most often,
-  which keeps the whole of "clear the screen" at two presses of one key
+- **`v`, and a second `v` presses zen.** `v` for *view*, and free on every
+  screen in the app, which this key needs because it has to work on all of
+  them. The second press answers with the option wanted most often, which
+  keeps the whole of "clear the screen" at two presses of one key. It is read
+  in the dialog's own branch of the handler, since the dialog owns the keyboard
+  while it is up
 - **it is centred, tinted like the key bar and one size up from it.** The key
   bar's left edge lines up with the content column because it names the keys
   for what is in that column; the title bar names the *screen*, so it belongs
@@ -3995,7 +3995,7 @@ the default way through rather than the alternative to a row of buttons.
   "has nothing to show that the bar does not already say". This is that,
   generalised from one control to all of them
 - **an entry that presses something is a `<button>`; one that steers is a
-  `<span>`.** `j k`, a `g` prefix, `^m`, the "needs …" line — none of these
+  `<span>`.** `j k`, a `g` prefix, `m`, the "needs …" line — none of these
   press a control, and none of them is pressable. The element differs rather
   than only the class, so no style sheet can blur the line and the rule does
   not depend on being remembered. This is the bar's old promise (it advertises
@@ -4011,8 +4011,8 @@ the default way through rather than the alternative to a row of buttons.
   it among the keys pressed all day — and an entry a pointer can reach is
   worse to have there than a letter was
 - **the bar never takes the caret.** A bar button cancels the focus move on
-  `mousedown` and keeps the click. Without that, clicking `^↵ create` would
-  move the focus out of the box, and the bar narrows to the chords whenever a
+  `mousedown` and keeps the click. Without that, a click on the bar would
+  move the focus out of the box, and the bar narrows to `esc` whenever a
   box has the caret (keys.md, "The bar while you are typing") — so the click
   would rewrite the bar out from under itself. For the same reason focus
   arriving *in* the bar does not re-render it: a Tab into the bar would
@@ -4057,8 +4057,7 @@ presses nothing, which is enforced by the element rather than by the rule.
 
 `chip` is the default because the bar now holds two kinds of entry and that is
 the one thing it newly has to say; `chip` is the quietest answer that says it
-with nothing hovered. The other four are here for the same reason `keys.mode`
-has three: how loud the controls should be is a question about a week of use,
+with nothing hovered. The other four are here because how loud the controls should be is a question about a week of use,
 not one to settle by argument. Six were rendered and compared first, in
 `research/keybar-buttons-study.html`; the sixth, a segmented toolbar, was
 rejected on looks.
@@ -4181,15 +4180,17 @@ the same name in `app.js`).
   `data-line` and reads as the view's full name and then the line, the name
   muted: the line is what is read down the list and the view is what qualifies
   it. The key layer reads both off the row — no copy of the nine in the browser
-  — and `ctrl-0` only opens it where the screen has a filter line, since that
-  key's other half is keeping the filter that is up
+  — and `0` only opens it where the screen has a filter line, since keeping
+  the filter that is up is half of what the list is for. It is the only place
+  a filter is kept: a bare digit outside it goes and never writes (keys.md,
+  "The map")
 - **going to one is the request typing the line would make, on the view the
   slot names**: `/<view>?f=1&q=<line>`. Nothing about applying a filter is
   special-cased for bookmarks, so a bookmark leaves the view exactly as a typed
   filter leaves it — narrowed, remembered for the view, bar up
-- **`g`+digit goes to one, and is the half that works anywhere.** `ctrl-N`
-  still needs a filter bar, because its other meaning is keeping the filter on
-  the screen and a view without one has nothing to keep; a bookmark that names
+- **`g`+digit goes to one, and is the half that works anywhere.** The bare
+  digit is offered only where there is a filter bar, which is where the nine
+  are otherwise spoken for by nothing else; a bookmark that names
   its own view needs nothing from the screen it is pressed on, so it belongs
   with the other goings (see "Navigation"). An empty slot is spent silently:
   the pending `g` is cleared and nothing happens, which is what `g` and any
@@ -4256,7 +4257,7 @@ rule, it is the same code or the same selector rather than a second copy of it.
   not a section of the Settings screen — so the write is a `fetch` and the row
   is filled in from what the server stored
 - **the dialog is rendered on every page**, like the bookmarks', and which of
-  the two `ctrl-0` opens is the key layer's answer: `metaBox()` is non-null
+  the two `0` opens is the key layer's answer: `metaBox()` is non-null
   here, so it is the snippets. `META_MODES` is the list it asks against, and a
   reference item's line is in it: material is written on a meta line like
   anything else, and what a snippet holds that the line has no room for is
@@ -4409,14 +4410,11 @@ and not as the first letter of a word. What is pressed is the lowercase letter
 keys.md writes down, and what the code holds in `jumps`.
 
 - **the pending `g` is answered before every other key on the page**, beside
-  the `^m` jump and for the same reason (see "Jumping to a control"). Four of
+  the `m` jump and for the same reason (see "Jumping to a control"). Four of
   the fifteen letters are also buttons, and the prefix is the whole of what
   makes that safe — which it can only be from in front of the keys it is
   protecting. It was read after them until now, so with a row under the cursor
-  `g d` completed the row and went nowhere. There was no single line to slip it
-  in behind either: `rowCommand` is called twice, once above the ctrl guard for
-  modifier mode's `^d` and once below it for the bare letters, so anything
-  short of the top of the handler would have left one of the two in front. The
+  `g d` completed the row and went nowhere. The
   ordering is not readable from any screen or any rendered page, so it is
   pinned by a test — `internal/web/jumpkeys_test.go`, which reads app.js out of
   the embedded files and checks the two offsets. That is the only place Go
@@ -4450,7 +4448,7 @@ Three `g` sequences do not jump to a view:
   gets no tag of its own either — the nine are drawn in a dialog that is shut
   while the overlay is up — so **the bar carries them as a range**, `1…9 a
   bookmark`, and only while some slot is full: the same shape and the same
-  rule as `^1…9`. A digit with nothing under it clears the pending `g` and
+  rule as the bare `1…9`. A digit with nothing under it clears the pending `g` and
   does nothing else
 
 ## The Dashboard
@@ -4674,26 +4672,14 @@ its column exactly as typed and is never read.
   makes the plain 400 honest now is the net that renders it as a banner (see
   "A refused post is never silent"); a second render path here is still not
   worth it, because the line comes back untouched in the box you typed it in
-- **`ctrl-enter` (or `cmd-enter`) finishes whatever is being written.** Plain
-  Enter cannot: in a textarea it makes a newline, and the description box is a
-  textarea, so without this the one key that finishes a form is unreachable
-  from the field you spend the most time in. It is general rather than a
-  process-screen key — the dialog if there is one, the form otherwise — and it
-  does whatever that scope's own create button does, refusing when the button
-  is disabled, so the key and the button can never disagree. It is not limited
-  to being pressed from inside a field either: once a screen has a list, your
-  hands leave the boxes to work it, and the key still has to mean "done with
-  this form" there. The scope is then whatever form the selection or the focus
-  sits inside — which on a list view is no form at all, since a selected row
-  there is a link row and the little complete and pick forms live inside the
-  row rather than around it. So the key reaches a project's draft list and
-  nothing else. The bar names the
-  button rather than guessing a verb
-- **inside the project picker it belongs to the form, not the picker.** Plain
-  `enter` there opens the list or takes a row; `ctrl-enter` takes whatever the
-  list is showing as chosen and then finishes, so what is submitted is what is
-  on screen. Without the distinction the universal key meant something local
-  on the one screen it is most wanted
+- **nothing finishes a form from inside a multi-line box.** Plain Enter in a
+  textarea is a newline, and the description box is a textarea; `ctrl-enter`
+  used to be the key that finished a form from there, and from a list row
+  inside one. It went with the other chords: the form's own letter does it
+  from command mode — `esc`, then `s` or `c` — and with a row of a project's
+  draft list selected the same letter still means the form, since `enter`
+  there belongs to the row. `submitScope` remains, for the unsaved-work
+  question, which presses the screen's own button on the way out
 
 ## Writing an action
 
@@ -4737,13 +4723,13 @@ whose every open action is asleep.
   no longer points at it. Kept rather than deleted because it costs one route
   and one template, and a URL that used to work and now 404s is a worse answer
   than a screen nobody opens
-- **the button carries `^a`**, the same key the project branch of processing
+- **the button carries `a`**, the same key the project branch of processing
   gives the same act, and it is a `<button type="button">` on all three screens
   now rather than a link on one of them. The key bar advertises a control only
   if the control is on the page, so nothing had to be added for the key to
   appear under a project and nowhere else (see "Keyboard")
 - **the dialog's create button is gated like every other**, by the title being
-  required — so it opens dead and the bar offers `ctrl-enter` only once there
+  required — so it opens dead and the bar offers `↵` only once there
   is something to create, with no rule of its own (see "Create buttons")
 - **the "no next action left" ask no longer opens anything** — and, since it
   stopped being a panel at all, no longer says anything either. It used to
@@ -4786,7 +4772,7 @@ whose every open action is asleep.
   submits. The alternative was nesting forms, which is not allowed, or a Save
   button on its own somewhere else, which is the layout the row exists to
   avoid. `submitButton` looks for the outside button by that attribute, so the
-  gate and `ctrl-enter` find it the way they find any other
+  gate and the unsaved-work question find it the way they find any other
 - **and that row is in the key bar now**, not under the dates — see "The key
   bar is the buttons". The row still exists in the template and is still what
   gets pressed; what changed is where it is drawn. Every argument above
@@ -4799,7 +4785,7 @@ whose every open action is asleep.
   and a comparison against each field's own `defaultValue` — which is what the
   server rendered, so nothing has to be remembered. It composes with the
   existing gate: a form that is both incomplete and unchanged is disabled for
-  both reasons, and the bar simply does not offer `^s` while the button is
+  both reasons, and the bar simply does not offer `s` while the button is
   disabled (a key on a control that cannot be pressed is not a key)
 - **`esc` leaves without saving**, through the `data-cancel` every abandonable
   screen already carries, and the label beside it says `back` rather than
@@ -4863,7 +4849,7 @@ whose every open action is asleep.
   been sitting there before they are pressed
 - **`completed` moved with them and is not an age.** It leads the line rather
   than trailing it, because it says what this action *is* and the dates only
-  say how long it has been that way — and it stays on the screen when `^t`
+  say how long it has been that way — and it stays on the screen when `e`
   takes the dates off (see "Ages are hidden by default")
 - **the line is a flex row, so it disappears rather than emptying.** With the
   ages hidden the `<p>` has no flex items left and takes no height, and the
@@ -5094,16 +5080,14 @@ own, and the rest as rows of hidden fields inside the form.
   index still lines up. It is not an `ActionFields` value — the tag is the
   app's to manage (see "The meta line") — and there is no action to hang it on
   until the project exists
-- **the keys are the list's, not the screen's.** `ctrl-a` adds, declared on the
+- **the keys are the list's, not the screen's.** `a` adds, declared on the
   button itself like any other screen key (see "Keyboard"), so the bar offers it
-  because the button is there. It takes a modifier where the processing screen's
-  branch keys do not, and for a reason that is particular to this screen: this
-  is a form, your hands are in one of its boxes most of the time, and a bare
-  letter would be a letter there. With a row selected — which means your hands
-  have left the boxes — `enter` edits it in the same dialog, `u` and `d` move
-  it, `r` removes it. `ctrl-enter` still creates the project from there:
-  plain `enter` belongs to the row you are pointing at, and the modifier is
-  what separates finishing the form from opening the thing under the cursor. `u` is offered only
+  because the button is there. This is a form, and your hands are in one of
+  its boxes most of the time, so the letter is pressed after `esc` — the same
+  step every key on a form takes. With a row selected `enter` edits it in the
+  same dialog, `u` and `d` move it, `r` removes it, and the form's own `c`
+  still creates the project from there: plain `enter` belongs to the row you
+  are pointing at, and the letter is the form's. `u` is offered only
   when there is something above and `d` only when there is something below —
   the bar cannot advertise a key that would do nothing
 - **a draft row is the action row it is about to be.** `draftrow` draws the
