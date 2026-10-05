@@ -56,6 +56,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Ages are hidden by default](#ages-are-hidden-by-default) — `e` turns them on, one flag for the whole app
   - [The year is the one field that is not cron](#the-year-is-the-one-field-that-is-not-cron) — a fourth calendar field, optional, meaning every year
   - [A rule reads back as a phrase](#a-rule-reads-back-as-a-phrase) — the Scheduler says a cron rule in words
+  - [A rule can be written in words](#a-rule-can-be-written-in-words) — phrases like workdays parse into the same Expr, stored as typed
   - [A firing is what the inbox accepted, not what the loop attempted](#a-firing-is-what-the-inbox-accepted-not-what-the-loop-attempted) — a collapsed duplicate is not a firing
 - [Links in item text](#links-in-item-text) — `internal/web/links.go`, and why it is not in internal/app
   - [Following one from the keyboard](#following-one-from-the-keyboard) — `l` takes the link belonging to whatever the cursor is on
@@ -3257,6 +3258,48 @@ notation, and a list is read, not decoded.
   Those fire on either match (design.md, "Schedule"), and no short phrase says
   that without lying about it. The expression itself is the honest answer, and
   it is the one thing here that is not prose on purpose
+
+### A rule can be written in words
+
+design.md, "Schedule" lists the phrases a "When" takes in place of a cron
+expression. They are read by `parsePhrase` in `internal/cron/phrase.go`.
+
+- **a phrase fills in the same `Expr` the fields do.** `cron.Parse` tries the
+  phrase first and falls through to the fields, and what either hands back is
+  one type. So nothing outside the package changed: `Matches`, `NextAfter`,
+  the firing loop and "can it fire again" all work on a phrase without knowing
+  one was involved. A second rule type beside `Expr` would have meant a second
+  branch at every one of those callers, for rules that are the same rules
+- **the stored rule is the typed text, not a translation.** The `rule` column
+  holds `workdays`, and the phrase is parsed on every read exactly as a cron
+  expression already is. Translating on save was the alternative and it loses
+  twice: the form would hand back `* * 1-5` to someone who wrote a word to
+  avoid it, and `last day of month` has nothing to be translated into. It also
+  means no migration and no new column — a phrase is one more thing the
+  existing column may hold
+- **the last day of the month is a flag on `Expr`, not a new field value.**
+  The day-of-month bitmask holds dates, and "last" is not a date until the
+  month is known, so `domLast` is asked of the day being matched: it is the
+  last day if tomorrow is the 1st. Quartz spells this `L` in the day-of-month
+  field; that was left out deliberately, because it would add a non-standard
+  token to the three fields whose whole argument is that they are standard,
+  to say something the phrase already says better
+- **a phrase carries its own reading.** `Readable()` works from the raw fields,
+  which a phrase does not have, so the parser sets the words alongside the
+  masks and `Readable()` returns them. The day-of-week and day-of-month ones
+  come out in the wording a cron rule gets — `every Monday`, `the 15th of every
+  month` — so a list mixing both reads as one list; `workdays` and `weekends`
+  stay those words, since "every Monday-Friday" is the decoding the phrase was
+  written to skip
+- **what is plainly a phrase and wrong is refused as a phrase.** Left to fall
+  through, `every funday` reaches the field parser and comes back as "want 3
+  or 4 fields", which answers a question nobody asked. So anything starting
+  `every` or ending `day of month` is the phrase parser's to refuse, naming the
+  word it could not read. Cron fields never contain either, which is what
+  makes it safe to decide on them
+- **the phrases are also in the `?` panel on both schedule forms**, above the
+  cron notation, because that panel is the one place "When" is explained
+  (see "View help")
 
 ### A firing is what the inbox accepted, not what the loop attempted
 

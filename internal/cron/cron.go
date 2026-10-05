@@ -20,10 +20,12 @@ type Expr struct {
 	dom      field
 	mon      field
 	dow      field
-	years    []int // in order, empty when unrestricted
-	domStar  bool  // dom field was "*" (unrestricted)
-	dowStar  bool  // dow field was "*" (unrestricted)
-	yearStar bool  // the year field was absent or "*"
+	years    []int  // in order, empty when unrestricted
+	domStar  bool   // dom field was "*" (unrestricted)
+	dowStar  bool   // dow field was "*" (unrestricted)
+	yearStar bool   // the year field was absent or "*"
+	domLast  bool   // the last day of the month, whichever date that is
+	words    string // how a rule written as a phrase reads back; see phrase.go
 }
 
 // The years a rule may name. A schedule is a thing you will actually be
@@ -47,7 +49,13 @@ var dayNames = map[string]int{
 // Parse parses "<dom> <month> <dow> [year]". The year is optional, and left
 // off means every year — so every rule written before the field existed goes
 // on meaning exactly what it meant.
+//
+// A rule may also be written as one of a handful of phrases, which are tried
+// first; see phrase.go.
 func Parse(s string) (*Expr, error) {
+	if e, err := parsePhrase(s); e != nil || err != nil {
+		return e, err
+	}
 	parts := strings.Fields(s)
 	if len(parts) != 3 && len(parts) != 4 {
 		return nil, fmt.Errorf("want 3 or 4 fields (day-of-month month day-of-week [year]), got %d", len(parts))
@@ -173,6 +181,9 @@ func (e *Expr) Matches(t time.Time) bool {
 		return false
 	}
 	domHit := e.dom&(1<<uint(t.Day())) != 0
+	if e.domLast {
+		domHit = t.AddDate(0, 0, 1).Day() == 1
+	}
 	dowHit := e.dow&(1<<uint(t.Weekday())) != 0
 	switch {
 	case e.domStar && e.dowStar:
@@ -231,6 +242,9 @@ func (e *Expr) String() string { return e.raw }
 // Readable renders the rule in plain words, best effort; anything it does
 // not have a nice phrase for falls back to the raw expression.
 func (e *Expr) Readable() string {
+	if e.words != "" {
+		return e.words
+	}
 	parts := strings.Fields(e.raw)
 	dom, mon, dow := parts[0], parts[1], parts[2]
 	// The years go on the end, where a date says them: "of September 2026"

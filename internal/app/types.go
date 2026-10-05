@@ -328,7 +328,7 @@ func (p *Project) Errors() []string {
 type Schedule struct {
 	ID             int64      `json:"id"`
 	Text           string     `json:"text"`
-	Rule           string     `json:"rule"` // "YYYY-MM-DD" or a 3-field cron expression
+	Rule           string     `json:"rule"` // "YYYY-MM-DD", a phrase or a cron expression, as typed
 	Suffix         string     `json:"suffix,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	CountedFrom    string     `json:"countedFrom"` // occurrences on/after this day count
