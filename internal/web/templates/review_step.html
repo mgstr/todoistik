@@ -19,7 +19,7 @@
   <li class="row{{if .Reviewed}} reviewed{{end}}{{if .SnoozeUntil}} snoozed{{end}}" data-kb-row data-href="{{.Link}}"
       {{if eq .Type "action"}}data-verbcheck{{end}}>
     <form method="post" action="/review/{{.Type}}/{{.ID}}/mark?step={{$step}}" class="inline kb-review">
-      <button class="mark" aria-label="reviewed" aria-pressed="{{if .Reviewed}}true{{else}}false{{end}}">{{if .Reviewed}}●{{else}}○{{end}}</button>
+      <button class="mark" aria-label="reviewed" aria-pressed="{{if .Reviewed}}true{{else}}false{{end}}">{{if .Reviewed}}🕹️{{else}}○{{end}}</button>
     </form>
     <a class="title" href="{{.Link}}">{{.Name}}</a>
     {{if eq .Type "action"}}<span class="badge noverb" hidden>no verb</span>{{end}}

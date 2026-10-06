@@ -854,18 +854,20 @@ summary { cursor: pointer; font-weight: 600; }
 }
 .review-steps a:hover .num, .review-steps li.outstanding .num { color: var(--accent); }
 
-/* The mark at the head of a review row: ○ not walked yet, ● walked. It is a
-   button rather than a badge because it is the control — the row's "Reviewed"
-   button is gone, and the mark itself is what the pointer presses and what `r`
-   presses (keys.md, "The map"). The empty state is drawn rather than left
-   blank so that the column holds its width and nothing shifts sideways as the
-   walk goes down the list. */
+/* The mark at the head of a review row: ○ not walked yet, 🕹️ walked. The
+   walked mark is not ● because ● is already Today's pick, and a column of
+   filled dots on a review step read as a column of picked actions
+   (implementation.md, "A step lists everything it is about, marked or not.").
+   It is a button rather than a badge because it is the control — the row's
+   "Reviewed" button is gone, and the mark itself is what the pointer presses
+   and what `r` presses (keys.md, "The map"). The empty state is drawn rather
+   than left blank so that the column holds its width and nothing shifts
+   sideways as the walk goes down the list. */
 .row .mark {
   border: 0; background: none; padding: 0; width: 1.1rem; flex: none;
   font-size: .85rem; line-height: 1; color: var(--muted); cursor: pointer;
 }
 .row .mark:hover { color: var(--accent); }
-.row.reviewed .mark { color: var(--accent); }
 /* a walked row is quieted rather than struck through: it is still one of the
    step's items and still open to a second look, which is not what a line
    through it would say */

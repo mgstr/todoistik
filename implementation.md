@@ -2310,7 +2310,18 @@ eventually disagree, and the screen would be lying about its own keyboard.
 the outstanding ones and redirect after each press, so an item left the screen
 as it was walked and the list re-sorted under the cursor — the next item was
 never where the hands had just been. The list is now the whole step, each row
-carrying `○` or `●`, and the count beside the heading is what is left to walk.
+carrying `○` or `🕹️`, and the count beside the heading is what is left to walk.
+
+- **the walked mark is `🕹️`, not `●`.** It was `●`, and `●` is the glyph an
+  action wears when it is picked for Today: a review step halfway walked looked
+  like a list with half its rows picked, and the two claims — "I looked at
+  this" and "I will do this today" — have nothing to do with each other. The
+  mark is an emoji rather than another geometric glyph because every plain
+  shape beside a title already reads as a pick or a checkbox; it keeps its own
+  colours, so the accent that used to tint the walked mark has nothing left to
+  tint and the row is told apart by the glyph and its quieted title. The
+  unwalked `○` stays: it is hollow and muted, and it is what holds the column's
+  width before anything is marked
 
 - **the mark is the control.** The row's "Reviewed" button is gone: a button
   on every row said the same word fourteen times and pushed the titles out of

@@ -1033,14 +1033,14 @@
     return true;
   }
 
-  // What a walked row looks like, in one place: the dot, what it says to a
-  // reader who cannot see the dot, and the heading's count — which is the
+  // What a walked row looks like, in one place: the mark, what it says to a
+  // reader who cannot see the mark, and the heading's count — which is the
   // step's own answer to how much of it is left.
   function showReview(row, on) {
     row.classList.toggle("reviewed", on);
     const btn = row.querySelector("form.kb-review button");
     if (btn) {
-      btn.textContent = on ? "●" : "○";
+      btn.textContent = on ? "🕹️" : "○";
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     }
     const count = document.querySelector(".pagehead .count");
