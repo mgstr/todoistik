@@ -31,7 +31,7 @@ var viewHelp = map[string]struct{ Name, Text string }{
 	"review":    {"Weekly review", "resumable — progress lives on each item's lastReviewedAt"},
 	"archive":   {"Archive", "finished commitments, newest first"},
 	"audit":     {"Audit log", "every event; trashed things are recovered from here by recapturing"},
-	"dashboard": {"Dashboard", "what the app counts about itself \u2014 how fast things arrive and leave, what they turn into, and what has been waiting longest. Every figure says the window it is counted over, because a number without one is a number that gets misread"},
+	"dashboard": {"Dashboard", "what the app counts about itself, as three forms that each fit the window. Traffic is what came in against what left, every row in items a day. Queue is how much was open: a day as it stood at its end, a month and the year as the average of their days. Inbox zero is the year, a day a cell \u2014 a tick where the inbox was empty at some point that day. A row with nothing written on it is from before the record begins"},
 	"settings":  {"Settings", "the palette the app is painted in, and the remembered tags and contexts — a name has to be here before #car or @home means anything, which is what stops #car and #Car becoming two. The count is what carries it, and a name still carried cannot be removed. A parameter, @person(Marju), is its own name under its context. Filtering by #bike or @garage that matches nothing is how a name is created."},
 
 	// Reached only from the Inbox, so it has no nav entry — but it is a screen
@@ -761,11 +761,60 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 
 // --- Dashboard -----------------------------------------------------------
 
-// The Dashboard is one read of internal/app and one template. Every number on
-// it is computed there, including the words a duration is written in, so the
-// handler stays what every other handler here is: a call and a render.
+// The Dashboard is three forms and only one is on the screen, so the handler
+// reads the one that was asked for: a call and a render, like every other
+// handler here (implementation.md, "The Dashboard").
+
+// dashForm is one of the Dashboard's forms: the word its address carries, the
+// digit that opens it and the name it is called by.
+type dashForm struct {
+	Slug, Key, Name string
+	On              bool
+}
+
+// The order is the order of the digits, and of j and k (keys.md, "The map").
+var dashForms = []dashForm{
+	{Slug: "traffic", Key: "1", Name: "Traffic"},
+	{Slug: "queue", Key: "2", Name: "Queue"},
+	{Slug: "zero", Key: "3", Name: "Inbox zero"},
+}
+
+type dashboardData struct {
+	Forms      []dashForm
+	Next, Prev string // the forms j and k go to; they wrap, since there are three
+	Mirror     *app.Mirror
+	Zero       *app.ZeroYear
+	DayNums    []int
+}
+
 func (s *Server) dashboardPage(w http.ResponseWriter, r *http.Request) {
-	d, err := s.app.Dashboard()
+	// a form the address does not name is the first one, which is also what
+	// the rail's own link opens
+	at := 0
+	for i, f := range dashForms {
+		if f.Slug == r.URL.Query().Get("form") {
+			at = i
+		}
+	}
+	n := len(dashForms)
+	d := dashboardData{
+		Forms: append([]dashForm(nil), dashForms...),
+		Next:  dashForms[(at+1)%n].Slug,
+		Prev:  dashForms[(at+n-1)%n].Slug,
+	}
+	d.Forms[at].On = true
+	var err error
+	switch dashForms[at].Slug {
+	case "queue":
+		d.Mirror, err = s.app.Queue()
+	case "zero":
+		d.Zero, err = s.app.InboxZeroYear()
+		for i := 1; i <= 31; i++ {
+			d.DayNums = append(d.DayNums, i)
+		}
+	default:
+		d.Mirror, err = s.app.Traffic()
+	}
 	if err != nil {
 		httpError(w, err)
 		return

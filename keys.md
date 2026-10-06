@@ -275,6 +275,19 @@ screen written out a second time, in the one place that is supposed to say what
 is *not* on the screen. It starts at 2 and not at 1 for the reason above: a
 range is a claim about what can be pressed.
 
+**The Dashboard's digits.** `1`, `2` and `3` open its three forms — Traffic,
+Queue and Inbox zero (design.md, "Dashboard") — and the number is printed
+beside each name on the line at the top of the screen, which is the review's
+arrangement used a second time. They are free for the reason the review's are:
+the bookmarks and the snippets live under the same digits and are offered only
+where a screen has a filter line or a meta line, and this one has neither. The
+bar shows them as `1…3 form`.
+
+`j` and `k` step through the same three and wrap at the ends. Both ways of
+getting to a form are kept because they are different questions — a digit is
+"that one", and `j` is "the next one" — and the second is the one asked when the
+forms are being read through in turn.
+
 **`#` is the one button in the map that is not a letter, and it is the
 notation it writes.** The mark it presses puts the project's tags on its next
 action (design.md, "Editing items"), and what a tag is written as is `#name` —
@@ -432,7 +445,7 @@ and this one is pressed once per idea you decide not to commit to.
 
 | Key | Goes to |
 | --- | --- |
-| `j` `k` | through the current list. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful |
+| `j` `k` | through the current list. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful. On the Dashboard, which has neither, they go to the next and the previous form |
 | `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
 | `g` + letter | a view — the fifteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
@@ -886,25 +899,30 @@ key can never be advertised without working:
   answer it lands on. Nothing in the key layer knows what a theme is
   (implementation.md, "Theme").
 
-- **the Dashboard is the first view with no keys of its own**, and that is
-  the answer rather than a gap. Nothing on it can be completed, picked or
-  deleted, because nothing on it is an item (design.md, "Dashboard"). So its
-  key bar is the globals, the steering entries and nothing else, which is the
-  bar doing exactly what it is supposed to: nothing advertises a key that does
-  not exist. The one thing on the screen that *is* pressable is a link — a row
-  of "the oldest thing in each view" — and it is reached the way every other
-  link on a screen with no cursor is reached, with `m`.
-- **`j`/`k` on it move by section, not by row**, which is a key it does have
-  and the one correction to the bullet above. It was written as "no rows to
-  move through, so `j`/`k` have nowhere to go", and that was half an answer:
-  there is no cursor here and there should not be, but the screen is several
-  windows tall and reading past its first panel meant reaching for the mouse
-  — on the one screen in the app that is only ever read (design.md, "A screen
-  taller than the window is read from the keyboard too"). So the two keys keep
-  their meaning, "the next thing down", and what the next thing is is a
-  heading rather than a row. Nothing else about them changes: where there are
-  rows the rows win, so no screen has to choose, and the bar says which of the
-  two it is offering — `j k by section` rather than `j k move`.
+- **the Dashboard's keys change its form, and nothing else.** Nothing on it
+  can be completed, picked or deleted, because nothing on it is an item
+  (design.md, "Dashboard") — so it has no row keys and no screen keys, and the
+  five it does have are all the same verb: `1`, `2` and `3` open Traffic, Queue
+  and Inbox zero, and `j` and `k` go to the next and the previous. It was
+  written here as "the first view with no keys of its own", and that was true
+  while it was one page.
+- **the digits are the forms' numbers, printed on the line they press.** That
+  is the weekly review's arrangement and it is offered by the review's rule: a
+  bare digit goes to a bookmark only where a screen has a filter line, and to a
+  snippet only where it has a meta line, and this screen has neither. So the
+  bar says `1…3 form`, a range that says how to steer, and the names are read
+  where the numbers are.
+- **`j`/`k` on it move by form, not by row or by section**, and they wrap,
+  since three is few enough that the far end is nearer backwards. They keep
+  their meaning, "the next thing", and the next thing here is a form. They
+  used to move this screen by section, when it was several windows tall; it
+  fits the window now, so there is nothing below to move to. The bar says
+  which it is offering — `j next`, `k previous`, each an entry of its own
+  because each presses a link, rather than `j k move` or `j k by section`.
+- **moving by section is still built and no screen uses it.** A screen with no
+  rows that marks its sections is moved through them by `j`/`k` (design.md, "A
+  screen taller than the window is read from the keyboard too"). The Dashboard
+  was the only one, and no longer marks any.
 
 - **`b` no longer arms, it asks.** `leave()` hands every way out to one
   function, and that function puts the question when the screen has unsaved

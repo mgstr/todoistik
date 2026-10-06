@@ -1,0 +1,431 @@
+<title>Dashboard Forms Prototype</title>
+<style>
+/* Layout: the app's own shell at full window height — rail, title bar, one
+   form filling what is left, key bar — and a strip above it that belongs to
+   the prototype and not to the app. Nothing in the app frame scrolls. */
+:root {
+  color-scheme: light;
+  /* todoistik's palette, lifted from internal/web/static/style.css */
+  --bg: light-dark(#ffffff, #16181d); --fg: light-dark(#1a1a1a, #e6e6e6);
+  --muted: light-dark(#777, #9a9a9a); --line: light-dark(#e2e2e2, #2c2f36);
+  --accent: light-dark(#2456d6, #7da2ff); --danger: light-dark(#c02626, #ff7b7b);
+  --ok: light-dark(#1a7f37, #5fc07a);
+  --badge-bg: light-dark(#f0f0f0, #23262d); --row-hover: light-dark(#f6f8ff, #1d2129);
+  --select: light-dark(#eef2ff, #22304d); --bar-bg: light-dark(#eceef3, #1f232b);
+  /* new: eight series colours, fixed order, checked against both grounds */
+  --s1: light-dark(#2a78d6, #3987e5); --s2: light-dark(#eb6834, #d95926);
+  --s3: light-dark(#1baf7a, #199e70); --s4: light-dark(#eda100, #c98500);
+  --s5: light-dark(#e87ba4, #d55181); --s6: light-dark(#008300, #008300);
+  --s7: light-dark(#4a3aa7, #9085e9); --s8: light-dark(#e34948, #e66767);
+  --proto: light-dark(#fff6d6, #2b2614); --proto-line: light-dark(#e3cf86, #5a4d1c);
+  --sans: -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; } }
+:root[data-theme="dark"] { color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; display: flex; flex-direction: column;
+  background: var(--bg); color: var(--fg); font: 15px/1.45 var(--sans);
+}
+
+/* ---- the prototype's own strip: not part of the app ------------------- */
+.proto {
+  flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem 1.1rem;
+  padding: .3rem 1rem; background: var(--proto); border-bottom: 1px dashed var(--proto-line);
+  font: 400 .68rem/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.proto strong { color: var(--fg); font-weight: 600; }
+.proto .seg { display: inline-flex; align-items: center; gap: .4rem; }
+.proto button {
+  font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted);
+  background: none; border: 1px solid var(--proto-line); padding: .1rem .45rem; cursor: pointer;
+}
+.proto button + button { margin-left: -1px; }
+.proto button:first-of-type { border-radius: 5px 0 0 5px; }
+.proto button:last-of-type { border-radius: 0 5px 5px 0; }
+.proto button[aria-pressed="true"] { background: var(--bg); color: var(--fg); font-weight: 600; }
+.proto button:focus-visible, #keybar button.k:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- the app shell ---------------------------------------------------- */
+.app { flex: 1 1 auto; min-height: 0; display: flex; }
+.app nav {
+  display: flex; flex-direction: column; gap: .05rem; flex: 0 0 11.5rem;
+  padding: .6rem .5rem; border-right: 1px solid var(--line); overflow: hidden;
+}
+.app nav a {
+  display: flex; align-items: center; gap: .4rem; padding: .28rem .5rem .28rem 1.55rem;
+  border-radius: 6px; font-size: .92rem; white-space: nowrap; color: var(--fg); text-decoration: none;
+}
+.app nav a.on { background: var(--select); color: var(--accent); font-weight: 600; }
+.app nav .navcount {
+  margin-left: auto; min-width: 1.15rem; height: 1.1rem; padding: 0 .3rem; border-radius: 999px;
+  background: var(--danger); color: #fff; font-size: .68rem; font-weight: 700; line-height: 1.1rem; text-align: center;
+}
+.pane { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+#titlebar {
+  flex: 0 0 auto; display: flex; align-items: baseline; gap: .4rem;
+  padding: .35rem 1.25rem; border-bottom: 1px solid var(--line); font-size: .85rem;
+}
+#titlebar .crumb { color: var(--muted); }
+#titlebar .crumb + .crumb::before { content: "/"; color: var(--line); margin-right: .4rem; }
+#titlebar .crumb:last-child { color: var(--fg); font-weight: 600; }
+#keybar {
+  flex: 0 0 auto; display: flex; flex-wrap: nowrap; gap: 1rem; align-items: center;
+  padding: .35rem 1.25rem; border-top: 1px solid var(--line);
+  background: var(--bar-bg); color: var(--muted); font-size: .8rem; overflow: hidden; white-space: nowrap;
+}
+#keybar > div { display: flex; gap: 1rem; align-items: center; }
+#keybar > .kb-global { margin-left: auto; padding-left: 1rem; border-left: 1px solid var(--line); }
+#keybar b { display: inline-block; margin-right: .3rem; color: var(--accent); font-weight: 700; font-family: var(--mono); }
+#keybar button.k { font: inherit; color: inherit; background: none; border: none; padding: 0; margin: 0; cursor: pointer; }
+#keybar button.k.on { color: var(--fg); font-weight: 600; }
+
+main { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; padding: 1rem 1.25rem .9rem; }
+.form { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; width: 100%; max-width: 66rem; margin: 0 auto; }
+
+h2 { font-size: 1.05rem; margin: 0; display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.win { font: 400 .68rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.figure { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; margin: .15rem 0 .3rem; }
+.figure .big { font-size: 1.7rem; font-weight: 600; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.figure .unit, .figure .vs { color: var(--muted); font-size: .85rem; }
+.legend { display: flex; flex-wrap: wrap; gap: .1rem .9rem; font-size: .78rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+.sw { width: .6rem; height: .6rem; border-radius: 2px; flex: 0 0 auto; display: inline-block; }
+
+/* ---- the two mirrored forms: dates down the middle -------------------- */
+.fly { --cols: minmax(0, 1fr) 2.7rem 6.3rem 2.7rem minmax(0, 1fr); }
+.fly .head, .fly .brow { display: grid; grid-template-columns: var(--cols); column-gap: .5rem; }
+.fly .head { flex: 0 0 auto; margin-bottom: .7rem; }
+.fly .side { display: flex; flex-direction: column; min-width: 0; }
+.fly .side.l { grid-column: 1 / 3; align-items: flex-end; text-align: right; }
+.fly .side.l h2, .fly .side.l .figure, .fly .side.l .legend { justify-content: flex-end; }
+.fly .side.r { grid-column: 4 / 6; }
+.rows { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.brow { flex: 1 1 0; min-height: 0; max-height: 1.8rem; align-items: center; border-radius: 6px; }
+.brow.gap { margin-top: .7rem; }
+.brow:hover { background: var(--row-hover); }
+.brow .lbl { text-align: center; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+.brow .num { font-size: .85rem; font-variant-numeric: tabular-nums; }
+.brow .num.l { text-align: right; }
+.brow.now .lbl, .brow.now .num { color: var(--fg); font-weight: 600; }
+/* the track is always drawn, so a period with nothing in it is a row with
+   nothing in it rather than a row that looks unrendered */
+.track { display: flex; gap: 2px; height: .6rem; border-radius: 3px; background: var(--badge-bg); min-width: 0; }
+.track.l { flex-direction: row-reverse; }
+.track i { display: block; flex: 0 0 auto; height: 100%; border-radius: 2px; }
+/* the other reading of "sub-bars": one thin bar per source, under each other */
+.split .track { flex-direction: column; height: auto; gap: 1px; background: none; }
+.split .track.l { align-items: flex-end; }
+.split .track i { height: 3px; min-width: 1px; border-radius: 1.5px; }
+
+/* ---- inbox zero: a month a row, a day a column ------------------------ */
+.zero .head { flex: 0 0 auto; margin-bottom: .9rem; }
+.zgrid { display: grid; grid-template-columns: 2.6rem repeat(31, minmax(0, 1fr)); gap: 3px; }
+.zgrid .dn { font: 400 .62rem/1.6 var(--mono); color: var(--muted); text-align: center; }
+.zgrid .mn { font-size: .82rem; color: var(--muted); align-self: center; }
+.zgrid .mn.now { color: var(--fg); font-weight: 600; }
+.zgrid .c { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; border-radius: 50%; }
+.zgrid .c svg { width: 100%; height: 100%; display: block; }
+.zgrid .c.h { color: var(--ok); }
+.zgrid .c.s { color: var(--danger); }
+.zgrid .c.none::after { content: ""; width: 3px; height: 3px; border-radius: 50%; background: var(--line); }
+.zgrid .c.today { outline: 2px solid var(--accent); outline-offset: 0; }
+.zero .legend svg { width: 1rem; height: 1rem; }
+.zero .legend .h { color: var(--ok); } .zero .legend .s { color: var(--danger); }
+
+#tip {
+  position: fixed; z-index: 10; pointer-events: none; min-width: 9rem;
+  padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--fg); font-size: .78rem; box-shadow: 0 6px 20px -8px rgba(0,0,0,.35);
+}
+#tip .t { font-weight: 600; margin-bottom: .2rem; }
+#tip .cols { display: flex; gap: 1.2rem; }
+#tip .r { display: flex; align-items: center; gap: .35rem; color: var(--muted); white-space: nowrap; }
+#tip .r b { margin-left: auto; padding-left: .8rem; color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 52rem) {
+  .app nav { display: none; }
+  main { padding-inline: 16px; overflow-y: auto; }
+  .fly { --cols: minmax(0, 1fr) 2.1rem 4.9rem 2.1rem minmax(0, 1fr); }
+  .fly .head, .fly .brow { column-gap: .3rem; }
+  .brow { flex: 0 0 1.5rem; }
+  .brow .lbl, .brow .num { font-size: .72rem; }
+  .figure .big { font-size: 1.3rem; }
+  .zgrid { grid-template-columns: 1.9rem repeat(31, minmax(0, 1fr)); gap: 1px; }
+  .zgrid .dn { font-size: .45rem; } .zgrid .mn { font-size: .7rem; }
+  #keybar > .kb-global { display: none; }
+}
+</style>
+
+<div class="proto">
+  <span><strong>Study</strong> · approved 7 Oct 2026 · invented data · today is Tue 6 Oct 2026</span>
+  <span class="seg">record
+    <span><button id="rec-full" type="button" data-rec="0">a full year</button><button id="rec-real" type="button" data-rec="1">since 2 Sep</button></span>
+  </span>
+</div>
+
+<div class="app">
+  <nav>
+    <a>Inbox<span class="navcount">3</span></a><a>Today</a><a>Next actions</a><a>Projects</a><a>Tasks</a>
+    <a>Waiting for</a><a>Calendar</a><a>Someday/Maybe</a><a>Reference</a><a>Scheduler</a><a>Review</a>
+    <a>Archive</a><a>Audit</a><a class="on">Dashboard</a><a>Settings</a>
+  </nav>
+  <div class="pane">
+    <div id="titlebar"><span class="crumb">Dashboard</span><span class="crumb" id="crumb"></span></div>
+    <main>
+      <section class="form fly" id="f-traffic" hidden></section>
+      <section class="form fly" id="f-queue" hidden></section>
+      <section class="form zero" id="f-zero" hidden></section>
+    </main>
+    <div id="keybar">
+      <div class="kb-view">
+        <button class="k" type="button" id="k-traffic" data-form="traffic"><b>1</b>traffic</button>
+        <button class="k" type="button" id="k-queue" data-form="queue"><b>2</b>queue</button>
+        <button class="k" type="button" id="k-zero" data-form="zero"><b>3</b>inbox zero</button>
+        <span class="k"><b>j k</b>next, previous</span>
+      </div>
+      <div class="kb-global"><span class="k"><b>g</b>go</span><span class="k"><b>?</b>keys</span></div>
+    </div>
+  </div>
+</div>
+<div id="tip" hidden></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="face-h" viewBox="0 0 20 20">
+    <rect x="1.6" y="1.6" width="16.8" height="16.8" rx="4" fill="currentColor"/>
+    <path d="M5.6 10.4 L8.7 13.5 L14.5 6.9" fill="none" stroke="var(--bg)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="face-s" viewBox="0 0 20 20">
+    <circle cx="10" cy="10" r="8.6" fill="currentColor" fill-opacity=".16" stroke="currentColor" stroke-width="1.2"/>
+    <circle cx="7" cy="8" r="1.15" fill="currentColor"/><circle cx="13" cy="8" r="1.15" fill="currentColor"/>
+    <path d="M6.3 14.2 Q10 10.4 13.7 14.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<script>
+(function () {
+  var DAY = 864e5, TODAY = Date.UTC(2026, 9, 6), START = Date.UTC(2025, 10, 1), REC = Date.UTC(2026, 8, 2);
+  var WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  // ---- invented record: one entry a day, seeded so it never reshuffles ----
+  var seed = 20261006;
+  function rnd() { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  function pois(l) { var L = Math.exp(-l), k = 0, p = 1; do { k++; p *= rnd(); } while (p > L); return k - 1; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  var days = [], tasks = 13, projects = 8, someday = 11, reference = 0, sad = false;
+  for (var t = START; t <= TODAY; t += DAY) {
+    var d = new Date(t), we = d.getUTCDay() === 0 || d.getUTCDay() === 6, wf = we ? .45 : 1;
+    var grow = (t - START) / (TODAY - START);
+    tasks = clamp(tasks + Math.round((rnd() - .47) * 3), 6, 27);
+    if (rnd() < .12) projects = clamp(projects + (rnd() < .56 ? 1 : -1), 5, 15);
+    if (rnd() < .1) someday = clamp(someday + (rnd() < .7 ? 1 : -1), 8, 30);
+    if (t >= Date.UTC(2026, 2, 10) && rnd() < .13) reference++;
+    sad = rnd() < (sad ? .5 : .16);
+    var hh = 7 + Math.floor(rnd() * 14), mm = Math.floor(rnd() * 60);
+    days.push({
+      t: t,
+      inc: [pois(2.9 * wf), pois(1.2), pois(1.3 * wf + .2), pois((.3 + 1.3 * grow) * wf)],
+      out: [pois(1.0 * wf), pois(3.1 * wf + .3), pois(.9 * wf), pois(.35)],
+      q: [tasks, clamp(projects - Math.floor(rnd() * 3), 0, projects)],
+      st: [projects, someday, reference],
+      zero: !sad, low: 1 + Math.floor(rnd() * 6),
+      at: (hh < 10 ? "0" : "") + hh + ":" + (mm < 10 ? "0" : "") + mm
+    });
+  }
+
+  var FORMS = {
+    traffic: {
+      name: "Traffic", L: "inc", R: "out",
+      Lh: "Incoming", Lw: "captures, by where they came from",
+      Rh: "Outgoing", Rw: "left the app, by how",
+      Ls: [["in the app", "--s1"], ["scheduler", "--s2"], ["telegram", "--s3"], ["mcp", "--s4"]],
+      Rs: [["done on the spot", "--s5"], ["done", "--s6"], ["trashed", "--s7"], ["deleted", "--s8"]]
+    },
+    queue: {
+      name: "Queue", L: "st", R: "q",
+      Lh: "Kept", Lw: "average open",
+      Rh: "Queue", Rw: "tasks + next actions, average open",
+      Ls: [["projects", "--s3"], ["someday", "--s4"], ["reference", "--s5"]],
+      Rs: [["tasks", "--s1"], ["next actions", "--s2"]]
+    },
+    zero: { name: "Inbox zero" }
+  };
+  var ORDER = ["traffic", "queue", "zero"];
+  var state = { form: "traffic", split: false, rec: false };
+  try { var s = JSON.parse(localStorage.getItem("dash-proto") || "{}");
+    if (FORMS[s.form]) state.form = s.form; state.rec = !!s.rec; } catch (e) {}
+  var h = (location.hash || "").slice(1); if (FORMS[h]) state.form = h;
+
+  function from() { return state.rec ? REC : START; }
+  function avg(a, b, key) {            // mean of each component over the days on record in [a, b]
+    var n = 0, sum = null;
+    days.forEach(function (d) {
+      if (d.t < a || d.t > b || d.t < from()) return;
+      if (!sum) sum = d[key].map(function () { return 0; });
+      d[key].forEach(function (v, i) { sum[i] += v; }); n++;
+    });
+    return sum && sum.map(function (v) { return v / n; });
+  }
+  function periods() {
+    var out = [], i, d;
+    for (i = 0; i < 7; i++) { d = new Date(TODAY - i * DAY);
+      out.push({ band: "d", a: +d, b: +d, now: i === 0, gap: false,
+        label: WD[d.getUTCDay()] + " " + d.getUTCDate() + " " + MO[d.getUTCMonth()] }); }
+    for (i = 0; i < 12; i++) { var a = Date.UTC(2026, 9 - i, 1), b = Date.UTC(2026, 10 - i, 1) - DAY; d = new Date(a);
+      out.push({ band: "m", a: a, b: Math.min(b, TODAY), now: i === 0, gap: i === 0,
+        label: MO[d.getUTCMonth()] + " " + d.getUTCFullYear() }); }
+    out.push({ band: "y", a: Date.UTC(2026, 0, 1), b: TODAY, now: true, gap: true, label: "2026" });
+    return out;
+  }
+  function sum(a) { return a ? a.reduce(function (x, y) { return x + y; }, 0) : 0; }
+  function fmt(v, band, form) {
+    if (v == null) return "";
+    if (form === "queue" || band === "d") return String(Math.round(v));
+    return v.toFixed(1);
+  }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function legend(series) {
+    return '<div class="legend">' + series.map(function (s) {
+      return '<span><i class="sw" style="background:var(' + s[1] + ')"></i>' + esc(s[0]) + '</span>'; }).join("") + '</div>';
+  }
+  function track(vals, series, max, side) {
+    var segs = "";
+    if (vals) vals.forEach(function (v, i) {
+      if (v <= 0 && !state.split) return;
+      segs += '<i style="width:calc((100% - ' + (vals.length - 1) * 2 + 'px) * ' + (v / max).toFixed(4) + ');background:var(' + series[i][1] + ')"></i>';
+    });
+    return '<span class="track ' + side + '">' + segs + '</span>';
+  }
+
+  var built = {};
+  function fly(id) {
+    var F = FORMS[id], P = periods(), max = 0;
+    P.forEach(function (p) { p.L = avg(p.a, p.b, F.L); p.R = avg(p.a, p.b, F.R);
+      max = Math.max(max, sum(p.L), sum(p.R)); });
+    max = max || 1;
+    var week = P.slice(0, 7), year = P[P.length - 1], figL, figR;
+    if (id === "traffic") {
+      var wl = sum(week.map(function (p) { return sum(p.L); })), wr = sum(week.map(function (p) { return sum(p.R); }));
+      figL = '<span class="big">' + Math.round(wl) + '</span><span class="unit">last 7 days</span><span class="vs">· ' +
+        (wl / 7).toFixed(1) + ' a day, ' + sum(year.L).toFixed(1) + ' over the year</span>';
+      figR = '<span class="big">' + Math.round(wr) + '</span><span class="unit">last 7 days</span><span class="vs">· ' +
+        (wr / 7).toFixed(1) + ' a day, ' + sum(year.R).toFixed(1) + ' over the year</span>';
+    } else {
+      figL = '<span class="big">' + Math.round(sum(P[0].L)) + '</span><span class="unit">today</span><span class="vs">· ' +
+        Math.round(sum(year.L)) + ' over the year</span>';
+      figR = '<span class="big">' + Math.round(sum(P[0].R)) + '</span><span class="unit">today</span><span class="vs">· ' +
+        Math.round(sum(year.R)) + ' over the year</span>';
+    }
+    var html = '<div class="head">' +
+      '<div class="side l"><h2><span class="win">' + F.Lw + '</span>' + F.Lh + '</h2><p class="figure">' + figL + '</p>' + legend(F.Ls) + '</div>' +
+      '<div class="side r"><h2>' + F.Rh + '<span class="win">' + F.Rw + '</span></h2><p class="figure">' + figR + '</p>' + legend(F.Rs) + '</div>' +
+      '</div><ul class="rows">';
+    P.forEach(function (p, i) {
+      html += '<li class="brow' + (p.now ? " now" : "") + (p.gap ? " gap" : "") + '" data-i="' + i + '">' +
+        track(p.L, F.Ls, max, "l") +
+        '<span class="num l">' + fmt(p.L && sum(p.L), p.band, id) + '</span>' +
+        '<span class="lbl">' + p.label + '</span>' +
+        '<span class="num r">' + fmt(p.R && sum(p.R), p.band, id) + '</span>' +
+        track(p.R, F.Rs, max, "r") + '</li>';
+    });
+    var el = document.getElementById("f-" + id);
+    el.innerHTML = html + '</ul>';
+    el.classList.toggle("split", state.split);
+    built[id] = P;
+  }
+
+  function zero() {
+    var good = 0, bad = 0, cells = '<span></span>', m, dnum, tm = new Date(TODAY).getUTCMonth();
+    for (dnum = 1; dnum <= 31; dnum++) cells += '<span class="dn">' + dnum + '</span>';
+    var byT = {}; days.forEach(function (d) { byT[d.t] = d; });
+    for (m = 0; m < 12; m++) {
+      cells += '<span class="mn' + (m === tm ? " now" : "") + '">' + MO[m] + '</span>';
+      var len = new Date(Date.UTC(2026, m + 1, 0)).getUTCDate();
+      for (dnum = 1; dnum <= 31; dnum++) {
+        var t = Date.UTC(2026, m, dnum), d = byT[t];
+        if (dnum > len) { cells += '<span></span>'; continue; }
+        if (!d || t < from()) { cells += '<span class="c none"></span>'; continue; }
+        if (d.zero) good++; else bad++;
+        cells += '<span class="c ' + (d.zero ? "h" : "s") + (t === TODAY ? " today" : "") + '" data-t="' + t + '">' +
+          '<svg viewBox="0 0 20 20"><use href="#face-' + (d.zero ? "h" : "s") + '"/></svg></span>';
+      }
+    }
+    document.getElementById("f-zero").innerHTML =
+      '<div class="head"><h2>Inbox zero<span class="win">2026, a month a row</span></h2>' +
+      '<p class="figure"><span class="big">' + good + '</span><span class="unit">days reached zero</span>' +
+      '<span class="vs">· ' + bad + ' never did</span></p>' +
+      '<div class="legend"><span class="h"><svg viewBox="0 0 20 20"><use href="#face-h"/></svg></span><span>empty at some point</span>' +
+      '<span class="s"><svg viewBox="0 0 20 20"><use href="#face-s"/></svg></span><span>never empty that day</span></div></div>' +
+      '<div class="zgrid">' + cells + '</div>';
+    built.zero = byT;
+  }
+
+  function render() {
+    fly("traffic"); fly("queue"); zero();
+    ORDER.forEach(function (id) {
+      document.getElementById("f-" + id).hidden = id !== state.form;
+      document.getElementById("k-" + id).classList.toggle("on", id === state.form);
+    });
+    document.getElementById("crumb").textContent = FORMS[state.form].name;
+    document.querySelectorAll("[data-split]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String((b.dataset.split === "1") === state.split)); });
+    document.querySelectorAll("[data-rec]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String((b.dataset.rec === "1") === state.rec)); });
+    try { localStorage.setItem("dash-proto", JSON.stringify(state)); } catch (e) {}
+    document.getElementById("tip").hidden = true;
+  }
+  function go(id) { state.form = id; render(); }
+
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.form) go(b.dataset.form);
+    else if (b.dataset.split) { state.split = b.dataset.split === "1"; render(); }
+    else if (b.dataset.rec) { state.rec = b.dataset.rec === "1"; render(); }
+    b.blur();
+  });
+  // a key is a place on the keyboard, not the character it prints
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var i = ORDER.indexOf(state.form);
+    if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") go(ORDER[+e.code.slice(5) - 1]);
+    else if (e.code === "KeyJ") go(ORDER[(i + 1) % 3]);
+    else if (e.code === "KeyK") go(ORDER[(i + 2) % 3]);
+    else return;
+    e.preventDefault();
+  });
+
+  // ---- the hover layer: what each segment is, in figures ----
+  var tip = document.getElementById("tip");
+  function col(vals, series, band, form) {
+    return '<div>' + series.map(function (s, i) {
+      return '<div class="r"><i class="sw" style="background:var(' + s[1] + ')"></i>' + esc(s[0]) +
+        '<b>' + (vals ? fmt(vals[i], band, form) : "") + '</b></div>'; }).join("") + '</div>';
+  }
+  document.addEventListener("pointermove", function (e) {
+    var row = e.target.closest && e.target.closest(".brow"), cell = e.target.closest && e.target.closest(".c[data-t]"), html = "";
+    if (row) {
+      var F = FORMS[state.form], p = built[state.form][+row.dataset.i];
+      if (p.L || p.R) html = '<div class="t">' + p.label + (state.form === "traffic" && p.band !== "d" ? " · a day" : "") + '</div><div class="cols">' +
+        col(p.L, F.Ls, p.band, state.form) + col(p.R, F.Rs, p.band, state.form) + '</div>';
+    } else if (cell) {
+      var d = built.zero[+cell.dataset.t], dt = new Date(d.t);
+      html = '<div class="t">' + WD[dt.getUTCDay()] + " " + dt.getUTCDate() + " " + MO[dt.getUTCMonth()] + '</div><div class="r">' +
+        (d.zero ? "empty at " + d.at : "never below " + d.low) + '</div>';
+    }
+    if (!html) { tip.hidden = true; return; }
+    tip.innerHTML = html; tip.hidden = false;
+    var r = tip.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(e.clientX + 14, innerWidth - r.width - 8)) + "px";
+    tip.style.top = Math.max(8, Math.min(e.clientY + 16, innerHeight - r.height - 8)) + "px";
+  });
+  document.addEventListener("pointerleave", function () { tip.hidden = true; });
+
+  render();
+})();
+</script>

@@ -1603,7 +1603,7 @@ what makes the ones below permanent fixtures, and what makes each of them free.
 **One of them counts the items instead of listing them, and that is the
 exception the rest of this section is written against.** The "Dashboard" shows
 no item at all: it is a query over the same items like everything else here, but
-what it returns is how many, how fast and how old rather than which. That does
+what it returns is how many and how fast rather than which. That does
 not make it a different kind of object - nothing is stored in it, it cannot be
 created or deleted, and turning it off would lose nothing but the reading - but
 it does mean the rules below about rows, filters and ages are about the thirteen
@@ -1779,14 +1779,19 @@ that it no longer has a button on the form as well.
 **A screen taller than the window is read from the keyboard too**, which is the
 same promise one step out from the controls. On a list it was never a gap: the
 keys that move between rows move the window with them, so working down the list
-and scrolling it are the same act. A screen that is not a list had no such key -
-the "Dashboard" is several windows tall, holds no row, and the only way past its
-first panel was the mouse, on the one screen in the app that exists to be read
-rather than worked. So a screen with no rows moves by **section** instead, a
-heading at a time, the section arrived at landing at the top of the window
-because the top is where reading starts. Which key does that is keys.md's, like
-every other key; that it is the same key as the one that moves between rows is
-the point, since both are "show me the next thing down".
+and scrolling it are the same act. A screen that is not a list has no such key,
+so a screen with no rows moves by **section** instead, a heading at a time, the
+section arrived at landing at the top of the window because the top is where
+reading starts. Which key does that is keys.md's, like every other key; that it
+is the same key as the one that moves between rows is the point, since both are
+"show me the next thing down".
+
+No screen needs it today. The rule was written for the "Dashboard" when that was
+one page several windows tall, and the "Dashboard" has since been cut into forms
+that each fit the window - the better answer to the same problem, since a screen
+that is only ever read should not have to be travelled through at all. The rule
+stands for the next screen that is tall and holds no row, and a new one should
+be asked first whether it can be forms instead.
 
 **A key is a place on the keyboard, not a letter.** The keys are the same keys
 whatever language the keyboard is typing in: on a Cyrillic layout `d` is still
@@ -2693,18 +2698,73 @@ leaves it the moment it fires; a cron schedule stays.
 - it is reviewed during the weekly review, at step 7
 
 ### Dashboard
-What the app counts about itself: how fast things arrive and leave, what they
-turn into, where they came from, and what has been waiting longest. It is the
-one view that shows no item (see the preamble above) - and it exists because the
-questions on it are the ones no other screen can answer. Every view in this app
-says what is true now; none of them says whether now is normal.
+What the app counts about itself: what comes in and what leaves, how much is
+open, and whether the inbox gets emptied. It is the one view that shows no item
+(see the preamble above) - and it exists because the questions on it are the
+ones no other screen can answer. Every view in this app says what is true now;
+none of them says whether now is normal.
 
 It is read and never acted on. Nothing here is a control, nothing is filtered,
-and nothing on it can be completed, deleted or picked - with one deliberate
-exception, "the oldest thing in each view", whose rows are links into the item
-they name. A screen about how things are going is a screen you leave in order to
-do something, and making the leaving one press is the whole of what that panel
-adds.
+and nothing on it can be completed, deleted or picked. A screen about how things
+are going is a screen you leave in order to do something.
+
+**It is three forms, and one of them is on the screen.** Traffic, Queue and
+Inbox zero, each a whole answer to one question, changed between from the
+keyboard. It used to be one long page of nine panels, and a long page is read by
+travelling through it: the panel that was wanted was rarely the one in the
+window, and getting to it meant passing the others. A form is seen all at once,
+and the next one is a single press away rather than a distance. It opens on
+Traffic, because what came in and what went out is the question asked most
+often.
+
+**A form fits the window, and nothing on this screen scrolls.** That is the
+whole reason for the forms, so it is a rule about them rather than a property of
+a large display: on a short window the rows close up instead of the page growing
+longer. A form that cannot be made to fit is two forms.
+
+**Traffic and Queue have the dates down the middle**, and a bar either side of
+each date growing away from it. The two sides are two things counted over the
+same days, and putting the days between them is what lets one day be read
+straight across - which two panels one above the other never allowed, since the
+same day sat a screen apart from itself.
+
+**The rows are seven days, twelve months and the year, newest first.** Today is
+the top row, then the six days before it; then the month we are standing in and
+the eleven before it; then the year so far. Three resolutions because they
+answer different questions: the days say what is happening, the months say
+whether that is normal, and the year is the figure both are read against. The
+row this screen is opened to read is nearly always the most recent one, and a
+list that put it at the bottom made you find the end of it before you could find
+now - the same argument that has the "Archive" newest first.
+
+**Every row of a form is in one unit and drawn on one scale.** On Traffic that
+unit is items a day: a day's row is what happened on it, and a month's and the
+year's are the average a day - so February is not short for being short, and a
+day can be laid against a month without converting. On Queue it is how many were
+open. Both sides share the scale as well, so a bar on the left is as long as a
+bar on the right that says the same number.
+
+**An average is over the days the record covers and that have happened.** The
+month we are standing in counts only the days so far, and the month the app was
+first used in counts only from that day. Dividing by the whole month would draw
+both as a collapse that never took place.
+
+**A period before the record begins is a row with nothing written on it.** Not a
+zero: a zero says nothing came in, and nothing is known about a month the app
+was not in use for. The row is still drawn, with its date and an empty track, so
+the twelve months are always twelve and the screen does not change shape as the
+record grows into it.
+
+**A bar is made of segments, and each is named.** A side's bar is cut by where
+its items came from or how they left, in a fixed order with a fixed colour each,
+and the legend above the side says which is which. The figure beside the bar is
+the whole of it and is always written out; a segment's own figure is given when
+it is pointed at. So the total can never only be read by eye, and the split is
+read by eye first and confirmed on demand - a number on every segment of twenty
+rows would be a table with colours behind it. See
+research/dashboard-forms-study.html for the page this was approved from, and
+research/dashboard-study.html for the older question of whether to draw bars at
+all.
 
 **Every figure says the window it is counted over**, beside the figure and not
 in a note somewhere. A number whose definition is not on the screen is one that
@@ -2713,95 +2773,78 @@ makes a filtered view confess what it hides (see "The filter line"). "The last 7
 days" is the last seven days and not the calendar week, and it is written down
 as such.
 
-**Every bar carries its own number in words.** The panels are drawn as bars - a
-row with a name, a length and the figure at its end - and the length is a shape
-put on a number that is written out anyway. Nothing on this screen can only be
-read by eye. See research/dashboard-study.html for the four treatments this was
-chosen from and why a second shape was not taken.
-
-**Every panel that is a list of dates reads newest first.** Today is the top row
-of the week, and the month we are standing in is the top row of the year and of
-the backlog. The row this screen is opened to read is nearly always the most
-recent one, and a list that put it at the bottom made you find the end of it
-before you could find now - which is the same argument that has the "Archive"
-newest first. The older rows run backwards under it, so a trend is read
-downwards into the past rather than upwards out of it.
-
-**The ages here are medians and say so.** A mean over ages is dragged by the one
-item that has sat there for a year, and that item is the one you already know
-about - it is at the top of its view and it is on this screen by name. The
-middle value is the one that answers "how long does a thing normally take here",
-which is the question being asked.
-
-#### The panels
-- **Inbound** - captures, the last seven days a day a row, then the last twelve
-  months a month a row. Two resolutions because they answer different questions:
-  the week says what is happening, the year says whether that is normal. A
-  month's row is drawn at its average per day rather than its total, so February
-  is not short for being short
-- **Outbound** - actions and projects completed, on the same two timescales.
-  **It counts steps and not commitments**, which is where it differs from the
-  "Archive": that view lists finished commitments and deliberately leaves a
+#### The forms
+- **Traffic** - what came in on the left, what left on the right.
+  **Incoming** is every capture, cut by the channel it arrived by. That is read
+  out of the audit log, because by the time a capture is anything it has stopped
+  being a capture (see "Where it came from"), and this is the count that section
+  was written for: which way in is worth keeping, and which was a good idea
+  nobody used. **Outgoing** is everything that left the app for good, cut by
+  how: an action or a project finished, a capture answered by the two minute
+  rule and so done on the spot, a capture trashed, and an action, project, idea
+  or reference item deleted. What is filed is not what leaves - a capture that
+  became a task, a someday idea or a piece of reference material is still in the
+  app, and is counted on Queue
+- **Outgoing counts steps and not commitments**, which is where it differs from
+  the "Archive": that view lists finished commitments and deliberately leaves a
   project's own actions off it, because a step is not a commitment. A *speed* is
   a different question - a project finished in five actions was five things
   done, and counting it as one would say a busy week and a quiet one were the
-  same week
-- **Inbound and outbound are not one pipe, and the screen does not draw them as
-  one.** One capture can become a project of five actions and another is
-  answered by the two minute rule and becomes nothing at all, so the two are
-  counts of different populations and a chart inviting you to subtract them
-  would be inviting a wrong answer. What the two panels share is their shape,
-  and nothing else
-- **What the inbox became** - every branch of Inbox Zero, by how often it was
-  the answer, over the last three months, with Task and Action on their own
-  rows: a task standing alone, and an action filed into a project (see "Audit
-  entry"). This is the panel that says whether most of what you write
-  down is worth doing, and it can only be read off the audit log: by the time a
-  capture is anything it has stopped being a capture (see "Where it came from").
-  **Its rows are in a fixed order and not ranked** - what became a commitment
-  first, then what became nothing - unlike the channels below it, which are. The
-  branches are a closed set with an order of their own, and a panel that
-  reshuffled between visits would have to be read again each time rather than
-  recognised
-- **Where captures come from** - the channel each one arrived by, over the same
-  window, read out of the audit log's snapshots for the same reason. This is the
-  count "Where it came from" was written for: which way in is worth keeping, and
-  which was a good idea nobody used. A channel that misspells its own name shows
-  up as its own row here, which is where that was always going to be found
-- **Ages** - two durations and a list. **Time in the inbox** is capture to
-  decision, and **time as a commitment** is written down to finished; both are
-  measured by pairing each item's leaving with its own creation in the log.
-  Under them, the age of what is open right now, a view a row. What is
-  deliberately not here is *capture to done*: nothing links an inbox item to the
-  action it became, an item is stored as itself (see "Items"), and a number
-  invented for that span would be the only dishonest thing on the screen
-- **The practice** - how the discipline itself is going: how much the inbox
-  holds, when it was last empty, and when something was last marked reviewed.
-  The weekly review is what every other view's trustworthiness rests on (see
-  "Goals") and until this panel nothing in the app said when the last one was.
-  **It cannot say when a review *finished*, and does not pretend to**: there is
-  no such record anywhere - a review's progress lives on each item's own
-  `lastReviewedAt` (see "Weekly review") - so what it says is when one was last
-  being done, which is true and is nearly the same news
-- **How much of Next is workable** - the "Next actions" count against every open
-  action there is: what is workable now, what is waiting on a person, what is
-  snoozed until a date, what is waiting on a sibling, and what is sitting further
-  down a plan behind the step its project points at. If the four grow past the
-  first, "what can I do now?" has quietly stopped being a list you can act from,
-  and the view itself cannot say so because it is the part that is still fine.
-  The last of the five is the number one-per-project owes the screen: those
-  actions are in no view that is worked from, by design (see "Project"), and this
-  is the one place that says how many of them there are
-- **The oldest thing in each view** - one row per view, the item in it that has
-  waited longest, as a link. This is "Nothing dies silently" made into a screen:
-  everything else here is something to know and this is something to go and fix
-- **The backlog** - open commitments at the end of each of the last twelve
-  months, this month at the top. It is read for its direction: rows that shorten
-  as you read down the year say you are taking on more than you finish, which is
-  a thing you feel long before you can point at it. It is counted off the items that still exist rather than replayed
-  from the log, so it is "what I still have, seen month by month" - something
-  deleted since is missing from the months it was open in, and deletion moves
-  the line the same way finishing it does
+  same week. A completion that is later undone stays counted: the work was done
+  on that day, and the log is not rewritten to say otherwise
+- **The two sides of Traffic are not one pipe, and they are side by side
+  anyway.** One capture can become a project of five actions and another is
+  answered by the two minute rule and becomes nothing at all, so the sides are
+  counts of different populations and the difference between two bars is not the
+  size of anything. The screen used to keep them in separate panels for exactly
+  that reason. What it cost was the one reading that is wanted every day - was
+  that a day things arrived, a day things got done, or both - and that reading
+  needs the same day on one line. So they share the dates and the scale, and
+  what guards against the subtraction is that the screen never does it: no net
+  figure is written anywhere on the form
+- **At most four channels have a colour of their own.** With more than four, the
+  three that brought the most over the window keep their names and the rest are
+  one segment called "other": the channels worth telling apart are the large
+  ones, and a sixth hue on a bar this thin is no longer told from the fifth. The
+  colours go to the named channels in alphabetical order and not by size, so two
+  channels trading places in the ranking do not trade colours. A channel that
+  misspells its own name shows up as its own segment or swells "other", which is
+  where that was always going to be found
+- **Queue** - how much was open. On the right is the **queue** itself, what is
+  waiting to be done: every standalone task, and one next action for each
+  project that has one, because a project has one next action however long its
+  plan is (see "Project"). On the left is what is **kept** behind it and is not
+  work to be picked up today: the projects themselves, the someday pile and the
+  reference material. It is read for its direction - rows that shorten as you
+  read down into the past say you are taking on more than you finish, which is a
+  thing you feel long before you can point at it
+- **A day on Queue is counted as it stood at its end**, and today as it stands
+  now; a month and the year are the average of their days. A level has no total
+  over a period the way a count of events has, and the end of the day is the one
+  moment of it that is not arbitrary
+- **Queue is counted off the items that still exist rather than replayed from
+  the log**, so it is "what I still have, seen day by day". Something deleted
+  since is missing from the days it was open on, and an action moved into a
+  project since is counted where it is now. The rows are read for their
+  direction, and neither of those moves it
+- **Inbox zero** - the year so far, a month a row and a day a column, each day
+  carrying one of two marks: a tick if the inbox held nothing at some point that
+  day, and a sad face if it held something from midnight to midnight. The two
+  are told apart by their outline as well as their colour - a filled square and
+  an open circle - because two faces that differed only in the mouth could not
+  be told apart at the size of a cell. A day nothing was captured on and nothing
+  was in the inbox is a tick: the inbox was empty, which is the whole of what is
+  being asked. Pointing at a day says when it emptied, or the least it held
+- **The months of Inbox zero read January first**, unlike every other dated list
+  here. It is a calendar and not a list: the columns run forwards through the
+  month, and rows that ran backwards through the year under them would make the
+  one grid read in two directions. Today is ringed, so now is found without
+  counting to it
+- **Whether the inbox was empty is replayed, not stored.** Every capture puts
+  one in and every answer takes one out, so the running count over the log is
+  the inbox as it was at each moment. Nothing records emptiness directly and
+  nothing should: it is not a thing that happens, it is a thing that is true in
+  between two things that happen
 
 #### What it does not have
 - **no filters.** A dashboard is the complete picture or it is nothing: the
@@ -2809,15 +2852,24 @@ which is the question being asked.
   would be a statistic about a subset with no way to tell from the screen which
   subset. This is the same reason a filtered list has to shout about it, taken
   to its end
-- **no targets, no streaks, no congratulation.** Nothing here has a goal line
+- **no targets and no streaks, and one verdict.** Nothing here has a goal line
   under it and nothing says "6 weeks in a row". A target turns a measurement
   into a thing to protect, and what gets protected is the number rather than the
   practice - and the app does not compel the practice in the first place (see
-  "The protocol is followed, not enforced")
+  "The protocol is followed, not enforced"). The marks on Inbox zero are the
+  exception and are meant as one: a tick and a sad face are a judgement on a
+  day, which is more than this screen says about anything else. It is made about
+  the one habit the whole process is named after, it is made per day and never
+  added up into a run, and a bad day is drawn no larger than a good one
 - **no review step.** Nothing on it is an open loop, so there is nothing on it
   that can silently die - the same reason the "Archive" has none
 - **no badge in the navigation.** It has nothing to count that is waiting for
   you, which is what a badge means everywhere else it appears
+- **the panels it used to have.** What the inbox became, the ages, the practice,
+  how much of Next is workable, the oldest thing in each view and the backlog
+  were all on the long page and are on none of the three forms. That is the
+  screen starting again small rather than a judgement on any of them: each would
+  be a form of its own, and none is built until it is asked for
 
 ### The read API
 The views are readable from outside the app, so that an AI can analyse what is

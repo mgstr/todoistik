@@ -124,11 +124,12 @@ CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)
 -- The one index in this database, and the Dashboard is what earned it. Every
 -- other screen queries what is open, which is bounded by how much you have
 -- going on; the Dashboard queries the log, which is bounded by how long you
--- have been using the app. Its two duration panels pair each leaving event
--- with the item's own creation as a correlated subquery, so without this the
--- work is rows-that-left x whole-log and the screen cost a quarter of a second
--- on one year of moderate use — twenty times any other page. With it, one
--- millisecond. The column order is the order the subquery narrows in.
+-- have been using the app. Its two duration panels paired each leaving event
+-- with the item's own creation as a correlated subquery, and without this the
+-- work was rows-that-left x whole-log: a quarter of a second on one year of
+-- moderate use, against a millisecond with it. Those panels are gone and the
+-- index stays — the forms still read the log by item type, which is its
+-- leading column (implementation.md, "The Dashboard").
 CREATE INDEX IF NOT EXISTS idx_audit_item ON audit_log(item_type, item_id, event, at);
 `
 

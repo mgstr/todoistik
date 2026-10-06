@@ -1270,52 +1270,105 @@ textarea.nodod { border: 2px solid var(--danger); }
 main { overflow-x: clip; }
 .pane.anim-running { overflow: clip; }
 
-/* The Dashboard. One new idea and no more: a proportion drawn as length,
-   inside the row shape every list in the app already uses. What was rejected
-   was a second shape for the time series — a column strip, which reads a week
-   better and cannot read a year at all without becoming a second kind of
-   picture on a screen that then has two. See research/dashboard-study.html
-   for the four variants and the arithmetic. */
-.panel { margin: 0 0 1.8rem; }
-.panel > h2 { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+/* The Dashboard: three forms, one on the screen, and none of them scrolls
+   (design.md, "Dashboard"). `main` is the scrollport everywhere else; here it
+   is a box the form has to fit, so the form is a column whose rows share out
+   whatever height is left rather than taking what they like. See
+   research/dashboard-forms-study.html for the page this was approved from. */
+main:has(> .dash) { display: flex; overflow: hidden; padding-bottom: .9rem; }
+.dash { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+/* The eight series colours, in a fixed order that was checked for being told
+   apart with and without colour vision against both grounds
+   (implementation.md, "The Dashboard"). A series keeps its slot; nothing is
+   ever given a ninth. */
+:root {
+  --s1: light-dark(#2a78d6, #3987e5); --s2: light-dark(#eb6834, #d95926);
+  --s3: light-dark(#1baf7a, #199e70); --s4: light-dark(#eda100, #c98500);
+  --s5: light-dark(#e87ba4, #d55181); --s6: light-dark(#008300, #008300);
+  --s7: light-dark(#4a3aa7, #9085e9); --s8: light-dark(#e34948, #e66767);
+}
+.dash .s1 { background: var(--s1); } .dash .s2 { background: var(--s2); }
+.dash .s3 { background: var(--s3); } .dash .s4 { background: var(--s4); }
+.dash .s5 { background: var(--s5); } .dash .s6 { background: var(--s6); }
+.dash .s7 { background: var(--s7); } .dash .s8 { background: var(--s8); }
+
+/* which form this is, and the digit that opens each: the numbers are printed
+   on the line they press, the way the weekly review prints its steps */
+.dash .forms { flex: 0 0 auto; display: flex; gap: 1.2rem; margin: 0 0 .9rem; font-size: .85rem; }
+.dash .forms a { color: var(--muted); }
+.dash .forms a.on { color: var(--fg); font-weight: 600; }
+.dash .forms .num { font: 700 .75rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); margin-right: .15rem; }
+
+.dash h2 { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; margin: 0; }
 /* the window a figure is counted over, said beside it rather than in a note:
    a number whose definition is not on the screen is one that gets misread once
    and distrusted afterwards (design.md, "Dashboard") */
-.panel .win, .panel h3 {
+.dash .win {
   font: 400 .68rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
 }
-.panel h3 { margin: .9rem 0 .15rem; }
-/* the headline, which is the number the panel is actually about. The bars
-   under it are the shape of that number and never the only statement of it. */
-.figure { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; margin: .15rem 0 .5rem; }
+.figure { display: flex; align-items: baseline; gap: .45rem; flex-wrap: wrap; margin: .15rem 0 .3rem; }
 .figure .big {
   font-size: 1.7rem; font-weight: 600; line-height: 1.1; letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
 }
 .figure .unit { color: var(--muted); font-size: .85rem; }
 .figure .vs { color: var(--muted); font-size: .85rem; }
+.dash .legend { display: flex; flex-wrap: wrap; gap: .1rem .9rem; margin: 0; font-size: .78rem; color: var(--muted); }
+.dash .legend span { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+.dash .sw { width: .6rem; height: .6rem; border-radius: 2px; flex: 0 0 auto; }
 
-.bars { margin: .15rem 0; }
-.barrow {
-  display: flex; align-items: center; gap: .5rem;
-  padding: .13rem .5rem; border-radius: 6px;
+/* Traffic and Queue: the dates down the middle and a bar either side, each
+   growing away from the date it belongs to. The figure sits between the date
+   and its bar, so a row is read outwards from the middle: when, how much,
+   made of what. */
+.fly {
+  --cols: minmax(0, 1fr) 2.7rem 6.3rem 2.7rem minmax(0, 1fr);
+  flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
 }
-.barrow:hover { background: var(--row-hover); }
-.barrow .lbl {
-  flex: 0 0 7.5rem; color: var(--muted); font-size: .82rem;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* the track is always drawn, so an empty day is a row with nothing in it
-   rather than a row that looks unrendered */
-.barrow .bar { flex: 1 1 auto; height: .55rem; border-radius: 3px; background: var(--badge-bg); }
-.barrow .bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); opacity: .8; }
-.barrow .num {
-  flex: 0 0 5.5rem; text-align: right; font-size: .85rem;
-  font-variant-numeric: tabular-nums;
-}
-.barrow .pct { flex: 0 0 2.6rem; text-align: right; font-size: .75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-/* today, and the month we are standing in: the one row on a time panel that is
-   still being written, which is why it is marked rather than left to be
-   counted to from the end */
-.barrow.now .lbl, .barrow.now .num { color: var(--fg); font-weight: 600; }
+.fly .head, .fly .brow { display: grid; grid-template-columns: var(--cols); column-gap: .5rem; }
+.fly .head { flex: 0 0 auto; margin-bottom: .7rem; }
+.fly .side { display: flex; flex-direction: column; min-width: 0; }
+.fly .side.l { grid-column: 1 / 3; align-items: flex-end; text-align: right; }
+.fly .side.l h2 { flex-direction: row-reverse; }
+.fly .side.l .figure, .fly .side.l .legend { justify-content: flex-end; }
+.fly .side.r { grid-column: 4 / 6; }
+/* the rows share the height that is left, up to the height a row wants: on a
+   short window they close up instead of the page growing a scrollbar */
+.fly .rows { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.brow { flex: 1 1 0; min-height: 0; max-height: 1.8rem; align-items: center; border-radius: 6px; }
+/* a band's first row: the week, the months and the year are three questions */
+.brow.gap { margin-top: .7rem; }
+.brow:hover { background: var(--row-hover); }
+.brow .lbl { text-align: center; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+.brow .num { font-size: .85rem; font-variant-numeric: tabular-nums; }
+.brow .num.l { text-align: right; }
+/* today, the month and the year we are standing in: the rows still being
+   written, which is why they are marked rather than left to be counted to */
+.brow.now .lbl, .brow.now .num { color: var(--fg); font-weight: 600; }
+/* the track is always drawn, so a period with nothing in it is a row with
+   nothing in it rather than a row that looks unrendered */
+.track { display: flex; gap: 2px; height: .6rem; border-radius: 3px; background: var(--badge-bg); min-width: 0; }
+.track.l { flex-direction: row-reverse; }
+.track i { flex: 0 0 0; height: 100%; border-radius: 2px; }
+.track b { flex: 0 0 0; }
+
+/* Inbox zero: a month a row, a day a column. The cells are as wide as the
+   column allows and square, so the grid's height follows from its width and
+   twelve rows of it stay inside the window. */
+.zero { flex: 1 1 auto; min-height: 0; }
+.zero .legend { margin-bottom: .9rem; }
+.zero .legend svg { width: 1rem; height: 1rem; }
+.zero .legend .hit svg, .zgrid .c.hit { color: var(--ok); }
+.zero .legend .miss svg, .zgrid .c.miss { color: var(--danger); }
+.zdefs { position: absolute; }
+.zgrid { display: grid; grid-template-columns: 2.6rem repeat(31, minmax(0, 1fr)); gap: 3px; }
+.zgrid .dn { font: 400 .62rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted); text-align: center; }
+.zgrid .mn { font-size: .82rem; color: var(--muted); align-self: center; }
+.zgrid .mn.now { color: var(--fg); font-weight: 600; }
+.zgrid .c { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; border-radius: 50%; }
+.zgrid .c svg { width: 100%; height: 100%; display: block; }
+/* a day with nothing to say — still to come, or before the record begins */
+.zgrid .c.none::after { content: ""; width: 3px; height: 3px; border-radius: 50%; background: var(--line); }
+.zgrid .c.today { outline: 2px solid var(--accent); }
