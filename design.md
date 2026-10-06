@@ -1690,28 +1690,50 @@ up where it stands.
 Around every view sit three pieces of the app's own furniture, and each one
 answers a different question:
 
-- **the title bar** - *where am I*. The app's name, then the view's with the
-  same count the navigation shows beside it, and then every step taken inside
-  it: "todoistik / Inbox / Processing / Create project / Create action". A
-  screen reached from inside another one is not a new place, it is a deeper
-  one, and the trail is the only thing that says which. It matters most on the
-  screens that have no nav entry of their own - processing, doing - which
-  without it can only be told apart by what happens to be on them
+- **the title bar** - *where am I*. The view's name with the same count the
+  navigation shows beside it, and then every step taken inside it: "Inbox /
+  Processing / Create project / Create action". A screen reached from inside
+  another one is not a new place, it is a deeper one, and the trail is the
+  only thing that says which. It matters most on the screens that have no nav
+  entry of their own - processing, doing - which without it can only be told
+  apart by what happens to be on them
 
-  **The path starts at the app, and the window says the same path.** A path is
-  read from the outside in, and the outermost step is the one thing the window
-  is left holding when the app is not what is being looked at: in a tab strip,
-  a switcher, a dock, "Create action" on its own names nothing and an app name
-  on its own names every screen alike. So the window's title is that same path
-  in that same order - "todoistik / Inbox / Processing" - rather than the
-  screen with the app's name tacked on the end, which read inside out and said
-  the app twice in a window already wearing it. One value behind both, because
-  a window and a bar that disagreed about where you are would be a bug nobody
-  would think to look for.
+  **The window says the same path, and only the window starts it at the app.**
+  A path is read from the outside in, and the outermost step is the one thing
+  the window is left holding when the app is not what is being looked at: in a
+  tab strip, a switcher, a dock, "Create action" on its own names nothing and
+  an app name on its own names every screen alike. So the window's title is
+  the app and then the bar's path, in the bar's order - "todoistik / Inbox /
+  Processing" - rather than the screen with the app's name tacked on the end,
+  which read inside out. One trail behind both, because a window and a bar
+  that disagreed about where you are would be a bug nobody would think to look
+  for.
 
-  The app's crumb is a name and not a step. It is where everything is, so
-  there is nothing under it to walk back to, and the Back button starts
-  counting at the view.
+  The bar itself does not say the app. It used to, on the reasoning that a
+  path has one outermost step and both places should draw it; but the bar is
+  only ever read from inside the app, where that step is the one word that is
+  the same on every screen and so tells none of them apart. It was a crumb
+  that was a name and not a step - nothing under it to walk back to, and the
+  Back button already started counting at the view - and the bar is now only
+  steps.
+
+  **While a filter hides part of the view, the count is a pair**: "Tasks 3 /
+  23", how many are on the screen of how many the view holds. Unfiltered it is
+  the one number, as before. A filtered list is the one case where the count
+  beside the view's name and the list under it disagree, and a bar that went
+  on saying 23 over three rows was saying something true about the view and
+  misleading about the screen. The second number is still the navigation's:
+  the badge never follows a filter (see "Filtering"), so the two panels go on
+  agreeing about how much the view holds, and the bar adds how much of it you
+  are looking at. It is a pair even when nothing matches - "0 / 23" is the
+  answer, not an absence of one - and it is said on every view that can be
+  filtered, including the ones whose unfiltered count is not worth a badge.
+
+  The pair stays on the bar for every step inside the view. An item opened
+  from a filtered list is still inside a filtered view - the filter is
+  remembered, and Back returns to the same three rows - so a bar that fell
+  back to "Tasks 23" one step in would read as the filter having been
+  cleared by opening something.
 
   **It is a path and not a label, and the way out walks it one step at a
   time.** Every screen you passed through to get here is on it, so an action

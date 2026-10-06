@@ -68,10 +68,11 @@ func (p *page) help(key string) *page {
 	return p
 }
 
-// appName leads every path: the title bar's and the window's. The app is the
-// first step of where you are the way a host is the first step of a URL — you
-// are in todoistik, then in a view, then in a screen of it — and it is written
-// once here because the bar and the <title> are now one value drawn twice.
+// appName leads the window's path and is not on the title bar's. The window
+// is read from outside the app — a tab strip, a switcher, a dock — where the
+// name is the half that says which app is asking; the bar is read from inside
+// it, where the same word was on every screen and told none of them apart
+// (design.md, "Panels").
 const appName = "todoistik"
 
 // crumb is one step of the title bar's trail: the view, then whatever is
@@ -82,6 +83,12 @@ type crumb struct {
 	Slug  string
 	Name  string
 	Count int
+	// Narrowed: a filter is hiding part of the view, so the count is said as
+	// "Shown / Count" — how many are on the screen, of how many the view
+	// holds. Its own flag rather than Shown being non-zero, because a filter
+	// that matches nothing is exactly when "0 / 20" has to be drawn.
+	Narrowed bool
+	Shown    int
 	// Alert: the count is the one design.md says loudly. Only the inbox has
 	// one, and the title bar says it the way the nav says it — with the nav
 	// off, this is the only place left that can (see implementation.md,
@@ -163,25 +170,32 @@ func (p *page) step(name, slug string) *page {
 	return p
 }
 
-// Crumbs is the whole path, the app included: what the title bar draws. The
-// trail itself starts at the view, because that is the part the screens build
-// up between them; the app is prepended here rather than stored, so that
-// step-counting, zen's screen names and the tests that pin the path all keep
-// reading the trail they were written against.
+// Crumbs is what the title bar draws: the trail, with the view's count said
+// against the filter when one is hiding part of it. The view's crumb is
+// written by newPage, before the handler has filtered anything, so the pair
+// is read here, at drawing time, off the same Shown and Total the filter bar
+// reads — the two cannot say different numbers about one list. The total is
+// the view's own unfiltered count either way, which is the number the nav
+// badge goes on showing (design.md, "Panels").
 func (p *page) Crumbs() []crumb {
-	return append([]crumb{{Name: appName}}, p.Trail...)
+	trail := append([]crumb(nil), p.Trail...)
+	if len(trail) > 0 && p.Shown < p.Total {
+		trail[0].Narrowed, trail[0].Shown, trail[0].Count = true, p.Shown, p.Total
+	}
+	return trail
 }
 
-// DocTitle is what the window says. It is the same path, in the same order,
-// joined the way the bar joins it: the window is read when the app is not the
-// thing being looked at — in a tab strip, a switcher, a dock — and a title
-// that named only the screen left out the half that says which app is asking.
+// DocTitle is what the window says: the app, then the bar's own path, joined
+// the way the bar joins it. The window is read when the app is not the thing
+// being looked at — in a tab strip, a switcher, a dock — and a title that
+// named only the screen left out the half that says which app is asking.
 // Outside in, because that is the direction every other path in the world is
-// read, and one string behind both panels, because a window and a bar that
+// read, and the same trail behind both, because a window and a bar that
 // disagreed about where you are would be a bug nobody would think to check.
 func (p *page) DocTitle() string {
 	names := make([]string, 0, len(p.Trail)+1)
-	for _, c := range p.Crumbs() {
+	names = append(names, appName)
+	for _, c := range p.Trail {
 		names = append(names, c.Name)
 	}
 	return strings.Join(names, " / ")
@@ -334,6 +348,37 @@ func (s *Server) viewFilters(view string, r *http.Request) app.Filters {
 	}
 	f, _ := app.NarrowToView(view, s.parseFilters(q))
 	return f
+}
+
+// narrowStep is the title bar's count on a screen inside a view: an item
+// opened from a filtered list. The list's own page counts what it drew
+// (Crumbs); a screen under it drew no list, so the pair is counted here, off
+// the filter set the view remembers — which is the one the list will be
+// wearing when Back returns to it. Without this the bar said "3 / 20" on the
+// list and "20" one step in, as though opening an item had cleared the filter
+// (design.md, "Panels").
+func (s *Server) narrowStep(p *page) {
+	if len(p.Trail) < 2 {
+		return
+	}
+	view := p.Trail[0].Slug
+	saved, _ := s.app.GetState("filters:" + view)
+	if saved == "" {
+		return
+	}
+	q, err := url.ParseQuery(saved)
+	if err != nil {
+		return
+	}
+	f, _ := app.NarrowToView(view, s.parseFilters(q))
+	if !f.Active() {
+		return
+	}
+	shown, ok, _ := s.app.ViewCount(view, f)
+	total, _, _ := s.app.ViewCount(view, app.Filters{})
+	if ok && shown < total {
+		p.Shown, p.Total = shown, total
+	}
 }
 
 // agesState is the one display flag the app carries, kept where the per-view

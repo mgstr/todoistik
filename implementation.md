@@ -3799,11 +3799,25 @@ wears it.
 
 ## Screen layout
 
-A rail down the left, a title bar across the top of what is left of the window,
-a fixed key bar along the bottom of it, and the view's content scrolling between
-them. The chrome never scrolls away, so where you are and what you can press are
-always on screen, however long the list is — and each of the three can be taken
-off it (see "Panels").
+A title bar across the top of the window, a fixed key bar along the bottom of
+it, and between them a rail down the left with the view's content scrolling
+beside it. The chrome never scrolls away, so where you are and what you can
+press are always on screen, however long the list is — and each of the three
+can be taken off it (see "Panels").
+
+- **the two bars run the width of the window, and the rail takes the height
+  they leave.** The rail used to run the whole height with the bars beside it,
+  which left a corner of rail above the first group that held nothing and
+  lined up with the title bar without being part of it, and cut the key bar
+  off at the rail when the key bar is the one strip here that runs out of
+  width. A bar that spans the window reads as the window's own edge; the rail
+  between them reads as one of the two things the window holds
+- **it is one grid on `.pane`, and the rail is inside it.** Two columns —
+  `auto` for the rail, the rest for `main` — and four rows: the error banner,
+  the title bar, the middle, the key bar. Every piece is placed by name, so a
+  panel that is off leaves an empty `auto` track, which is no track: no rule
+  has to know which panels are on. `<nav>` moved into the pane for this, after
+  the title bar in the markup, which is also the order it is now read in
 
 - **the nav is a rail rather than a line across the top.** Main caps its column
   at 62rem and the rail is 11.5rem wide, so on a window wider than about 76rem
@@ -3814,10 +3828,14 @@ off it (see "Panels").
   layout for that case, because design.md's "Design principles" say the app is
   used at a desk. See `research/left-nav-study.html` for the four variants and
   the arithmetic
-- **the key bar sits beside the rail, not under it**, so its left edge lines up
-  with the content whose keys it is naming. It answers "what can I press here",
+- **the key bar runs under the rail, and its keys still start at the content's
+  left edge** when there is room for that. It answers "what can I press here",
   which is a question about what is on screen and not about where else I could
-  go
+  go, so the keys line up with the column they are naming: `.pane` carries
+  `--rail`, the rail's width or zero, and both bars add it to their left
+  padding. On a window too narrow for the margin the keys start at the window's
+  edge instead, which is the width the bar was short of. The title bar uses
+  the same variable to stay centred over the view rather than over the window
 - **a view's header line, where it still has one, is fixed too**, not just the
   nav — what it carries is worth no less at item 200 than at item 1. It carries
   neither the view's *name* nor its count any more: the title bar says both on
@@ -3928,33 +3946,55 @@ the screen, and one answer that takes all three. This is how they are built.
   makes (see "Screen layout"): it is chrome, and must not read as part of the
   page. The extra size is the one thing it does not share with the bar, because
   it is read at a glance and the bar is read on purpose
-- **it never shrinks: `flex: 0 0 auto`, like the rail and the key bar.** It
-  was left out of that rule and was cut on the Archive. The bar scrolls
+- **it never shrinks: it sits in an `auto` row of the pane's grid, like the
+  key bar.** As a flex item it was cut on the Archive. The bar scrolls
   sideways so a long trail stays reachable, and a box that scrolls has a
   minimum height of zero — so when a list was much taller than the window,
   the pane's column shrank the bar in proportion to its own height alongside
   `main`. Every view lost a little; the Archive, the longest list, lost most
-  of the bar. Only `main` may give up height, because it is the one thing
-  here that scrolls to get it back
+  of the bar. An `auto` row is sized before the `1fr` row is given what is
+  left, so only the middle row may give up height, because its two boxes are
+  the things here that scroll to get it back (see "Screen layout")
 - **the title bar is a trail, and the server builds it.** Every page carries a
   list of steps (`page.Trail`): the view — with the same count the nav badge
   shows, read from `NavCounts.For` so the two numbers cannot come to differ —
   then whatever is being done inside it. `newPage` writes the first step from
   the view slug and a handler adds the rest with `step()`, which is why the
   processing screens read "Inbox / Processing / Create task"
-- **the app leads the path, and the window draws the same one.** `page.Crumbs`
-  is the trail with a crumb for the app in front of it, and `page.DocTitle`
-  joins those same names with the same `/` the bar draws between them — so
-  `<title>` reads "todoistik / Inbox / Processing" rather than the old
-  "Processing · todoistik", which named the innermost thing first and repeated
-  an app name the window already carries (design.md, "Panels"). The app is
-  prepended at drawing time and not stored in `Trail`, because everything else
-  reading the trail counts steps *inside* a view: `data-step`, `zenScreen` and
-  the Back button would each have had to learn to skip a crumb that is not a
-  screen. `page.Title` is nothing's caption any more — it is only the name
-  `newPage` falls back to for a view the nav has none for. `trail_test.go`
-  renders the window and the bar together and fails if they ever say different
-  things
+- **the app leads the window's path and is not on the bar's.** `page.Crumbs`
+  is the trail and `page.DocTitle` is the app's name and then those same
+  names, joined with the same `/` the bar draws between them — so `<title>`
+  reads "todoistik / Inbox / Processing" rather than the old "Processing ·
+  todoistik", which named the innermost thing first, and the bar under it
+  reads "Inbox / Processing" (design.md, "Panels"). The app is prepended at
+  drawing time and not stored in `Trail`, because everything else reading the
+  trail counts steps *inside* a view: `data-step`, `zenScreen` and the Back
+  button would each have had to learn to skip a crumb that is not a screen.
+  `page.Title` is nothing's caption any more — it is only the name `newPage`
+  falls back to for a view the nav has none for. `trail_test.go` renders the
+  window and the bar together and fails if they differ by anything but the
+  app
+- **a filtered view's count is a pair, and `Crumbs` is where it becomes one.**
+  `newPage` writes the view's crumb before the handler has filtered anything,
+  so the crumb is stored with the nav's number and `Crumbs` rewrites it at
+  drawing time when `Shown` is less than `Total` — the two fields the filter
+  bar's own count is rendered from, so the bar and the filter bar cannot say
+  different numbers about one list (design.md, "Panels"). It is a flag
+  (`Narrowed`) rather than a non-zero `Shown`, because "0 / 23" has to be
+  drawn and a zero count is otherwise not written. The live filter replaces
+  the view's crumb from the same answer it takes the list and the filter
+  bar's count from — only that crumb, since the rest of the bar may be
+  wearing a step or an unsaved mark the answer knows nothing about
+- **a screen inside the view counts the pair off the remembered filter.** A
+  detail page draws no list, so it has no `Shown` of its own: `render` calls
+  `narrowStep`, which for a trail of more than one step reads the view's saved
+  filter set and asks `App.ViewCount` for the view filtered and unfiltered.
+  That is two list queries on every item opened from a filtered view and none
+  otherwise, which is the price of not caching a number that any edit on that
+  very page can change. `ViewCount` lives in `internal/app` beside
+  `NavCounts`, because which list a view's name means is a domain fact. It
+  was missing at first, and the bar read "3 / 20" on the list and "20" one
+  step in
 - **the trail is a path, so the screens on the way are steps of it too.** A
   handler adds them with `under()`, ahead of its own `step()`: an action opened
   from its project reads "Projects / Edit project / Edit action". `openedFrom()`
@@ -4563,9 +4603,9 @@ thing a count in the corner of the screen must never do.
   arrived. A focused *button* is pointedly not busy — it is where the last
   click left the focus, and counting it would switch the refresh off for the
   rest of the page's life
-- **the title bar rides on the rail's poll, out of band.** Its view crumb —
-  the one after the app's — carries the same unfiltered count the badge does (see "Panels", and
-  design.md, "Panels"), and it sits outside both `<nav>` and `<main>` — a
+- **the title bar rides on the rail's poll, out of band.** Its view crumb
+  carries the count the badge does (see "Panels", and design.md, "Panels"),
+  and it sits outside both `<nav>` and `<main>` — a
   refresh that left it alone would have the two panels disagreeing about one
   fact, which is a worse state than the staleness this exists to fix
 - **the rail carries `data-inbox`, so the pane's flag can follow it.** "The

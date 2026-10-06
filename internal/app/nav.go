@@ -48,6 +48,47 @@ func (c *NavCounts) For(view string) int {
 	return 0
 }
 
+// ViewCount is how many items a view holds under a filter set — the list the
+// view's own page would draw, counted. It is what lets a screen that is not
+// the list say how much of the list is showing: the title bar goes on saying
+// "3 / 20" on an item opened from a filtered view (design.md, "Panels"). A
+// view that cannot be filtered answers false, and so has nothing to say.
+func (a *App) ViewCount(view string, f Filters) (int, bool, error) {
+	n, err := func() (int, error) {
+		switch view {
+		case "next":
+			l, err := a.NextActions(f)
+			return len(l), err
+		case "tasks":
+			l, err := a.Tasks(f)
+			return len(l), err
+		case "waiting":
+			l, err := a.WaitingFor(f)
+			return len(l), err
+		case "calendar":
+			l, err := a.Calendar(f)
+			return len(l), err
+		case "projects":
+			l, err := a.ProjectList(f)
+			return len(l), err
+		case "someday":
+			l, err := a.SomedayItems(f)
+			return len(l), err
+		case "reference":
+			l, err := a.ReferenceItems(f)
+			return len(l), err
+		case "archive":
+			l, err := a.Archive(f)
+			return len(l), err
+		case "scheduler":
+			l, err := a.Schedules(f.Name)
+			return len(l), err
+		}
+		return -1, nil
+	}()
+	return n, n >= 0 && err == nil, err
+}
+
 func (a *App) NavCounts() (*NavCounts, error) {
 	c := &NavCounts{}
 

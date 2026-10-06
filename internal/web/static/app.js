@@ -2390,6 +2390,12 @@
         if (before) main.insertBefore(c, bar); else main.appendChild(c);
       });
       bar.querySelector(".fcount").replaceWith(freshBar.querySelector(".fcount"));
+      // ...and the title bar says the same pair beside the view's name, so it
+      // moves with it. Only the view's crumb: the rest of the bar is this
+      // page's own, and may be wearing a mark the answer knows nothing about.
+      const crumb = document.querySelector("#titlebar .crumb");
+      const freshCrumb = doc.querySelector("#titlebar .crumb");
+      if (crumb && freshCrumb) crumb.replaceWith(freshCrumb);
       // closing the bar asks the server to clear only when something is
       // applied, and this is now what is applied
       box.defaultValue = line;

@@ -364,6 +364,7 @@ func (s *Server) render(w http.ResponseWriter, name string, data any) {
 			}
 		}
 		p.Panels = st.shown()
+		s.narrowStep(p)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, name, data); err != nil {

@@ -55,37 +55,89 @@ func pageFrom(t *testing.T, s *Server, path, from string) string {
 	return rec.Body.String()
 }
 
-// want compares the bar against the steps a case names. The app leads every
-// path and is added here rather than written into every case: that it is there
-// at all is one rule, pinned once by TestThePathStartsAtTheApp.
+// want compares the bar against the steps a case names.
 func want(t *testing.T, got []string, steps ...string) {
 	t.Helper()
-	steps = append([]string{"todoistik"}, steps...)
 	if strings.Join(got, " / ") != strings.Join(steps, " / ") {
 		t.Errorf("the title bar reads %q, want %q",
 			strings.Join(got, " / "), strings.Join(steps, " / "))
 	}
 }
 
-// The window and the bar say the same thing: one path, outside in, starting at
-// the app. They are drawn from one value, and this is what says the value is
-// the one both were meant to have.
-func TestThePathStartsAtTheApp(t *testing.T) {
+// The window and the bar say the same path, and only the window starts it at
+// the app: the name is what tells one window from another, and inside the app
+// it told no screen from any other (design.md, "Panels"). They are drawn from
+// one trail, and this is what says the window's is the bar's with the app in
+// front and nothing else different.
+func TestTheWindowStartsAtTheAppAndTheBarDoesNot(t *testing.T) {
 	s, a := newTestServer(t)
 	if _, _, err := a.Capture("Book the tyre change", app.SourceApp); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range []struct{ path, want string }{
-		{"/someday", "todoistik / Someday/Maybe"},
-		{"/process?item=1&one=1", "todoistik / Inbox / Processing"},
+		{"/someday", "Someday/Maybe"},
+		{"/process?item=1&one=1", "Inbox / Processing"},
 	} {
 		body := getPage(t, s, c.path)
-		if got := docTitle(t, body); got != c.want {
-			t.Errorf("GET %s: the window says %q, want %q", c.path, got, c.want)
+		if got := docTitle(t, body); got != "todoistik / "+c.want {
+			t.Errorf("GET %s: the window says %q, want %q", c.path, got, "todoistik / "+c.want)
 		}
 		if got := strings.Join(trail(t, body), " / "); got != c.want {
 			t.Errorf("GET %s: the title bar says %q, want %q", c.path, got, c.want)
 		}
+	}
+}
+
+// The view's count is one number until a filter hides part of the view, and
+// then it is how many are on the screen of how many the view holds — a pair
+// that includes "0 / 2", which is the answer a filter matching nothing gives
+// and the one a count that is simply not written would have swallowed
+// (design.md, "Panels").
+func TestTheBarCountsAgainstTheFilter(t *testing.T) {
+	s, a := newTestServer(t)
+	for _, title := range []string{"Pay the rent", "Call the bank"} {
+		if _, err := a.CreateAction(0, app.ActionFields{Title: title}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	const badge = `Tasks<span class="badge navcount`
+	for _, c := range []struct{ path, want string }{
+		{"/tasks?f=1&q=", ` ">2</span>`},
+		{"/tasks?f=1&q=rent", `">1 / 2</span>`},
+		{"/tasks?f=1&q=nothing-is-called-this", `">0 / 2</span>`},
+	} {
+		body := getPage(t, s, c.path)
+		if !strings.Contains(body, badge+c.want) {
+			i := strings.Index(body, `<header id="titlebar">`)
+			j := strings.Index(body, `</header>`)
+			t.Errorf("GET %s: the title bar is %q, want the count %q", c.path, body[i:j], c.want)
+		}
+	}
+}
+
+// ...and an item opened from the filtered list goes on saying the pair: the
+// filter is still on the view, and it is what Back returns to. A bar that
+// dropped to the one number a step in said the filter had been cleared.
+func TestTheBarKeepsThePairOnAnItemOfAFilteredView(t *testing.T) {
+	s, a := newTestServer(t)
+	var rent int64
+	for _, title := range []string{"Pay the rent", "Call the bank"} {
+		act, err := a.CreateAction(0, app.ActionFields{Title: title})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rent == 0 {
+			rent = act.ID
+		}
+	}
+	const pair = `Tasks<span class="badge navcount">1 / 2</span>`
+	getPage(t, s, "/tasks?f=1&q=rent")
+	if body := pageFrom(t, s, "/action/"+itoa(rent), "/tasks"); !strings.Contains(body, pair) {
+		t.Error("an item opened from a filtered view does not say how much of the view is showing")
+	}
+	getPage(t, s, "/tasks?f=1&q=")
+	if body := pageFrom(t, s, "/action/"+itoa(rent), "/tasks"); strings.Contains(body, pair) {
+		t.Error("the pair outlived the filter it was counting")
 	}
 }
 

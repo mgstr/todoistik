@@ -9,18 +9,55 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-{{/* The window says the same path the title bar says, from the app inwards —
-     see implementation.md, "Panels". One value behind both, so a tab that
-     named a different place than the bar under it cannot happen. */}}
+{{/* The window says the app and then the path the title bar says — see
+     implementation.md, "Panels". One trail behind both, so a tab that named a
+     different place than the bar under it cannot happen. */}}
 <title>{{.DocTitle}}</title>
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/htmx.min.js" defer></script>
 <script src="/static/app.js" defer></script>
 </head>
 <body hx-boost="true">
+{{/* barless: the key bar is where the controls are drawn, so a screen with no
+     key bar has to draw them itself — the row comes back under the form. A
+     panel is a thing shown and never a thing disabled (design.md, "Panels"),
+     and hiding the bar must not take the buttons with it. */}}
+<div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}} {{if not .Panels.Keybar}}barless{{end}}"
+  data-view="{{.View}}"
+  {{/* a screen inside the view rather than the view's own list: the trail has
+       a second step on it, which is exactly what ui.go's step() means by it.
+       The keyboard's row handover reads this — a list and a screen under the
+       same view name are still two different lists (app.js, viewKey). */}}
+  {{if gt (len .Trail) 1}}data-step{{end}}
+  data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
+  data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
+  data-verbs="{{range .Vocab.Verbs}}{{.}} {{end}}"
+  {{if .Nav.Inbox}}data-inbox-full{{end}}
+  {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
+  data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
+  {{if .Conf.KeysAnyLayout}}data-keys-any-layout{{end}}
+  {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
+  data-links-reach="{{.Conf.LinksReach}}"
+  data-keys-bar-style="{{.Conf.KeysBarStyle}}"
+  data-anim-done="{{.Conf.AnimDone}}"
+  data-anim-delete="{{.Conf.AnimDelete}}"
+  data-anim-back="{{.Conf.AnimBack}}"
+  data-anim-ms="{{.Conf.AnimMS}}"
+  data-theme="{{.Theme}}">
+{{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
+{{/* The title bar: where you are, and how deep in. The view, carrying the
+     count the nav badge carries — or, while a filter hides part of it, how
+     many are on the screen of that count — then every step inside it. See
+     implementation.md, "Panels". */}}
+{{if .Panels.Title}}
+<header id="titlebar">{{range .Crumbs}}<span class="crumb">{{.Name}}{{if .Narrowed}}<span class="badge navcount">{{.Shown}} / {{.Count}}</span>{{else if .Count}}<span class="badge navcount {{if .Alert}}alert{{end}}">{{.Count}}</span>{{end}}</span>{{end}}</header>
+{{end}}
 {{/* The nav is a rail down the left, grouped: vertical space is cheap enough
      to say that the thirteen views are five different kinds of place, which a
      row could only imply by adjacency. See implementation.md, "Navigation".
+     It sits inside the pane, between the two bars, so that they run the width
+     of the window and it takes the height they leave (implementation.md,
+     "Screen layout").
      It is one of the three panels, and a panel that is off is not on the page
      at all rather than hidden by a rule — see implementation.md, "Panels". */}}
 {{if .Panels.Nav}}
@@ -57,39 +94,6 @@
      the inbox is asking to be emptied, and what the settings file said about
      the timer. Attributes and not a script block, so there is one source of
      truth and it is the server's (implementation.md, "Stack"). */}}
-{{/* barless: the key bar is where the controls are drawn, so a screen with no
-     key bar has to draw them itself — the row comes back under the form. A
-     panel is a thing shown and never a thing disabled (design.md, "Panels"),
-     and hiding the bar must not take the buttons with it. */}}
-<div class="pane {{if .Ages}}ages{{end}} {{if .Panels.Zen}}zen{{end}} {{if not .Panels.Keybar}}barless{{end}}"
-  data-view="{{.View}}"
-  {{/* a screen inside the view rather than the view's own list: the trail has
-       a second step on it, which is exactly what ui.go's step() means by it.
-       The keyboard's row handover reads this — a list and a screen under the
-       same view name are still two different lists (app.js, viewKey). */}}
-  {{if gt (len .Trail) 1}}data-step{{end}}
-  data-contexts="{{range .Vocab.Contexts}}{{.}} {{end}}"
-  data-tags="{{range .Vocab.Tags}}{{.}} {{end}}"
-  data-verbs="{{range .Vocab.Verbs}}{{.}} {{end}}"
-  {{if .Nav.Inbox}}data-inbox-full{{end}}
-  {{if .Conf.ZenShowsTimer}}data-zen-shows-timer{{end}}
-  data-zen-timer-format="{{.Conf.ZenTimerFormat}}"
-  {{if .Conf.KeysAnyLayout}}data-keys-any-layout{{end}}
-  {{if .Conf.KeysLayoutMarker}}data-keys-layout-marker{{end}}
-  data-links-reach="{{.Conf.LinksReach}}"
-  data-keys-bar-style="{{.Conf.KeysBarStyle}}"
-  data-anim-done="{{.Conf.AnimDone}}"
-  data-anim-delete="{{.Conf.AnimDelete}}"
-  data-anim-back="{{.Conf.AnimBack}}"
-  data-anim-ms="{{.Conf.AnimMS}}"
-  data-theme="{{.Theme}}">
-{{if .Error}}<p class="error-banner">{{.Error}}</p>{{end}}
-{{/* The title bar: where you are, and how deep in. The app leads, then the
-     view carrying the same count the nav badge carries, then every step
-     inside it — see implementation.md, "Panels". */}}
-{{if .Panels.Title}}
-<header id="titlebar">{{range .Crumbs}}<span class="crumb">{{.Name}}{{if .Count}}<span class="badge navcount {{if .Alert}}alert{{end}}">{{.Count}}</span>{{end}}</span>{{end}}</header>
-{{end}}
 <main>
 {{end}}
 
@@ -154,12 +158,12 @@
 {{/* The rail, always: a badge is a number in a corner, and replacing it can
      interrupt nothing.
 
-     The title bar rides along, out of band. Its view crumb — the one after
-     the app's — carries the same unfiltered count the badge does — design.md, "Views" asks for one
-     number and "Panels" says why both panels must read it the same way — and
-     it sits outside both <nav> and <main>, so a refresh that left it alone
-     would have the two panels disagreeing about the same fact. That is a
-     worse state than the stale one this whole thing exists to fix. */}}
+     The title bar rides along, out of band. Its view crumb carries the count
+     the badge does — design.md, "Panels" says why both panels must read it
+     the same way — and it sits outside both <nav> and <main>, so a refresh
+     that left it alone would have the two panels disagreeing about the same
+     fact. That is a worse state than the stale one this whole thing exists to
+     fix. */}}
 <div data-poll hidden
      hx-get="{{.SelfURL}}" hx-trigger="every 30s"
      hx-select="nav" hx-target="nav" hx-swap="outerHTML"
