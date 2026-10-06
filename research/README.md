@@ -509,3 +509,45 @@ everything an action's meta line carries **by name** but none of the dates (a
 slot is stamped on many items, a moment belongs to one), and the digits mean
 snippets wherever the screen has a meta line and bookmarks wherever it has a
 filter line — never a mode, because no screen has both.
+
+---
+
+## dashboard-forms-study.html — the Dashboard as forms that fit the window
+
+**2026-10-07 · decided: three forms, segments of one bar, a tick and a face.**
+See design.md, "Dashboard", implementation.md, "The Dashboard" and keys.md.
+
+The Dashboard built from `dashboard-study.html` was nine panels down one page,
+moved through a section at a time. Living with it was the argument against it:
+a long page is read by travelling through it, and the panel wanted was rarely
+the one in the window. This page is the replacement as it was approved — the
+app's own shell at full window height, pressable, with invented data: Traffic,
+Queue and Inbox zero, changed with `1` `2` `3` or `j`/`k`, none of them
+scrolling. It is one design and not a comparison, so what it records is the two
+things that were decided *on* it, and the two it reversed.
+
+| | Question | Outcome |
+|---|---|---|
+| | A source's share of a bar: segments of one bar, or a thin bar each | **Segments.** The page first carried a switch between the two. A bar each keeps every source on a common baseline and costs four lines of height a row, twenty rows deep; segments keep the row a row |
+| | A day the inbox emptied: a smiling face against a sad one | **A tick against a sad face.** Two faces differing only in the mouth could not be told apart at the size of a cell. A filled square and an open circle are told apart by outline before either is read |
+
+What it reversed, both knowingly:
+
+- **incoming and outgoing are drawn side by side.** `dashboard-study.html`
+  established that they are two populations and kept them in separate panels
+  so nobody would subtract one from the other. They still are and nobody
+  should; what side by side buys is reading one day straight across, and the
+  form writes no net figure
+- **the screen passes a verdict.** "No targets, no streaks, no congratulation"
+  was a rule of the old Dashboard. The marks on Inbox zero are a judgement on a
+  day, taken on as the one exception — per day, never summed into a run
+
+The page's `record` switch shows the form over a full year and over what the
+log actually held on the day it was built, since 2 September: two months of
+rows and ten empty ones. That second state is what shipped looked like on its
+first day, and it is why a period before the record is a row with nothing
+written on it rather than a zero.
+
+Left out on purpose, to start small: what the inbox became, the ages, the
+practice, how much of Next is workable, the oldest thing in each view and the
+backlog. `dashboard-study.html` still holds the case for each.

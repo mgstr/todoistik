@@ -3345,7 +3345,8 @@
   }
 
   // A screen that marks its own sections lets j/k move the window through
-  // them, and the Dashboard is the one that does. `main` is the scrollport
+  // them. None does today: the Dashboard was the one, and it is forms that
+  // fit the window now (keys.md, "What is built"). `main` is the scrollport
   // (see implementation.md, "Screen layout"), so the move is the pane's own
   // offset and not the window's.
   //
