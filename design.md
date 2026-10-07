@@ -1878,15 +1878,24 @@ where you could go does not close the doors. A panel is a thing shown, never a
 thing enabled - which is what makes turning them off safe enough to be worth
 offering.
 
-This is why a screen with no key bar puts the row of buttons back under its
-form. The bar owns the keys no more than the rail owns the views, but it *is*
-where the controls are drawn, and a panel that took the controls away with it
-would be a panel that disabled something. So the buttons go wherever there is
-room for them: in the bar when there is a bar, and under whatever the screen is
-about when there is not - the form on an item's page, the list on a view that
-carries a control of its own. Zen mode is the case that matters, since two
-screens open in it unasked - and both of those are screens you are in the middle
-of one item on, where a menu under the item is the right shape anyway.
+This is why a screen whose key bar was turned off puts the row of buttons back
+under its form. The bar owns the keys no more than the rail owns the views, but
+it *is* where the controls are drawn, and a panel that took the controls away
+with it would be a panel that disabled something. So the buttons go wherever
+there is room for them: in the bar when there is a bar, and under whatever the
+screen is about when there is not - the form on an item's page, the list on a
+view that carries a control of its own.
+
+**Zen mode draws no buttons at all.** It used to count as the case above, and
+the case that mattered, since two screens open in it unasked. But zen is not
+"the bar is off", it is "none of it, for now" - and a row of buttons under the
+item is the bar come back, in the middle of the one screen that was cleared on
+purpose. Nothing is disabled by it: every key still presses what it pressed, so
+the half of the promise that was about what you can *do* holds, and only the
+half about what is *drawn* gives way, which is the half zen exists to give up.
+The cost is that a pointer has nothing to point at there, and that is accepted:
+the keyboard is the way through this app, and whoever wants the buttons is one
+key from having the bar back.
 
 ### Theme
 The app is painted in one of two palettes, light or dark, and which one is in
