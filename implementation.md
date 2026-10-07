@@ -1739,13 +1739,16 @@ and all eight branches on screen at once — three buttons and five forms in
   same fill, hover and metrics as the element
 - **where those rows are drawn depends on the key bar.** Every control a
   screen carries is drawn in the bar now (see "The key bar is the buttons"),
-  and the rows above are what the screen falls back to when there is no bar to
-  draw them in. That fallback is this screen's ordinary case rather than its
-  exception, because `zen.views` names processing: arriving here the usual way
-  you get the seven answers in three rows, exactly as described, and arriving
-  with zen turned off by hand you get them along the bottom in the same order.
-  So the grouping still earns its keep, and so does the accent rule over it —
-  both are arguments about a screen that is showing its own menu
+  and the rows above are what the screen falls back to when the bar has been
+  turned off by hand. That fallback used to be this screen's ordinary case,
+  because `zen.views` names processing — and it no longer is, because zen draws
+  no buttons at all (see "The key bar is the buttons"): arriving here the usual
+  way you get the capture and what it looks like, and the seven answers are
+  keys with nothing drawn for them. With zen turned off you get them along the
+  bottom in the same order, and with only the bar off you get the three rows,
+  exactly as described. So the grouping and the accent rule over it are now
+  arguments about the rarest of the three ways this screen is seen, and they
+  are kept because that way still exists
 - **Someday/Maybe opens a stage two, and the tags are why.** It was one click
   for a while, carrying the text as it stood: design.md allowed a rewording and
   a `snoozeUntil` here, both were reachable on the item's own page afterwards,
@@ -4131,12 +4134,16 @@ the default way through rather than the alternative to a row of buttons.
 - **it is no longer `aria-hidden`.** It was chrome describing the page; it is
   now the page's controls, and a button inside an `aria-hidden` container is a
   control nothing can reach
-- **a screen with no key bar draws the row again.** Zen mode takes the bar
-  away, and `zen.views` puts two screens in zen by default — so the pane says
-  `barless` when the server rendered no bar, and the row comes back under the
-  form. design.md, "Panels" promises that nothing else changes when a panel
-  goes, and a panel that took the buttons with it would break that promise
-  rather than keep a smaller one
+- **a screen with its key bar turned off draws the row again, and a zen
+  screen does not.** The pane says `barless` when the server rendered no bar,
+  and the row comes back under the form: design.md, "Panels" promises that
+  nothing else changes when a panel goes, and a panel that took the buttons
+  with it would break that promise rather than keep a smaller one. The rule is
+  `.pane.barless:not(.zen)`, because zen is a bare screen asked for as such
+  and the row would be the bar drawn again in the middle of it — the pane
+  already wears `zen`, so the exception is one selector and no new state. The
+  buttons stay in the page either way, which is what keeps their keys live:
+  a key presses the control, and the control never left
 - **dialogs keep their buttons.** A dialog is a question and its buttons are
   the answers; take those away and what is left is a box that does not say
   what it is for. The bar lists them there too, exactly as it always did

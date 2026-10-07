@@ -766,13 +766,18 @@ h2.nexthead.stalled { display: inline-flex; }
    what it is for. The bar lists them there too, exactly as it always did. */
 .actionsbar, .branches { display: none; }
 dialog .branches { display: flex; }
-/* and back under the form on a screen wearing no key bar — zen mode, or the
-   bar simply turned off. Every key still works with the bar hidden, and so
-   must every button: a panel is a thing shown, never a thing disabled
-   (design.md, "Panels"), so hiding the list of controls must not take the
-   controls with it. The pane says which case this is, because the server
-   already knows and the alternative is asking the page about itself. */
-.pane.barless .actionsbar, .pane.barless .branches { display: flex; }
+/* and back under the form on a screen whose key bar was turned off by hand.
+   Every key still works with the bar hidden, and so must every button: a
+   panel is a thing shown, never a thing disabled (design.md, "Panels"), so
+   hiding the list of controls must not take the controls with it. The pane
+   says which case this is, because the server already knows and the
+   alternative is asking the page about itself.
+
+   Not in zen mode. Zen is the answer "none of it, for now", and a row of
+   buttons under the item is the bar come back in the middle of the screen
+   that was cleared. The keys are all still live, which is the half of the
+   promise zen keeps. */
+.pane.barless:not(.zen) .actionsbar, .pane.barless:not(.zen) .branches { display: flex; }
 
 .process { max-width: 40rem; margin: 2rem auto; }
 /* the captured line is what the screen is about, and every control around it
@@ -824,7 +829,7 @@ dialog .branches { display: flex; }
 
 /* shape only — whether this row is drawn at all was decided above, and a
    `display` here would be read last and quietly undo it. What it is when it
-   is drawn (in a dialog, or on a barless pane) is a flex row. */
+   is drawn (in a dialog, or on a barless pane out of zen) is a flex row. */
 .branches { gap: .5rem; flex-wrap: wrap; margin: .75rem 0; }
 /* The two answers to a completion request are one question's yes and no, so
    they are the same width: a wider button reads as the safer answer, and which

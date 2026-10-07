@@ -1130,7 +1130,7 @@
   // opens in zen mode by default, so the screen a project is written on is
   // exactly the one with no chrome to wear this. A panel is a thing shown and
   // never a thing hidden state goes away with — the same rule that keeps the
-  // controls on a barless screen (implementation.md, "Panels").
+  // controls on a screen whose bar was turned off (implementation.md, "Panels").
   function renderDirty() {
     const on = dirtyForms().length > 0;
     const bar = document.getElementById("titlebar");
