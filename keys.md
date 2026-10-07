@@ -177,6 +177,16 @@ share a letter; bare, they cannot. The link takes the new letter because it
 is the one that had a modifier to lose, and `l` is the first letter of what
 it follows and was free everywhere.
 
+**The bar says `o`, and `↵` still works.** A row's entry used to read
+`↵ open`, which advertised the worse of the two keys and hid the better: `↵`
+is a reach off the home row and `o` is under a finger, next to the `j` and `k`
+that got the cursor there. The bar has room for one, so it shows the one worth
+learning — on every row entry, `o open`, `o process`, `o edit`,
+`o new project` and `o pick` alike, since it is the same key doing the same
+thing. `↵` is not taken away, because a list row answering Enter is what
+anyone expects without being told. Inside a box or a dialog the bar still
+says `↵`: there `o` is a letter being typed.
+
 **`keys.mode` is gone.** It chose between `command`, `modifier` and `hybrid`,
 and it existed because the question was about hands and could only be settled
 by working in each. It has been settled, and further than any of the three

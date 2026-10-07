@@ -1209,6 +1209,22 @@ a page load, and what the bar derives itself from.
   left, rather than a gap past it. It is claimed before the selection is, so
   that the cursor lands on a row that is already on screen and
   `scrollIntoView({ block: "nearest" })` has nothing left to move
+- **opening a row hands both on as well.** It was the one row key that did
+  not: `o` went straight to the item's page, so `b` came back to a list with
+  nothing selected and scrolled to its top (design.md, "Views"). Nothing new
+  was needed to carry it, only the call — the item's page is a screen inside
+  the view, so by the rules above it can neither claim the handover nor clear
+  it, and the list finds it waiting however the page was left: Back, Save,
+  Done, Delete. The key, a double click and a click on the row's title all go
+  through `openRow`, so the three cannot come to differ; the title's click
+  hands on the row it belongs to whether or not the cursor was on it, since
+  clicking an item's name is pointing at it, and a row's project badge hands
+  on nothing, since it is a link to somewhere else. It is not handed on when
+  the press is stopped to ask about unsaved work — the answer may be to stay.
+  What this costs is the "only once" above being looser than it reads: a page
+  left by a `g` jump instead of by Back leaves the handover unclaimed, and the
+  list takes it the next time it is opened. That is the row you last went
+  through on that list, which is a fair place for the cursor to be
 - single-key commands act on the selection. Complete, pick-for-today and doing are built; snooze, edit and tag are wanted and not yet built — keys.md, "What is built" is the ledger of which is which
 - `g`-prefixed jumps switch views, Vimium-style — see "Navigation" for the overlay and the exact letters — which is what makes "Next actions one keystroke away" (design.md, "Today") literally true
 - **a screen may declare keys on its own controls**, with `data-key` and
@@ -1597,8 +1613,8 @@ they apply.
   argument that leaves the write boxes without placeholders (see "The meta
   line")
 
-- **`↵` processes the selected item**, at `/process?item=<id>&one=1`, and
-  returns to the list afterwards — opening an inbox item *is* processing it,
+- **`o` or `↵` processes the selected item**, at `/process?item=<id>&one=1`,
+  and returns to the list afterwards — opening an inbox item *is* processing it,
   which is why the two share one label in the bar. `p` aliased `↵` here and is
   gone: the alias was the cheapest way to hand that letter to the project
   branch, which needed it more (keys.md, "The map"). **`z` runs Inbox Zero**,
@@ -2054,8 +2070,8 @@ action form opens.
   standalone is the other branch; a completed project is not on it, because it
   is not a valid home (design.md, "Inbox Zero")
 - **`+ new project…` is the last row and opens the dialog.** It carries
-  `data-newproject` and no `data-href`, so the row keys offer `↵ new project`
-  instead of `↵ open` — a row that opens a dialog rather than going somewhere,
+  `data-newproject` and no `data-href`, so the row keys offer `o new project`
+  instead of `o open` — a row that opens a dialog rather than going somewhere,
   which the draft rows on a project form already are (keys.md, "The map")
 - **the new project is held, not created.** The dialog writes nothing: it puts
   its two fields on the next URL and the form carries them as hidden values,
