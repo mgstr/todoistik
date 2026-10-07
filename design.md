@@ -1686,6 +1686,16 @@ long lists the marks exist for. The refresh above is held to the same rule and
 more strictly, because nobody asked for it - a list that catches up must catch
 up where it stands.
 
+**Opening an item and coming back is not a move either.** An item's page is a
+step inside the list it was opened from, and the way out of it - leaving,
+saving, completing, deleting - ends on that list (see "Resolving an item leaves
+its page"). It ends on the row it left through, at the place the list was
+scrolled to: a list is read by opening one item after another, and a return
+that dropped the cursor would make every item looked at cost finding it again
+before the next one down could be reached. An item that is gone by then -
+completed or deleted on its own page - leaves the cursor on whatever took its
+place, which is the same answer completing it from the list gives.
+
 ### Panels
 Around every view sit three pieces of the app's own furniture, and each one
 answers a different question:

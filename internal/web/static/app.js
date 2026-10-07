@@ -879,7 +879,7 @@
     // where it sits, and the keys for that are offered only where they would
     // do something: no "up" on the first row, no "down" on the last.
     if (row.hasAttribute("data-draft")) {
-      into.push(["\u21b5", "edit", function () { openDraft(row); }]);
+      into.push(["o", "edit", function () { openDraft(row); }]);
       // Moving the row itself is the movement keys with shift held: `u` and
       // `d` were spent on Undone and Done, and a draft is a row like any
       // other, so the delete key removes it the way the delete key removes anything.
@@ -894,14 +894,14 @@
     // the one row on the project picker that is not a project: it opens the
     // dialog the new one is written in rather than going anywhere
     if (row.hasAttribute("data-newproject")) {
-      into.push(["\u21b5", "new project", function () { newProjectDialog(); }]);
+      into.push(["o", "new project", function () { newProjectDialog(); }]);
       return;
     }
     // opening an inbox item is processing it, so the key says so
-    if (row.hasAttribute("data-process")) into.push(["\u21b5", "process", function () { openRow(row); }]);
-    else if (row.dataset.href) into.push(["\u21b5", "open", function () { openRow(row); }]);
+    if (row.hasAttribute("data-process")) into.push(["o", "process", function () { openRow(row); }]);
+    else if (row.dataset.href) into.push(["o", "open", function () { openRow(row); }]);
     else if (row.querySelector("input[type=radio]")) {
-      into.push(["\u21b5", "pick", function () {
+      into.push(["o", "pick", function () {
         const radio = row.querySelector("input[type=radio]");
         if (radio) { radio.checked = true; renderKeybar(); }
       }]);
@@ -936,7 +936,15 @@
   // what the bar's entry for it must do — one path, so that the key and the
   // pointer cannot drift apart.
   function openRow(row) {
-    if (row && row.dataset.href) goTo(row.dataset.href, false);
+    if (!row || !row.dataset.href) return;
+    // Opening a row is leaving the list by way of it, and the way back is
+    // expected to end on the row it went through. The page opened cannot
+    // claim the handover — it is a screen inside the view, or another view's
+    // — and does not clear it, so it is still there when the list comes back.
+    // Not when the leaving is stopped to ask about unsaved work, though: the
+    // answer may be to stay
+    if (leaving || !dirtyForms().length) handSelectionOn(row);
+    goTo(row.dataset.href, false);
   }
 
   // Inbox Zero is the list's own link, followed. One path for the key and the
@@ -1266,7 +1274,14 @@
     if (!a || (a.target && a.target !== "_self")) return;
     const href = a.getAttribute("href");
     if (!href || href.charAt(0) === "#") return;
-    if (leaving || !dirtyForms().length) return;
+    if (leaving || !dirtyForms().length) {
+      // a row's title is the mouse's way of opening it, and comes back to the
+      // row the same as the key does (see openRow). Only the link that is the
+      // row's own: its project badge goes somewhere else
+      const row = a.closest("[data-kb-row]");
+      if (row && row.dataset.href === href) handSelectionOn(row);
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     // the path, not the href: it is handed to the form as where to go after
@@ -3932,7 +3947,7 @@
         if (row && row.hasAttribute("data-newproject")) { e.preventDefault(); newProjectDialog(); break; }
         const radio = row && row.querySelector("input[type=radio]");
         if (radio) { e.preventDefault(); radio.checked = true; renderKeybar(); break; }
-        if (row && row.dataset.href) { e.preventDefault(); goTo(row.dataset.href, false); }
+        if (row && row.dataset.href) { e.preventDefault(); openRow(row); }
         break;
       }
       case "z": {
@@ -4057,7 +4072,7 @@
   // item, everywhere else it is opening it — the same data-href either way
   document.addEventListener("dblclick", function (e) {
     const row = rowFromEvent(e);
-    if (row && row.dataset.href) { e.preventDefault(); goTo(row.dataset.href, false); }
+    if (row && row.dataset.href) { e.preventDefault(); openRow(row); }
   });
 
   // Actions written before their project exists (the project branch of
