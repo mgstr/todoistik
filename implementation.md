@@ -82,6 +82,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [Specified, not yet built](#specified-not-yet-built) — rules design.md states that the code does not yet apply
 - [Deferred, by decision](#deferred-by-decision) — rough edges looked at, understood, and left for now
 - [Schema changes](#schema-changes) — no migration files: a schema, then steps that are no-ops twice
+- [Undo](#undo) — triggers that record each write's inverse, a POST as one step, and the question fetched at the press
 - [Wanted, not specified](#wanted-not-specified) — why `todo.md` is a third list, and unlike the two above
 
 <!-- /toc -->
@@ -4867,7 +4868,7 @@ whose every open action is asleep.
   the reason arrives as a banner (see "A refused post is never silent"), and
   the line comes back in the box you typed it in
 - **a completed action reads with no control on the screen at all.** Its one
-  button, Undone, is in the bar wearing `u`, and the page is what design.md,
+  button, Undone, is in the bar wearing `d`, and the page is what design.md,
   "Completion" asks for: text, and a way to lift the freeze
 
 - **each field's name sits beside its box**, in the app-wide gutter rather than
@@ -5098,6 +5099,13 @@ second shape.
   item open and editable, so the redirect falls through to the Referer and
   leaves you on the page you pressed it on — which has just become the form.
   The view it was opened from no longer holds it anyway
+- **and the form it becomes has Done on the key that was just pressed.** Undone
+  is `d` (keys.md, "The map"), so a doubled press would bring the item back
+  and finish it again with today's date on it. The form carries
+  `data-deaf-after`: its submit leaves a note in `sessionStorage`, and the
+  page that arrives is deaf to `d`, `⌫` and `b` for `anim.ms` — the arriving
+  half of the mechanism in "A moment that shows itself", with no effect
+  attached to it, because nothing left the screen for one to be about
 - **the crumb says "Completed task" / "Completed action" / "Completed
   project"** rather than "Edit …", because the crumb has always said what this
   screen is, and the `?` panel's notation section is left off with the meta box
@@ -5607,6 +5615,123 @@ still reports it, a value rewritten only where the old value is still there.
   because a list emptied on purpose would refill itself and the one thing this
   list has to support is taking a word off it (see "The verb a title opens
   with")
+- **`inbox_items` is the one table that was rebuilt, and the reason is the one
+  thing `ALTER TABLE` cannot add.** Its id is `AUTOINCREMENT` now (see "Undo"
+  for why an inbox id may never be handed out twice), and SQLite takes that
+  only at creation. So the step copies the rows into a table that has it, ids
+  kept because the audit log names them, drops the old one and renames — in
+  one transaction, guarded by reading the table's own `CREATE` out of
+  `sqlite_master`. It is the rename-copy-drop dance the bullet above declines,
+  done here because there was no other way to say it, and it is safe to do on
+  this table alone: nothing holds a foreign key into the inbox
+
+## Undo
+
+design.md, "Undo" is the rule; this is what it is built out of, and the short
+version is that the database writes down its own way back.
+
+- **three triggers on every item table record the inverse of each write.** An
+  insert records the `DELETE` that removes the row, a delete records the
+  `INSERT` of the whole row, an update records an `UPDATE` setting back the
+  columns that changed. Each is one row of `undo_log`, a line of SQL built
+  with `quote()`, and taking a step back is running its lines newest first.
+  Nothing in it knows what a project is. The alternative was an inverse
+  written by hand beside each of the thirty-odd writes in `internal/app`, and
+  that fails in the worst way available: the write added next year without
+  its inverse is an undo that half works, on the one feature whose whole
+  claim is that the item comes back as it was
+- **which is how it gets the hard cases without being told about them.**
+  Deleting an action clears the project's pointer at it as next, and wakes
+  whatever was snoozed on it, through `ON DELETE SET NULL` — no statement of
+  the app's. SQLite fires the triggers for those too, so the pointer and the
+  snooze go back with the action. A hand-written inverse would have had to
+  know the schema's side effects; this one is made of them
+- **the triggers are written from the table, at every start.**
+  `createUndoTriggers` reads each table's columns and key out of
+  `pragma_table_info` and writes the three statements from that, so a column
+  a migration adds is recorded from the next start with nothing to keep in
+  step. They are dropped at the top of `migrate()` and made again at its end,
+  because SQLite refuses to drop a column a trigger names, and dropped again
+  on `Close` — a database nobody has open is plain tables, alterable by hand.
+  A process that dies without closing leaves them, and the next start
+  replaces them either way
+- **an update takes back only the columns that moved.** Putting the whole old
+  row back would also put back whatever something else has written to it
+  since, and something else does write: the day boundary stamps a schedule as
+  fired. Undoing yesterday's edit of that schedule's text must not unstamp it
+- **a row keyed by a name comes back with `INSERT OR IGNORE`, a row keyed by
+  an id with a plain `INSERT`.** A tag on the remembered list is the same row
+  whoever puts it back, and may be there already. An item is one particular
+  item, and finding another in its place has to fail the whole undo — which
+  runs in one transaction — rather than quietly keep one of the two
+- **a step is a gesture, and a gesture is a post.** `App.Gesture(fn)` marks
+  everything written while `fn` runs as one step; `Handler` wraps every POST
+  from the UI in one, so a handler that takes three transactions to do one
+  press still makes one step. `internal/app` knows nothing of HTTP for it: a
+  gesture is "one thing a person did", and a test or a CLI makes one the same
+  way
+- **`tx()` settles it.** Every write goes through `App.tx`, which on the way
+  out looks at what the triggers recorded. Outside a gesture the lines are
+  deleted. Inside one they are given to the gesture's step — a row of
+  `undo_steps`, made the first time the gesture writes an audit entry, which
+  is the test design.md sets — and until then they wait, so that a pick for
+  today made in the same press as a Save rides with the Save and a pick made
+  alone is thrown away when the gesture ends
+- **the step keeps the ids of its audit entries, and those are the question.**
+  `tx()` reads where the audit log ended before the transaction and which
+  entries exist after it. Nothing is written for the dialog to say: it shows
+  the entries, and an entry whose snapshot holds no name — a review mark, a
+  toggled tag — is given the item's own
+- **what is nobody's gesture takes the same lock.** `Gesture` holds a mutex
+  for as long as it runs; `App.Outside`, which `Handler` wraps the API's
+  posts in, and `DayStart` take it too. Without that a mail captured while a
+  Save was between its transactions would be written into the Save's step,
+  and undoing the Save would delete the mail
+- **inbox ids are never reused, because the inbox is written from outside.**
+  Every other table is only ever written in steps, and steps are taken back
+  strictly newest first, so by the time a row is put back nothing can be
+  sitting on its id. The inbox is the exception: empty it at the desk, let a
+  mail arrive, and a plain rowid hands the mail the id of the capture just
+  trashed — whose return would then collide. `AUTOINCREMENT` is SQLite's own
+  way of saying an id is used once (see "Schema changes" for the rebuild)
+- **foreign keys are checked at the end of an undo, not during it.** The lines
+  run in the reverse of the order they were recorded in, and half-way through
+  that a project is back before the action it points at. `PRAGMA
+  defer_foreign_keys` moves the check to the commit, where the whole of it is
+  there
+- **two things are tidied after a replay, both left by writes that are not
+  steps.** A pick made on an item whose creation is then undone points at
+  nothing, and the next item given that id would be born picked, so tags on
+  items that do not exist are removed. And a name can be taken off a
+  remembered list in Settings — not audited, so not a step — after a step
+  that removed it from its last item; undoing that step hands the tag back to
+  the item, so every name an item carries is put back on its list
+- **the audit log is added to.** `Undo` writes one entry, event `undo`, whose
+  snapshot lists what it took back and carries a `text` saying so in a line,
+  which is the field the Audit screen already reads a row's name from. The
+  step's own entries stay ("Schema changes": the log is not rewritten, ever)
+- **the question is fetched at the press, not drawn with the page.** `GET
+  /undo` answers the last step as a fragment — the Audit screen's own rows —
+  and the key layer writes it into a dialog the layout carries empty. A page
+  is as old as its last render and one write does not redraw it: a review
+  mark is flipped where it stands. A question drawn in advance could read out
+  one step and take back another
+- **and the answer names the step it was asked about.** The form posts the
+  step's id, and `Undo` refuses an id that is no longer the last — a second
+  window, mostly. The handler does not show that as an error: it redraws the
+  screen, and the next press asks about whatever is last now. Step ids are
+  `AUTOINCREMENT` for this alone, so that a stale question can never match a
+  newer step that happened to be given the same number
+- **the key is a control, like every key.** A hidden button in the layout
+  carries `data-key="u"` and `data-global`, the way the ages flag is
+  declared, and is `disabled` while there is nothing to take back — so the
+  bar offers `u undo` exactly when a press would open a question, by the rule
+  that already governs every other entry. The one write that makes a step
+  without redrawing the page enables it by hand
+- **it comes back to the screen it was asked on**, which the form says in
+  `back`. If that screen was the page of the item the step made, the item is
+  gone and so is the page, and the redirect goes to the view the item
+  belonged to instead — `projectGone`'s answer to the same question
 
 ## Wanted, not specified
 

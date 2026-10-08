@@ -673,6 +673,7 @@ internal/cron/
 internal/app/             the domain — everything design.md describes, independent of HTTP
   types.go                the item structs (Action, Project, Schedule, ...) and their small derived methods (IsNext, ComputeStalled, ...)
   db.go                   SQLite open/schema/migrate, audit-log plumbing, the app_state key-value store
+  undo.go                 undo: the triggers that record each write's inverse, a gesture as one step, and taking one back
   capture.go              the inbox: Capture (with duplicate collapse), Inbox, edit/remove
   actions.go              action CRUD, tags, detach, snooze (date or sibling)
   projects.go             project CRUD, completion rules, Promote
@@ -698,6 +699,8 @@ internal/web/              HTTP and HTML — thin: talks to internal/app, never 
   ui.go                    every UI page handler — one per view/action, one HTTP verb+path each
   panels.go                which panels a screen wears, zen mode, and zen.views
   panels_test.go
+  undo.go                  what `u` would take back, and taking it back
+  undo_test.go
   bookmarks.go             the nine filter lines under the digits: kept, read and cleared
   bookmarks_test.go
   static/                  style.css, app.js (the keyboard layer), vendored htmx.min.js

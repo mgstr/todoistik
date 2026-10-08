@@ -261,6 +261,68 @@
     d.querySelector("form").requestSubmit();
   }
 
+  // ---- Undo (`u`) ---------------------------------------------------------
+  //
+  // The question before the act: what the last step was, and two answers
+  // (design.md, "Undo"). The lines are asked for at the press and not read
+  // off the page, because the page is as old as its last render and a mark
+  // flipped where it stands has made a step since — the server names the step
+  // it read out, and the answer is refused if that is no longer the last one.
+  function undoDialog() { return document.getElementById("undo-dialog"); }
+
+  function undoKey() { return document.querySelector("[data-undo-open]"); }
+
+  // A screen holding unsaved work is not undone from: what `u` takes back is
+  // what was written down, and coming back from it redraws the screen, which
+  // would lose the one thing here that is not written down yet. Save or leave
+  // first — the same two answers the screen's own way out asks for.
+  function canUndo() {
+    const key = undoKey();
+    return !!(key && !key.disabled && !dirtyForms().length);
+  }
+
+  // A write that does not redraw the page has still made a step, so the key
+  // the page was drawn without has to appear by hand.
+  function undoable(on) {
+    const key = undoKey();
+    if (!key || key.disabled === !on) return;
+    key.disabled = !on;
+    renderKeybar();
+  }
+
+  function openUndo() {
+    const dlg = undoDialog();
+    if (!dlg || topDialog() || !canUndo()) return false;
+    fetch("/undo", { credentials: "same-origin" }).then(function (res) {
+      if (res.status === 204) { undoable(false); return ""; }
+      if (!res.ok) throw new Error(String(res.status));
+      return res.text();
+    }).then(function (html) {
+      // nothing to take back, or something else came up while it was asked
+      if (!html || topDialog()) return;
+      const into = dlg.querySelector("[data-undo-step]");
+      into.innerHTML = html;
+      const step = into.querySelector("[data-step]");
+      if (!step) return;
+      dlg.querySelector("[name=step]").value = step.dataset.step;
+      dlg.querySelector("[name=back]").value = window.location.pathname + window.location.search;
+      dlg.showModal();
+      renderKeybar();
+    }).catch(function () { /* nothing was asked, and nothing on screen says it was */ });
+    return true;
+  }
+
+  function closeUndo() {
+    const dlg = undoDialog();
+    if (dlg && dlg.open) dlg.close();
+    renderKeybar();
+  }
+
+  function confirmUndo() {
+    const form = undoDialog().querySelector("form");
+    if (form.requestSubmit) form.requestSubmit(); else form.submit();
+  }
+
   function setPending(on) {
     gPending = on;
     if (on) showHints(); else clearHints();
@@ -303,7 +365,12 @@
     // it is read here and lands in the right half of the bar. Last, so a flag
     // whose label changes sits in the corner and does not shift the keys
     // beside it when it does
-    declaredKeys("[data-key][data-global]").forEach(function (k) { keys.push(k); });
+    // Undo is one of them, and is not offered from a screen with unsaved work
+    // on it (see canUndo) — the handler refuses there, so the bar must not ask
+    Array.from(document.querySelectorAll("[data-key][data-global]")).filter(keyUsable).forEach(function (el) {
+      if (el.hasAttribute("data-undo-open") && !canUndo()) return;
+      keys.push(keyEntry(el));
+    });
     return keys;
   }
 
@@ -341,6 +408,8 @@
       keys.push(["esc", "discard"]);
       return { view: keys, global: [] };
     }
+    const ud = undoDialog();
+    if (ud && ud.open) return { view: [["↵", "undo"], ["esc", "cancel"]], global: [] };
     const pd = panelsDialog();
     // the panel chooser is a list of keys and nothing else, so the bar is that
     // list — read off the dialog's own controls, like every other declared key
@@ -881,7 +950,7 @@
     if (row.hasAttribute("data-draft")) {
       into.push(["o", "edit", function () { openDraft(row); }]);
       // Moving the row itself is the movement keys with shift held: `u` and
-      // `d` were spent on Undone and Done, and a draft is a row like any
+      // `d` are spent on Undo and Done, and a draft is a row like any
       // other, so the delete key removes it the way the delete key removes anything.
       // Only past another draft: the saved rows above it are the project's
       // order and this form does not write them (see moveDraft).
@@ -1037,6 +1106,8 @@
       return res.json();
     }).then(function (state) {
       showReview(row, state.reviewed);
+      // a mark is a step like any other, and this page was not redrawn for it
+      undoable(true);
     }).catch(function () { /* nothing was stamped, and nothing on screen says it was */ });
     return true;
   }
@@ -1458,7 +1529,35 @@
     try { sessionStorage.setItem(ARRIVAL, kind); } catch (err) { /* no session storage: no effect, nothing else */ }
   }
 
+  // Undone is `d`, and the screen it comes back to is the same item, open,
+  // with Done on the same key — the answer looking like the question again,
+  // one press from completing what was only just brought back (keys.md, "A
+  // key that does nothing, on purpose, for a sixth of a second"). Nothing
+  // leaves the screen, so there is no effect to play and nothing for
+  // withMotion to do; what the press needs is only the deaf window, on the
+  // page that arrives. The form says so with data-deaf-after, and the note
+  // travels the way an arriving effect's does.
+  const DEAF_AFTER = "kb-deaf-after";
+  document.addEventListener("submit", function (e) {
+    if (!e.target.matches || !e.target.matches("[data-deaf-after]")) return;
+    try { sessionStorage.setItem(DEAF_AFTER, "1"); } catch (err) { /* no session storage: no window */ }
+  }, true);
+
+  function claimDeaf() {
+    let on = null;
+    try {
+      on = sessionStorage.getItem(DEAF_AFTER);
+      if (on) sessionStorage.removeItem(DEAF_AFTER);
+    } catch (err) { return; }
+    if (!on) return;
+    const pane = document.querySelector(".pane");
+    const ms = pane ? parseInt(pane.getAttribute("data-anim-ms"), 10) : 0;
+    // `anim.ms = 0` is the app as it was, with no deaf window anywhere
+    if (ms > 0) deafUntil = Math.max(deafUntil, Date.now() + ms);
+  }
+
   function claimArrival() {
+    claimDeaf();
     let kind = null;
     try { kind = sessionStorage.getItem(ARRIVAL); } catch (err) { return; }
     if (!kind) return;
@@ -3710,6 +3809,17 @@
       if (e.key === "Enter") { e.preventDefault(); submitCapture(dlg); }
       return;
     }
+    const undodlg = undoDialog();
+    if (undodlg && undodlg.open) {
+      // Two keys and nothing else, the pair every question in the app has:
+      // enter takes the answer that acts, esc the way out. Everything else is
+      // swallowed, so that a letter pressed at the question cannot reach the
+      // page behind it.
+      if (e.key === "Escape") { e.preventDefault(); closeUndo(); return; }
+      if (e.key === "Enter") { e.preventDefault(); confirmUndo(); return; }
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) e.preventDefault();
+      return;
+    }
     const linkdlg = linksDialog();
     if (linkdlg && linkdlg.open && topDialog() === linkdlg) {
       if (e.key === "Escape") { e.preventDefault(); linkdlg.close(); renderKeybar(); return; }
@@ -3930,7 +4040,7 @@
       // leaves the key alone rather than swallowing it to do nothing
       case "l": if (!topDialog() && followLink()) e.preventDefault(); break;
       // shift moves the row itself rather than the cursor, which is what a
-      // draft needs now that `u` and `d` are Undone and Done
+      // draft needs now that `u` and `d` are Undo and Done
       case "j":
         e.preventDefault();
         if (e.shiftKey && row && row.hasAttribute("data-draft")) moveDraft(row, 1);
@@ -4010,6 +4120,8 @@
     setPending(false);
     setJumping(false);
     if (e.target.closest("[data-capture-open]")) { e.preventDefault(); openCapture(); return; }
+    if (e.target.closest("[data-undo-open]")) { e.preventDefault(); openUndo(); return; }
+    if (e.target.closest("[data-undo-cancel]")) { e.preventDefault(); closeUndo(); return; }
     if (e.target.closest("[data-timer]")) { e.preventDefault(); toggleTimer(); return; }
     const pick = e.target.closest(".fsuggest li");
     if (pick) {

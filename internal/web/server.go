@@ -170,6 +170,19 @@ func (s *Server) Handler() http.Handler {
 		if err := s.app.DayStart(); err != nil {
 			log.Printf("day start: %v", err)
 		}
+		// A post from the UI is one thing done at the keyboard, and everything
+		// it writes is one step to take back. A post to the API is nobody's
+		// gesture: it is recorded nowhere, and kept from landing in the middle
+		// of one (implementation.md, "Undo").
+		if r.Method == http.MethodPost {
+			serve := func() { s.mux.ServeHTTP(w, r) }
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				s.app.Outside(serve)
+			} else {
+				s.app.Gesture(serve)
+			}
+			return
+		}
 		s.mux.ServeHTTP(w, r)
 	})
 }
@@ -211,6 +224,10 @@ func (s *Server) routes() {
 	})
 	m.HandleFunc("GET /inbox", s.inboxPage)
 	m.HandleFunc("POST /capture", s.capturePost)
+
+	// undo: what would be taken back, and taking it back
+	m.HandleFunc("GET /undo", s.undoAsk)
+	m.HandleFunc("POST /undo", s.undoDo)
 	m.HandleFunc("GET /someday", s.somedayPage)
 	m.HandleFunc("GET /reference", s.referencePage)
 	m.HandleFunc("GET /projects", s.projectsPage)

@@ -117,6 +117,13 @@
   <button>toggle ages</button>
 </form>
 {{end}}
+{{/* Undo, declared the way the ages flag above is: a control with nothing to
+     show, pressed by `u` from wherever you are and listed in the bar's right
+     half, where the app's own keys are. Disabled while there is nothing to
+     take back, which is what keeps the key out of the bar — a control that
+     cannot be pressed is not a key (keys.md, "The map"). What it opens is the
+     question further down. */}}
+<button type="button" hidden data-undo-open data-key="u" data-global data-key-label="undo"{{if not .Undo}} disabled{{end}}></button>
 {{/* What a digit presses when there is a filter on the screen to keep. One
      form for all nine, because the slot is a field and not a route: the key
      layer fills in which digit was pressed and what the line says, the way it
@@ -304,6 +311,23 @@
   </form>
 </dialog>
 {{template "leavedialog"}}
+{{/* Undo asks before it acts, and the question is what would be taken back
+     (design.md, "Undo"). The lines are fetched at the press and written in
+     here by the key layer — see undoAsk for why they are not drawn with the
+     page. A real form, so that confirming is a post like any other and the
+     screen that comes back is the server's. */}}
+<dialog id="undo-dialog" aria-labelledby="undo-title">
+  <h2 id="undo-title">Undo</h2>
+  <form method="post" action="/undo">
+    <input type="hidden" name="step" value="">
+    <input type="hidden" name="back" value="">
+    <div data-undo-step></div>
+    <div class="branches">
+      <button class="primary">Undo</button>
+      <button type="button" data-undo-cancel>Cancel</button>
+    </div>
+  </form>
+</dialog>
 {{if .HelpText}}<div id="help" hidden>
 <h2>{{.HelpName}}</h2>
 <p>{{.HelpText}}</p>
@@ -740,6 +764,24 @@
 {{/* one definition of a row, cloned by the keyboard layer when an action is
      added and rendered by the server when a refused form comes back */}}
 <template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form "Next" .Next)}}</template>
+{{end}}
+
+{{define "undostep"}}
+{{/* One step, as the audit log wrote it: the same three things an Audit row
+     says, in the same order, because it is those rows that are about to be
+     taken back. The hour is the capture's own stamp format — a step is
+     recognised by what it was and when, and "today" alone does not tell two
+     of them apart. */}}
+<ul class="list audit" data-step="{{.ID}}">
+{{range .Entries}}
+  <li class="row">
+    <span class="badge">{{.Event}}</span>
+    <span class="badge">{{.ItemType}}</span>
+    <span class="title">{{.Name}}</span>
+  </li>
+{{end}}
+</ul>
+<p class="when">{{age .At}} {{clock .At}}</p>
 {{end}}
 
 {{define "leavedialog"}}
