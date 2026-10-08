@@ -343,6 +343,10 @@ func (a *App) DayStart() error {
 	if last == today {
 		return nil
 	}
+	// nobody's gesture, and it must not land in the middle of one: what the
+	// day boundary writes is never a step to be taken back (see undo.go)
+	a.gmu.Lock()
+	defer a.gmu.Unlock()
 	return a.tx(func(tx *sql.Tx) error {
 		// re-check inside the transaction
 		var l string

@@ -37,8 +37,11 @@
          leaves you on it, open and editable, which is where the next thing
          you wanted to do to it happens. The Archive it was opened from no
          longer holds it. */}}
-    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline">
-      <button class="primary" data-key="u" data-key-label="undone">Undone</button>
+    {{/* `d`, the letter Done has on the same page once this is pressed: one
+         mark said from both sides (keys.md, "The map"). data-deaf-after is
+         what stops the second press of a double from being that Done. */}}
+    <form method="post" action="/action/{{$a.ID}}/uncomplete" class="inline" data-deaf-after>
+      <button class="primary" data-key="d" data-key-label="undone">Undone</button>
     </form>
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>

@@ -241,6 +241,9 @@ type page struct {
 	// the settings file. On every page because the answer is worn by the whole
 	// document, and read on Settings because that is where it is chosen.
 	Theme string
+	// Undo says there is a step to take back, which is what puts `u` in the
+	// bar: a key with nothing to do is never offered (keys.md, "The map").
+	Undo  bool
 	Conf  conf.Config
 	Error string
 	// SelfURL is this page's own address, filters and all, so the background
@@ -288,6 +291,7 @@ func (s *Server) newPage(title, view string, r *http.Request) *page {
 		p.Ages = v == "1"
 	}
 	p.Theme = s.theme()
+	p.Undo = s.app.CanUndo()
 	if h, ok := viewHelp[view]; ok {
 		p.HelpName, p.HelpText = h.Name, h.Text
 	}
@@ -786,18 +790,7 @@ func (s *Server) auditPage(w http.ResponseWriter, r *http.Request) {
 	}
 	rows := make([]auditRow, 0, len(entries))
 	for _, e := range entries {
-		row := auditRow{AuditEntry: e}
-		var snap struct {
-			Text  string `json:"text"`
-			Title string `json:"title"`
-		}
-		if json.Unmarshal([]byte(e.Snapshot), &snap) == nil {
-			row.Text = snap.Text
-			if row.Text == "" {
-				row.Text = snap.Title
-			}
-		}
-		rows = append(rows, row)
+		rows = append(rows, auditRow{AuditEntry: e, Text: e.Text()})
 	}
 	p := s.newPage("Audit log", "audit", r)
 	p.Data = rows

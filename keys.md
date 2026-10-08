@@ -206,17 +206,37 @@ the line is refused at startup, like any other setting the app does not know.
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
 | `a` | Add, and Action | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen. On the processing question it is the Action branch, which is the same noun doing the same thing — see "The processing branches" |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not |
+| `d` | Done, and Undone | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not. On a completed action's page and a completed project's it is Undone, which brings the item back |
 | `r` | the review mark | a row of a weekly review step |
 | `n` | make this the next action | a row of the plan on a project's page, and nowhere else |
 | `t` | Today | every list row that carries the mark, an action's page, a project's next action, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote, the add-action dialog, and a stalled project's empty boxes, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
 | `⌫` | Delete | every row that carries one — including a Reference row, which is the one list view that carries a delete — action, project, reference item, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
-| `u` | Undone | a completed action's page, a completed project's page |
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
 | `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
+
+**Undone is `d`, and it was `u`.** It moved to make room: `u` is Undo now, on
+every screen (see "The app's own keys" below), and one letter could not be the
+last press taken back everywhere and a completed item brought back on the two
+pages that hold one. Where it went is the letter it arguably always belonged on.
+Done and Undone are one mark said from both sides — "a state toggle is named
+for the state, not for the act" is implementation.md's rule for the pair
+("Button labels") — and that is what `r` already is for the review mark and
+`t` for the pick: one key, and the bar says which way this press goes,
+`d done` or `d undone`. The two are never on a screen together, because a
+completed item's page is the one place an item has no Done.
+
+- **it is still a declared key, not a row key.** `d` asks the row under the
+  cursor for a Done first and the screen second, as it always has, and a
+  completed item's page has neither, so the ask comes back empty and the
+  declared key takes it — the ordering that already lets `t` be the task
+  branch (see "What is built")
+- **pressing it lands you on a screen where `d` is Done**, the same item, open
+  again. That is the one hazard the move brought with it, and it is answered
+  where the others of its kind are: see "A key that does nothing, on purpose,
+  for a sixth of a second"
 
 **`n` is spent at last, and on the thing it used to mean.** It held Parked /
 Next and went when `#parked` did, and was left free rather than reused while
@@ -335,14 +355,16 @@ and the screen's own answers came after it. It is the one control where being
 wrong is expensive, and an entry a pointer can reach is worse to have among
 the keys pressed all day than a letter was.
 
-**The five above are the tier that used to have no letters.** They are rare,
+**Detach, Promote, Undone and Inbox are the tier that used to have no
+letters**, with Parked / Next the fifth while there was one. They are rare,
 deliberate acts and they were reached with `m` and a declared letter, which
-worked only while the button was on the screen to hang a hint on. Two of them
-share a letter with something already on the map, and both share the *noun*,
-which is what the rule asks: `p` is Promote here and the Project branch on the
-processing screen, and both mean "make this a project"; `i` is Inbox, and the
-Recapture button on the audit means the same thing — send this to the inbox.
-Neither pair is ever on one screen. `n`, `x` and `u` were free.
+worked only while the button was on the screen to hang a hint on. Three of them
+share a letter with something already on the map, and all three share the
+*noun*, which is what the rule asks: `p` is Promote here and the Project branch
+on the processing screen, and both mean "make this a project"; `i` is Inbox,
+and the Recapture button on the audit means the same thing — send this to the
+inbox; `d` is Undone and Done. No pair is ever on one screen. `n` and `x` were
+free, and so was `u`, which Undone held until Undo needed it.
 
 **The processing branches** are seven answers to one question rather than
 seven controls on a screen — see implementation.md, "The processing screen".
@@ -538,8 +560,35 @@ every other key, and so live in command mode only.
 | `1`…`9` | the nine under the digits: go to a bookmark where there is a filter line, write a snippet where there is a meta line |
 | `0` | the nine of them, on the screen — whichever nine this screen's digits mean |
 | `v` | the panel chooser; a second `v` presses zen |
+| `u` | undo: asks about the last thing done, and takes it back on `↵` |
 | `?` | the view's own help |
 | `esc` | unwind one step — see below |
+
+**`u` is Undo, on every screen, and it opens a question rather than doing
+anything** (design.md, "Undo"). It is the first letter of its own word and the
+letter every editor has taught the hand, which is why it was worth moving
+Undone off it rather than taking `q`, the one letter the map had left.
+
+- **it is the app's key and not a screen's**, because what it acts on is the
+  last press, wherever that was made. So it sits in the bar's right half with
+  the keys that do not change from screen to screen, and it is the same letter
+  on the Inbox, on an action's page and on the Dashboard
+- **the question has the two keys every question here has.** `↵` takes it back
+  and `esc` leaves everything as it is, and nothing else is live while it is
+  up — a letter pressed at the question does not reach the page behind it.
+  Unlike the unsaved-work question, `esc` here means what it means everywhere:
+  one step of unwinding, and nothing lost (see "Leaving a screen")
+- **more than one step is the same two keys again.** `u` `↵` `u` `↵` goes back
+  two, each question reading out the step it is about. There is no key that
+  takes back several at once, and no redo
+- **it is offered only when it would do something**, like every entry in the
+  bar: not while there is nothing to take back, and not on a screen holding
+  unsaved work, where the way on is `s` or `b` first
+- **`g u` is still the Audit view**, which is the prefix doing its job, as it
+  does for `g d` and `g t`. The pair is close kin, too: one shows what was
+  done and the other takes the last of it back
+- **`m u` is unaffected.** The jump hands out its own letters to the controls
+  of the open screen, after its own prefix
 
 **A bare digit goes to a bookmark and never makes one.** `3` on a list view
 opens what is kept under 3 — its view, with its filter on it — whether or not
@@ -632,7 +681,8 @@ hangs its letters on the controls of the open screen, and with the buttons
 drawn in the bar rather than on the form there is no longer a button to hang
 one on. A letter each was the honest answer, and it cost less than it looked
 like it would — `x` and `u` were free, and the two that were not turned out to
-share a noun with the letter that held them.
+share a noun with the letter that held them. Undone has since moved from `u`
+to `d`, when Undo took `u`, and shares a noun there as well (see the map).
 
 There were five. **Parked / Next** held `n`, and it went when `#parked` did:
 what it toggled was an action's availability said as a bare state, and what
@@ -790,6 +840,17 @@ window either: that line is the app as it was.
 exactly where it is, nothing leaves the screen, and pressing it twice is a
 thing you meant.
 
+**Undone is in it, from the other side.** `d` on a completed item's page brings
+the item back, and the screen that answers is the same item with Done on the
+same key — the answer looking like the question again, and a doubled press
+would finish what was only just reopened, stamping it completed today. Nothing
+leaves the screen, so there is no motion to play; what the press gets is the
+window alone, on the page that arrives: the three keys are deaf there for
+`anim.ms`, and not at all when that is 0.
+
+`u` needs none. Its second press opens a question, and the question's `↵` is
+answered by a screen with no question on it.
+
 ## What is built
 
 All of it.
@@ -933,6 +994,15 @@ key can never be advertised without working:
   rows that marks its sections is moved through them by `j`/`k` (design.md, "A
   screen taller than the window is read from the keyboard too"). The Dashboard
   was the only one, and no longer marks any.
+
+- **`u` is a control in the layout, declared like the ages flag.** A hidden
+  button carrying `data-key="u"` and `data-global`, disabled while there is
+  nothing to take back — so the bar's entry and the key are the standing
+  mechanism and nothing new, and a key with nothing to do is not offered. What
+  it opens is fetched at the press (implementation.md, "Undo")
+- **Undone is the same declared key it was, with a different letter on it**,
+  plus `data-deaf-after` on its form, which is what asks the arriving page for
+  the deaf window
 
 - **`b` no longer arms, it asks.** `leave()` hands every way out to one
   function, and that function puts the question when the screen has unsaved

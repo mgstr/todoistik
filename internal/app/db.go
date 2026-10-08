@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -19,6 +22,10 @@ type App struct {
 	// default so a caller that reads no settings file still gets the rule;
 	// main overwrites it with whatever the file says.
 	somedayReviewDays int
+	// gesture is the thing being done at the keyboard right now, if anything
+	// is, and gmu is what keeps a second writer out while it is: see undo.go.
+	gesture atomic.Pointer[gesture]
+	gmu     sync.Mutex
 }
 
 func Open(path string, loc *time.Location) (*App, error) {
@@ -37,11 +44,23 @@ func Open(path string, loc *time.Location) (*App, error) {
 	return a, nil
 }
 
-func (a *App) Close() error { return a.db.Close() }
+// Close takes the undo triggers off on the way out, so that a database nobody
+// has open is plain tables (see dropUndoTriggers). A process that dies without
+// closing leaves them, and the next Open replaces them either way.
+func (a *App) Close() error {
+	a.dropUndoTriggers()
+	return a.db.Close()
+}
 
 const schema = `
+-- AUTOINCREMENT, alone among the items: an inbox id is never handed out
+-- twice. The inbox is the one table written from outside a gesture — the
+-- capture API, a schedule firing — and a plain rowid is reused the moment the
+-- newest row is deleted, so a mail arriving after the inbox was emptied would
+-- take the id of the capture an undo is about to put back (implementation.md,
+-- "Undo").
 CREATE TABLE IF NOT EXISTS inbox_items (
-	id INTEGER PRIMARY KEY,
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	text TEXT NOT NULL,
 	source TEXT NOT NULL DEFAULT '',
 	created_at TEXT NOT NULL
@@ -134,7 +153,12 @@ CREATE INDEX IF NOT EXISTS idx_audit_item ON audit_log(item_type, item_id, event
 `
 
 func (a *App) migrate() error {
-	if _, err := a.db.Exec(schema); err != nil {
+	// off first and back on last: a trigger that names a column is what stops
+	// that column being dropped, and the steps below drop some
+	if err := a.dropUndoTriggers(); err != nil {
+		return err
+	}
+	if _, err := a.db.Exec(schema + undoSchema); err != nil {
 		return err
 	}
 	// The schema above only ever creates what is missing, so a database made
@@ -239,7 +263,47 @@ func (a *App) migrate() error {
 	// The verb list starts with something on it, once and once only — a seed
 	// rather than a set of defaults, so that a word taken off stays off (see
 	// verbs.go).
-	return a.seedVerbs()
+	if err := a.seedVerbs(); err != nil {
+		return err
+	}
+	if err := a.inboxIDsNeverReused(); err != nil {
+		return err
+	}
+	return a.createUndoTriggers()
+}
+
+// inboxIDsNeverReused rebuilds an inbox table made before its ids were
+// AUTOINCREMENT (see the schema). SQLite cannot add that to a table that
+// exists, so the rows are copied into one that has it — ids kept, since the
+// audit log names them — inside one transaction, and nothing else points at
+// this table.
+func (a *App) inboxIDsNeverReused() error {
+	var ddl string
+	if err := a.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='inbox_items'`).Scan(&ddl); err != nil {
+		return err
+	}
+	if strings.Contains(strings.ToUpper(ddl), "AUTOINCREMENT") {
+		return nil
+	}
+	return a.tx(func(tx *sql.Tx) error {
+		for _, stmt := range []string{
+			`CREATE TABLE inbox_items_new (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				text TEXT NOT NULL,
+				source TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL
+			)`,
+			`INSERT INTO inbox_items_new (id, text, source, created_at)
+				SELECT id, text, source, created_at FROM inbox_items`,
+			`DROP TABLE inbox_items`,
+			`ALTER TABLE inbox_items_new RENAME TO inbox_items`,
+		} {
+			if _, err := tx.Exec(stmt); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (a *App) hasColumn(table, column string) (bool, error) {
@@ -309,17 +373,38 @@ func (a *App) audit(tx *sql.Tx, event, itemType string, itemID int64, item any) 
 	return err
 }
 
-// tx runs fn inside a transaction.
+// tx runs fn inside a transaction. On the way out it settles what the
+// transaction's writes recorded for undo: kept as part of the gesture's step,
+// or thrown away where nobody's gesture made them (see undo.go).
 func (a *App) tx(fn func(tx *sql.Tx) error) error {
 	tx, err := a.db.Begin()
 	if err != nil {
 		return err
 	}
+	g := a.gesture.Load()
+	var mark int64
+	if g != nil {
+		if mark, err = auditMark(tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	if err := fn(tx); err != nil {
 		tx.Rollback()
 		return err
 	}
-	return tx.Commit()
+	step, err := a.settleUndo(tx, g, mark)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	if step != 0 {
+		g.step = step
+	}
+	return nil
 }
 
 // SetState stores one piece of app state (e.g. a view's remembered

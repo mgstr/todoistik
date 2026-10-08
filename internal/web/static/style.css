@@ -737,6 +737,24 @@ h2.nexthead.stalled { display: inline-flex; }
 #leave-dialog .branches { margin: 0; }
 #draft-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
 
+/* Undo's question: the leave question's box, wide enough for an item's name.
+   The rows are the Audit screen's own, since they are the entries about to be
+   taken back, and they scroll inside the box — a project made with a dozen
+   actions is a dozen lines, and the two answers must stay on the screen. */
+#undo-dialog {
+  width: min(34rem, 92vw); padding: 1.1rem 1.35rem;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--bg); color: var(--fg);
+  box-shadow: 0 12px 48px rgba(0,0,0,.45);
+}
+#undo-dialog::backdrop { background: rgba(0,0,0,.45); }
+#undo-dialog h2 { margin: 0 0 .55rem; font-size: .95rem; color: var(--muted); }
+#undo-dialog .list { margin: 0; max-height: 50vh; overflow-y: auto; }
+#undo-dialog .row { flex-wrap: nowrap; }
+#undo-dialog .title { overflow-wrap: anywhere; }
+#undo-dialog .when { margin: .45rem 0 .8rem; color: var(--muted); font-size: .82rem; }
+#undo-dialog .branches { margin: 0; }
+
 /* the dates over the buttons on an action's page: the same muted line the
    crumb is set in, sat where the crumb used to be read *from* rather than at
    the top of the screen. A flex row so that the line simply disappears when

@@ -65,6 +65,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
   - [Weekly review](#weekly-review) — the ritual every view's trustworthiness rests on
   - [Editing items](#editing-items) — editable while open, frozen once finished, audited either way
   - [Reshaping items](#reshaping-items) — nothing is retyped: detach, promote, and send back to the inbox
+  - [Undo](#undo) — the last thing done taken back, one step at a time, after being asked
 - [Out of scope](#out-of-scope) — what will not be built, written down so it stops coming back
   - [Deliberate omissions](#deliberate-omissions) — priority, sub-projects and the rest, each with its reason
 
@@ -1344,6 +1345,10 @@ text back in the inbox and the new ones do not, which is the only honest pair of
 answers.
 
 The one exception is `#today`, which is never audited - see "#today".
+
+**Taking something back is itself something that happened, and is recorded as
+one.** An undo writes an entry of its own, naming the entries of the step it
+took back, and removes none of them (see "Undo").
 
 ### Following a link
 An item's text often holds a link. Mail capture writes one into every item it
@@ -3945,6 +3950,69 @@ and the case that looks like reshaping - "this turns out to need doing" - is a
 new commitment rather than this item converted. What changed is what you know,
 not what the item is, so it is captured as the action it now is and the material
 stays where material lives (see "Reference item").
+
+### Undo
+The last thing done can be taken back, and the one before it, and so on. A
+deleted item is there again, a completed one is open again, a saved one says
+what it said before the save. This is for the slip - the key pressed on the
+wrong row, the Save that should not have been - and it exists because the audit
+log, which is where a slip was recovered from until now, recovers a text and not
+an item: recapturing a deleted action gives back its words and loses its
+project, its tags, its dates and its place in a plan.
+
+- **a step is one thing done at the keyboard, whole.** One press is one step
+  however much it wrote: the Save on a project's page writes the project, its
+  next action and the rows added to its plan, and they go back together. Half of
+  a press taken back would be a state nobody ever put the app in
+- **what counts as a thing done is what the audit log recorded.** A step is a
+  press that wrote an entry there, so the two agree about what happened and the
+  question below has words to ask with. It follows that picking an item for
+  today is not a step, since that is never audited (see "#today"): it is a mark
+  with its own key to take it off, and a walk back through this morning's picks
+  to reach yesterday's mistake would be the undo getting in its own way. Neither
+  is anything about how the screen is set - a filter, a panel, a bookmark - none
+  of which is something done to an item
+- **only what was done here.** A capture that arrived from outside - a mail, a
+  message, a reminder, a schedule firing at the start of the day - is not a
+  step, and is never taken back by this. Nobody at this keyboard did it, and the
+  thing it would remove is exactly the thing that cannot be got back: the mail
+  has already lost its label. Undo reaches past such an arrival to the last
+  thing that was done, and leaves the arrival where it is
+- **it asks first, and the question is what would be undone.** A press that
+  silently changed something is what this is here to repair, so it must not be
+  one itself. The question reads out the step as the audit log wrote it - what
+  happened, to what kind of item, and its name - and when. For an edit the name
+  is the one from before the edit, which is the one coming back. There are two
+  answers: do it, or leave everything as it is. Unlike the question about
+  unsaved work this one can simply be declined, because nothing was already on
+  its way anywhere (see "A screen with unsaved work on it says so, and asks
+  before it is left.")
+- **newest first, one at a time, and each one asked about.** Going back three
+  steps is three questions. That is deliberate rather than a missing
+  convenience: each answer is given about a step that was just read out, and
+  the further back a step is, the less likely it is to be the one remembered
+- **there is no redo.** A step taken back is gone from the list of steps, and
+  the way to have it again is to do it again. Redo is the half of this that is
+  wanted when undo is pressed by accident, and undo cannot be pressed by
+  accident: it asks
+- **it is not offered from a screen holding unsaved work.** What is taken back
+  is what was written down, and the screen comes back redrawn - which would lose
+  the one thing on it that is not written down yet. Save it or leave it first
+- **the audit log gains an entry and loses none.** What the log says afterwards
+  is what happened: the thing was done, and then it was taken back, in that
+  order, with the second entry naming the first. The log is not rewritten to
+  pretend the slip never occurred, for the reason a completion later brought
+  back stays counted on the "Dashboard" - and it means a day's counts include
+  the slips made in it, which is a fair description of the day
+- **it is kept for a hundred steps, across restarts, and no longer.** Enough
+  that the bound is never met in one sitting; a bound at all, because a way back
+  to last month's state is a backup's job and not this one's
+
+**Undone is a different thing, and still there.** Bringing a completed item back
+from the "Archive" is a decision about the item - it turned out not to be
+finished - made on purpose, days later, about any item at all. Undo is about the
+last press, whatever it was. The two meet only when the last press was a Done,
+and then either will do.
 
 ## Out of scope
 

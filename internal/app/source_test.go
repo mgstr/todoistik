@@ -159,7 +159,12 @@ func TestAnOlderDatabaseGetsTheColumnAndNoBackfill(t *testing.T) {
 	if _, _, err := a.Capture("Pay the rent", "telegram"); err != nil {
 		t.Fatal(err)
 	}
-	// put the database back the way it was before the field
+	// put the database back the way it was before the field. A database that
+	// old carries no undo triggers either, and one that names the column would
+	// refuse the drop
+	if err := a.dropUndoTriggers(); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := a.db.Exec(`ALTER TABLE inbox_items DROP COLUMN source`); err != nil {
 		t.Fatal(err)
 	}
