@@ -3446,8 +3446,13 @@
     });
   }
 
+  // The cursor is one of those rows or it is nothing. A chooser that has been
+  // answered still holds the answer it was on, highlight and all, and read
+  // straight off the document that leftover was "the selected row" on any
+  // screen with no row of its own — so `l` asked a link in a shut dialog for
+  // its links, found none, and was gone after its first use.
   function selected() {
-    return rowScope().querySelector("[data-kb-row].kb-selected");
+    return rows().find(function (r) { return r.classList.contains("kb-selected"); }) || null;
   }
 
   function select(row) {
@@ -4620,7 +4625,7 @@
     // a dialog is a question waiting for an answer
     if (document.querySelector("dialog[open]")) return false;
     // the cursor is a claim on a row, and only esc gives it back
-    if (document.querySelector("[data-kb-row].kb-selected")) return false;
+    if (selected()) return false;
     const el = document.activeElement;
     if (!el) return true;
     if (el.isContentEditable) return false;
