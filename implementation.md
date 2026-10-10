@@ -4332,6 +4332,18 @@ the same name in `app.js`).
   stepped through nine invisible rows on every list in the app. It now skips
   any row whose dialog is closed, which also catches the answers left behind
   in the unknown-name and link choosers
+- **and `selected()` reads the cursor out of `rows()`**, not off the document.
+  Skipping shut rows when walking was half of it: an answered chooser keeps
+  `kb-selected` on the answer it was on, and a screen that is about one item
+  and has no row of its own — processing, an action's page, the doing screen —
+  found that leftover as its selection. `l` then asked a link in a closed
+  dialog what links it held, got none, and vanished from the bar after the
+  first link followed out of an item holding two; the screen's own `d` and `t`
+  went with it, being offered only when nothing is under the cursor. One
+  definition of what a row is, used by both, is what stops the next dialog
+  from reopening this. `tkIdle` asks the same function, because the leftover
+  also read as "the cursor is on a row" and switched the background refresh
+  off until the next page load
 
 ## Snippets
 
