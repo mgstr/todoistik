@@ -621,6 +621,45 @@ Inbox Zero like anything else. That is the same round trip a reminder ticked
 off on a phone makes: the outside says "this looks like something", and you
 answer at the desk.
 
+## Watch
+
+`watch/` is a Zepp OS app for an Amazfit watch (written for the T-Rex 3): when
+the battery falls to a threshold it files one capture, `Charge the watch`, and
+files nothing more until the watch has been charged. The watch has no network
+of its own, so the request is made by the Zepp app on the phone, straight to
+the capture API — which means the app has to listen beyond `127.0.0.1`, and the
+phone has to be on the same network when the level is reported:
+
+```sh
+export TODOISTIK_ADDR=0.0.0.0:8390    # in .env/secrets.sh
+```
+
+The token then crosses that network in plain HTTP. Installing is Zepp's own
+route for an app that is not in their store: Developer Mode switched on in the
+Zepp app, and their CLI.
+
+```sh
+npm install -g @zeppos/zeus-cli
+cd watch && npm install
+zeus login          # a Zepp account
+zeus preview        # pick the watch; scan the QR code from the Zepp app
+```
+
+In the Zepp app, the app's settings page:
+
+| setting     | default            |                                                   |
+|-------------|--------------------|---------------------------------------------------|
+| `URL`       | *(empty)*          | the running app, `http://192.168.1.20:8390`       |
+| `Token`     | *(empty)*          | the app's bearer token                            |
+| `Threshold` | `20`               | the percent at which the capture is filed         |
+| `Text`      | `Charge the watch` | what the capture says                             |
+
+Open the app once on the watch: it asks to run in the background, and shows the
+level with what the phone answered — `ok`, `sent`, `already sent`, `not set
+up`, `not reached` or `refused`. From then on it reports by itself, on every
+percent and on the hour, and the settings page shows the last answer and when.
+See implementation.md, "The watch's battery".
+
 ## Source layout
 
 ```
@@ -654,6 +693,16 @@ cmd/todoistikmcp/         the app as an MCP server, spoken over stdin and stdout
   main.go                 the flags, the token, and the server on the stdio transport
   tools.go                the three tools and their schemas: the situation, one view, and the way in
   tools_test.go           the real protocol against the real server, over an in-memory transport
+
+watch/                    the watch's battery into the inbox: a Zepp OS app, not Go, built with Zepp's zeus
+  app.json                what the app is made of and what it may do
+  app.js                  the channel to the phone, opened for the page and the service alike
+  page/index.js           the one screen: the level, the phone's answer, and starting the service
+  app-service/index.js    the background half: the level, said on every percent and on the hour
+  app-side/index.js       the phone's half: takes a level, files the capture, keeps the last answer
+  app-side/report.js      the rule — when a level is a capture, and when it has already been one
+  setting/index.js        the settings page in the Zepp app
+  test/report.test.js     the rule, under node
 
 internal/apiclient/
   client.go               the app as seen from outside: capture on the way in, a view on the way out, as items or as text
@@ -812,6 +861,7 @@ go test ./...    # the domain suite (internal/app, internal/cron), and the
 gofmt -l .       # should print nothing; gofmt -w . to fix
 ./doctoc.sh      # rewrite the contents list in design.md and implementation.md
 ./cmd/build.sh   # the five binaries, into bin/
+(cd watch && npm test)   # the watch app's rule; needs node and nothing else
 ```
 
 ### The development server
