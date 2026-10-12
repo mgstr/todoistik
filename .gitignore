@@ -9,3 +9,5 @@
 .claude/*
 !.claude/settings.json
 /.env/
+/watch/node_modules/
+/watch/dist/

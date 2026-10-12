@@ -1,0 +1,53 @@
+{
+  "configVersion": "v3",
+  "app": {
+    "appId": 1083920,
+    "appName": "todoistik",
+    "appType": "app",
+    "version": {
+      "code": 1,
+      "name": "1.0.0"
+    },
+    "icon": "icon.png",
+    "vender": "todoistik",
+    "description": "Files a capture in todoistik when the watch wants charging"
+  },
+  "permissions": ["data:os.device.info", "device:os.bg_service"],
+  "runtime": {
+    "apiVersion": {
+      "compatible": "4.0",
+      "target": "4.0",
+      "minVersion": "4.0"
+    }
+  },
+  "targets": {
+    "common": {
+      "module": {
+        "page": {
+          "pages": ["page/index"]
+        },
+        "app-service": {
+          "services": ["app-service/index"]
+        },
+        "app-side": {
+          "path": "app-side/index"
+        },
+        "setting": {
+          "path": "setting/index"
+        }
+      },
+      "platforms": [
+        {
+          "st": "r",
+          "dw": 480
+        }
+      ]
+    }
+  },
+  "i18n": {
+    "en-US": {
+      "appName": "todoistik"
+    }
+  },
+  "defaultLanguage": "en-US"
+}

@@ -23,6 +23,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [Mail into the inbox](#mail-into-the-inbox) — `cmd/mailsync`, a Gmail label emptied one capture per message
 - [Telegram](#telegram) — `cmd/telegrambot`, the app in one chat: capture in, views out
 - [The app as an MCP server](#the-app-as-an-mcp-server) — `cmd/todoistikmcp`, the same APIs over stdin and stdout
+- [The watch's battery](#the-watchs-battery) — `watch/`, a Zepp OS app that files one capture per discharge
 - [Keyboard](#keyboard) — how the layer works; the map itself is in keys.md
   - [Which key is which](#which-key-is-which) — a key is a place on the keyboard, not the character it types
   - [Which layout the keyboard is in](#which-layout-the-keyboard-is-in) — the bar says Russian while the keyboard is Russian
@@ -1114,6 +1115,68 @@ Telegram bot polls rather than being called.
   thing it stands for changed, and both ends of this program are ends it does
   not own
 
+## The watch's battery
+
+`watch/` is a Zepp OS app for an Amazfit watch that files one capture when the
+watch wants charging. It is the fifth program outside the app and the first
+that is not Go and is not built by `cmd/build.sh`: nothing but Zepp's own
+runtime runs on the watch or inside the Zepp app on the phone, so it is
+JavaScript, it lives beside `cmd/` rather than under it — the build script
+takes every directory there for a Go command — and it is packaged with Zepp's
+`zeus`. It reaches the app the way the other four do, through the capture API
+under the bearer token, and can do nothing else.
+
+- **three pieces, because the watch has no network of its own.** A background
+  service on the watch reads the level; the Zepp app on the phone is the only
+  thing that can make an HTTP request, so a *side service* there makes it; and
+  a settings page in the Zepp app holds the address, the token, the threshold
+  and the text. The watch talks to the phone over Bluetooth through Zepp's
+  `@zeppos/zml`, which is the one dependency
+- **the watch says the level and decides nothing.** The threshold, whether this
+  discharge was already filed and where the app is are all on the phone, in
+  `app-side/report.js`. A rule split across the two would have a setting that
+  has to be carried to the wrist every time it moves, and a watch that believed
+  it had filed something the phone never managed to send
+- **a discharge is filed once, and what remembers that is the phone.** The
+  inbox already drops a capture identical to one sitting in it (design.md,
+  "Duplicate captures"), which is why the text is the same every time and
+  carries no percentage — a level in it would make every percent a new item.
+  But that only covers the time the item is in the inbox, and the first thing
+  done with it is to process it into "charge the watch tonight"; the next
+  percent would then file it again. So the side service keeps a `filed` mark,
+  set when the app answers and cleared only by charging
+- **cleared five percent above the threshold, not at it.** A resting battery
+  reads a percent up and a percent down, and without the gap 20, 21, 20 is two
+  captures for one discharge
+- **it is marked filed only when the app has said it has the text**, `accepted`
+  or `duplicate` alike. A phone away from the network the app is on, a wrong
+  token, a server that is down — each leaves it unfiled, and the next level the
+  watch reports tries again. That is the whole of the retry, and it is why the
+  threshold wants to sit well above empty
+- **the phone reaches the app directly, on the home network.** The app listens
+  on `127.0.0.1` unless told otherwise, so this is the first caller that needs
+  `TODOISTIK_ADDR=0.0.0.0:8390`, and with it the token crosses the LAN in plain
+  HTTP. That was chosen over a relay on the internet that a program beside the
+  app would poll, as the Telegram bot does: a relay works from anywhere, and it
+  is a third party and a sixth program for a battery that takes weeks to empty
+  and a watch that is home every night
+- **a percent lost is the event, and the hour is the retry.** The service
+  reports on every battery change and again on the hour. Zepp gives a
+  background service no timers, only a callback each minute, and a level that
+  fell while the phone was out would otherwise wait for the next percent, which
+  on this watch is most of a day
+- **opening the app on the watch starts the service and shows one answer** —
+  the level, and what the phone said: `ok`, `sent`, `already sent`, `not set
+  up`, `not reached`, `refused`. Zepp lets only a page start a background
+  service, after asking once, and the service survives a restart of the watch
+  from then on. The answer on screen is the one way to see from the wrist
+  whether the phone reached the app; the settings page keeps the last one with
+  its time
+- **the rule is tested and the rest is not.** `report.js` takes its store and
+  its fetch as arguments and touches nothing of Zepp's, so `npm test` runs it
+  under node. The page, the service and the settings page are a few lines each
+  around Zepp's APIs and can only be tried on a watch
+
 ## Keyboard
 
 **The map is in keys.md.** Which letter presses which button, which mode a
@@ -1564,12 +1627,12 @@ and never edited afterwards (design.md, "Where it came from").
   channel being counted twice under two spellings. The four the app itself
   writes are constants in `internal/app/capture.go` — `app` (the dialog),
   `api` (a caller that named none), `schedule` (a firing) and `someday` (an
-  idea sent back to the inbox). The other four are constants in the programs
+  idea sent back to the inbox). The other five are constants in the programs
   that make them: `mail` in `cmd/mailsync`, `telegram` in `cmd/telegrambot`,
-  `reminders` in `cmd/remindersync` and `mcp` in `cmd/todoistikmcp`. Those four
-  talk to the running app over HTTP and never import the domain, by design (see
-  "Reminders, both ways"), so a shared constant would be a dependency bought
-  for one word
+  `reminders` in `cmd/remindersync`, `mcp` in `cmd/todoistikmcp` and `watch` in
+  `watch/app-side/report.js`. Those five talk to the running app over HTTP and
+  never import the domain, by design (see "Reminders, both ways"), so a shared
+  constant would be a dependency bought for one word
 - **`reminders` covers both directions of that bridge**, the list moved in and
   the completion requests filed. It is the same word `request.Line.Source`
   already carries for the same reason, and one channel is what it is: a request

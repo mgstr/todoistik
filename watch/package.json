@@ -1,0 +1,12 @@
+{
+  "name": "todoistik-watch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The watch's battery, into the todoistik inbox",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@zeppos/zml": "^0.0.43"
+  }
+}
