@@ -521,7 +521,7 @@
      only inside a project form: there are two required titles there — the
      project's and its next action's — and "needs title" would not say which
      (see implementation.md, "Create buttons"). */}}
-<label class="gutter"><span class="lb">Title</span> <input name="{{.Prefix}}title" value="{{.Title}}" {{if .Required}}required{{end}} data-verbcheck{{with .Form}} form="{{.}}"{{end}}{{with .Label}} data-label="{{.}}"{{end}}{{if .Focus}} autofocus{{end}}
+<label class="gutter"><span class="lb">Title</span> <input name="{{.Prefix}}title" value="{{.Title}}" {{if .Required}}required{{end}} data-verbcheck{{with .Form}} form="{{.}}"{{end}}{{with .Label}} data-label="{{.}}"{{end}}{{if .Focus}} autofocus{{end}}{{if .TabFirst}} data-tabfirst{{end}}
   placeholder="Starts with a verb, fully self-descriptive"></label>
 {{if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
