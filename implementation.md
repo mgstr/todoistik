@@ -2586,6 +2586,17 @@ One rule, applied wherever something is made:
   grew a `Fields` for it — the template reads the project's three boxes off
   that and never off the saved project, so there is one path through the
   template and the bounce is not a second rendering of the same screen
+- **a refused Delete or Done on that page comes back the same way.** Deleting a
+  project that still has open actions, or completing one with no DOD, is
+  answered by `projectVerb` with the project's page, 200, and the reason in
+  that `.ask` paragraph. The net above never saw these: the delete key calls
+  the form's native `submit()`, which goes past htmx, so the plain 400 became
+  the whole screen — one unstyled line of text with nothing on it but the
+  browser's own back. Rendered server-side rather than by teaching the key to
+  post through htmx, because a refusal that depends on which way the form was
+  sent is the same bug waiting for the next caller. The page comes back as
+  saved, not as typed: these two forms post only where to go afterwards, so
+  there is nothing typed to carry
 
 ## Unsaved work
 
