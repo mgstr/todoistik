@@ -785,6 +785,20 @@
     if (e.altKey || e.metaKey || e.ctrlKey) return null;
     const k = keyOf(e);
     if (k.length !== 1) return null;
+    // A control may declare a capital, and then it is that letter with shift
+    // held — the one press on the processing question that files a capture
+    // without opening its form (keys.md, "The processing branches"). Shift and
+    // not the character, because a place on the keyboard has no case and caps
+    // lock is not a decision to skip a form. A shifted letter no control
+    // claims is the letter it always was.
+    if (e.shiftKey && /^[a-z]$/.test(k)) {
+      const shifted = declaring(k.toUpperCase());
+      if (shifted) return shifted;
+    }
+    return declaring(k);
+  }
+
+  function declaring(k) {
     const all = document.querySelectorAll("[data-key]");
     for (let i = 0; i < all.length; i++) {
       if (all[i].dataset.key === k && keyUsable(all[i])) return all[i];
@@ -3998,7 +4012,17 @@
     // a key the page declares beats the standing map: on a screen that has
     // its own answers, those are what the letters mean there
     const branch = branchFor(e);
-    if (branch) { e.preventDefault(); press(branch); return; }
+    if (branch) {
+      e.preventDefault();
+      // a press that files the item and brings the next one back on the same
+      // screen is deaf while that screen arrives, and never repeats under a
+      // held key: the second press would land on a capture nobody had read
+      // (keys.md, "A key that does nothing, on purpose, for a sixth of a
+      // second")
+      if (branch.hasAttribute("data-deaf-after") && (deaf() || e.repeat)) return;
+      press(branch);
+      return;
+    }
 
     // The nine under the digits, and `0` for the list of them. Which nine is
     // the screen's answer and not a mode: a meta line here means the snippets

@@ -1307,6 +1307,16 @@ a page load, and what the bar derives itself from.
   is no modifier to declare, because no key of the app's is a chord, and no
   `data-key-typing` any more, because no control is reached with the caret
   still in a box — keys.md, "The two modes" says why
+- **a capital is a declaration too, and it means the letter with shift held.**
+  `data-key="T"` is the one there is (keys.md, "The processing branches").
+  `branchFor` is where it is read and `keyOf` is left alone: `keyOf` goes on
+  answering with the place on the keyboard, lowercase, and a press that
+  arrives with shift down asks for the capital first and falls back to the
+  letter. So a shifted letter no control claims is the letter it was before
+  this existed, and nothing else that reads `keyOf` — the row keys, the `g`
+  map, the dialogs — had to learn about case. It is `e.shiftKey` and never the
+  character: caps lock prints a capital without anybody having decided
+  anything, and ЙЦУКЕН prints one that is not a `T` at all
 - **the two modes are two lines of the key handler, and that is the whole of
   the mechanism.** The handler asks whether the event's target is a box that
   takes text (`typing(e)`: a textarea, a select, or an input of a textual
@@ -1801,6 +1811,28 @@ and all eight branches on screen at once — three buttons and five forms in
   of these seven answers navigate rather than post, and that is an
   implementation detail no one should be able to see. The class carries the
   same fill, hover and metrics as the element
+- **Task has a second control, which posts where the first one navigates.**
+  "Task as is" files the capture without its form (design.md, "Inbox Zero"),
+  to `POST /process/{id}/quicktask`, and sits beside Task in the row and in
+  the bar because it is that answer and not another one. The handler reads
+  nothing for itself: it calls `SeedCapture`, which is what fills the form in,
+  and hands the three strings to `writeAction`, which is what the form's own
+  submit goes through — `readAction` is now that function with the request
+  read off first. One seed and one reader, so the press and the form cannot
+  come to disagree about a capture. `#today` on the line is applied afterwards
+  by `finishAction`, as it is for the form
+- **a capture it cannot file comes back as the task form**, through the same
+  `bounce` a refused form comes back through, with the seed standing in for
+  what would have been posted and the reason on the line above the boxes. The
+  address is still the quicktask one, which no bounce has ever minded: the
+  form on the page posts to `/action`
+- **its form carries `data-deaf-after`, and that attribute means more than it
+  did.** The page that answers is the question again, about the next capture,
+  with the same key live on it. The note in `sessionStorage` and the window on
+  arrival are the ones Undone already uses ("A moment that shows itself"); what
+  is new is that a declared key whose control carries the attribute is itself
+  swallowed while the window is open, and is never pressed by a held key's
+  repeat. Before this the window only ever stopped `d`, `⌫` and `b`
 - **where those rows are drawn depends on the key bar.** Every control a
   screen carries is drawn in the bar now (see "The key bar is the buttons"),
   and the rows above are what the screen falls back to when the bar has been
