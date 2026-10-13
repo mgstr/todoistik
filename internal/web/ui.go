@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -2363,6 +2364,22 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		// a refused Done or Delete comes back as the project's page with the
+		// reason on it. The delete key submits its form natively, past htmx
+		// and the net under it, so a plain 400 here was the whole screen: one
+		// unstyled line and no way on but the browser's back
+		// (implementation.md, "A refused post is never silent")
+		if errors.Is(err, app.ErrOpenActions) || errors.Is(err, app.ErrNoDOD) {
+			if proj, perr := s.app.Project(id); perr == nil {
+				d := s.projectData(proj, r)
+				d.Note = err.Error()
+				// the view the page was opened from is what the button posted;
+				// the Referer is this page itself by now
+				d.Back = localPath(r.FormValue("back"), d.Back)
+				s.renderProject(w, r, d)
+				return
+			}
+		}
 		httpError(w, err)
 		return
 	}

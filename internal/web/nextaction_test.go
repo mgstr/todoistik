@@ -126,6 +126,25 @@ func TestTheProjectsDoneIsOfferedOnlyWithNoNextAction(t *testing.T) {
 	}
 }
 
+// A refused Delete is the project's page again with the reason on it, not a
+// bare line of text: the delete key submits natively, so a plain 400 would be
+// the whole screen (implementation.md, "A refused post is never silent").
+func TestARefusedProjectDeleteComesBackAsThePage(t *testing.T) {
+	s, a := newTestServer(t)
+	twoActionProject(t, a)
+
+	body := refuse(t, s, "/project/1/delete", url.Values{"back": {"/today"}})
+	if !strings.Contains(body, `<p class="ask">`+app.ErrOpenActions.Error()+`</p>`) {
+		t.Fatalf("the page does not say why the delete was refused: %s", body)
+	}
+	if !strings.Contains(body, `name="back" value="/today"`) {
+		t.Error("the page forgot the view it was opened from")
+	}
+	if _, err := a.Project(1); err != nil {
+		t.Errorf("the refused delete deleted the project: %v", err)
+	}
+}
+
 // The mark that moves the crown: `n` on a row of the plan makes that action the
 // project's next one, and the page comes back with it in the boxes at the top
 // (design.md, "Project"). It is offered on the rows that could take it and

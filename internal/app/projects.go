@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	ErrOpenActions = errors.New("the project still has open actions; resolve each one first (complete, delete or detach)")
+	ErrOpenActions = errors.New("the project still has open actions")
 	ErrNoDOD       = errors.New("a project with no definition of done can not be completed")
 )
 
