@@ -3993,18 +3993,6 @@
     // the browser's or the system's and is left to them.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    // A form that opens with nothing focused says which box `tab` goes to
-    // first. Left to the browser, the first tab from an unfocused page lands
-    // on whatever the document happens to draw first, and a box reached that
-    // way arrives with its text selected — so the first letter typed would
-    // replace the title rather than amend it. Only from nowhere: once the
-    // focus is on something, tab is the browser's again.
-    if (e.key === "Tab" && !e.shiftKey) {
-      const first = document.querySelector("[data-tabfirst]");
-      const at = document.activeElement;
-      if (first && (!at || at === document.body)) { e.preventDefault(); jumpTo(first); return; }
-    }
-
     if (rowCommand(e)) { e.preventDefault(); return; }
 
     // a key the page declares beats the standing map: on a screen that has

@@ -103,17 +103,6 @@ action, promote), and screens you arrive at to *act on* do not (an action's
 page, a project's page), so the keys are live on arrival exactly where the
 keys are what you came for.
 
-**The Task and Action branch of processing is the one that changed sides.** It
-is a form, so it was filed with the screens you write on and opened with the
-caret in its title — but the capture's own wording is the right title most of
-the time, and what you came for is `c`. It opens in command mode now, and
-`tab` puts the caret at the end of the title when the wording does want
-changing. `tab` is not a key of the app's anywhere else and is not becoming
-one: it is answered only on a form that declares a first box, and only while
-the focus is nowhere, which is the one moment the browser's own answer to it
-is arbitrary. Not a letter, because `tab` already means "into the next box"
-and this is that, with the starting point pinned down.
-
 **Nothing is a chord.** Ctrl used to be spent twice: on the controls that had
 to fire in the middle of typing — Save, Create, Add — and on the keys that
 belonged to the app rather than to a screen — the filter line, the jump, the

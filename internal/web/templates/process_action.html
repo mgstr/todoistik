@@ -32,17 +32,12 @@
     <input type="hidden" name="projectid" value="{{if $d.ProjectID}}{{$d.ProjectID}}{{end}}">
     <input type="hidden" name="newproject" value="{{$d.NewProject}}">
     <input type="hidden" name="newdod" value="{{$d.NewDOD}}">
-    {{/* The title is not focused on arrival, and that is the point: the
-         capture's own wording is the right title most of the time, so the
-         screen opens in command mode with `c` live, and `tab` is what puts
-         the caret in the title when it does want rewording (keys.md, "The
-         two modes"). */}}
     {{template "actionfields" (dict
       "Prefix" "" "Required" true
       "Title" ($d.Vals.Get "title")
       "Meta" ($d.Vals.Get "meta")
       "Description" ($d.Vals.Get "description")
-      "Fixed" $d.ProjectName "Focus" false "TabFirst" true "Pick" true)}}
+      "Fixed" $d.ProjectName "Focus" true "Pick" true)}}
 
     <div class="branches">
       <button class="primary" data-key="c" data-key-label="create">Create</button>

@@ -1915,35 +1915,27 @@ left posting directly is `⌫` and `d`, the two answers that create nothing.
   anywhere else — see design.md, "The protocol is followed, not enforced". The
   answer is recorded and recoverable, and a modal on the one screen worked
   hardest would be paid on every pass to protect against a rare slip
-- **stage two's forms take no keys of their own while a box has the caret.**
-  The key layer stands down while you are typing, which is correct, and what
-  the browser already gives is enough there: `Enter` submits and `esc` blurs
-  the field. **The project form is the exception**, because it grew a list: `a`
-  adds an action and the row keys act on the one selected (see "Writing a
-  project"). They are live for the same reason they are live anywhere — the
-  moment your hands leave a field
-- **the action form opens with nothing focused, and `tab` goes to the title.**
-  This is the form behind both Task and Action, and the common answer on it by
-  a wide margin is the wording the capture already has. That answer used to
-  cost `Enter` from a title that opened focused, which read as one press and
-  was not: every other key on the screen was a character while the caret sat
-  there, so anything but accepting the form outright began with an `esc` that
-  bought nothing. Unfocused, the screen arrives in command mode — `c` creates
-  it as it stands, `b` goes back, both in one press — and the title is the one
-  field worth a key of its own. The box carries `data-tabfirst`, and `app.js`
-  answers a `tab` pressed with the focus nowhere by putting the caret there, at
-  the end of the text: left to the browser the first `tab` lands on whatever
-  the document draws first, and a box reached by `tab` arrives with its text
-  selected, so the first letter typed would replace the title instead of
-  amending it. Once anything has the focus, `tab` is the browser's again
-- **the other branches still open on a box, with the caret at its end.** A
-  project, a someday idea and a reference note are answers you came to *write*
-  — a definition of done, tags — so `autofocus` stays on them. It does the
-  focusing on both paths — the browser on a full load, htmx on a boosted one —
-  but neither places the caret, and a pre-filled field opening at position 0
-  means the first thing typed lands in front of the text already there.
-  `app.js` moves it to the end on settle: the one thing in that file which is
-  not the keyboard layer, allowed because it decides nothing and stores nothing
+- **stage two's action form takes no keys of its own.** Your hands are in a
+  text field there and the key layer stands down while you are typing, which is
+  correct. What the browser already gives is enough: `Enter` submits, `esc`
+  blurs the field and a second `esc` goes back to stage one. **The project form
+  is the exception**, because it grew a list: `a` adds an action and the row
+  keys act on the one selected (see "Writing a project"). They are live for the
+  same reason they are live anywhere — the moment your hands leave a field
+- **the form opens with the title focused and the caret at its end.** The
+  common answer by a wide margin is an action you will do yourself, standalone,
+  under the wording the capture already has — and that answer should cost one
+  `Enter`, not a walk through the controls that were right by default. Focus
+  lands on the one field you might actually retype. `autofocus` does the focusing on
+  both paths — the browser on a full load, htmx on a boosted one — but neither
+  places the caret, and a pre-filled field opening at position 0 means the
+  first thing typed lands in front of the text already there. `app.js` moves it
+  to the end on settle: the one thing in that file which is not the keyboard
+  layer, allowed because it decides nothing and stores nothing
+- **the cost is paid on the way out**, and deliberately: with a field focused
+  from the start, `esc` blurs before it navigates, so abandoning stage two is
+  three presses rather than two. That is the right trade in a screen worked
+  many times a day — the abandon path is rare and the typing path is not
 
 ### A completion request asks one question
 
