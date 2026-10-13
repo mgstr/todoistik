@@ -103,17 +103,6 @@ action, promote), and screens you arrive at to *act on* do not (an action's
 page, a project's page), so the keys are live on arrival exactly where the
 keys are what you came for.
 
-**The Task and Action branch of processing is the one that changed sides.** It
-is a form, so it was filed with the screens you write on and opened with the
-caret in its title — but the capture's own wording is the right title most of
-the time, and what you came for is `c`. It opens in command mode now, and
-`tab` puts the caret at the end of the title when the wording does want
-changing. `tab` is not a key of the app's anywhere else and is not becoming
-one: it is answered only on a form that declares a first box, and only while
-the focus is nowhere, which is the one moment the browser's own answer to it
-is arbitrary. Not a letter, because `tab` already means "into the next box"
-and this is that, with the starting point pinned down.
-
 **Nothing is a chord.** Ctrl used to be spent twice: on the controls that had
 to fire in the middle of typing — Save, Create, Add — and on the keys that
 belonged to the app rather than to a screen — the filter line, the jump, the
@@ -389,8 +378,40 @@ do it.
 | `d` | the two-minute rule |
 | `y` | someday/maybe |
 | `t` | make it a task |
+| `T` | make it a task, as it stands |
 | `a` | make it an action |
 | `p` | make it a project |
+
+**`T` is Task without its form, and it is the only capital in the map.** It
+files the capture as the task the form would have opened on (design.md, "Inbox
+Zero"), so it is not an eighth answer and does not get a letter of its own: it
+is `t`, and what is added to it is that nothing more will be asked. A new
+letter would have said a new noun, and "one letter, one meaning" is about
+nouns — `t` already has two, Today and Task, and this is neither a third nor
+a different one.
+
+- **shift is not a chord, and the rule against chords still stands.** That
+  rule is about ctrl, cmd and alt, which belong to the browser and the system
+  and take the hand off the home row. Shift belongs to neither and is already
+  spent in this map, on `#` and `?`. What a capital adds is that a *letter*
+  can now be shifted, and it is allowed here for one reason: the shifted press
+  means the same thing as the bare one, harder. A capital that meant something
+  unrelated to its letter would be a second keyboard hidden under the first,
+  and that is not what this opens
+- **it is the key with shift held, and not the character that was printed.**
+  Caps lock prints a capital and decides nothing, so with caps lock on `t`
+  still opens the form; and under ЙЦУКЕН the same place prints `Е`, which is
+  the press all the same — a key is a place on the keyboard here as everywhere
+- **a shifted letter that no control declares is still the letter.** Shift
+  held over `c` on a form is Create, as it has always been. The capital is
+  looked for first and only where one is on the screen, so nothing that was
+  pressed before this existed is pressed differently now
+- **the bar says `T task as is`**, beside `t task`, in the case it is pressed
+  in. It is the one place the bar's letters are not all lowercase, which is
+  what makes it readable as the same key with something held
+- **it is deaf for a moment after it fires**, because the screen it brings
+  back is this one — see "A key that does nothing, on purpose, for a sixth of
+  a second"
 
 **`t` is Task and `a` is Action, and they are two answers because they make
 two different things** — a standalone action and a step of a plan (design.md,
@@ -859,6 +880,16 @@ leaves the screen, so there is no motion to play; what the press gets is the
 window alone, on the page that arrives: the three keys are deaf there for
 `anim.ms`, and not at all when that is 0.
 
+**`T` is in it, and it is the first declared key that is.** It files a capture
+and the question comes back about the next one, with `T` live on it — the
+answer looking like the question more exactly than anywhere else in the app,
+and what a doubled press would file is a capture nobody had read, which is the
+one thing this screen exists to prevent. So the page that arrives is deaf to
+it for `anim.ms`, and a held key does not repeat it at all: one press files
+one capture, whatever `anim.ms` says. The answers that open a form need none
+of this: a form is not the question, and a second press there is a different
+key.
+
 `u` needs none. Its second press opens a question, and the question's `↵` is
 answered by a screen with no question on it.
 
@@ -930,6 +961,13 @@ key can never be advertised without working:
   special-cased: the ordering was already there, and a screen with a Today
   mark on it could not have taken `t` for anything else, which is the same
   thing as saying the two are never on a screen together.
+- **a capital is asked for before its letter, and only by the declared keys.**
+  A press with shift held looks for a control declaring the capital, and
+  failing that is the bare letter it has always been — which is how `T` exists
+  on the processing question without any other screen having heard of it
+  (implementation.md, "Keyboard"). The row keys above never see the
+  difference: shift over `t` asks for a `kb-pick` like any other `t`, finds
+  none on stage one, and the capital takes it from there.
 - **`kb-next` is a fifth row form, and the only one that is a row's alone.** `n`
   presses it, and it is not in `pushScreenKeys` and never will be: the three
   above answer for the screen when no row is selected because an action's page

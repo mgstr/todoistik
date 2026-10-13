@@ -96,6 +96,15 @@
          which is the letter it wore before the branch was renamed — see
          keys.md, "The processing branches". */}}
     <a class="button" href="{{$d.AsTask}}" data-key="t" data-key-label="task">Task</a>
+    {{/* The same answer with the form left out: the capture is filed as the
+         task the form would have opened on, unedited (design.md, "Inbox
+         Zero"). A capital because it is the letter of the answer it already
+         is, with shift held — keys.md, "The processing branches". It posts,
+         so it is a form; data-deaf-after because the screen that answers is
+         this one again, about the next capture. */}}
+    <form method="post" action="/process/{{$d.ID}}/quicktask{{$q}}" class="inline" data-key="T" data-key-label="task as is" data-deaf-after>
+      <button title="a task exactly as captured, without opening the form">Task as is</button>
+    </form>
     <a class="button" href="{{$d.AsAction}}" data-key="a" data-key-label="action">Action</a>
     <a class="button" href="{{$d.AsProject}}" data-key="p" data-key-label="project">Project</a>
   </div>

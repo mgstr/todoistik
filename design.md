@@ -3094,6 +3094,36 @@ and a line the notation cannot account for - two contexts, an unreadable date -
 is left alone entirely rather than half moved: what was dropped would be
 invisible, and this is the one moment the item is being looked at deliberately.
 
+**Task can also be answered without its form**, and that is the one place the
+reading above is taken as final. Most captures that turn out to be tasks were
+written as the task already - the wording is the title, the context is on the
+line - and for those the form is a screen opened in order to be accepted
+unchanged. So Task has a second press that files the capture as exactly the
+task the form would have opened on: the first line read as notation, the words
+left over as the title, the body as the description, standalone, and
+`becameNextActionAt` stamped as it is for any task.
+- **it is the same answer and not an eighth one.** What is created is what the
+  form creates when nothing on it is touched, by the same reading, so the two
+  presses cannot come to file the same capture differently. They differ only in
+  whether the form was looked at
+- **it is offered for Task and for nothing else.** An action still needs its
+  project chosen and a project its definition of done, and neither can be read
+  off a capture; someday/maybe and reference material are filed with an area
+  that is usually not on the line yet. Task is the one branch whose form asks
+  for nothing the capture does not already hold
+- **what the form would have refused is not filed.** A line that is all
+  notation leaves no title, and a meta line the form would send back is sent
+  back here too: the form opens instead, filled in and saying why, because that
+  is the only screen where the reason can be answered. Skipping the form skips
+  looking at it, never the rules it enforces
+- **the verb is still asked for and still not required**, so a capture that does
+  not open with one is filed and marked exactly as the form would have marked
+  it (see "Verbs")
+- **it is a decision like any other on this screen**, recorded the same way and
+  taken back the same way (see "Undo"). What it gives up is the one deliberate
+  look at the fields, and that is the trade being chosen: the press exists for
+  the capture that was already read on the question and found right
+
 **Delete and the two-minute rule ignore it**, and there is nothing to fix
 there: those two create no object, so the line has nowhere to be read into. The
 item leaves exactly as it was captured, notation and body and all, and that is

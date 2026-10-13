@@ -1341,23 +1341,33 @@ func (s *Server) readAction(r *http.Request, projectID, self int64) (writtenActi
 // three are `a`-prefixed (see implementation.md, "Writing a project"). One
 // reader either way, because it is one form.
 func (s *Server) readActionNamed(r *http.Request, prefix string, projectID, self int64) (writtenAction, error) {
+	return s.writeAction(r.FormValue(prefix+"title"), r.FormValue(prefix+"meta"),
+		r.FormValue(prefix+"description"), projectID, self)
+}
+
+// writeAction is the three boxes an action is written in, read into the action
+// they describe. It takes the words rather than the request because one caller
+// has no form to read them off: the processing question's `T` files a capture
+// as the task its form would have opened on, and what that form would have
+// held is worked out here on the server (see processQuickTask).
+func (s *Server) writeAction(title, meta, description string, projectID, self int64) (writtenAction, error) {
 	var wa writtenAction
 	v, err := s.app.VocabularyIn(projectID, self)
 	if err != nil {
 		return wa, err
 	}
-	d, err := app.ParseMeta(r.FormValue(prefix+"meta"), v)
+	d, err := app.ParseMeta(meta, v)
 	if err != nil {
 		return wa, err
 	}
 	wa.Today = d.Today
 	wa.Fields = app.ActionFields{
-		Title:          strings.TrimSpace(r.FormValue(prefix + "title")),
+		Title:          strings.TrimSpace(title),
 		Context:        d.Context,
 		ContextParam:   d.ContextParam,
 		Duration:       d.Duration,
 		NeedsFocus:     d.NeedsFocus,
-		Description:    strings.TrimSpace(r.FormValue(prefix + "description")),
+		Description:    strings.TrimSpace(description),
 		AssignedTo:     d.AssignedTo,
 		DueDate:        d.DueDate,
 		SnoozeUntil:    d.SnoozeUntil,
@@ -1605,6 +1615,10 @@ func (s *Server) processBranch(w http.ResponseWriter, r *http.Request) {
 		if done := s.processActionBranch(w, r, id); !done {
 			return
 		}
+	case "quicktask":
+		if done := s.processQuickTask(w, r, id); !done {
+			return
+		}
 	case "project":
 		if done := s.processProjectBranch(w, r, id); !done {
 			return
@@ -1676,6 +1690,64 @@ func (s *Server) processActionBranch(w http.ResponseWriter, r *http.Request, id 
 	act, err := s.app.ProcessAction(id, f, pid)
 	if err != nil {
 		s.bounce(w, r, id, as, err.Error(), false)
+		return false
+	}
+	return s.finishAction(w, act.ID, wa.Today)
+}
+
+// processQuickTask is the Task branch with its form left out: the capture is
+// filed as exactly the task that form would have opened on (design.md, "Inbox
+// Zero"). Nothing here reads the capture for itself. The seed is the one the
+// form is filled from and the reader is the one the form is submitted to, so
+// the notation, the body and every refusal are the form's own — a second
+// reading kept here would be the two coming to disagree about the same line.
+//
+// What the form would have refused is not filed. The form is handed back
+// instead, filled in and saying why, which is the screen the other `t` would
+// have opened and the only place the reason can be answered. It reports
+// whether the branch was settled — false means a page has already been sent.
+func (s *Server) processQuickTask(w http.ResponseWriter, r *http.Request, id int64) bool {
+	d, err := s.processItem(id)
+	if err != nil {
+		httpError(w, err)
+		return false
+	}
+	if d == nil {
+		// decided about already, in another tab: the run carries on
+		return true
+	}
+	// a request is not a capture to be filed, and its screen offers no
+	// branches — only a stale page can ask, and it is sent back to the
+	// question the item is really asking
+	if _, isReq, rerr := s.app.ReadCompletionRequest(d.Text); rerr != nil {
+		httpError(w, rerr)
+		return false
+	} else if isReq {
+		d.One = r.URL.Query().Get("one") != ""
+		d.links()
+		http.Redirect(w, r, d.Stage1, http.StatusSeeOther)
+		return false
+	}
+	v, err := s.app.Vocabulary()
+	if err != nil {
+		httpError(w, err)
+		return false
+	}
+	seed := app.SeedCapture("task", d.Text, v)
+	wa, err := s.writeAction(seed.Title, seed.Meta, seed.Description, 0, 0)
+	var act *app.Action
+	if err == nil {
+		act, err = s.app.ProcessAction(id, wa.Fields, 0)
+	}
+	if err != nil {
+		_ = r.ParseForm()
+		r.Form = url.Values{
+			"as":          {"task"},
+			"title":       {seed.Title},
+			"meta":        {seed.Meta},
+			"description": {seed.Description},
+		}
+		s.bounce(w, r, id, "task", err.Error(), false)
 		return false
 	}
 	return s.finishAction(w, act.ID, wa.Today)
