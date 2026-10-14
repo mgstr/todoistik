@@ -13,9 +13,9 @@
      implementation.md, "Panels". One trail behind both, so a tab that named a
      different place than the bar under it cannot happen. */}}
 <title>{{.DocTitle}}</title>
-<link rel="stylesheet" href="/static/style.css">
-<script src="/static/htmx.min.js" defer></script>
-<script src="/static/app.js" defer></script>
+<link rel="stylesheet" href="{{asset "style.css"}}">
+<script src="{{asset "htmx.min.js"}}" defer></script>
+<script src="{{asset "app.js"}}" defer></script>
 </head>
 <body hx-boost="true">
 {{/* barless: the key bar is where the controls are drawn, so a screen with no

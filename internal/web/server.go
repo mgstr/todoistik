@@ -77,6 +77,7 @@ func New(a *app.App, token string, c conf.Config) (*Server, error) {
 		"linkLabel": linkLabel,
 		"itemlinks": itemLinks,
 		"qesc":      url.QueryEscape,
+		"asset":     asset,
 		"dict": func(pairs ...any) map[string]any {
 			m := map[string]any{}
 			for i := 0; i+1 < len(pairs); i += 2 {

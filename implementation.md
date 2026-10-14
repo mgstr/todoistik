@@ -167,6 +167,19 @@ the default is 2, which is 48 files.
 - server-rendered pages keep the app fast and the client thin. HTMX covers the in-place updates a working view needs (completing an action, toggling a filter) without a frontend framework
 - no ORM ceremony required — the schema is small and the queries are the views
 - JS exists for exactly one job: the keyboard layer. Everything it triggers is a request the server answers, so the server stays the single source of truth
+- **a page links its static files by content, not by name** —
+  `/static/style.css?v=<hash>`, through the `asset` template function in
+  `internal/web/assets.go`, the hash taken once from the embedded file at
+  startup. Under the bare name, every cache between the binary and the screen
+  (Cloudflare in front of the public address, and the browser behind it, each
+  keeping a file for hours) went on serving the old stylesheet to the new
+  markup, and the result was a page that looked broken rather than stale: a
+  sidebar laid out by CSS that predated it. A changed file is now a changed
+  address, so no cache can pair the two, and nothing has to be purged by hand
+  after a release or a dev-server rebuild. The hash is of the contents rather
+  than a build number so an unchanged file keeps its cached copy. A test fails
+  on any template that links `/static/` by bare name, since one forgotten link
+  brings the whole failure back for that file
 
 ## API authentication
 
