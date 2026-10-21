@@ -3543,7 +3543,11 @@
     if (!all.length) { moveSection(delta); return; }
     const cur = selected();
     let i = cur ? all.indexOf(cur) + delta : (delta > 0 ? 0 : all.length - 1);
-    i = Math.max(0, Math.min(all.length - 1, i));
+    // the ends wrap: past the last row is the first, and before the first is
+    // the last. Pressing on into a wall did nothing, and the far end of a list
+    // is often the nearer one backwards — getting to the bottom was a run of
+    // j presses where one k now does it
+    i = (i % all.length + all.length) % all.length;
     select(all[i]);
   }
 

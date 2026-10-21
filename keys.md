@@ -509,7 +509,7 @@ and this one is pressed once per idea you decide not to commit to.
 
 | Key | Goes to |
 | --- | --- |
-| `j` `k` | through the current list. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful. On the Dashboard, which has neither, they go to the next and the previous form |
+| `j` `k` | through the current list, wrapping at the ends: `j` on the last row goes to the first and `k` on the first to the last, because the far end of a list is often nearer backwards and pressing into the end did nothing. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful. On the Dashboard, which has neither, they go to the next and the previous form |
 | `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
 | `g` + letter | a view — the fifteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
