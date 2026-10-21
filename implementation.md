@@ -1203,6 +1203,11 @@ a page load, and what the bar derives itself from.
 **Vim-style keys.** The UI is fully drivable without a mouse, and the frequent operations are single keystrokes:
 
 - `j` / `k` move through the current list, `Enter` opens the selected item.
+  The list wraps: `move()` takes the index modulo the row count, so the last
+  row steps on to the first and the first back to the last, in a dialog's
+  list as on a page, since every one of them goes through `move()`.
+  Sections do not wrap — a window scrolled back to the top on one more `j` is
+  a jump nobody asked for.
   While a dialog is open its own rows are the current list — the answers in
   the filter box's unknown-name dialog are moved through this way (see "Token
   boxes")
