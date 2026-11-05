@@ -204,18 +204,18 @@ the line is refused at startup, like any other setting the app does not know.
 | --- | --- | --- |
 | `s` | Save | action, project, someday item, reference item, schedule |
 | `c` | Create | the processing branches, new action, promote, new schedule, settings, the draft and new-project dialogs, scheduler |
-| `a` | Add, and Action | project, promote, the project branch of processing — the actions *after* the first, which is open on the form and not added. It opens the dialog and writes a row into the plan on all three: adding an action never leaves the screen. On the processing question it is the Action branch, which is the same noun doing the same thing — see "The processing branches" |
+| `a` | Add, and Action | project, promote, the project branch of processing. It opens the add-action dialog on all three, and adding an action never leaves the screen: on a project's page the action is saved at the end of the plan when the dialog is confirmed, and on the two screens that create a project it is a draft row after the first action, which is open on the form there and not added. On the processing question it is the Action branch, which is the same noun doing the same thing — see "The processing branches" |
 | `b` | Back | every screen that can be left — see "Leaving a screen" |
-| `d` | Done, and Undone | every list row, action, project, doing — on a project's page it finishes the next action while there is one and the project once there is not. On a completed action's page and a completed project's it is Undone, which brings the item back |
+| `d` | Done, and Undone | every list row, action, project, doing — on a project's page it completes the selected action of the plan, and with nothing selected it is the project's own Done, which is on the screen only once nothing is open. On a completed action's page and a completed project's it is Undone, which brings the item back |
 | `r` | the review mark | a row of a weekly review step |
-| `n` | make this the next action | a row of the plan on a project's page, and nowhere else |
-| `t` | Today | every list row that carries the mark, an action's page, a project's next action, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote, the add-action dialog, and a stalled project's empty boxes, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
+| `n` | make this the next action | a row of the plan on a project's page, and nowhere else — not on a snoozed row, and not on the one already wearing ▶ |
+| `t` | Today | every list row that carries the mark, an action's page, and every screen that *writes* an action — the processing forms, the screen a project is created on, Create action, promote and the add-action dialog, where there is no action yet to post against and the key flips `#today` in the line being typed (design.md, "#today") |
 | `⌫` | Delete | every row that carries one — including a Reference row, which is the one list view that carries a delete — action, project, reference item, schedule, a capture on the processing screen, a draft row |
 | `x` | Detach | an action's page, inside a project |
 | `p` | Promote | a standalone action's page — the same `p` as the Project branch below |
 | `i` | Inbox | a someday item's page |
 | `h` | Theme | the Settings screen's theme row |
-| `#` | the project's tags, onto its next action | a project's page, on the "Next action" heading |
+| `#` | the project's tags, onto the action being written | the add-action dialog, on every screen that has one — the dialog is written for one project, so it knows whose tags to bring — and the "Next action" heading on the two screens that create a project |
 
 **Undone is `d`, and it was `u`.** It moved to make room: `u` is Undo now, on
 every screen (see "The app's own keys" below), and one letter could not be the
@@ -382,7 +382,7 @@ do it.
 | `a` | make it an action |
 | `p` | make it a project |
 
-**`T` is Task without its form, and it is the only capital in the map.** It
+**`T` is Task without its form, and it was the first capital in the map.** It
 files the capture as the task the form would have opened on (design.md, "Inbox
 Zero"), so it is not an eighth answer and does not get a letter of its own: it
 is `t`, and what is added to it is that nothing more will be asked. A new
@@ -407,8 +407,10 @@ a different one.
   looked for first and only where one is on the screen, so nothing that was
   pressed before this existed is pressed differently now
 - **the bar says `T task as is`**, beside `t task`, in the case it is pressed
-  in. It is the one place the bar's letters are not all lowercase, which is
-  what makes it readable as the same key with something held
+  in. A capital in the bar is always the key with shift held, which is what
+  makes it readable as the same key harder — `K up` and `J down` on a row of a
+  plan are the other two, and they follow the same rule: `j` and `k` move the
+  cursor, and with shift held they carry the row along with it
 - **it is deaf for a moment after it fires**, because the screen it brings
   back is this one — see "A key that does nothing, on purpose, for a sixth of
   a second"
@@ -510,7 +512,8 @@ and this one is pressed once per idea you decide not to commit to.
 | Key | Goes to |
 | --- | --- |
 | `j` `k` | through the current list, wrapping at the ends: `j` on the last row goes to the first and `k` on the first to the last, because the far end of a list is often nearer backwards and pressing into the end did nothing. On a screen with no list they move the window through its sections instead, a heading at a time — one key for "the next thing down", whether the next thing is a row or a screenful. On the Dashboard, which has neither, they go to the next and the previous form |
-| `↵` `o` | open the selected row — a row of a plan that is not saved yet opens in the dialog it was written in, since there is no page for it to have, and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
+| `↵` `o` | open the selected row — a row of a plan opens in the dialog it was written in: a saved one on a project's page, to be changed where it stands, and one that is not saved yet because there is no page for it to have. A saved row's title is still a link to the action's own page, where Detach is; and the project picker's last row opens the dialog a new project is named in, since there is no project for it to open |
+| `J` `K` | the selected row of a plan, down or up one place, with the cursor going along — saved at once on a project's page, and a draft row on the screens that create a project. Offered only where there is a row to move past. It is `j` and `k` with shift held, the same direction harder: the cursor moves, and the row is carried with it — the rule `T` follows, above |
 | `g` + letter | a view — the fifteen are the table below |
 | `g` + `1`…`9` | the bookmark kept under that digit, view and filter both |
 | `g g` | the capture dialog |
@@ -925,28 +928,21 @@ key can never be advertised without working:
   action used to arrive with the completed action under the cursor, and so
   with no `d done` on it at all.
 
-  **A row may also be what the screen is about, and then its forms are the
-  screen's too.** It says so with `data-kb-subject`, and the project's page is
-  the one screen that has one: the next action is shown open in its own boxes
-  there (design.md, "Editing items"), with the ☐ and the ● it carried as a
-  row on the heading above them. Those marks answer `d` and `t` with nothing
-  selected as well as with the heading under the cursor — walking onto a
-  heading to tick off the one action the page opened in order to show you is a
-  press that asks the cursor for permission.
+  **The project's page has no subject row any more.** It had one: the next
+  action was open in boxes of its own, with its ☐ and ● on the heading above
+  them, and `data-kb-subject` on that heading made its forms the screen's as
+  well, so `d` and `t` reached it with nothing selected. The next action is a
+  row of the plan now, like every other action of the project (design.md,
+  "Editing items"), so its keys are the row keys, pressed with the cursor on
+  it, and the attribute went with the boxes.
 
-  It is still a row, and that is the point of keeping it one: `j`/`k` reach it,
-  `↵` opens the action's own page, where Detach, Promote and Delete live, and
-  `w` starts doing it. What `data-kb-subject` adds is that the screen's keys no
-  longer have to wait for the cursor to arrive.
-
-  **And `d` means one thing on that page: finish what is in front of you.** The
-  next action while there is one, and the project once there is nothing open at
-  all. Not two Dones told apart by whether a row is selected — the project's own
-  Done is not even on the screen while it has open work, because internal/app
-  refuses to complete a project that has any (design.md, "Completing a next
-  action"). So the letter is not spent twice and never was: there is at most one
-  Done on that page at any moment, and completing the last action is what
-  changes which one.
+  **And `d` on that page is still never spent twice.** On a row of the plan it
+  completes that row, and the cursor stays in the plan, on whatever took its
+  place, so a run of `d` works a project down. With nothing selected it finds
+  the project's own Done, which is not even on the screen while the project has
+  open work, because internal/app refuses to complete a project that has any
+  (design.md, "Completing a next action"). So there is at most one Done for the
+  key to reach at any moment.
 
   **At most one, because there is a state with none.** A project whose every
   open action is snoozed has no next action to finish and may not be finished

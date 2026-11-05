@@ -80,6 +80,7 @@ Every heading in it, in order — `./doctoc.sh` rewrites this list:
 - [The verb a title opens with](#the-verb-a-title-opens-with) — a remembered list, a suffix rule, and no server-side refusal
 - [Reading a completed item](#reading-a-completed-item) — a frozen item's page reads and does not write
 - [Writing a project](#writing-a-project) — a project and its first actions are created in one submit
+  - [The project's page](#the-projects-page)
 - [Specified, not yet built](#specified-not-yet-built) — rules design.md states that the code does not yet apply
 - [Deferred, by decision](#deferred-by-decision) — rough edges looked at, understood, and left for now
 - [Schema changes](#schema-changes) — no migration files: a schema, then steps that are no-ops twice
@@ -3252,26 +3253,25 @@ per-view one.
   an empty column with nothing between it and the words. In front of the
   checkbox it reads as what it is: the two things you do to a row, together, and
   a colour that scans straight down the list before any title is read
-- **the third mark is `↑`, and only one list has it.** On the rows of a
-  project's plan it makes that action the project's next one, which is a
-  `kb-next` form posting `/action/{id}/next` (design.md, "Project"). The
-  template takes a `Next` flag for it, so the mark exists where there is a
-  project for it to mean something and nowhere else: every other list in the app
-  is an answer to a question, and pressing it there would change a project you
-  cannot see from where you are standing. It reads `↑` because the action goes
-  *up*, into the boxes at the top of that page — the only place in the app where
-  being next is visible at all
+- **the third mark is `▶`, and only one list has it.** On the rows of a
+  project's plan it says which action is the project's next one, and `▷` on a
+  row that could be is a `kb-next` form posting `/action/{id}/next` (design.md,
+  "Project"). The template takes a `Plan` flag for it, so the mark exists where
+  there is a project for it to mean something and nowhere else: every other
+  list in the app is an answer to a question, and pressing it there would change
+  a project you cannot see from where you are standing. It is a triangle
+  because it is the one the plan is played from; the `↑` it replaced sent the
+  action up into boxes over the list, which are gone (see "The project's page")
+  - **the next action wears it; it is a state there and an offer elsewhere.**
+    `▶` in the accent on the one row, and no form behind it, since making the
+    next action next has nothing to do. `▷` pale like the unpicked dot on the
+    rest, the same filled-and-hollow pair the pick dot is
   - **a row that cannot take it keeps the place and offers nothing.** A snoozed
-    or completed row draws `span.tonext.gap`, hidden like the pick dot's gap,
-    and so does `draftrow` on that one screen: the titles stay in one column,
-    and the key bar cannot advertise `n` on a row whose form is not there. Which
-    is also the whole of how the eligibility rule reaches the keyboard — the
-    server draws the mark or it does not, and `canBeNext` is the one thing that
-    decides
-  - **nothing in a list ever *wears* it**, unlike the pick dot: the action that
-    is next has left the list for the boxes above it, so the mark is always an
-    offer and never a state. That is why it is one glyph with no filled variant
-    and no `aria-pressed`
+    row draws `span.tonext.gap`, hidden like the pick dot's gap: the titles stay
+    in one column, and the key bar cannot advertise `n` on a row whose form is
+    not there. Which is also the whole of how the eligibility rule reaches the
+    keyboard — the server draws the mark or it does not, and `canBeNext` is the
+    one thing that decides. A completed action is not in the plan's list at all
 - **the "Out of time" rows carry no pick at all** — design.md, "Today" says why.
   It is dropped from the row rather than drawn disabled, and `t` goes with it:
   the key bar builds itself from the forms a row actually has, so that row
@@ -5332,7 +5332,9 @@ own, and the rest as rows of hidden fields inside the form.
   `#draft-dialog .pickerbox[readonly]` rule went with it, having nothing left to
   style. It is the `draftdialog` partial, carried by all three screens that
   write a plan, and it opens blank to add and filled to edit — one dialog,
-  because writing an action and correcting one are the same four fields
+  because writing an action and correcting one are the same four fields. On
+  the project's own page it is live, and posts what it confirms (see "The
+  project's page")
 - **the project's own fields are a partial too** (`projectfields`), used by
   this screen, by promoting an action and by the project's page, with one set
   of names — `title`, `dod`, `meta` — read by one function. They were `ptitle`
@@ -5374,6 +5376,49 @@ own, and the rest as rows of hidden fields inside the form.
   through `actionrow` by parsing each line into an unsaved `Action`, but only
   for the rows it drew, and the dialog writes rows without asking the server
   anything
+- **the `#↓` mark writes a box and posts nothing.** It is a bare
+  `<button type="button">` carrying `data-copy-meta="itemform"`, on the heading
+  over the open first action, and the keyboard layer does the work — the same
+  arrangement the review mark has, and for the same reason: the answer is this
+  page redrawn where it stands, and the screen's one Create is what commits
+  it. Two glyphs where every mark in the app is one, because it is the only
+  mark on that heading that is not the action's state: `#` is the cargo and
+  `↓` is the direction, and the alternatives are written up in
+  `research/next-action-meta-study.html`
+- **it reads both lines off `form.elements`**, not off the DOM around the
+  button, and through `firstNamed`: `form.elements.namedItem` hands back a list
+  once the plan has a row and there is more than one `ameta`, and a list's own
+  `.value` is the radio-group answer — `""` for boxes like these. `projectTags`
+  keeps the tokens beginning `#` and drops the rest, which is how a project's
+  snooze is left behind — design.md says why
+- **which way the press goes is derived, never stored.** `metaCopyMode` answers
+  `take`, `drop` or nothing at all by comparing the two lines, so the mark's
+  `title` and its `data-key-label` say the answer this press lands on — the
+  rule the theme row's `h theme dark` already follows. Nothing is remembered
+  about where a tag came from, which is what keeps the second press honest
+- **`disabled` is rendered by the server and then kept by the key layer.**
+  `syncMetaCopy` re-reads the live box on every keystroke and on every gate
+  pass, so a tag typed onto the project brings the mark alive before anything
+  is saved. `keyUsable` already drops a disabled control from the bar, so the
+  key goes with it and nothing had to be added for that
+- **it does not fill the box through a synthetic `input` event**, though that
+  would have reused the whole listener: the listener also opens the completion
+  list, and nothing here is being typed. It calls the four things that do apply
+  — repaint the box, disarm the discard marks, re-read the mark, re-gate the
+  form — and leaves the suggest list shut
+- **the today dot is the same arrangement, on the screens that have no action
+  to post against.** `●` on a saved action's row is a form against
+  `/action/{id}/pick`; on every screen that *writes* an action there is no id,
+  so `actionfields` draws a bare button carrying `data-today-meta` — the name
+  of the meta box beside it — and `todayMark` flips `#today` in that box, which
+  is the whole of what the tag is (design.md, "#today"). One parameter, `Pick`,
+  says which kind of screen this is. The box is found through `form.elements`
+  where the fields belong to a form and through the surrounding `.stack` in the
+  draft dialog, which has no form element at all; `syncToday` rides along with
+  `syncMetaCopy` on every keystroke and every gate pass, so `#today` typed by
+  hand lights the dot and rubbing it out puts it back. A draft row in a
+  project's list wears it as a badge rather than a button — the row is an
+  action that does not exist yet, so there is nothing for a press to reach
 - **the capture's body is rendered into the open description box** rather than
   seeded into the dialog when it first opens. It went in through a
   `data-draft-seed` attribute the keyboard layer read, which was the only way
@@ -5381,24 +5426,46 @@ own, and the rest as rows of hidden fields inside the form.
   is on the page now, so the server writes it there and a bounce hands back
   what was posted like any other box
 
-The project's own page is the same form with the project already there: the
-project's fields, its next action open in `actionfields` the way the branch
-above has its first, the rest of the plan as a list, and the same row of
-buttons an action's page carries.
+### The project's page
 
-Three pieces of it are literally the same, and are partials for that reason —
-`projectfields`, `projectactions` (the "More actions" list and its Add) and
-`draftdialog` (the dialog and the `<template>` a row is cloned from). What is
-left in each template is what that screen actually answers differently: the
-capture it is about on the processing screen, the marks on the heading here,
-the step the trail names. Two screens that were *nearly* the same were two to
-keep true, and every drift between them was a difference about whether the
-project existed yet rather than about what a project is (design.md, "Writing a
-project").
+The project's own page is the project's fields and then its plan: one list of
+every open action, in the plan's order, with the next one marked where it
+stands, and a second list of the completed ones under it (design.md, "Editing
+items"). It shares `projectfields` and `draftdialog` with the two screens that
+create a project, and nothing else: there every action is a draft held by the
+form until Create, and here every action is saved, so every press on one is
+written as it is made.
 
-- **which action is open is `Project.NextAction`** — the action the project's
+- **the order is a column, `actions.position`.** An integer, ordered ascending
+  within a project, with `id` as the tie-break. It was `id` alone, which made
+  the order the order of writing and nothing else (design.md, "The order of a
+  plan is yours"). The migration adds the column where it is missing and seeds
+  it from `id`, so an existing plan keeps the order it was drawn in.
+  `insertActionTx` gives a new action the project's largest position plus one,
+  which is what puts it at the end
+  - **a reorder reuses the positions the open actions already hold.**
+    `writeOrderTx` sorts those numbers and hands them out in the new order, so a
+    completed action keeps the number it was done at, and one brought back
+    returns to the place in the plan it was done from. Renumbering from 1 would
+    have moved every completed action without anything about it changing
+  - **an order that is the one already standing writes nothing and is not
+    audited.** A step for undo is a press that wrote an audit entry (design.md,
+    "Undo"), so a drag dropped where it started is not a step to be taken back
+  - **`ReorderActions` refuses an order that is not a permutation of the open
+    actions**, with `ErrStalePlan`. The page posts the whole list as it stands
+    after the drop; if an action has been added, completed or deleted since the
+    page was drawn, writing that list would put rows nobody saw into places
+    nobody chose. `MoveAction` swaps with the open neighbour and steps over
+    completed rows, which are not in the plan
+- **`Project.Plan()` and `Project.Finished()` are the two lists**, answered in
+  internal/app rather than by the template: open actions in position order, and
+  completed ones newest first by `completed_at`. The tree the plan used to be
+  drawn as — `ActionTree`, `RestTree`, the `--depth` indent — is gone with the
+  nesting; the badge says what a row waits on (design.md, "The order of a plan
+  is yours")
+- **which action is next is `Project.NextAction`** — the action the project's
   `next_action_id` names while that action is open and awake, and otherwise the
-  first open, unsnoozed one in `ActionTree` order. Nil when there is none. A
+  first open, unsnoozed one in `Plan()` order. Nil when there is none. A
   domain question, so it is answered in internal/app rather than by the page: a
   project has one next action (design.md, "Project"), and which one it is is the
   project's own answer
@@ -5426,137 +5493,64 @@ project").
   task — there is no project to be next of — and a snoozed action, and it audits
   the project with the row as it was, which is what makes the previous pointing
   recoverable
-- **the list under it is `Project.RestTree`**, which is the same walk with that
-  one row left out and the depths untouched. What waited on the next action
-  stays one level in, because what it is indented under is directly above the
-  list — re-rooting those rows would draw them as waiting on nothing, which is
-  the one thing the shape exists to say. It takes `today` for the same reason
-  `NextAction` does, and the template passes `$.Today`: which row is lifted out
-  is a question about a snooze, and a snooze is a question about the date
-- **the plan's list is one `<ul>` with both kinds of row in it.** The saved
-  ones are `actionrow`, drawn from `RestTree`; the unsaved ones follow as
-  `draftrow`. One list, because its order is the plan's order and a second list
-  would be a second plan — and appending is what the dialog does, so a new row
-  lands at the end of the plan, which is where a step you have just thought of
-  belongs. `moveDraft` refuses to shuffle a draft past a saved row: those are
-  the project's order and this Save does not write them
-- **the rows post as the same repeated fields the create screens post**, which
-  is what let the server keep one reader. `draftsFromForm` already returned the
-  open boxes first and the rows after; `newActions` is everything after the
-  first, parsed before anything is written so that one unreadable line refuses
-  the whole press. The order in `form.elements` is tree order, and the open
-  boxes sit above the list in the document, so the first of that list is the
-  next action on both screens without either having to say so
-- **the hidden fields carry `form="itemform"` on this page and nothing on the
-  others.** `draftrow` takes a `Form` for it, the way `actionfields` does: here
-  the list sits below the form element and is joined to it by name, and on the
-  screens that create a project the rows are nested inside the form and need no
-  attribute. Which is also why `draftForm()` asks the document for
-  `form[data-drafts]` rather than walking up from a row
-- **`firstNamed` is what reads a repeated name.** `form.elements.namedItem`
-  hands back a list once there is more than one `ameta` on the page, and a
-  list's own `.value` is the radio-group answer — `""` for boxes like these. The
-  `#↓` mark read the meta lines that way and would have quietly read nothing
-  the moment the plan had a row in it
-- **the boxes are joined to the project's form by `form="itemform"`, not
-  nested in it.** The heading over them carries the action's own complete and
-  pick forms — the two marks it had as a row — and a form cannot be nested in
-  a form. So the form element holds the project's fields, and the three boxes
-  sit outside it and name it. `fieldsIn` in app.js reads a form's fields
-  through `form.elements` for exactly this reason: the gate, the unsaved marks
-  and the `input` handler have to agree with what the browser will submit, and
-  `querySelectorAll` inside the element does not
-- **the heading is that action's row**, `data-kb-row` with its `data-href` and
-  `data-doing`, so `j`/`k` reach it and `w` and `enter` do there what they do on
-  any row (keys.md) — which is how the action's own page, and the Detach,
-  Promote and Delete on it, stay one press away from a title that is now a box
-  rather than a link
-- **and it carries `data-kb-subject`, which makes its forms the screen's as
-  well.** `screenForm` skips forms inside a row, so that a screen key cannot
-  reach past the cursor into one; a row that says it is what the screen is
-  about is the exception, and this is the only one in the app. Without it `d`
-  and `t` did nothing on this page until the heading had been walked onto,
-  which is a cursor move demanded before the one action the page exists to show
-  you can be ticked off
+- **the rows are `actionrow` with `Plan` set.** That draws a third mark beside
+  the two every action row has: `▶` in the accent on the next action, a pale
+  `▷` form against `/action/{id}/next` on a row that could be made next, and a
+  blank of the same width on the rest, so the titles line up whichever rows
+  carry what. The row also carries `data-plan`, `draggable`, its three fields
+  as `data-plan-*` attributes for the dialog to be filled from, and hidden
+  `kb-up`, `kb-down` and `kb-delete` forms for the keys (keys.md). Hidden forms
+  rather than script-built posts, because a row key presses a form the row
+  already has, and that is how the cursor is handed back on the same row after
+  the reload (see "Keyboard")
+- **the dialog is live here.** `draftdialog` takes `Live`, the address an added
+  action is posted to, and sets it as `data-live`; `openDraft` then posts what
+  the dialog confirms instead of writing a draft row — an edit to
+  `/action/{id}`, an add to `/project/{id}/addaction` — through `postPlan`, a
+  form built for the press, with `back` set to the page as it stands so the
+  view it was opened from comes along. The draft-row `<template>` is not drawn
+  where the dialog is live, because nothing there is a draft. A line the app
+  cannot read comes back as the project's page with the reason on it
+  (`refusePlan`; see "A refused post is never silent")
+- **a drag is native HTML drag and drop on the list.** The row in the pointer's
+  hand is moved among its siblings as it travels, so the list shows the order
+  letting go will write, and `dragend` posts the whole list to
+  `/project/{id}/reorder` as one comma-separated `order` field — one press, one
+  step for undo, however far it went. A drop that leaves the order unchanged
+  posts nothing. The row is faded while it is held, with a grab cursor on every
+  row that can be
+- **completing a row keeps the cursor in the plan.** The action leaves for the
+  Completed list, and the hand-over after a row key would otherwise follow it
+  there by its address; `submitIn` drops that hand-over for a completed plan
+  row, so the cursor lands on whatever took its place and the next `d` finishes
+  the next step
+- **Save writes the project's own fields and nothing else.** `projectUpdate`
+  reads the title, the DOD and the meta line; every action on the page is saved
+  by its own press. The form carries no `nextid` any more — there are no
+  action boxes on it for a stale page to write into
+- **the `#↓` mark is in the dialog's meta line here.** `actionfields` takes
+  `CopyFrom`, the id of the project's form, and draws the mark beside the today
+  dot with `data-copy-into` naming the dialog's own meta box. `metaBoxes` reads
+  the project's line off that form and writes the box it is named, found
+  through the dialog's `.stack` the way the dot finds its own, and re-gates the
+  dialog rather than the form. `openDraft` re-reads both marks when it fills
+  the dialog, since writing a box from script raises no `input`. The dialog
+  carries it on the create screens too, beside the open first action's own
+  mark on its heading; the scoping of keys to the top dialog (`keyLive`) is
+  what keeps the two `#` keys apart
 - **the project's own Done is drawn only when `OpenActions` is empty**, which is
   the same condition `internal/app` enforces: `CompleteProject` answers
   `ErrOpenActions` while any action is open, so the button spent most of its
   life offering something the app refuses. Dropped rather than disabled, which
   is what the list rows already do with the marks a completed action cannot
-  press. It leaves at most one Done on the page at any moment — the action's
-  while there is one, the project's once nothing is open — so `d` needs no rule
-  to tell two of them apart and `screenForm`'s document order settles it anyway:
-  the subject row comes before the button bar
-  - **`OpenActions` and not `NextAction`, and that is the whole of the change
-    here.** They were the same test while every open action was a next action.
-    Now a project can hold nothing but snoozed work, and it has no next action
-    to complete *and* may not be completed itself: the page then carries neither
-    Done, and `d` presses nothing. Asking `NextAction` would have drawn the
-    project's Done there and had the app refuse the press — a button that lies
-    about what it does being strictly worse than one that is absent (keys.md)
-- **one Save, and `projectUpdate` writes all of it.** It reads the project's
-  fields, the open action's and every row's before writing any of them, so a
-  meta line the app cannot read refuses the whole press rather than keeping the
-  project and dropping an action (design.md, "Writing an action").
-  `readActionNamed` is `readAction` with the `a` prefix — one reader, because
-  it is one form — and `newActions` is the rows, parsed the same way. The
-  refusal goes back to the page with everything still on it (see "A refused
-  post is never silent")
-- **the form posts `nextid`, and the handler checks it against the project.**
-  Not derived again on the way in: between the page being drawn and Save being
-  pressed the action may have been completed in another tab, and a save that
-  silently wrote to whatever is *now* at the head would edit an action nobody
-  was looking at. An id naming anything but this project's current next action
-  is refused and says so. Empty means the project had none, and then a title
-  typed into the box creates the action and anything else is left alone —
-  design.md never prevents a project from being stalled
-- **`Required` on the open title box is whether there is an action there.** An
-  action that exists cannot lose its title; an empty box has to stay saveable,
-  for the same reason the DOD does on this screen
-- **the `#↓` mark writes a box and posts nothing.** It is a bare
-  `<button type="button">` carrying `data-copy-meta="itemform"`, and the
-  keyboard layer does the work — the same arrangement the review mark has, and
-  for the same reason: the answer is this page redrawn where it stands, and the
-  page's one Save is what commits it. Two glyphs where every mark in the app is
-  one, because it is the only mark on that heading that is not the action's
-  state: `#` is the cargo and `↓` is the direction, and the alternatives are
-  written up in `research/next-action-meta-study.html`
-- **it reads both lines off `form.elements`**, not off the DOM around the
-  button: the action's meta line sits outside the form element and belongs to
-  it by its own `form` attribute (see `fieldsIn`). `projectTags` keeps the
-  tokens beginning `#` and drops the rest, which is how a project's snooze is
-  left behind — design.md says why
-- **which way the press goes is derived, never stored.** `metaCopyMode` answers
-  `take`, `drop` or nothing at all by comparing the two lines, so the mark's
-  `title` and its `data-key-label` say the answer this press lands on — the
-  rule the theme row's `h theme dark` already follows. Nothing is remembered
-  about where a tag came from, which is what keeps the second press honest
-- **`disabled` is rendered by the server and then kept by the key layer.** The
-  template asks `$p.Tags`, which is the saved line; `syncMetaCopy` re-reads the
-  live box on every keystroke and on every gate pass, so a tag typed onto the
-  project brings the mark alive before either line is saved. `keyUsable`
-  already drops a disabled control from the bar, so the key goes with it and
-  nothing had to be added for that
-- **it does not fill the box through a synthetic `input` event**, though that
-  would have reused the whole listener: the listener also opens the completion
-  list, and nothing here is being typed. It calls the four things that do apply
-  — repaint the box, disarm the discard marks, re-read the mark, re-gate the
-  form — and leaves the suggest list shut
-- **the today dot is the same arrangement, on the screens that have no action
-  to post against.** `●` on this heading is a form against `/action/{id}/pick`;
-  on every screen that *writes* an action there is no id, so `actionfields`
-  draws a bare button carrying `data-today-meta` — the name of the meta box
-  beside it — and `todayMark` flips `#today` in that box, which is the whole of
-  what the tag is (design.md, "#today"). One parameter, `Pick`, says which kind
-  of screen this is, and it is off wherever the action exists, so the two marks
-  can never both claim `t`. The box is found through `form.elements` where the
-  fields belong to a form and through the surrounding `.stack` in the draft
-  dialog, which has no form element at all; `syncToday` rides along with
-  `syncMetaCopy` on every keystroke and every gate pass, so `#today` typed by
-  hand lights the dot and rubbing it out puts it back. A draft row in a
-  project's list wears it as a badge rather than a button — the row is an
-  action that does not exist yet, so there is nothing for a press to reach
-
+  press. `d` on a row completes that row; with no row selected it finds the
+  project's Done, which is there only when nothing is open — so there are never
+  two Dones for one key to choose between
+  - **`OpenActions` and not `NextAction`.** A project can hold nothing but
+    snoozed work: it has no next action, and it may not be completed itself.
+    Asking `NextAction` would have drawn the project's Done there and had the
+    app refuse the press — a button that lies about what it does being strictly
+    worse than one that is absent (keys.md)
 - **completing or deleting the project leaves the page**, to the `back` the
   form posts (design.md, "Editing items"). Both went to `/projects`
   unconditionally, which was right about leaving and wrong about where: a
@@ -5569,43 +5563,19 @@ project").
   action's page had. `projectGone` says the pile the project was in instead,
   which is the honest answer to "then what" when nothing said where you came
   from
-- **the action list is the one list drawn as a shape.** An action waiting on a
-  sibling sits directly under it, one level in, and `Project.ActionTree` is
-  what produces that order — roots first, each one followed by whatever waits
-  on it. Every other list in the app is an answer to a question and is
-  therefore flat; this one is a plan, and what a plan says is what comes
-  before what. Said as a flat list with a badge, that order was something you
-  reconstructed by reading every row and matching titles by eye
-- **the walk needs no visited set, and that is not an oversight.** An action
-  waits on at most one other and rings are refused when they would be written
-  (design.md, "Time fields"), so the graph is a forest and the recursion
-  terminates on its own. Anything whose blocker is not in the list — it has
-  left the project since — is drawn as a root, because a line with nothing
-  above it is still a line
-- **the indent is padding on the row, driven by a `--depth` custom property.**
-  Padding rather than margin so the row's hover and its selected ring still
-  reach the full width of the list: the row is indented, not narrowed. The
-  template's whole contribution is `--depth` and a `data-depth` attribute for
-  the rule to hook, so nesting never touches what a row *is* — `j`/`k` still
-  step through the rows in the order they are drawn, and every row key still
-  finds the same forms
-- **stalled is marked on the `Next action` heading**, ringed in red, and
-  nowhere else on the page. It sits directly over the empty boxes the missing
-  action is written in, so the mark lands on the thing that is short of
-  something (see design.md, "Stalled projects"). It was on the `Actions`
-  heading while that list was where the action would have been added; the same
-  ring, moved to where the writing now happens. It is a ring the width of the
-  word, pulled left by its own padding so the word does not move as the mark
-  comes and goes — a heading that shifted sideways would say "something changed
-  here" every time the last next action was completed. `.nexthead` carries that
-  padding and its answering negative margin at all times, for the same reason:
-  selecting the row must paint it without moving the word
-  - **the ring asks `$p.Stalled` and not the empty branch it is drawn in.** The
-    two used to be the same question; a project whose every open action is
-    snoozed now reaches this branch and must not be ringed, being a project that
-    is waiting rather than one that is stuck (design.md, "Stalled projects"). So
-    the template draws the empty heading either way and the class is the
-    project's own answer
+- **stalled is marked on the `Actions` heading**, ringed in red, and nowhere
+  else on the page. The Add under it is where the missing action is written, so
+  the mark lands on the thing that is short of something (see design.md,
+  "Stalled projects"). It sat on a `Next action` heading over open boxes while
+  those were where the writing happened; the boxes are gone, and the ring came
+  back to the plan's heading. It is a ring the width of the word, pulled left
+  by its own padding so the word does not move as the mark comes and goes — a
+  heading that shifted sideways would say "something changed here" every time
+  the last action was completed
+  - **the ring asks `$p.Stalled` and not whether the list is empty.** A project
+    whose every open action is snoozed has rows and is not stalled; one with no
+    open action has none and is. The class is the project's own answer, so the
+    two can never be confused by the template
 - **the error banners stay at the top.** They are about the fields right under
   them — a project with no DOD — and that is where they are fixed. Two marks
   in two places is not two ways of saying the same thing: each one points at

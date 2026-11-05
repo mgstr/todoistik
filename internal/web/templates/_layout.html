@@ -409,7 +409,13 @@
 <li class="row {{if $a.IsSnoozed $today}}snoozed{{end}} {{if $a.CompletedAt}}done{{end}}" data-kb-row data-href="/action/{{$a.ID}}"
     {{if .Depth}}data-depth="{{.Depth}}" style="--depth: {{.Depth}}"{{end}}
     {{with itemlinks $a.Description}}data-links="{{.}}"{{end}}
-    {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}>
+    {{if not $a.CompletedAt}}data-doing="/doing/{{$a.ID}}"{{end}}
+    {{/* a row of a plan is edited where it stands, in the dialog it would be
+         added in, so it carries the three boxes' worth of what it says; and it
+         can be dragged, since its place in the list is the plan's order
+         (implementation.md, "The project's page") */}}
+    {{if .Plan}}data-plan="{{$a.ID}}" draggable="true"
+    data-plan-title="{{$a.Title}}" data-plan-meta="{{$a.Meta}}" data-plan-description="{{$a.Description}}"{{end}}>
   {{/* On a completed action the two controls are marks and nothing more —
        the same ☑ the Archive's own rows carry. A finished item is frozen
        (design.md, "Completion"), and a check that posted /complete again
@@ -430,22 +436,24 @@
     <button title="complete (d)" class="check">☐</button>
   </form>
   {{end}}
-  {{/* Next is asked for by the one list that is a plan — the rest of a project's
-       actions, under the one that is next — and by nothing else. The arrow says
-       where the press sends this row: up, into the boxes at the top of the page,
-       which is the only place in the app where being next is visible at all
-       (keys.md, `n`).
+  {{/* Plan is set by the one list that is a plan — the open actions on a
+       project's own page — and by nothing else. Its rows carry the next mark:
+       ▶ on the one action that is next, which is the only place in the app
+       where being next is visible at all, and a faint ▷ on every row that
+       could be, which is the press that moves it there (keys.md, `n`).
 
-       It is drawn on the rows that can take it and left as a blank gutter on the
-       rows that cannot, so the titles line up and no mark is offered that would
-       be refused: a snoozed action is not workable yet, and a completed one is
-       finished (design.md, "Project"). */}}
-  {{if .Next}}
-  {{if and (not $a.CompletedAt) (not ($a.IsSnoozed $today))}}
+       The ▶ is a mark and not a form: pressing next on the action that is
+       already next has nothing to do. A row that cannot be next keeps the
+       gutter blank, so the titles line up and no mark is offered that would be
+       refused — a snoozed action is not workable yet (design.md, "Project").
+       A completed one is not in this list at all. */}}
+  {{if .Plan}}
+  {{if eq $a.ID .NextID}}<span class="tonext isnext" title="the next action">▶</span>
+  {{else if and (not $a.CompletedAt) (not ($a.IsSnoozed $today))}}
   <form method="post" action="/action/{{$a.ID}}/next" class="kb-next inline">
-    <button title="make this the next action (n)" class="tonext">↑</button>
+    <button title="make this the next action (n)" class="tonext">▷</button>
   </form>
-  {{else}}<span class="tonext gap">↑</span>{{end}}
+  {{else}}<span class="tonext gap">▷</span>{{end}}
   {{end}}
   <a href="/action/{{$a.ID}}" class="title">{{$a.Title}}</a>
   {{if and .ShowProject $a.ProjectTitle}}<a class="badge proj" href="/project/{{$a.ProjectID}}">{{$a.ProjectTitle}}</a>{{end}}
@@ -461,6 +469,17 @@
   {{with $a.SnoozeLabel $today}}<span class="badge">{{.}}</span>{{end}}
   {{range $a.Errors}}<span class="badge error">{{.}}</span>{{end}}
   {{if $a.BecameNextAt}}<span class="age" title="how long this has been next">{{age $a.BecameNextAt}}</span>{{end}}
+  {{/* The plan's own presses, with no button on the row: `K` and `J` move it
+       and the delete key removes it, and the key bar is where a pointer
+       reaches all three (keys.md, "The map"). They are forms so that the
+       keyboard layer submits them the way it submits every other row mark —
+       and children of the row itself, because that is where the delete key
+       looks for its form. */}}
+  {{if .Plan}}
+  <form method="post" action="/action/{{$a.ID}}/up" class="kb-up" hidden><button>up</button></form>
+  <form method="post" action="/action/{{$a.ID}}/down" class="kb-down" hidden><button>down</button></form>
+  <form method="post" action="/action/{{$a.ID}}/delete" class="kb-delete" hidden><button>delete</button></form>
+  {{end}}
 </li>
 {{end}}
 
@@ -526,6 +545,12 @@
 {{if .Fixed}}
 <label class="gutter"><span class="lb">Project</span> <input class="pickerbox" readonly tabindex="-1" value="{{.Fixed}}"></label>
 {{end}}
+{{/* CopyFrom is the id of the project's form, set by the dialog an action of
+     that project is written in: the dialog knows which project the action is
+     for, so its line can take the project's tags the way the open Next action
+     boxes on the create screens do. The mark is drawn by the box it writes,
+     beside ●, because there is no heading in a dialog to wear it
+     (implementation.md, "The project's page"). */}}
 {{/* Pick is the ● the project's page wears on its Next action heading, drawn
      here on the screens where the action does not exist yet. There the mark is
      a little form against an action's id; here there is no id, so it writes
@@ -539,7 +564,10 @@
 <label class="gutter"><span class="lb">Meta</span> {{template "tokenbox" (dict
   "Name" (printf "%smeta" .Prefix) "Value" .Meta "Mode" "action" "Siblings" .Siblings "Form" .Form)}}{{if .Pick}} <button
   type="button" class="pick" data-today-meta="{{.Prefix}}meta" data-key="t" data-key-label="today"
-  {{- with .Form}} form="{{.}}"{{end}} title="pick for today (t)">●</button>{{end}}</label>
+  {{- with .Form}} form="{{.}}"{{end}} title="pick for today (t)">●</button>{{end}}{{with .CopyFrom}} <button
+  type="button" class="metacopy" data-copy-meta="{{.}}" data-copy-into="{{$.Prefix}}meta"
+  data-key="#" data-key-label="project tags" disabled
+  title="put the project's tags on this action (#)">#↓</button>{{end}}</label>
 <label class="gutter"><span class="lb">Description</span> <textarea name="{{.Prefix}}description" rows="1" data-grow spellcheck="false"{{with .Form}} form="{{.}}"{{end}}>{{.Description}}</textarea></label>
 {{template "extlinks" .Description}}
 {{end}}
@@ -678,14 +706,10 @@
      Three hidden fields carry it, rather than state held in the keyboard
      layer, because that is what makes a refused form able to hand it back. */}}
 <li class="row draft" data-kb-row data-draft>
-  {{/* the marks' places kept and left blank: a draft cannot be picked, completed
-       or made next, and a mark that did nothing would be offering all three.
-       The third place is kept only where the rows beside it have it, which is
-       the project's own page — the screens that create a project have no saved
-       row for anything to be next of yet. */}}
+  {{/* the marks' places kept and left blank: a draft cannot be picked or
+       completed, and a mark that did nothing would be offering both */}}
   <span class="pick gap">●</span>
   <span class="check gap">☐</span>
-  {{if .Next}}<span class="tonext gap">↑</span>{{end}}
   <span class="title">{{.Title}}</span>
   {{/* always emitted, empty when there is nothing to say: the keyboard layer
        clones this row and fills it in, and a row it had to build out of parts
@@ -703,28 +727,14 @@
 
 {{define "projectactions"}}
 {{/* The rest of the plan, under the one action that is open in its own boxes,
-     and the way to add to it. One definition, used by the project's own page
-     and by both screens that create a project: writing an action into a plan
-     is the same act wherever the plan is, and the two screens differ only in
-     whether some of the rows are saved already (implementation.md, "Writing a
-     project").
-
-     Rows is what the list already holds — an existing project's, drawn by
-     `actionrow` — and Drafts is what has been written and not saved. Both sit
-     in the one `<ul>`, because the order of that list is the plan's order and
-     a second list would be a second plan.
-
-     Next says whether these rows carry the mark that makes one of them the
-     project's next action. They do on the project's own page, where there is a
-     project to be next of; they do not on the two screens that create one,
-     where every row is a draft and the first action is the one in the boxes
-     above by construction (design.md, "Writing a project"). */}}
+     and the way to add to it — on the two screens that create a project. A
+     project that exists has a page of its own whose list is made of saved rows
+     and written to as you go (implementation.md, "The project's page"); here
+     there is nothing to save a row to until the one submit, so every row is a
+     draft held in the form (implementation.md, "Writing a project"). */}}
 <h2>More actions</h2>
 <ul class="list" data-draft-list>
-  {{range .Rows}}
-    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false "Next" $.Next)}}
-  {{end}}
-  {{range .Drafts}}{{template "draftrow" (dict "Title" .Title "Meta" .Meta "Description" .Description "Form" $.Form "Next" $.Next)}}{{end}}
+  {{range .Drafts}}{{template "draftrow" (dict "Title" .Title "Meta" .Meta "Description" .Description "Form" $.Form)}}{{end}}
 </ul>
 
 {{/* the button is under the list it adds to. The first action needs none — it
@@ -750,11 +760,18 @@
      "Edit action" when a row already in the list is opened in it. The heading
      and the crumb move together, which is what openDraft sets both of
      (implementation.md, "Panels"). */}}
-<dialog id="draft-dialog" aria-labelledby="draft-dialog-title" data-crumb="Create action">
+{{/* Live is where an action written here is posted, and it is set only on a
+     project that exists: there the dialog writes the action as soon as it is
+     confirmed — added to the end of the plan, or saved over the row it was
+     opened on — so each one is a step of its own that undo can take back
+     (implementation.md, "The project's page"). Without it the dialog writes a
+     draft row into the form, which is all a project not yet made can hold. */}}
+<dialog id="draft-dialog" aria-labelledby="draft-dialog-title" data-crumb="Create action"
+  {{with .Live}}data-live="{{.}}"{{end}}>
   <h2 id="draft-dialog-title">Add an action</h2>
   <div class="stack">
     {{template "actionfields" (dict "Prefix" "" "Title" "" "Meta" "" "Description" ""
-      "Required" true "Focus" false "Siblings" .Siblings "Pick" true)}}
+      "Required" true "Focus" false "Siblings" .Siblings "Pick" true "CopyFrom" "itemform")}}
     <div class="branches">
       <button type="button" class="primary" data-draft-ok>Create</button>
       <button type="button" data-draft-cancel>Cancel</button>
@@ -763,7 +780,9 @@
 </dialog>
 {{/* one definition of a row, cloned by the keyboard layer when an action is
      added and rendered by the server when a refused form comes back */}}
-<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form "Next" .Next)}}</template>
+{{/* not where the dialog is live: there a confirmed action is posted and comes
+     back as a saved row, so there is no draft for this to be the shape of */}}
+{{if not .Live}}<template id="draftrow-template">{{template "draftrow" (dict "Title" "" "Meta" "" "Description" "" "Form" .Form)}}</template>{{end}}
 {{end}}
 
 {{define "undostep"}}

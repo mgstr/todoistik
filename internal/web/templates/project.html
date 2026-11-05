@@ -4,10 +4,10 @@
   {{with itemlinks $p.DOD}}data-links="{{.}}"{{end}}>
   {{/* Stalled is not said up here. A banner across the top of the screen is
        the loudest thing the app has, and what it was shouting about is further
-       down — the mark belongs on the "Next action" heading, over the empty
-       boxes where the thing that is missing is written (implementation.md,
-       "Writing a project"). The error banners stay: they are about the fields
-       directly under them, which is where they are fixed. */}}
+       down — the mark belongs on the "Actions" heading, over the empty list
+       the missing action would be added to (implementation.md, "The project's
+       page"). The error banners stay: they are about the fields directly
+       under them, which is where they are fixed. */}}
   {{range $p.Errors}}<p class="error-banner">{{.}}</p>{{end}}
 
   {{if $p.CompletedAt}}
@@ -20,8 +20,11 @@
 
   <h2>Actions</h2>
   <ul class="list">
-  {{range $p.ActionTree}}
-    {{template "actionrow" (dict "A" .Action "Depth" .Depth "Today" $.Today "ShowProject" false)}}
+  {{range $p.Plan}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{end}}
+  {{range $p.Finished}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
   {{end}}
   </ul>
   {{/* and no control under the list: a finished project takes no new work,
@@ -45,128 +48,59 @@
 
   {{else}}
 
-  {{/* Nothing here says "no next action left" a second time. The panel that
-       used to — reached by completing the last action, with the DOD quoted
-       back and a Done of its own — said in a paragraph what the marked
-       "Next action" heading below says by being marked over an empty box, and
-       its Done was a second copy of the one in the action bar. One screen,
-       drawn one way however it was arrived at: see design.md, "Completing a
-       next action". */}}
-
-  {{/* why a Save came back instead of being taken. The rows in the list live
-       in this form until that press, so a refusal redraws the screen with
-       everything still on it rather than throwing the page away. */}}
+  {{/* why a Save, a Done or a write to the plan came back instead of being
+       taken */}}
   {{if $d.Note}}<p class="ask">{{$d.Note}}</p>{{end}}
 
   {{/* the same fields, in the same order, as the screen a project is created
-       on — see the "projectfields" partial */}}
-  <form method="post" action="/project/{{$p.ID}}" id="itemform" class="stack" data-drafts data-dirty-save>
+       on — see the "projectfields" partial. Save writes these and nothing
+       else: the plan under them is written as you go, a step at a time
+       (implementation.md, "The project's page"). */}}
+  <form method="post" action="/project/{{$p.ID}}" id="itemform" class="stack" data-dirty-save>
     <input type="hidden" name="back" value="{{$d.Back}}">
     {{template "projectfields" (dict "Title" $d.Fields.Title "DOD" $d.Fields.DOD "Meta" $d.Fields.Meta
       "Required" false "Focus" false)}}
-    {{/* which action the boxes below are about. The form says it rather than
-         the server deriving it again: between drawing this page and saving it
-         the action may have been completed somewhere else, and a save that
-         silently wrote the next one instead would edit an action nobody was
-         looking at. 0 is a project with none, and then the boxes make one. */}}
-    <input type="hidden" name="nextid" value="{{with $d.NextAction}}{{.ID}}{{end}}">
   </form>
 
-  {{/* The next action, open. A project is read to answer one question — what
-       moves this forward — and the answer was a row you had to open to see
-       (design.md, "Projects"). Its boxes are the form's, joined to it by
-       `form="itemform"` rather than nested in it, so that the two marks on the
-       heading can be the little forms they are everywhere else: Save writes
-       the project and this action together, and completing it is still one
-       press that does not go through Save.
+  {{/* The plan: every open action, in the order it was put in, with the one
+       that is next marked ▶ where it stands rather than lifted out of the list
+       into boxes of its own. A project is read to answer what moves it forward,
+       and the answer is a row you can see among the rest of the plan — which
+       is also what makes the plan's order something you can change
+       (design.md, "The order of a plan is yours").
 
-       The heading is the row this action used to be, which is what keeps the
-       keyboard the same: it selects with j/k, `d` completes it, `t` picks it,
-       `w` starts doing it and `enter` opens its own page — where detaching,
-       deleting and the rest still live (keys.md). With nothing selected, `d`
-       is the project's Done in the bar below, exactly as before. */}}
-  {{$editing := false}}{{with $d.NextAction}}{{$editing = true}}{{end}}
-  <div class="stack">
-    {{with $d.NextAction}}
-    {{/* data-kb-subject: this row is half of what the screen is about, so `d`
-         and `t` answer for it with nothing selected as well as with the
-         heading under the cursor. It is still a row — j/k reach it, `enter`
-         opens the action's own page, `w` starts doing it — but the marks on
-         the one action the page opened to show you must not be behind a
-         cursor move (keys.md, "What is built"). */}}
-    <h2 class="nexthead" data-kb-row data-kb-subject
-        data-href="/action/{{.ID}}" data-doing="/doing/{{.ID}}"
-        {{with itemlinks .Description}}data-links="{{.}}"{{end}}>
-      <span class="what">Next action</span>
-      <form method="post" action="/action/{{.ID}}/pick" class="kb-pick inline">
-        <button type="submit" title="pick for today (t)" class="pick {{if hasTag .Tags "today"}}picked{{end}}">●</button>
-      </form>
-      <form method="post" action="/action/{{.ID}}/complete" class="kb-complete inline">
-        <button type="submit" title="complete (d)" class="check">☐</button>
-      </form>
-      {{/* The project's own tags, brought down onto this action's line. Two
-           glyphs where every other mark is one, because it is the one mark
-           here that is not about the action's state: `#` is what is moving and
-           `↓` is where it goes, and a reader who has to guess at a mark will
-           guess wrong about the one that writes in a box (research/,
-           next-action-meta-study.html).
+       Every press on it is written at once: add and edit in the dialog, `d`,
+       `n`, `K`/`J`, a drag and the delete key. None of it waits for Save, so
+       each is a step undo can take back, and leaving the page never asks
+       about a row.
 
-           It posts nothing — it writes the action's meta line and the page's
-           one Save commits it — so it is a bare button and not a form. The
-           `disabled` here is the saved line's answer; the key layer re-reads it
-           off the box with every keystroke, so a tag typed on the project is
-           one this can bring down before either is saved. */}}
-      <button type="button" class="metacopy" data-copy-meta="itemform"
-              data-key="#" data-key-label="project tags"
-              {{if not $p.Tags}}disabled{{end}}
-              title="put the project's tags on this action (#)">#↓</button>
-      {{range .Errors}}<span class="badge error">{{.}}</span>{{end}}
-      {{/* the one thing about this action that is not in a box below: how long
-           it has been the answer, which is the number a project is reviewed on
-           (implementation.md, "Writing an action") */}}
-      {{if .BecameNextAt}}<span class="age" title="how long this has been next">{{age .BecameNextAt}}</span>{{end}}
-    </h2>
-    {{else}}
-    {{/* Stalled is said here, on the heading of the thing that is missing,
-         ringed in red — the same rule the error banners follow, which is that
-         a problem is marked where it is fixed. It was on the action list while
-         the missing next action was a row you would have added there; the
-         boxes under this heading are where it is written now.
-
-         The ring asks the project and not the box: an empty box is no longer
-         the same fact as a stalled project. A project whose every open action
-         is snoozed has these boxes empty and is waiting rather than stuck, so
-         it gets no ring — what is under the heading then is the offer to write
-         a step that can be done now, not a complaint (design.md, "Stalled
-         projects"). */}}
-    <h2 class="nexthead{{if $p.Stalled}} stalled{{end}}"><span class="what">Next action</span></h2>
-    {{end}}
-    {{/* Required only when there is one: an action that exists cannot lose its
-         title, and an empty box here must still save, because the app never
-         prevents a project from being stalled (design.md, "Stalled projects").
-         Written in, it is the project's next action a moment later. */}}
-    {{template "actionfields" (dict "Prefix" "a" "Form" "itemform" "Required" $editing "Label" "a next action"
-      "Focus" false "Pick" (not $editing) "Siblings" $d.Siblings
-      "Title" $d.Next.Title "Meta" $d.Next.Meta "Description" $d.Next.Description)}}
+       Stalled is said here, on the heading of the list that is empty, ringed
+       in red — a problem is marked where it is fixed. The ring asks the
+       project and not the list: a project whose every open action is snoozed
+       has no next action and is waiting rather than stuck, so it gets none
+       (design.md, "Stalled projects"). */}}
+  <h2 class="planhead{{if $p.Stalled}} stalled{{end}}">Actions</h2>
+  <ul class="list" data-plan-list data-reorder="/project/{{$p.ID}}/reorder">
+  {{range $p.Plan}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false "Plan" true "NextID" $d.NextID)}}
+  {{end}}
+  </ul>
+  <div class="actionsbar">
+    <button type="button" data-draft-add data-key="a" data-key-label="add">Add</button>
   </div>
 
-  {{/* The rest of the plan, and it is the one list in the app that is a plan
-       rather than an answer — so it is the one drawn as a shape: an action
-       waiting on a sibling sits under it, one level in. The order is what the
-       plan says comes before what, and a flat list made that something you
-       reconstructed from badges (implementation.md, "Writing a project").
-       The next action is not in it, because it is above with its boxes open,
-       and the depths are the plan's own all the same: what waits on the next
-       action is still one level in, hanging off the block directly above the
-       list.
-
-       Add writes into this list rather than leaving for a screen of its own.
-       Leaving was the one control on the page that threw away what was in the
-       boxes to reach a form, and it made adding an action a different act here
-       from what it is on the screen a project is created on — one plan, one
-       way of writing into it (implementation.md, "Writing a project"). */}}
-  {{template "projectactions" (dict "Rows" ($p.RestTree $.Today) "Drafts" $d.Drafts "Today" $.Today
-    "Form" "itemform" "Next" true)}}
+  {{/* What has been done, the most recent first: a record and not a plan, so
+       it is in no order you set and takes no new mark. Its rows open on the
+       action's own page, which is where a completion is taken back
+       (design.md, "Completed actions are a record, newest first"). */}}
+  {{with $p.Finished}}
+  <h2>Completed actions</h2>
+  <ul class="list">
+  {{range .}}
+    {{template "actionrow" (dict "A" . "Today" $.Today "ShowProject" false)}}
+  {{end}}
+  </ul>
+  {{end}}
 
   {{/* the same row of buttons an action's page carries, in the same order:
        save, the state changes, delete, and the way out */}}
@@ -177,18 +111,10 @@
          "Writing a project" */}}
     {{/* Done is here only when the project holds nothing open, and then it is
          the only Done on the screen. A project with open work cannot be
-         completed — internal/app answers ErrOpenActions — so the button was
-         offering something the app refuses, and `d` had to be told which of
-         two Dones it meant by whether a row was selected. One Done, and what
-         it finishes is whatever is in front of you: the next action while
-         there is one, and the project once there is nothing left (design.md,
-         "Completing a next action").
-
-         Nothing open, not "no next action": a project whose every open action
-         is snoozed has no next action and cannot be finished either, so this
-         page carries no Done at all for as long as that is true — and `d`
-         presses nothing, which is the standing rule about a key with nothing
-         to do (keys.md). */}}
+         completed — internal/app answers ErrOpenActions — so the button would
+         be offering something the app refuses. While there is a plan, `d` is
+         the selected row's; once there is nothing left, it is this (design.md,
+         "Completing a next action"). */}}
     {{if not $p.OpenActions}}
     <form method="post" action="/project/{{$p.ID}}/complete" class="inline kb-complete">
       <input type="hidden" name="back" value="{{$d.Back}}">
@@ -202,9 +128,9 @@
     <a class="button" href="{{$d.Back}}">Back</a>
   </div>
 
-  {{/* the dialog the list's rows are written in, and the one definition of a
-       row it clones — the same pair the screens that create a project carry */}}
-  {{template "draftdialog" (dict "Siblings" $d.Siblings "Form" "itemform" "Next" true)}}
+  {{/* the dialog the plan's rows are added and edited in, posting each one as
+       it is confirmed */}}
+  {{template "draftdialog" (dict "Siblings" $d.Siblings "Form" "" "Live" (printf "/project/%d/addaction" $p.ID))}}
 
   {{end}}
 </div>

@@ -111,14 +111,23 @@ func (a *App) insertActionTx(tx *sql.Tx, act *Action) error {
 	if act.ProjectID != 0 {
 		pid = act.ProjectID
 	}
+	// a new action goes to the end of its plan: written last, read last, and
+	// moved from there if it belongs further up (design.md, "The order of a
+	// plan is yours"). Counted over the rows that share its project — NULL for
+	// a task, which `IS` compares where `=` would not
+	if err := tx.QueryRow(`SELECT COALESCE(MAX(position), 0) + 1 FROM actions WHERE project_id IS ?`,
+		pid).Scan(&act.Position); err != nil {
+		return err
+	}
 	res, err := tx.Exec(`INSERT INTO actions
 		(project_id, title, context, context_param, duration, needs_focus, description,
 		 assigned_to, due_date, created_at, last_reviewed_at, became_next_at, snooze_until,
-		 snooze_action_id, completed_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 snooze_action_id, completed_at, position)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		pid, act.Title, act.Context, act.ContextParam, string(act.Duration), act.NeedsFocus,
 		act.Description, act.AssignedTo, act.DueDate, ts(act.CreatedAt), ts(act.LastReviewedAt),
-		tsPtr(act.BecameNextAt), act.SnoozeUntil, nullID(act.SnoozeActionID), tsPtr(act.CompletedAt))
+		tsPtr(act.BecameNextAt), act.SnoozeUntil, nullID(act.SnoozeActionID), tsPtr(act.CompletedAt),
+		act.Position)
 	if err != nil {
 		return err
 	}
@@ -138,7 +147,8 @@ func (a *App) insertActionTx(tx *sql.Tx, act *Action) error {
 const actionCols = `a.id, a.project_id, a.title, a.context, a.context_param, a.duration,
 	a.needs_focus, a.description, a.assigned_to, a.due_date, a.created_at,
 	a.last_reviewed_at, a.became_next_at, a.snooze_until, a.snooze_action_id,
-	COALESCE((SELECT b.title FROM actions b WHERE b.id = a.snooze_action_id), ''), a.completed_at`
+	COALESCE((SELECT b.title FROM actions b WHERE b.id = a.snooze_action_id), ''), a.completed_at,
+	a.position`
 
 func scanAction(row rowScanner) (*Action, error) {
 	act := &Action{}
@@ -147,7 +157,8 @@ func scanAction(row rowScanner) (*Action, error) {
 	var next, completed sql.NullString
 	if err := row.Scan(&act.ID, &pid, &act.Title, &act.Context, &act.ContextParam, &dur,
 		&act.NeedsFocus, &act.Description, &act.AssignedTo, &act.DueDate, &created,
-		&reviewed, &next, &act.SnoozeUntil, &blocker, &act.SnoozeActionTitle, &completed); err != nil {
+		&reviewed, &next, &act.SnoozeUntil, &blocker, &act.SnoozeActionTitle, &completed,
+		&act.Position); err != nil {
 		return nil, err
 	}
 	act.ProjectID = pid.Int64
@@ -384,7 +395,7 @@ func (a *App) detachTx(tx *sql.Tx, id int64) error {
 // Refusing it is also what makes the rest cheap: with no cycles the waiting
 // graph is a forest, so every chain ends at an action waiting on nothing,
 // which is what guarantees a project with open actions always has one that can
-// be started. ActionTree leans on the same fact.
+// be started.
 //
 // self is 0 for an action being created, which nothing can be waiting on yet.
 func (a *App) checkBlockerTx(tx *sql.Tx, self, projectID, blocker int64) error {

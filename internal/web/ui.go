@@ -1980,9 +1980,18 @@ func (s *Server) actionVerb(w http.ResponseWriter, r *http.Request) {
 	case "next":
 		// the mark on a row of a project's plan: this is the one that is next.
 		// It leaves nothing behind to redirect to, so it ends where every other
-		// row mark ends — the page it was pressed on, redrawn with this action
-		// in the boxes at the top (design.md, "Project")
+		// row mark ends — the page it was pressed on, redrawn with the ▶ on
+		// this row (design.md, "Project")
 		err = s.app.MakeNext(id)
+	case "up", "down":
+		// `K` and `J` on a row of a plan: the row moves one place and the page
+		// comes back with it still under the cursor (design.md, "The order of
+		// a plan is yours")
+		delta := 1
+		if verb == "up" {
+			delta = -1
+		}
+		err = s.app.MoveAction(id, delta)
 	case "snooze":
 		err = s.app.SnoozeAction(id, strings.TrimSpace(r.FormValue("until")))
 	case "tag":
@@ -2054,18 +2063,15 @@ type projectForm struct{ Title, DOD, Meta string }
 type projectPageData struct {
 	Project *app.Project
 	Fields  projectForm // what the project's own boxes show
-	// the project's next action, which the page shows open in its own boxes
-	// rather than as a row to be pressed (design.md, "Projects"). Nil when the
-	// project has none — it is stalled, or everything it holds is snoozed — and
-	// then the boxes are empty and make one
-	NextAction *app.Action
-	Next       draftAction   // what those boxes show — the same triple a project form writes anywhere
-	Drafts     []draftAction // actions written here and not saved yet, under the plan
-	Note       string        // why a Save came back instead of being taken
-	Siblings   string        // what the next action's `snooze:` may name, as JSON
-	Contexts   []string
-	Tags       []string
-	Back       string // the view this was opened from, for Back and esc
+	// NextID is the project's next action, which the plan marks ▶ where it
+	// stands (design.md, "Project"). 0 when the project has none — it is
+	// stalled, or everything it holds is snoozed
+	NextID   int64
+	Note     string // why a Save or a write to the plan came back instead of being taken
+	Siblings string // what a `snooze:` in the dialog may name, as JSON
+	Contexts []string
+	Tags     []string
+	Back     string // the view this was opened from, for Back and esc
 }
 
 // projectData is the project's page as the project itself says it. The boxes
@@ -2078,23 +2084,17 @@ func (s *Server) projectData(proj *app.Project, r *http.Request) *projectPageDat
 		Back:    s.parentView(r, "/projects"),
 	}
 	// A completed project is read and does not write (design.md,
-	// "Completion"), so it has no boxes for a next action to be open in — and
-	// nothing it still holds is next.
+	// "Completion"), so nothing it still holds is next.
 	if proj.CompletedAt == nil {
-		d.NextAction = proj.NextAction(s.app.Today())
-		if a := d.NextAction; a != nil {
-			d.Next = draftAction{Title: a.Title, Meta: a.Meta(), Description: a.Description}
+		if a := proj.NextAction(s.app.Today()); a != nil {
+			d.NextID = a.ID
 		}
-		// what that box's `snooze:` may name: this project's open actions,
-		// less the one being written, which is the rule an action's own page
-		// follows. An empty box is writing an action that does not exist yet,
-		// so nothing is excluded
+		// what the dialog's `snooze:` may name: this project's open actions.
+		// Nothing is excluded, since the one dialog adds and edits alike — an
+		// action named as its own blocker is refused by the app, which is
+		// where that rule lives (internal/app, checkBlockerTx)
 		sibs, _ := s.app.Siblings(proj.ID)
-		self := int64(0)
-		if d.NextAction != nil {
-			self = d.NextAction.ID
-		}
-		d.Siblings = siblingsJSON(sibs, self)
+		d.Siblings = siblingsJSON(sibs, 0)
 	}
 	d.Contexts, _ = s.app.Contexts()
 	d.Tags, _ = s.app.Tags()
@@ -2124,21 +2124,31 @@ func (s *Server) projectPage(w http.ResponseWriter, r *http.Request) {
 
 // bounceProject sends a refused Save back to the project's page with
 // everything that was typed still on it, which is what the Project branch of
-// processing has always done. It matters more here than it did there: the
-// actions written into the list live in the form until the press is taken, so
-// an error page would throw away work that was never anywhere else
-// (see implementation.md, "Writing a project").
+// processing has always done.
 func (s *Server) bounceProject(w http.ResponseWriter, r *http.Request, proj *app.Project, note string) {
 	d := s.projectData(proj, r)
 	d.Note = note
 	d.Fields = projectForm{
 		Title: r.FormValue("title"), DOD: r.FormValue("dod"), Meta: r.FormValue("meta"),
 	}
-	// the open boxes are the first of the repeated action fields and the rows
-	// are the rest, which is the one reading of that list everywhere
-	if all := draftsFromForm(r); len(all) > 0 {
-		d.Next, d.Drafts = all[0], written(all[1:])
+	s.renderProject(w, r, d)
+}
+
+// refusePlan answers a write to the plan the app would not take — an added
+// action whose line it cannot read, a drag drawn on a stale page — with the
+// project's page and the reason on it. The project's own boxes are the saved
+// ones: the press that came back was about a row, not about them.
+func (s *Server) refusePlan(w http.ResponseWriter, r *http.Request, id int64, err error) {
+	proj, perr := s.app.Project(id)
+	if perr != nil {
+		httpError(w, err)
+		return
 	}
+	d := s.projectData(proj, r)
+	d.Note = err.Error()
+	// the view the page was opened from is what the press posted; the
+	// Referer is this page itself by now
+	d.Back = localPath(r.FormValue("back"), d.Back)
 	s.renderProject(w, r, d)
 }
 
@@ -2189,17 +2199,10 @@ type addActionPageData struct {
 	Siblings     string // the actions `snooze:` may name here, as JSON
 }
 
-// projectUpdate saves the project's page, which is the project, the action at
-// the head of its plan, and any action written into the list beneath it — one
-// screen, one Save. They are written together because the page reads as one
-// thing: a project is what it is aimed at and what is being done about it
-// next, and two Saves would ask which half you meant every time you changed a
-// word in either.
-//
-// All of it is read before any of it is written, so a meta line the app cannot
-// read refuses the whole press rather than keeping the project and dropping an
-// action (design.md, "Writing an action"). A refusal goes back to the page
-// with everything still typed on it, because the rows are nowhere else.
+// projectUpdate saves the project's own fields — title, definition of done
+// and meta line. The plan under them is not in this form: every press on it is
+// written as it is made (implementation.md, "The project's page"), so Save has
+// nothing of the plan's to commit.
 func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	id := idParam(r)
 	proj, err := s.app.Project(id)
@@ -2212,115 +2215,11 @@ func (s *Server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		s.bounceProject(w, r, proj, err.Error())
 		return
 	}
-	// which action the boxes were about, as the form says. It is checked
-	// against the project rather than trusted: a page drawn before the action
-	// was completed somewhere else must not write to it, and an id from
-	// anywhere else must not reach an action this project does not own
-	nextID := parseID(strings.TrimSpace(r.FormValue("nextid")))
-	if nextID != 0 {
-		next := proj.NextAction(s.app.Today())
-		if next == nil || next.ID != nextID {
-			s.bounceProject(w, r, proj, "that is no longer this project's next action — open the project again")
-			return
-		}
-	}
-	wa, err := s.readActionNamed(r, "a", id, nextID)
-	if err != nil {
-		s.bounceProject(w, r, proj, err.Error())
-		return
-	}
-	// the rows under the open boxes: actions written in the dialog and held in
-	// the form until this press, the same three repeated fields the screens
-	// that create a project post. The open boxes are the first of that list,
-	// so the rows are everything after it
-	made, err := s.newActions(r, id)
-	if err != nil {
-		s.bounceProject(w, r, proj, err.Error())
-		return
-	}
 	if err := s.app.UpdateProject(id, f); err != nil {
 		s.bounceProject(w, r, proj, err.Error())
 		return
 	}
-	// an empty box on a project with no next action is left alone: the app
-	// never prevents a project from being stalled (design.md, "Stalled
-	// projects"), so saving a DOD without inventing an action is a save
-	switch {
-	case nextID != 0:
-		if err := s.app.UpdateAction(nextID, wa.Fields); err != nil {
-			httpError(w, err)
-			return
-		}
-		if err := s.applyToday(nextID, wa.Today); err != nil {
-			httpError(w, err)
-			return
-		}
-	case wa.Fields.Title != "":
-		act, cerr := s.app.CreateAction(id, wa.Fields)
-		if cerr != nil {
-			httpError(w, cerr)
-			return
-		}
-		if err := s.applyToday(act.ID, wa.Today); err != nil {
-			httpError(w, err)
-			return
-		}
-	}
-	// the rows, in the order they sit on the screen, which is the order the
-	// plan puts them in
-	for _, n := range made {
-		act, cerr := s.app.CreateAction(id, n.Fields)
-		if cerr != nil {
-			httpError(w, cerr)
-			return
-		}
-		if err := s.applyToday(act.ID, n.Today); err != nil {
-			httpError(w, err)
-			return
-		}
-	}
 	back(w, r)
-}
-
-// newActions reads the rows a project's page posted under its open boxes: the
-// actions written there and not saved yet. Every meta line is parsed before
-// any of them is written, so one unreadable line refuses the whole Save and
-// the page comes back with all of them still on it.
-func (s *Server) newActions(r *http.Request, projectID int64) ([]writtenAction, error) {
-	all := draftsFromForm(r)
-	if len(all) < 2 {
-		return nil, nil
-	}
-	// an action written here may wait on one the project already has; it
-	// cannot wait on another row, which has no id to be named by
-	v, err := s.app.VocabularyIn(projectID, 0)
-	if err != nil {
-		return nil, err
-	}
-	var out []writtenAction
-	for _, d := range written(all[1:]) {
-		m, perr := app.ParseMeta(d.Meta, v)
-		if perr != nil {
-			return nil, fmt.Errorf("%s: %w", d.Title, perr)
-		}
-		out = append(out, writtenAction{
-			Today: m.Today,
-			Fields: app.ActionFields{
-				Title:          d.Title,
-				Description:    d.Description,
-				Context:        m.Context,
-				ContextParam:   m.ContextParam,
-				Duration:       m.Duration,
-				NeedsFocus:     m.NeedsFocus,
-				AssignedTo:     m.AssignedTo,
-				DueDate:        m.DueDate,
-				SnoozeUntil:    m.SnoozeUntil,
-				SnoozeActionID: m.SnoozeActionID,
-				Tags:           m.Tags,
-			},
-		})
-	}
-	return out, nil
 }
 
 // projectGone is where a project's page goes once the project it is about is
@@ -2352,6 +2251,8 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 	case "tag":
 		err = s.app.ToggleTag("project", id, r.FormValue("tag"))
 	case "addaction":
+		// the dialog on the project's page, confirmed: the action goes to the
+		// end of the plan now, as a step of its own
 		var wa writtenAction
 		if wa, err = s.readAction(r, id, 0); err == nil {
 			var act *app.Action
@@ -2359,6 +2260,26 @@ func (s *Server) projectVerb(w http.ResponseWriter, r *http.Request) {
 				err = s.applyToday(act.ID, wa.Today)
 			}
 		}
+		if err != nil {
+			s.refusePlan(w, r, id, err)
+			return
+		}
+		back(w, r)
+		return
+	case "reorder":
+		// a drag, handed back as the whole plan in its new order
+		var order []int64
+		for _, f := range strings.Split(r.FormValue("order"), ",") {
+			if n := parseID(strings.TrimSpace(f)); n != 0 {
+				order = append(order, n)
+			}
+		}
+		if err = s.app.ReorderActions(id, order); err != nil {
+			s.refusePlan(w, r, id, err)
+			return
+		}
+		back(w, r)
+		return
 	default:
 		http.NotFound(w, r)
 		return

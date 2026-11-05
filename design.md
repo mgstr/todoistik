@@ -744,16 +744,36 @@ still holds all three, and any of them can be made the next one in a keystroke -
 what is gone is all three being *next* together. A plan is still parallel; what
 is serial is the attention paid to it, which is the honest half.
 
-**Which one it is, is a choice and not an order.** The order actions were
-written in is not a claim about which matters now - the order of a plan is what
-came out of thinking about the outcome, and which step to take today is a
-different question, asked on a different day. So one of them is pointed at, with
-`n` on its row (keys.md), and the pointing stands until it is pointed somewhere
-else. Nothing else about the plan is disturbed by it: the order stays as it was
-written, because the plan is a record of thinking and not a queue.
+**Which one it is, is a choice and not a position.** Which step to take today
+is a different question from where that step sits in the plan, and it is asked
+on a different day. So one of them is pointed at, with `n` on its row
+(keys.md), and the pointing stands until it is pointed somewhere else. Moving
+rows does not move it: a reorder is a statement about the plan, and the
+pointing is a statement about today.
+
+**The order of a plan is yours.** The actions stand in the order you put them
+in, and that order changes by hand and only by hand: a row moved up or down a
+place, or dragged to where it belongs (keys.md). It is what came out of
+thinking about the outcome - which step leans on which, what is worth doing
+first - and a list that sorted itself by date or by dependency would be
+overwriting that thinking with a guess about it. A new action goes at the end,
+because a step thought of later belongs after the ones already planned until
+you say otherwise.
+
+- **a reorder is a step of its own for undo.** It changes nothing about any
+  action but its place, and it is still something done to the plan, so a drag
+  you did not mean is taken back like any other press (see "Undo"). A drag is
+  one step however far the row travelled, and a move that leaves the order as
+  it was writes nothing.
+- **the plan is drawn flat.** An action waiting on a sibling used to be drawn
+  under it, one step in. With an order set by hand, an indent the app works out
+  for itself would contradict that order on the same screen, so the row says
+  which sibling it waits on with its badge instead (see "Time fields").
 
 - **until something is pointed at, the plan's own order answers.** The first
-  open, workable action in the list is the next one, which is what a project
+  open, workable action in the list is the next one - and since that order is
+  yours, moving a row to the top makes it next too, for as long as nothing is
+  pointed at. It is also what a project
   created a minute ago has without anybody deciding anything - and a project
   whose next action has just been completed likewise. Nothing has to be chosen
   for a project to have a next action, or the choosing would be a tax on
@@ -793,9 +813,10 @@ teach you to ignore the colour, which costs the check the only thing it has.
 
 - a project is exempt while it is snoozed, and once it is completed
 - a project whose only open actions are snoozed is **not** stalled. Its next
-  action field is empty, and that is a different fact, said in a different place:
-  the boxes on its page stand empty and unmarked, offering a step that could be
-  done now to whoever wants to write one
+  action is none of them, and that is a different fact, said in a different
+  place: no row of its plan wears the ▶ and its Actions heading is unmarked, with
+  Add under it offering a step that could be done now to whoever wants to write
+  one
 - a project whose next action is a waiting for action is **not** stalled
 - the check applies to projects only. Standalone actions are not covered by it,
   and neither is the Tasks view - see "Tasks"
@@ -804,21 +825,21 @@ Stalled projects stay visible in the normal views, clearly marked as stalled
 (red, or similarly loud). They are not hidden away in a dedicated screen, and
 they are not something only the weekly review surfaces.
 
-**On the project's own page the mark is over the empty box the next action goes
-in, not across the top.** That box is where the missing next action is written,
-so that is where the app says it is missing - the same rule the error state
-follows, which marks the field it is about. The mark asks the project and not
-the box, since an empty box is no longer proof of a stall: the project that is
-waiting on a snooze has the same empty box and no mark on it.
+**On the project's own page the mark is on the Actions heading, not across the
+top.** The plan is where the missing action is written - its Add is under that
+heading - so that is where the app says it is missing, the same rule the error
+state follows, which marks the field it is about. The mark asks the project and
+not the list: the project that is waiting has a plan of sleeping rows and no
+mark on it.
 
-A banner over the whole screen was
-louder without being clearer: it shouted at a page you had opened *because* you
-already knew, and it said in a sentence what a mark by the box says by being
-there. It was on the heading of the action list while the missing action was a
-row you would have added there; the box is where it is written now, so the mark
-moved with it. Loud belongs in the views, where a stalled project is one line
-among many and has to catch an eye that is not looking for it; on the page about
-that one project, the question is only *which part of it is wrong*.
+A banner over the whole screen was louder without being clearer: it shouted at a
+page you had opened *because* you already knew, and it said in a sentence what a
+mark by the plan says by being there. For a while it sat over the boxes the next
+action was written in; those boxes are gone and the plan is where every action
+is added, so the mark came back to the plan's heading. Loud belongs in the
+views, where a stalled project is one line among many and has to catch an eye
+that is not looking for it; on the page about that one project, the question is
+only *which part of it is wrong*.
 
 The app never prevents a project from being stalled. Forcing a next action to be
 invented at a moment when there is no time or energy for it produces a bad
@@ -1123,11 +1144,10 @@ tag in every respect but one: it expires.
 - it is the one tag that is not an area of responsibility, and the only one that
   says *when* rather than *what about*
 - **it is set by the same mark wherever an action is written, including before
-  that action exists.** The dot on a project's Next action heading is a press
+  that action exists.** The dot on a row of a project's plan is a press
   against an item already saved; on the screens that *make* an action - the
   processing forms, the screen a project is created on, Create action, the
-  add-action dialog, and the empty boxes on a stalled project - there is
-  nothing yet to press against, so the mark writes the tag into the line being
+  add-action dialog - there is nothing yet to press against, so the mark writes the tag into the line being
   typed and the Create makes an action that is already picked. The tag is the
   only thing that carries it either way, so nothing new can drift: typing
   `#today` in the line does exactly what pressing the dot does, and a draft
@@ -1270,8 +1290,7 @@ The known cases:
   until it has one again - see "Completion".
   - **and the empty box itself is marked, not only the screen.** The banner over
     the form says what is wrong; the box says where it is fixed, which is the
-    same division the stalled mark follows on the heading over an empty next
-    action. A banner alone names a field and then leaves the eye to find it,
+    same division the stalled mark follows on the heading of an empty plan. A banner alone names a field and then leaves the eye to find it,
     and on a form of three boxes that is a sentence doing the work a border
     does. The mark is on the box only where the project exists: on the screens
     that *create* one the DOD is required and the create button is simply dead
@@ -1583,16 +1602,20 @@ read the same way, narrowed to what a project has:
   because most projects have nothing there - one next action is enough to move a
   project forward, and the further steps are written when planning them now is
   worth it (see "Project").
-- **the same three screens write a project, and all three are the same
-  screen**: the Project branch of Inbox Zero, promoting an action, and the
-  project's own page (see "Editing items"). The same fields in the same order,
-  the first action open under the same heading, the rest of the plan in the
-  same list, and actions added to that list the same way. What differs is the
-  step the trail names and what is answered already - on a project's own page
-  the actions in the list are saved ones, with everything an action's own page
-  offers a press away. Two screens that were nearly the same were two screens
-  to learn and two to keep true, and the difference between them was never
-  about projects: it was about whether this one existed yet.
+- **the two screens that create a project are the same screen**: the Project
+  branch of Inbox Zero and promoting an action. The same fields in the same
+  order, the first action open under the same heading, the rest of the plan in
+  the same list, and actions added to that list the same way. What differs is
+  the step the trail names and what is answered already. Two screens that were
+  nearly the same were two screens to learn and two to keep true, and the
+  difference between them was never about projects.
+- **the project's own page is not a third copy of them.** It used to be, with
+  its next action open in the same boxes; but once the project exists every
+  action in its plan is a saved one, and a press on a saved action is written
+  as it is made (see "Editing items"). Boxes holding one action open, and a Save
+  that wrote it with the project, made that one action the exception on a page
+  where everything else was already saved - which is a difference about whether
+  this project existed yet, carried onto a page where it always does.
 - **an action written while the project is being made cannot wait on a
   sibling**, and this needs no rule of its own: `snooze:(...)` names one of the
   project's actions, and until the project is created there are none to name, so
@@ -3526,13 +3549,13 @@ Completing a next action is the moment with the most context about what comes
 next, so the project is checked right there:
 
 - there are still open actions, and the project has a next action again -
-  nothing is asked, the completion is accepted silently. The field fills itself
-  from the plan, which is what makes working a project down a run of one key
+  nothing is asked, the completion is accepted silently. The ▶ moves to the
+  next workable action in the plan's order, which is what makes working a project down a run of one key
   rather than a decision per step (see "Project")
 - there are still open actions, but every one of them is snoozed - nothing is
   asked either. The project is waiting on a date or on a sibling, which is not
-  something to decide now, and it is not stalled. Its next action field stands
-  empty until the first of them wakes up
+  something to decide now, and it is not stalled. No row of its plan wears the
+  ▶ until the first of them wakes up
 - there are no open actions left - ask whether to complete the project, showing
   the DOD for reference, or to create a next action
 - in that last case, doing nothing is always allowed. If there is no time or
@@ -3541,11 +3564,11 @@ next, so the project is checked right there:
 
 **The ask is the project's own page, opened.** Both questions above are the same
 question - *this project has no next action; now what* - and every answer to it
-already lives on that page: the DOD in its box, an empty next action box with
-the mark over it, and the project's own Done, which is on the screen exactly
+already lives on that page: the DOD in its box, an empty plan with the mark on
+its heading and Add under it, and the project's own Done, which is on the screen exactly
 because there is nothing left open (see "Editing items"). Both answers the last
-case offers are one gesture there: writing in the box and saving creates the
-next action, and Done completes the project - the same key that completed the
+case offers are one gesture there: adding an action creates the next
+action, and Done completes the project - the same key that completed the
 action that emptied the field. A panel on top of that page asked the question a
 second time in prose and offered a second copy of the controls underneath it,
 which is two of everything and one more thing to keep true. So the check does
@@ -3668,75 +3691,57 @@ date. These are the changes noticed while scanning a list, and making them cost
 a screen transition is the friction that ends with them not being made at all.
 
 **In the item itself.** Opening a project or an action shows every field it has,
-editable, and for a project its next action in the same boxes an action is
-written in anywhere else, with the rest of the plan listed under it: add one,
-delete one, rename one, detach one (see "Reshaping items"). This is where a
-project is actually worked on. The DOD is prose and it is the field step 3 of
-the weekly review asks about, so it needs the room a list does not have.
+editable, and for a project its whole plan under those fields: add an action,
+change one, move one, complete one, delete one (see "Reshaping items" for
+detaching). This is where a project is actually worked on. The DOD is prose and
+it is the field step 3 of the weekly review asks about, so it needs the room a
+list does not have.
 
-**A project's next action is open on its page, never a row to be pressed.** A
-project is opened to answer one question - what moves this forward - and the
-answer was a line you had to open something to read, so the commonest reason to
-open a project cost a second screen before it told you anything. The project's
-next action is therefore shown as its own three fields, and the list below holds
-everything else in the plan. Which action that is, is what the project has been
-pointed at, and the plan's own order only where it has been pointed at nothing
-(see "Project").
+**A project's page is its fields and then its plan, as one list.** Every open
+action is a row under "Actions", in the plan's order, and the one that is next
+wears ▶ where it stands. The next action used to be lifted out of the list into
+boxes of its own above it, so that the commonest reason to open a project - what
+moves this forward - was answered without opening anything else. It answered
+that and cost the plan: the action that mattered most was the one not in its
+place, the list under it read as "everything else", and every step forward was
+a row swapping places with the boxes. A mark in the list answers the same
+question at a glance and leaves the plan the shape you gave it (see "The order
+of a plan is yours").
 
-- **any row of that list can be made the next action, in one press.** `n` on the
-  row, and it changes places with whatever was in the boxes - the list is where
-  the plan is read, so it is where the choosing happens, and the answer is
-  visible in the same glance because what was chosen is now in the boxes above.
-  This is also why the mark is here and nowhere else: being next is a fact about
-  one project's work, and a press in a view that does not show the project would
-  change something you cannot see from where you are standing.
-- **the mark is not offered on a snoozed row**, which is the rule rather than a
-  detail of the screen: a snoozed action cannot be started, and next is a claim
-  that it can (see "Time fields").
-
-- **the page has one Save, and it writes both.** The project and that action are
-  one screen and are saved in one press, because they are read as one thing: an
-  outcome and what is being done about it. Two Saves would ask, every time a
-  word changed, which half you meant - and the answer would be "the one I was
-  typing in", which the app can see for itself. A meta line the app cannot read
-  refuses the whole press rather than keeping half of it (see "Writing an
-  action").
-- **completing that action is still one press and does not go through Save.**
-  The two marks the row carried - done, and picked for today - are on the
-  heading over the boxes, where the action is. Completing is not an edit of what
-  an action says; it is the answer to what the project's page is asking. Both
-  marks act on the next action without it having to be pointed at first: it is
-  one of the two things the screen is about, not a line in a list that happens
-  to be on it.
-- **Done on this page means finish what is in front of you.** The next action
-  while there is one, and the project once there is nothing left - so completing
-  the last action does not change which key to press, only what that press
-  finishes. There is never a choice of two Dones here: a project with open work
-  cannot be completed at all, so while it has a next action its own Done is not
-  on the screen, and once it holds nothing open that Done is the only one left.
-  Each press hands the following action to the field, which is the whole shape of
-  working a project down - see "Completing a next action".
-  - **and on the project that is waiting, there is no Done at all.** Every open
-    action snoozed means there is no action to finish and no project that may be
-    finished either, so the page offers neither and the key presses nothing. A
-    Done that was refused on being pressed would be worse than one that is not
-    there (see "Stalled projects").
-- **on a project with no next action the boxes are empty, and writing in them
-  makes one.** This is the same act as adding an action, arrived at from the
-  direction of the thing that is missing: a stalled project opens with an empty
-  box where its next action goes, and filling it in resolves the stall. Leaving
-  it empty is still a save - the app never forces a next action to be invented
-  (see "Stalled projects"). The project that is only waiting opens the same way,
-  and for it the empty box is an offer rather than a complaint: a step that can
-  be done now, written beside a plan that currently cannot be.
-- **the project's tags can be put on that action in one press.** A third mark on
-  the heading, beside the two above, and it writes the action's meta line rather
+- **any open row can be made the next action, in one press.** `n` on the row,
+  and the ▶ moves there; there is only ever one. The list is where the plan is
+  read, so it is where the choosing happens. This is also why the mark is here
+  and nowhere else: being next is a fact about one project's work, and a press
+  in a view that does not show the project would change something you cannot
+  see from where you are standing.
+- **the mark is not offered on a snoozed row or a completed one**, which is the
+  rule rather than a detail of the screen: next is a claim that the action can
+  be started now, a snoozed one cannot be yet, and a completed one never will
+  be again (see "Time fields").
+- **every press on the plan is written at once, and each is a step for undo.**
+  Adding, changing, moving, completing, deleting and pointing are all saved the
+  moment they are made rather than held for the page's Save. The actions
+  already exist, so there is nothing for a Save to wait for, and a plan edited
+  in one long unsaved stretch made a single undo step out of an afternoon's
+  thinking. The Save left on the page writes the project's own fields - its
+  title, its definition of done, its meta line - and nothing else (see "Undo").
+- **an action is added and changed in a dialog over the page.** `a` opens it
+  blank, and the action it writes goes at the end of the plan; Enter or `o` on a
+  row opens it filled in, and it saves that action (keys.md). It is the same
+  form an action is written in anywhere else, and the page is not left to use
+  it. The row's title still opens the action's own page, which holds what the
+  plan does not: detaching it, and bringing a completed one back.
+- **the project's tags can be put on the action in one press**, from that
+  dialog. A mark beside the dot on its meta line, and it writes the line rather
   than saving anything: what the project is tagged with is very often what its
-  next action is tagged with, and retyping `#car` onto every action of the car
-  project is the kind of copying a person should not be doing by hand. What
+  actions are tagged with, and retyping `#car` onto every action of the car
+  project is the kind of copying a person should not be doing by hand. The
+  dialog is written for one project, so it knows whose tags those are. What
   moves is the tags and only the tags - a project's line may also carry a
   snooze, and a snooze on an action means "not workable yet", so bringing one
-  down would park the very action the project is waiting on (see "Time fields").
+  down would park the very action being written (see "Time fields"). The same
+  mark is on the screens that create a project, over the first action's boxes
+  and in the dialog, for the same reason.
   - **it merges, and the same press takes them back off.** The tags are added to
     whatever the line already says and one already there is not written twice,
     so a context or a size the project has no opinion about is never
@@ -3744,17 +3749,35 @@ pointed at, and the plan's own order only where it has been pointed at nothing
     one claim said from whichever side you are standing on, which is what the
     pick mark and the review mark already do.
   - **what it copies is what the project's box says now, not what was saved.**
-    Both lines are being written in the same form and neither is committed until
-    Save, so this moves a draft into a draft - and the tag just typed onto the
-    project is exactly the one wanted on the action.
+    The tag just typed onto the project is exactly the one wanted on the
+    action, and making the project be saved first would be an order of
+    operations kept for its own sake.
   - **with nothing on the project's line the mark is dead.** It keeps its place,
-    pale, rather than disappearing: the heading must not change width as tags
-    come and go on the line above it, and a control that cannot be pressed is
-    never advertised as a key.
-- **everything else about that action is on its own page**, one press away:
-  detaching it, deleting it, promoting nothing. The project's page holds the
-  fields that are read while thinking about the project, not every control the
-  action has.
+    pale, rather than disappearing: the line beside it must not change width as
+    tags come and go, and a control that cannot be pressed is never advertised
+    as a key.
+- **Done on this page means finish what is in front of you.** On a row it
+  completes that action. The project's own Done is on the screen only once
+  nothing is left open, because a project with open work cannot be completed at
+  all - so there is never a choice of two Dones for the same press, and
+  completing the last action is what puts the project's Done there. See
+  "Completing a next action".
+  - **and on the project that is waiting, there is no project Done.** Every
+    open action snoozed means the project may not be finished yet, so its Done
+    is not offered. A Done that was refused on being pressed would be worse than
+    one that is not there (see "Stalled projects").
+- **on a project with nothing open the plan is empty, and Add under it is how it
+  gets a next action.** A stalled project opens with its Actions heading marked
+  and nothing under it but Add; adding an action resolves the stall. Nothing
+  forces you to (see "Stalled projects").
+
+**Completed actions are a record, newest first.** They are a list of their own
+under the plan, "Completed actions", drawn only once there is one. They are out
+of the plan because they are no longer a step in it - a finished action between
+two open ones would be read as part of what is left - and they stay on the page
+because what has been done is half of judging what to do next. Newest first,
+because the last thing finished is the one most likely to be looked for: to
+check it, or to open it and bring it back.
 
 **A completed item opens on the same screen with nothing to write in.** The same
 fields, the same names, the same order, read rather than written - and one
@@ -3771,23 +3794,25 @@ screen that acts on an idea: the list it sits in carries no controls at all.
 
 **Adding a further action to a project writes it into the plan, without leaving
 the page.** A control under the action list opens the action form - the same
-form, with the project already answered - and what it makes is a row in that
-list, kept there until the page's one Save writes it with everything else. It
-is offered on a project's own page and on the two screens that create a project
-in exactly the same shape, because it is exactly the same act: a plan is
+form, with the project already answered. On a project's own page what it
+writes is saved when the dialog is confirmed, at the end of the plan; on the two
+screens that create a project it is a row in that list, kept there until Create
+writes it with everything else, because there is no project yet to save it
+into. The control is the same in both, because it is the same act: a plan is
 written into wherever the plan is.
 
 It used to be a screen of its own, reached by leaving. That was defensible
 while a project's page held nothing you could lose by going - and it stopped
 being so the moment the page said out loud that it was holding unsaved work,
 because then the control under the list was the one thing on the screen whose
-job was to throw it away. It also meant the two screens that write a plan wrote
+job was to throw it away. It also meant the screens that write a plan wrote
 into it differently, which is a difference about whether the project exists yet
 and never about what a plan is (see "Writing a project").
 
-This is a control for the actions after the first. The first needs none: it is
-the boxes already on the page, which is where the one action a project cannot be
-without belongs.
+On the screens that create a project, this is a control for the actions after
+the first: the first is open in boxes there, since a project cannot be made
+without one. A project's own page has no such boxes, and Add is how every
+action gets into its plan.
 
 A project is reachable this way from everywhere it appears - "Projects", the
 "Calendar", the "Archive" - and from any of its actions, wherever that action is
@@ -3991,8 +4016,10 @@ an item: recapturing a deleted action gives back its words and loses its
 project, its tags, its dates and its place in a plan.
 
 - **a step is one thing done at the keyboard, whole.** One press is one step
-  however much it wrote: the Save on a project's page writes the project, its
-  next action and the rows added to its plan, and they go back together. Half of
+  however much it wrote: the Create on a screen that makes a project writes the
+  project and every action of its plan, and they go back together; a drag on a
+  project's plan writes the place of every row it passed, and they go back
+  together too. Half of
   a press taken back would be a state nobody ever put the app in
 - **what counts as a thing done is what the audit log recorded.** A step is a
   press that wrote an entry there, so the two agree about what happened and the

@@ -192,7 +192,7 @@ func (a *App) loadActions(where string, args ...any) ([]*Action, error) {
 		if err := rows.Scan(&act.ID, &pid, &act.Title, &act.Context, &act.ContextParam, &dur,
 			&act.NeedsFocus, &act.Description, &act.AssignedTo, &act.DueDate, &created,
 			&reviewed, &next, &act.SnoozeUntil, &blocker, &act.SnoozeActionTitle,
-			&completed, &act.ProjectTitle); err != nil {
+			&completed, &act.Position, &act.ProjectTitle); err != nil {
 			return nil, err
 		}
 		act.ProjectID = pid.Int64
@@ -556,6 +556,9 @@ func (a *App) projectsWhere(where string, f Filters, completed bool) ([]*Project
 			ci, cj := acts[i].CompletedAt != nil, acts[j].CompletedAt != nil
 			if ci != cj {
 				return !ci
+			}
+			if acts[i].Position != acts[j].Position {
+				return acts[i].Position < acts[j].Position
 			}
 			return acts[i].ID < acts[j].ID
 		})
