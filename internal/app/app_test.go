@@ -797,44 +797,122 @@ func TestDeletingABlockerWakesWhatWaited(t *testing.T) {
 	}
 }
 
-// The project's action list is drawn as the plan it is: what waits on a
-// sibling sits under it, one level in.
-func TestActionTreeNestsTheWaiting(t *testing.T) {
+// The plan is flat and in the order it was put in: an action waiting on a
+// sibling stays where it was written rather than being drawn under it, because
+// the order is yours to set and a shape derived from the snoozes would be a
+// second order fighting it (design.md, "The order of a plan is yours").
+func TestThePlanIsFlatAndInPositionOrder(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
 		[]ActionFields{{Title: "Buy the picture"}})
 	buy := p.Actions[0]
 	frame, _ := a.CreateAction(p.ID, ActionFields{Title: "Buy the frame", SnoozeActionID: buy.ID})
-	a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: frame.ID})
 	a.CreateAction(p.ID, ActionFields{Title: "Choose the wall"})
+	a.CreateAction(p.ID, ActionFields{Title: "Hang it", SnoozeActionID: frame.ID})
 
 	got, _ := a.Project(p.ID)
-	tree := got.ActionTree()
-	want := []struct {
-		title string
-		depth int
-	}{
-		{"Buy the picture", 0},
-		{"Buy the frame", 1},
-		{"Hang it", 2},
-		{"Choose the wall", 0},
+	want := []string{"Buy the picture", "Buy the frame", "Choose the wall", "Hang it"}
+	if g := titles(got.Plan()); strings.Join(g, "|") != strings.Join(want, "|") {
+		t.Fatalf("the plan is %v, want %v", g, want)
 	}
-	if len(tree) != len(want) {
-		t.Fatalf("tree has %d rows, want %d", len(tree), len(want))
+}
+
+// J and K move one row past its open neighbour, a drag hands back the whole
+// order, and both are one audited step that undo takes back whole.
+func TestThePlanIsReorderedByMoveAndByDrag(t *testing.T) {
+	a, _ := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "A"}, {Title: "B"}, {Title: "C"}})
+	ids := []int64{p.Actions[0].ID, p.Actions[1].ID, p.Actions[2].ID}
+	plan := func() string {
+		got, _ := a.Project(p.ID)
+		return strings.Join(titles(got.Plan()), "")
 	}
-	for i, w := range want {
-		if tree[i].Title != w.title || tree[i].Depth != w.depth {
-			t.Fatalf("row %d is %q at depth %d, want %q at %d",
-				i, tree[i].Title, tree[i].Depth, w.title, w.depth)
+	a.Gesture(func() {
+		if err := a.MoveAction(ids[2], -1); err != nil {
+			t.Fatal(err)
 		}
+	})
+	if plan() != "ACB" {
+		t.Fatalf("moving C up gave %s", plan())
+	}
+	// the ends are nothing, not an error: there is nowhere to go
+	if err := a.MoveAction(ids[0], -1); err != nil || plan() != "ACB" {
+		t.Fatalf("moving the first row up: %v, %s", err, plan())
+	}
+	// a completed action is not in the plan, so a move steps over it
+	if err := a.CompleteAction(ids[2]); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.MoveAction(ids[0], 1); err != nil || plan() != "BA" {
+		t.Fatalf("moving A down past a completed row: %v, %s", err, plan())
+	}
+	if err := a.UncompleteAction(ids[2]); err != nil {
+		t.Fatal(err)
+	}
+	// the drag names every open action once, or it is a stale page
+	if err := a.ReorderActions(p.ID, []int64{ids[0], ids[1]}); err != ErrStalePlan {
+		t.Fatalf("a short order was %v, want ErrStalePlan", err)
+	}
+	if err := a.ReorderActions(p.ID, []int64{ids[0], ids[1], ids[1]}); err != ErrStalePlan {
+		t.Fatalf("an order naming one row twice was %v, want ErrStalePlan", err)
+	}
+	before := plan()
+	a.Gesture(func() {
+		if err := a.ReorderActions(p.ID, []int64{ids[2], ids[0], ids[1]}); err != nil {
+			t.Fatal(err)
+		}
+	})
+	if plan() != "CAB" {
+		t.Fatalf("the drag gave %s", plan())
+	}
+	step, err := a.LastUndo()
+	if err != nil || len(step.Entries) != 1 || step.Entries[0].Event != EvReordered {
+		t.Fatalf("the drag was not one reordered step: %+v, %v", step, err)
+	}
+	if _, err := a.Undo(step.ID); err != nil {
+		t.Fatal(err)
+	}
+	if plan() != before {
+		t.Fatalf("undo left the plan as %s, want %s", plan(), before)
+	}
+	// an order that is the one standing writes nothing, and so is no step
+	last, _ := a.LastUndo()
+	got, _ := a.Project(p.ID)
+	order := []int64{}
+	for _, o := range got.Plan() {
+		order = append(order, o.ID)
+	}
+	a.Gesture(func() {
+		if err := a.ReorderActions(p.ID, order); err != nil {
+			t.Fatal(err)
+		}
+	})
+	again, _ := a.LastUndo()
+	if (again == nil) != (last == nil) || (again != nil && again.ID != last.ID) {
+		t.Fatal("an unchanged order was recorded as a step")
+	}
+}
+
+// The completed actions are a record, read newest first.
+func TestFinishedActionsAreNewestFirst(t *testing.T) {
+	a, clock := newTestApp(t)
+	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
+		[]ActionFields{{Title: "A"}, {Title: "B"}, {Title: "C"}})
+	for _, i := range []int{1, 0, 2} {
+		*clock = clock.Add(time.Minute)
+		if err := a.CompleteAction(p.Actions[i].ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, _ := a.Project(p.ID)
+	if g := strings.Join(titles(got.Finished()), ""); g != "CAB" {
+		t.Fatalf("finished reads %s, want CAB", g)
 	}
 }
 
 // With nobody having pointed at anything, the next action is the head of the
-// plan — the first open, unsnoozed action in the list's own order — and the
-// list is then everything else with the plan's depths untouched: what waited on
-// the head is still drawn one level in, hanging off the boxes directly above
-// it (implementation.md, "Writing a project").
+// plan — the first open, unsnoozed action in the list's own order.
 func TestTheNextActionFallsBackToTheHeadOfThePlan(t *testing.T) {
 	a, _ := newTestApp(t)
 	p, _ := a.CreateProject(ProjectFields{Title: "Picture hung", DOD: "On the wall"},
@@ -847,22 +925,18 @@ func TestTheNextActionFallsBackToTheHeadOfThePlan(t *testing.T) {
 	if next := got.NextAction(a.Today()); next == nil || next.Title != "Buy the picture" {
 		t.Fatalf("the next action is %+v, want the first of the plan", next)
 	}
-	rest := got.RestTree(a.Today())
-	want := []struct {
-		title string
-		depth int
-	}{
-		{"Hang it", 1},
-		{"Choose the wall", 0},
+	// moving a row to the top of the plan makes it the head, and so the
+	// next action, when nothing has been pointed at
+	hang, wall := got.Actions[1], got.Actions[2]
+	if err := a.ReorderActions(p.ID, []int64{wall.ID, buy.ID, hang.ID}); err != nil {
+		t.Fatal(err)
 	}
-	if len(rest) != len(want) {
-		t.Fatalf("the rest has %d rows, want %d", len(rest), len(want))
+	got, _ = a.Project(p.ID)
+	if next := got.NextAction(a.Today()); next == nil || next.ID != wall.ID {
+		t.Fatalf("the next action is %+v, want the row moved to the top", next)
 	}
-	for i, w := range want {
-		if rest[i].Title != w.title || rest[i].Depth != w.depth {
-			t.Fatalf("row %d is %q at depth %d, want %q at %d",
-				i, rest[i].Title, rest[i].Depth, w.title, w.depth)
-		}
+	if err := a.ReorderActions(p.ID, []int64{buy.ID, hang.ID, wall.ID}); err != nil {
+		t.Fatal(err)
 	}
 
 	// completing it hands the head to the next open one, which is the same
@@ -874,10 +948,9 @@ func TestTheNextActionFallsBackToTheHeadOfThePlan(t *testing.T) {
 	if next := got.NextAction(a.Today()); next == nil || next.Title != "Hang it" {
 		t.Fatalf("the next action is %+v after the head was completed", next)
 	}
-	// and the completed one is on the list, which is where a project's own
-	// record of what it took still lives
-	if len(got.RestTree(a.Today())) != 2 {
-		t.Fatalf("the rest has %d rows, want the completed head and the third action", len(got.RestTree(a.Today())))
+	// and the completed one has left the plan for the record under it
+	if len(got.Plan()) != 2 || len(got.Finished()) != 1 {
+		t.Fatalf("plan %v, finished %v", titles(got.Plan()), titles(got.Finished()))
 	}
 
 	// a project with nothing open has no head, and is stalled for that reason
@@ -1039,11 +1112,10 @@ func TestTheNextActionIsWhicheverWasPointedAt(t *testing.T) {
 	if next := got.NextAction(a.Today()); next == nil || next.ID != frame.ID {
 		t.Fatalf("the next action is %+v, want the one pointed at", next)
 	}
-	// and the list under the boxes is the rest of the plan, the pointed-at one
-	// lifted out of wherever in it it was standing
-	rest := got.RestTree(a.Today())
-	if len(rest) != 1 || rest[0].Title != "Buy the picture" {
-		t.Fatalf("the rest of the plan is %v", nodeTitles(rest))
+	// and pointing moves nothing in the plan: the order is yours, and which
+	// row is next is a separate claim about it
+	if g := titles(got.Plan()); len(g) != 2 || g[0] != "Buy the picture" {
+		t.Fatalf("pointing reordered the plan: %v", g)
 	}
 	// completing what was pointed at falls back to the plan rather than leaving
 	// the project with nothing: the pointing is a preference, not the answer
@@ -1137,14 +1209,6 @@ func TestNextActionsIsOnePerProject(t *testing.T) {
 	if len(pool) != 5 {
 		t.Fatalf("the review must walk every open action, got %v", titles(pool))
 	}
-}
-
-func nodeTitles(nodes []ActionNode) []string {
-	var out []string
-	for _, n := range nodes {
-		out = append(out, n.Title)
-	}
-	return out
 }
 
 func titles(acts []*Action) []string {

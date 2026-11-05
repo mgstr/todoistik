@@ -980,8 +980,12 @@
       into.push(["o", "new project", function () { newProjectDialog(); }]);
       return;
     }
+    // a row of a saved plan is edited where it stands, in the dialog it was
+    // added in, so its open is an edit (implementation.md, "The project's
+    // page")
+    if (row.hasAttribute("data-plan")) into.push(["o", "edit", function () { openDraft(row); }]);
     // opening an inbox item is processing it, so the key says so
-    if (row.hasAttribute("data-process")) into.push(["o", "process", function () { openRow(row); }]);
+    else if (row.hasAttribute("data-process")) into.push(["o", "process", function () { openRow(row); }]);
     else if (row.dataset.href) into.push(["o", "open", function () { openRow(row); }]);
     else if (row.querySelector("input[type=radio]")) {
       into.push(["o", "pick", function () {
@@ -999,6 +1003,12 @@
     // the mark is on the row or it is not, so the bar and the key agree without
     // either knowing what a project is.
     if (row.querySelector("form.kb-next")) into.push(["n", "next", function () { actOn("kb-next"); }]);
+    // the row of a plan moves with shift held over the cursor keys, the same
+    // pair a draft moves with — and only where there is a row to move past
+    if (row.hasAttribute("data-plan")) {
+      if (planNeighbour(row, -1)) into.push(["K", "up", function () { movePlan(row, -1); }]);
+      if (planNeighbour(row, 1)) into.push(["J", "down", function () { movePlan(row, 1); }]);
+    }
     // The mark goes both ways, so the entry says the answer this press lands
     // on rather than the name of the control — the same rule the Settings
     // screen's `h theme dark` follows (keys.md, "What is built").
@@ -1051,22 +1061,15 @@
   // the same form (keys.md, "The map"). A row under the cursor is never
   // stepped over: if it carries no such form the key does nothing, rather
   // than reaching past it to act on the screen behind.
-  // A row's forms are the row's, and the screen's keys must not reach past the
-  // cursor into one — except where the row *is* what the screen is about, and
-  // it says so with data-kb-subject. The project page's next action is the one
-  // of those: it is drawn as its own row, because j/k, `enter` and `w` all
-  // still mean what they mean on a row, and it is also half of what the screen
-  // is for, so `d` and `t` answer for it with nothing selected. Walking onto a
-  // heading to tick the one action the page opened to show you is a press that
-  // asks the cursor for permission (keys.md, "What is built").
-  //
-  // Document order decides between candidates, which is what puts the subject
-  // ahead of the screen's own buttons further down the page.
+  // A row's forms are the row's, and the screen's keys never reach past the
+  // cursor into one. The project page's next action used to be the exception,
+  // drawn open at the top and answering `d` with nothing selected; it is a row
+  // of the plan now like the rest, so there is no exception left (keys.md,
+  // "What is built").
   function screenForm(cls) {
     const all = document.querySelectorAll("form." + cls);
     for (let i = 0; i < all.length; i++) {
-      const row = all[i].closest("[data-kb-row]");
-      if (row && !row.hasAttribute("data-kb-subject")) continue;
+      if (all[i].closest("[data-kb-row]")) continue;
       if (!keyLive(all[i])) continue;
       const btn = all[i].querySelector("button");
       if (!btn || !btn.disabled) return all[i];
@@ -3594,6 +3597,15 @@
     handPlaceOn();
   }
 
+  // The handover kept by its place alone, for a row that will come back
+  // somewhere else on the page (see submitIn).
+  function forgetHandedHref() {
+    try {
+      const want = JSON.parse(sessionStorage.getItem(HANDOVER) || "null");
+      if (want) { want.href = ""; sessionStorage.setItem(HANDOVER, JSON.stringify(want)); }
+    } catch (err) { /* no session storage: nothing was handed over */ }
+  }
+
   // Acting on a row must not cost the place in the list either. `main` is the
   // scrollport, not the window (see style.css), so a page that arrives is a
   // brand-new `main` with a scrollTop of zero: on a list taller than the
@@ -3688,6 +3700,10 @@
     const form = row.querySelector("form." + cls);
     if (!form) return;
     handSelectionOn(row);
+    // a row of a plan that is completed reappears in the record under it, and
+    // the cursor must not follow it there: the list is worked down, so it
+    // stays at the place in the plan, on the row that took this one's
+    if (cls === "kb-complete" && row.hasAttribute("data-plan")) forgetHandedHref();
     form.submit();
   }
 
@@ -4077,16 +4093,18 @@
       case "j":
         e.preventDefault();
         if (e.shiftKey && row && row.hasAttribute("data-draft")) moveDraft(row, 1);
+        else if (e.shiftKey && row && row.hasAttribute("data-plan")) movePlan(row, 1);
         else move(1);
         break;
       case "k":
         e.preventDefault();
         if (e.shiftKey && row && row.hasAttribute("data-draft")) moveDraft(row, -1);
+        else if (e.shiftKey && row && row.hasAttribute("data-plan")) movePlan(row, -1);
         else move(-1);
         break;
       case "Enter":
       case "o": {
-        if (row && row.hasAttribute("data-draft")) { e.preventDefault(); openDraft(row); break; }
+        if (row && (row.hasAttribute("data-draft") || row.hasAttribute("data-plan"))) { e.preventDefault(); openDraft(row); break; }
         if (row && row.hasAttribute("data-newproject")) { e.preventDefault(); newProjectDialog(); break; }
         const radio = row && row.querySelector("input[type=radio]");
         if (radio) { e.preventDefault(); radio.checked = true; renderKeybar(); break; }
@@ -4217,6 +4235,7 @@
   // item, everywhere else it is opening it — the same data-href either way
   document.addEventListener("dblclick", function (e) {
     const row = rowFromEvent(e);
+    if (row && row.hasAttribute("data-plan")) { e.preventDefault(); openDraft(row); return; }
     if (row && row.dataset.href) { e.preventDefault(); openRow(row); }
   });
 
@@ -4319,6 +4338,103 @@
     renderKeybar();
   }
 
+  // ---- the plan on a project's own page ----------------------------------
+  //
+  // Its rows are saved actions, and every press on them is written at once:
+  // the dialog's add and edit, K and J, a drag (implementation.md, "The
+  // project's page"). Each one is therefore a step of its own for undo, and
+  // none of them makes the screen hold unsaved work.
+
+  function planValues(row) {
+    return {
+      title: row.dataset.planTitle || "",
+      meta: row.dataset.planMeta || "",
+      description: row.dataset.planDescription || "",
+    };
+  }
+
+  // The plan row next to this one, in the direction asked: what a move would
+  // swap it with, and null at the end, where the key is not offered.
+  function planNeighbour(row, delta) {
+    const other = delta < 0 ? row.previousElementSibling : row.nextElementSibling;
+    return other && other.hasAttribute("data-plan") ? other : null;
+  }
+
+  // K and J. The row's own form is posted, so the cursor is handed on by the
+  // row's address and comes back on it in its new place.
+  function movePlan(row, delta) {
+    if (!planNeighbour(row, delta)) return;
+    if (deaf()) return;
+    submitIn(row, delta < 0 ? "kb-up" : "kb-down");
+  }
+
+  // A post built here rather than drawn: the dialog's fields are not in a form
+  // of their own, and a drag has no form at all. It goes back to this page —
+  // the address as it stands, so the view it was opened from comes too.
+  function postPlan(action, row, fields) {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = action;
+    form.hidden = true;
+    fields.back = location.pathname + location.search;
+    Object.keys(fields).forEach(function (k) {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = k;
+      input.value = fields[k];
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    if (row) handSelectionOn(row);
+    else handPlaceOn();
+    form.submit();
+  }
+
+  // Dragging a row of the plan. The list is rearranged under the pointer as it
+  // moves, so what you see while dragging is the order that will be written,
+  // and letting go writes it as the whole list — one step, however far the row
+  // travelled. A drop that leaves the order as it was posts nothing.
+  (function planDrag() {
+    let dragged = null, before = "";
+    const order = function (list) {
+      return Array.from(list.querySelectorAll(":scope > [data-plan]"))
+        .map(function (r) { return r.dataset.plan; }).join(",");
+    };
+    document.addEventListener("dragstart", function (e) {
+      const row = e.target.closest && e.target.closest("[data-plan-list] > [data-plan]");
+      if (!row) return;
+      dragged = row;
+      before = order(row.parentNode);
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      // Firefox starts no drag without data
+      e.dataTransfer.setData("text/plain", row.dataset.plan);
+    });
+    document.addEventListener("dragover", function (e) {
+      if (!dragged) return;
+      const over = e.target.closest && e.target.closest("[data-plan-list] > [data-plan]");
+      if (!over || over.parentNode !== dragged.parentNode) return;
+      e.preventDefault();
+      if (over === dragged) return;
+      const box = over.getBoundingClientRect();
+      const after = e.clientY > box.top + box.height / 2;
+      over.parentNode.insertBefore(dragged, after ? over.nextSibling : over);
+    });
+    document.addEventListener("drop", function (e) {
+      if (dragged) e.preventDefault();
+    });
+    document.addEventListener("dragend", function () {
+      if (!dragged) return;
+      const row = dragged, list = row.parentNode;
+      dragged = null;
+      row.classList.remove("dragging");
+      const now = order(list);
+      if (now === before) return;
+      select(row);
+      postPlan(list.dataset.reorder, row, { order: now });
+    });
+  })();
+
   function removeDraft(row) {
     const form = draftForm();
     const next = row.nextElementSibling || row.previousElementSibling;
@@ -4333,7 +4449,10 @@
     const dlg = draftDialog();
     const list = document.querySelector("[data-draft-list]");
     const tpl = document.getElementById("draftrow-template");
-    if (!dlg || !list || !tpl) return;
+    // live: the project exists, and what the dialog confirms is posted rather
+    // than kept as a row of the form (see postPlan)
+    const live = dlg && dlg.dataset.live;
+    if (!dlg || (!live && (!list || !tpl))) return;
     const form = draftForm();
     const title = dlg.querySelector("[name=title]");
     const meta = dlg.querySelector("[name=meta]");
@@ -4343,8 +4462,12 @@
     // action, which the screen now shows open in its own boxes with the body
     // already in it (design.md, "Inbox Zero") — this dialog only ever writes
     // an action after that one, and those open empty.
-    const v = row ? draftValues(row) : { title: "", meta: "", description: "" };
+    const v = row ? (live ? planValues(row) : draftValues(row)) : { title: "", meta: "", description: "" };
     title.value = v.title; meta.value = v.meta; desc.value = v.description;
+    // the line was just written by hand, not typed, so the marks read off it
+    // are read again here: the tag copy's way and the dot's
+    syncMetaCopy();
+    syncToday();
     dlg.querySelector("h2").textContent = row ? "Edit action" : "Add an action";
     ok.textContent = row ? "Save action" : "Create action";
     // the trail says which of the two this is, the way it does for every other
@@ -4365,6 +4488,15 @@
         // button and not by a submit, so it has to make the check itself
         const bad = problemsIn(meta);
         if (bad.length) { askAbout(meta, bad[0], function () { done(true); }); return; }
+        if (live) {
+          dlg.close();
+          postPlan(row ? "/action/" + row.dataset.plan : live, row, {
+            title: title.value.trim(),
+            meta: meta.value.trim(),
+            description: desc.value.trim(),
+          });
+          return;
+        }
         let target = row;
         if (!target) {
           target = tpl.content.firstElementChild.cloneNode(true);
@@ -4417,12 +4549,23 @@
     return got.tagName === undefined && got.length !== undefined ? got[0] : got;
   }
 
+  // In the dialog an action is added in, the line written into is the
+  // dialog's own (`data-copy-into` names it) and the project's is still read
+  // off the project's form, which is under the dialog on the same page. What
+  // is re-gated is then the dialog, whose Create the line belongs to.
   function metaBoxes(btn) {
     const form = document.getElementById(btn.dataset.copyMeta);
     if (!form || !form.elements) return null;
     const from = firstNamed(form, "meta");
-    const into = firstNamed(form, "ameta");
-    return from && into ? { form: form, from: from, into: into } : null;
+    let into, owner = form;
+    if (btn.dataset.copyInto) {
+      owner = btn.closest("dialog") || form;
+      const scope = btn.closest(".stack") || owner;
+      into = scope.querySelector('[name="' + btn.dataset.copyInto + '"]');
+    } else {
+      into = firstNamed(form, "ameta");
+    }
+    return from && into ? { form: owner, from: from, into: into } : null;
   }
 
   function tokensOf(line) { return line.split(/\s+/).filter(Boolean); }

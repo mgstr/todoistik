@@ -11,10 +11,9 @@ import (
 	"todoistik/internal/app"
 )
 
-// An action may wait on a sibling instead of on a date, and a project's action
-// list is the one list that draws what that means: the waiting action sits
-// under what it waits on (design.md, "Time fields"; implementation.md,
-// "Writing a project").
+// An action may wait on a sibling instead of on a date, and the row says which
+// with its badge (design.md, "Time fields"). The plan stays flat: the order is
+// the one it was put in (design.md, "The order of a plan is yours").
 
 func pictureProject(t *testing.T, a *app.App) (*app.Project, *app.Action) {
 	t.Helper()
@@ -27,7 +26,7 @@ func pictureProject(t *testing.T, a *app.App) (*app.Project, *app.Action) {
 	return p, p.Actions[0]
 }
 
-func TestProjectPageNestsAWaitingAction(t *testing.T) {
+func TestProjectPageBadgesAWaitingAction(t *testing.T) {
 	s, a := newTestServer(t)
 	p, buy := pictureProject(t, a)
 	if _, err := a.CreateAction(p.ID, app.ActionFields{
@@ -37,8 +36,8 @@ func TestProjectPageNestsAWaitingAction(t *testing.T) {
 	}
 
 	body := getPage(t, s, "/project/1")
-	if !strings.Contains(body, `data-depth="1"`) {
-		t.Errorf("the waiting action is not drawn under what it waits on: %s", body)
+	if strings.Contains(body, `data-depth`) {
+		t.Errorf("the plan is still drawn as a tree: %s", body)
 	}
 	// the badge names the action rather than a date, because that is what the
 	// waiting is actually about

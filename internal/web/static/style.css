@@ -359,15 +359,11 @@ h2.stalled {
    with the badges it moves along the row whenever ^t takes the ages away. */
 .row > form.kb-delete { margin-left: auto; }
 .row > form.kb-delete button.small.danger { border: none; background: transparent; padding: 0 .25rem; }
-/* An action waiting on a sibling is drawn under it, one step in per level.
-   Padding rather than a margin, so the whole row — its hover, its selected
-   ring — still reaches the full width of the list: the row is indented, not
-   narrowed. The rule reads --depth off the row itself, which is the only
-   thing the template has to say (implementation.md, "Writing a project"). */
-.row[data-depth] { padding-left: calc(var(--depth, 0) * 1.5rem); }
-/* and a mark on the step, so that one level in is legible without counting
-   pixels against the row above it */
-.row[data-depth] .title::before { content: "↳ "; color: var(--muted); }
+/* A row of a project's plan can be dragged to a new place. The one in the
+   pointer's hand is faded where it stands, so the list shows the order that
+   letting go will write (implementation.md, "The project's page"). */
+.row[data-plan] { cursor: grab; }
+.row[data-plan].dragging { opacity: .4; cursor: grabbing; }
 /* the ages are hidden until asked for — ctrl-t, see implementation.md,
    "Ages are hidden by default". The rule is on the pane and not the row, so
    one class settles every list on the screen at once */
@@ -572,12 +568,13 @@ button.small, .button.small { font-size: .8rem; padding: .1rem .45rem; }
 .check { border: none; background: transparent; padding: 0 .15rem; font-size: 1rem; }
 .pick { border: none; background: transparent; color: var(--line); padding: 0 .15rem; }
 .pick.picked { color: #c88a00; }
-/* the third mark, on the rows of a project's plan only: make this the next
-   action. Pale like the unpicked dot, because it is an offer and not a state —
-   nothing in a list is ever *wearing* it, since the action it names leaves the
-   list for the boxes above it (design.md, "Project"). */
+/* the third mark, on the rows of a project's plan only. ▷ is the offer — make
+   this the next action — and pale like the unpicked dot; ▶ is the state, worn
+   by the one action that is next, in the accent so it is found at a glance
+   among the rest of the plan (design.md, "Project"). */
 .tonext { border: none; background: transparent; color: var(--line); padding: 0 .15rem; }
 .tonext:hover { color: var(--accent); }
+.tonext.isnext { color: var(--accent); }
 
 .stack { display: flex; flex-direction: column; gap: .5rem; max-width: var(--form-width); margin: .75rem 0; }
 .stack label { display: flex; flex-direction: column; gap: .15rem; font-size: .85rem; color: var(--muted); }
@@ -683,13 +680,13 @@ textarea[data-grow] { resize: none; overflow-y: hidden; }
    Disabled is the pale of the unpicked dot, not a hidden control: a project
    with no tags has nothing to bring down, and the mark keeps its place so the
    heading does not change width as tags come and go on the line above. */
-.nexthead .metacopy {
+.metacopy {
   border: none; background: transparent; cursor: pointer;
   font: 400 .82rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: -.04em; padding: 0 .15rem; color: var(--muted);
 }
-.nexthead .metacopy:hover { color: var(--accent); }
-.nexthead .metacopy[disabled] { color: var(--line); cursor: default; }
+.metacopy:hover { color: var(--accent); }
+.metacopy[disabled] { color: var(--line); cursor: default; }
 .nexthead .age { margin-left: auto; }
 .nexthead:hover { background: var(--row-hover); }
 .nexthead.kb-selected { background: var(--select); outline: 1px solid var(--accent); }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -135,7 +136,7 @@ func (a *App) Project(id int64) (*Project, error) {
 }
 
 func (a *App) projectActionsTx(tx *sql.Tx, projectID int64) ([]*Action, error) {
-	rows, err := tx.Query(`SELECT `+actionCols+` FROM actions a WHERE a.project_id=? ORDER BY a.completed_at IS NOT NULL, a.id`, projectID)
+	rows, err := tx.Query(`SELECT `+actionCols+` FROM actions a WHERE a.project_id=? ORDER BY a.completed_at IS NOT NULL, a.position, a.id`, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -339,4 +340,130 @@ func (a *App) MakeNext(actionID int64) error {
 		}
 		return a.audit(tx, EvEdited, "project", act.ProjectID, before)
 	})
+}
+
+// ErrStalePlan: the order asked for is not an order of this project's open
+// actions. The page it was dragged on was drawn before something changed — an
+// action added, completed or deleted somewhere else — and writing the order
+// anyway would put rows nobody saw into places nobody chose.
+var ErrStalePlan = errors.New("the plan has changed since this page was drawn — open the project again")
+
+// MoveAction moves an open action one place up (delta -1) or down (delta 1)
+// among its project's open actions: the key that carries the row with the
+// cursor (design.md, "The order of a plan is yours").
+//
+// Completed actions are stepped over, because they are not in the plan any
+// more — they are in the record under it, ordered by when they were done — and
+// a move that swapped places with one would be a press that changed nothing on
+// the screen. At either end of the plan the move is not an error but nothing:
+// there is nowhere to go, and the key says so by not being offered.
+func (a *App) MoveAction(actionID int64, delta int) error {
+	return a.tx(func(tx *sql.Tx) error {
+		act, err := a.openActionTx(tx, actionID)
+		if err != nil {
+			return err
+		}
+		if act.ProjectID == 0 {
+			return errors.New("a task is in no plan to be moved in")
+		}
+		before, err := a.planSnapshotTx(tx, act.ProjectID)
+		if err != nil {
+			return err
+		}
+		plan := before.OpenActions()
+		at := -1
+		for i, o := range plan {
+			if o.ID == actionID {
+				at = i
+			}
+		}
+		to := at + delta
+		if at < 0 || to < 0 || to >= len(plan) {
+			return nil
+		}
+		order := make([]int64, len(plan))
+		for i, o := range plan {
+			order[i] = o.ID
+		}
+		order[at], order[to] = order[to], order[at]
+		return a.writeOrderTx(tx, before, order)
+	})
+}
+
+// ReorderActions puts a project's open actions in the order given, which has
+// to name every one of them exactly once: it is what a drag hands back, the
+// whole list as it now stands. Anything else is a page drawn before the plan
+// changed, and is refused rather than half applied.
+func (a *App) ReorderActions(projectID int64, order []int64) error {
+	return a.tx(func(tx *sql.Tx) error {
+		before, err := a.planSnapshotTx(tx, projectID)
+		if err != nil {
+			return err
+		}
+		plan := before.OpenActions()
+		if len(order) != len(plan) {
+			return ErrStalePlan
+		}
+		have := map[int64]bool{}
+		for _, o := range plan {
+			have[o.ID] = true
+		}
+		for _, id := range order {
+			if !have[id] {
+				return ErrStalePlan
+			}
+			delete(have, id)
+		}
+		return a.writeOrderTx(tx, before, order)
+	})
+}
+
+// planSnapshotTx is the open project with its actions, which is both what a
+// reorder works from and what its audit entry keeps: the order as it was.
+func (a *App) planSnapshotTx(tx *sql.Tx, projectID int64) (*Project, error) {
+	p, err := a.openProjectRowTx(tx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if p.Actions, err = a.projectActionsTx(tx, projectID); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// writeOrderTx gives the open actions named in order the positions they
+// already hold between them, smallest first. Reusing the same numbers rather
+// than counting from 1 leaves every completed action exactly where it was,
+// which matters for the one way back into the plan: an action brought back
+// from done returns to the place it was done from. An order that is the one
+// already standing writes nothing and is not audited, so it is no undo step.
+func (a *App) writeOrderTx(tx *sql.Tx, before *Project, order []int64) error {
+	plan := before.OpenActions()
+	slots := make([]int64, len(plan))
+	for i, o := range plan {
+		slots[i] = o.Position
+	}
+	sort.Slice(slots, func(i, j int) bool { return slots[i] < slots[j] })
+	// two rows can share a position only in a database written by hand; the
+	// slots are spread apart so that the order written is the order read
+	for i := 1; i < len(slots); i++ {
+		if slots[i] <= slots[i-1] {
+			slots[i] = slots[i-1] + 1
+		}
+	}
+	changed := false
+	for i, id := range order {
+		if plan[i].ID != id || plan[i].Position != slots[i] {
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+	for i, id := range order {
+		if _, err := tx.Exec(`UPDATE actions SET position=? WHERE id=?`, slots[i], id); err != nil {
+			return err
+		}
+	}
+	return a.audit(tx, EvReordered, "project", before.ID, before)
 }

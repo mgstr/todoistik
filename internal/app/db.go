@@ -105,7 +105,8 @@ CREATE TABLE IF NOT EXISTS actions (
 	became_next_at TEXT,
 	snooze_until TEXT NOT NULL DEFAULT '',
 	snooze_action_id INTEGER REFERENCES actions(id) ON DELETE SET NULL,
-	completed_at TEXT
+	completed_at TEXT,
+	position INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS tags (name TEXT PRIMARY KEY) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS item_tags (
@@ -222,6 +223,24 @@ func (a *App) migrate() error {
 			REFERENCES actions(id) ON DELETE SET NULL`); err != nil {
 			return err
 		}
+	}
+	// A project's actions are in an order you put them in (design.md, "The
+	// order of a plan is yours"). Until the column existed the order was the
+	// order of writing, which is the id — so that is what every action is
+	// given, and a plan reads exactly as it did the moment before. Only the
+	// zeros are filled, which makes the step a no-op the second time: a row
+	// written since is given the next position by insertActionTx and is never 0.
+	has, err = a.hasColumn("actions", "position")
+	if err != nil {
+		return err
+	}
+	if !has {
+		if _, err := a.db.Exec(`ALTER TABLE actions ADD COLUMN position INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+	if _, err := a.db.Exec(`UPDATE actions SET position = id WHERE position = 0`); err != nil {
+		return err
 	}
 	// #parked is gone, and with it the one meaning an empty became_next_at
 	// had. Every action became available to be worked on when it was written;

@@ -2,7 +2,10 @@
 // store they live in, and every operation the UI and APIs perform on them.
 package app
 
-import "time"
+import (
+	"sort"
+	"time"
+)
 
 // Dates that mean a calendar day (due, snooze, schedule occurrences) are
 // "YYYY-MM-DD" strings, "" meaning unset. Timestamps are time.Time in UTC.
@@ -99,6 +102,10 @@ type Action struct {
 	SnoozeActionID    int64      `json:"snoozeActionId,omitempty"`
 	SnoozeActionTitle string     `json:"snoozeActionTitle,omitempty"` // derived, for reading and writing the line
 	CompletedAt       *time.Time `json:"completedAt,omitempty"`
+	// Position is where the action sits in its project's plan, smallest first.
+	// It is an order and not a rank: the numbers have gaps and mean nothing
+	// apart from each other (design.md, "The order of a plan is yours").
+	Position int64 `json:"position,omitempty"`
 }
 
 // IsOpen reports work still in hand: not completed. It is what keeps a project
@@ -196,54 +203,33 @@ func (p *Project) ComputeStalled(today string) bool {
 	return true
 }
 
-// ActionNode is one line of a project's action list: the action, and how deep
-// it sits under whatever it is waiting on.
-type ActionNode struct {
-	*Action
-	Depth int `json:"depth,omitempty"`
-}
+// Plan is what the project still has to do, in the order it was put in: the
+// open actions, by position (design.md, "The order of a plan is yours"). It
+// is a flat list and that is deliberate — an action waiting on a sibling says
+// so with its badge, and indenting it under that sibling would be a second
+// order fighting the one you set by hand.
+func (p *Project) Plan() []*Action { return p.OpenActions() }
 
-// ActionTree is the project's action list ordered so that an action waiting on
-// a sibling is drawn directly under it, one level in. The plan is read to see
-// what comes before what, and a dependency written as a flat badge made that
-// order something you had to reconstruct by eye; nesting says it by shape.
-//
-// Depth is capped at what the cycle check guarantees — the graph is a forest,
-// since an action waits on at most one other and never on itself — so this
-// walk terminates without needing a visited set. Anything whose blocker is not
-// in the list (it has left the project, or the list is a filtered one) is
-// drawn as a root, because a line with nothing above it is still a line.
-func (p *Project) ActionTree() []ActionNode {
-	children := map[int64][]*Action{}
-	present := map[int64]bool{}
+// Finished is what the project has done, the most recent first. It is a
+// record and not a plan, so it is read the way a record is: what just
+// happened is the line you are most likely to be looking for (design.md,
+// "Completed actions are a record, newest first").
+func (p *Project) Finished() []*Action {
+	var done []*Action
 	for _, a := range p.Actions {
-		present[a.ID] = true
-	}
-	var roots []*Action
-	for _, a := range p.Actions {
-		if a.SnoozeActionID != 0 && present[a.SnoozeActionID] {
-			children[a.SnoozeActionID] = append(children[a.SnoozeActionID], a)
-			continue
-		}
-		roots = append(roots, a)
-	}
-	out := make([]ActionNode, 0, len(p.Actions))
-	var walk func(act *Action, depth int)
-	walk = func(act *Action, depth int) {
-		out = append(out, ActionNode{Action: act, Depth: depth})
-		for _, c := range children[act.ID] {
-			walk(c, depth+1)
+		if a.CompletedAt != nil {
+			done = append(done, a)
 		}
 	}
-	for _, r := range roots {
-		walk(r, 0)
-	}
-	return out
+	sort.SliceStable(done, func(i, j int) bool {
+		return done[i].CompletedAt.After(*done[j].CompletedAt)
+	})
+	return done
 }
 
 // NextAction is the project's one next action: the action it has been pointed
 // at while that action can still be it, and otherwise the first open, unsnoozed
-// action in ActionTree order. Nil when every open action is snoozed, and nil
+// action in the plan's order. Nil when every open action is snoozed, and nil
 // when nothing is open at all — which is the stalled project.
 //
 // Derived on every read, and that is the point of it. The pointing is stored,
@@ -266,9 +252,9 @@ func (p *Project) NextAction(today string) *Action {
 			}
 		}
 	}
-	for _, n := range p.ActionTree() {
-		if canBeNext(n.Action, today) {
-			return n.Action
+	for _, act := range p.Plan() {
+		if canBeNext(act, today) {
+			return act
 		}
 	}
 	return nil
@@ -282,32 +268,9 @@ func canBeNext(act *Action, today string) bool {
 	return act.CompletedAt == nil && !act.IsSnoozed(today)
 }
 
-// RestTree is the plan without the line the next action is on: what a
-// project's page lists under "More actions", the action shown open above it
-// having been lifted out.
-//
-// The depths are the plan's own, untouched. Anything that was waiting on the
-// next action stays one level in, and it still reads correctly, because what
-// it is indented under is directly above the list — the open boxes. Re-rooting
-// those rows would say they wait on nothing, which is the one thing the shape
-// exists to say.
-func (p *Project) RestTree(today string) []ActionNode {
-	next := p.NextAction(today)
-	if next == nil {
-		return p.ActionTree()
-	}
-	full := p.ActionTree()
-	out := make([]ActionNode, 0, len(full))
-	for _, n := range full {
-		if n.Action.ID != next.ID {
-			out = append(out, n)
-		}
-	}
-	return out
-}
-
 // OpenActions is everything the project still holds, next or not — what the
-// stalled check counts and what refuses to let the project be completed.
+// stalled check counts and what refuses to let the project be completed. In
+// the plan's order, because p.Actions is loaded in it.
 func (p *Project) OpenActions() []*Action {
 	var open []*Action
 	for _, a := range p.Actions {
@@ -363,6 +326,12 @@ const (
 	EvDeleted     = "deleted"
 	EvDetached    = "detached"
 	EvPromoted    = "promoted"
+	// EvReordered is a project whose plan was put in a different order — one
+	// row moved by a key, or the list dragged into a new shape. It is on the
+	// project and not on the actions, because the order is the project's claim
+	// about its plan and none of the actions changed (design.md, "The order of
+	// a plan is yours").
+	EvReordered = "reordered"
 	// The reference branch's old event, from when the material left the app
 	// and the app kept none of it. Nothing writes it any more — the branch
 	// makes a reference item now and says so, as EvBecameReference — but an
